@@ -39,12 +39,15 @@ export function mount(node) {
   root.appendChild(node);
 }
 
-// A stat bar (hp/shield) with fill.
-export function bar(cur, max, kind) {
+// A stat bar (hp/shield) with fill and an always-visible icon + number.
+export function bar(cur, max, kind, icon = '') {
   const pct = max > 0 ? Math.max(0, Math.min(100, (cur / max) * 100)) : 0;
   return el('div', { class: `bar bar-${kind}` }, [
     el('div', { class: 'bar-fill', style: `width:${pct}%` }),
-    el('span', { class: 'bar-label', text: `${Math.max(0, Math.round(cur))}/${Math.round(max)}` }),
+    el('span', { class: 'bar-label' }, [
+      icon ? el('span', { class: 'bar-ico', text: icon }) : null,
+      el('span', { class: 'bar-num', text: `${Math.max(0, Math.round(cur))} / ${Math.round(max)}` }),
+    ]),
   ]);
 }
 
@@ -94,14 +97,16 @@ export function statBlockHtml(ship, { isEnemy = false } = {}) {
 }
 
 // A ship card used in combat/fleet: canvas sprite + name + hp/shield bars + effects.
-export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = null, selectable = false } = {}) {
-  const card = el('div', { class: `ship-card ${isEnemy ? 'enemy' : 'ally'} ${ship.flagship ? 'flagship' : ''} ${selectable ? 'selectable' : ''}` });
+export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = null, selectable = false, combat = false } = {}) {
+  const damaged = 1 - Math.max(0, ship.hp) / ship.maxHp;
+  const card = el('div', {
+    class: `ship-card ${isEnemy ? 'enemy' : 'ally'} ${ship.flagship ? 'flagship' : ''} ${selectable ? 'selectable' : ''} ${damaged > 0.6 && ship.hp > 0 ? 'smoking' : ''}`,
+    attrs: { 'data-iid': ship.iid },
+  });
   if (ship.hp <= 0) card.classList.add('dead');
 
   const canvas = el('canvas', { class: 'ship-canvas' });
   canvas.width = 110; canvas.height = 90;
-  const type = isEnemy ? (ship.def?.type || ship.def?.tier || 'frigate') : ship.def.type;
-  const damaged = 1 - Math.max(0, ship.hp) / ship.maxHp;
   drawShip(canvas, {
     type: isEnemy ? enemyTemplate(ship.def) : ship.def.type,
     color: ship.color || ship.def.color || '#c9a24b',
@@ -109,11 +114,16 @@ export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = n
     facing: isEnemy ? -1 : 1,
     damaged,
   });
-  card.appendChild(canvas);
+  // Water stage: ship floats on an animated waterline with a wake reflection.
+  const stage = el('div', { class: `ship-stage ${combat ? 'in-combat' : ''}` }, [
+    canvas,
+    combat ? el('div', { class: 'wake' }) : null,
+  ]);
+  card.appendChild(stage);
 
   card.appendChild(el('div', { class: 'ship-name', text: (ship.name || locName(ship.def)) + (ship.flagship ? ' ★' : '') }));
-  const bars = el('div', { class: 'ship-bars' }, [bar(ship.hp, ship.maxHp, 'hp')]);
-  if (ship.maxShield > 0) bars.appendChild(bar(ship.shield, ship.maxShield, 'shield'));
+  const bars = el('div', { class: 'ship-bars' }, [bar(ship.hp, ship.maxHp, 'hp', '❤️')]);
+  if (ship.maxShield > 0) bars.appendChild(bar(ship.shield, ship.maxShield, 'shield', '🛡️'));
   card.appendChild(bars);
   card.appendChild(effectChips(ship));
 

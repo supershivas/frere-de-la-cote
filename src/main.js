@@ -5,6 +5,7 @@ import { state } from './state.js';
 import { go, currentScreen } from './nav.js';
 import { initDebug } from './debug.js';
 import { startOcean } from './ocean.js';
+import { initFx } from './fx.js';
 import { openPause, closePause, isPauseOpen } from './pause.js';
 
 // Register screens (side-effect imports).
@@ -41,6 +42,7 @@ async function boot() {
   const ocean = document.getElementById('ocean');
   if (ocean) startOcean(ocean);
 
+  initFx();
   initDebug();
   bindGlobalKeys();
 

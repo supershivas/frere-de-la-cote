@@ -1,0 +1,224 @@
+// Combat visual effects: muzzle flashes, flying cannonballs, impact explosions,
+// smoke, screen shake and floating damage numbers. Rendered on a full-screen
+// canvas overlay (pointer-events: none) that survives screen re-renders.
+
+let canvas, ctx, domLayer, shakeEl;
+let W = 0, H = 0, dpr = 1;
+let particles = [];
+let running = false;
+let last = 0;
+let shake = { t: 0, dur: 0, mag: 0 };
+
+export function initFx() {
+  if (canvas) return;
+  canvas = document.createElement('canvas');
+  canvas.id = 'fx-layer';
+  document.body.appendChild(canvas);
+  ctx = canvas.getContext('2d');
+  domLayer = document.createElement('div');
+  domLayer.id = 'fx-dom';
+  document.body.appendChild(domLayer);
+  shakeEl = document.getElementById('app');
+  resize();
+  window.addEventListener('resize', resize);
+  running = true;
+  last = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function resize() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function loop(now) {
+  const dt = Math.min(50, now - last) / 1000;
+  last = now;
+  ctx.clearRect(0, 0, W, H);
+  for (const p of particles) {
+    p.life -= dt;
+    p.update(dt);
+    if (p.life <= 0 && p.onImpact && !p._impacted) { p._impacted = true; p.onImpact(); }
+    p.draw(ctx);
+  }
+  particles = particles.filter((p) => p.life > 0);
+
+  // Screen shake decay.
+  if (shake.t > 0) {
+    shake.t -= dt;
+    const k = Math.max(0, shake.t / shake.dur);
+    const m = shake.mag * k;
+    const x = (Math.random() * 2 - 1) * m;
+    const y = (Math.random() * 2 - 1) * m;
+    if (shakeEl) shakeEl.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    if (shake.t <= 0 && shakeEl) shakeEl.style.transform = '';
+  }
+  if (running) requestAnimationFrame(loop);
+}
+
+// ---- helpers ----
+function centerOf(iid) {
+  const eln = document.querySelector(`.ship-card[data-iid="${CSS.escape(String(iid))}"]`);
+  if (!eln) return null;
+  const r = eln.getBoundingClientRect();
+  const cv = eln.querySelector('.ship-canvas');
+  const cr = cv ? cv.getBoundingClientRect() : r;
+  return { x: cr.left + cr.width / 2, y: cr.top + cr.height / 2, el: eln, rect: r };
+}
+
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+// ---- particle factories ----
+function spark(x, y, vx, vy, color, life, size) {
+  particles.push({
+    x, y, vx, vy, life, max: life, color, size,
+    update(dt) { this.x += this.vx * dt; this.y += this.vy * dt; this.vy += 260 * dt; this.vx *= 0.98; },
+    draw(c) { c.globalAlpha = Math.max(0, this.life / this.max); c.fillStyle = this.color; c.fillRect(this.x, this.y, this.size, this.size); c.globalAlpha = 1; },
+  });
+}
+
+function smoke(x, y, vx, vy, life, size, tint = '90,90,90') {
+  particles.push({
+    x, y, vx, vy, life, max: life, size, tint,
+    update(dt) { this.x += this.vx * dt; this.y += this.vy * dt; this.vy -= 12 * dt; this.size += 22 * dt; this.vx *= 0.96; },
+    draw(c) { const a = Math.max(0, this.life / this.max) * 0.5; c.globalAlpha = a; c.fillStyle = `rgb(${this.tint})`; c.beginPath(); c.arc(this.x, this.y, this.size, 0, 7); c.fill(); c.globalAlpha = 1; },
+  });
+}
+
+function ring(x, y, color, life, maxR) {
+  particles.push({
+    x, y, life, max: life, color, maxR,
+    update() {},
+    draw(c) { const k = 1 - this.life / this.max; c.globalAlpha = Math.max(0, this.life / this.max); c.strokeStyle = this.color; c.lineWidth = 3; c.beginPath(); c.arc(this.x, this.y, this.maxR * k, 0, 7); c.stroke(); c.globalAlpha = 1; },
+  });
+}
+
+function flash(x, y, r, color, life) {
+  particles.push({
+    x, y, r, life, max: life, color,
+    update() {},
+    draw(c) { const a = Math.max(0, this.life / this.max); c.globalAlpha = a; const g = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r); g.addColorStop(0, this.color); g.addColorStop(1, 'transparent'); c.fillStyle = g; c.beginPath(); c.arc(this.x, this.y, this.r, 0, 7); c.fill(); c.globalAlpha = 1; },
+  });
+}
+
+// ---- public effects ----
+export function fxScreenShake(mag = 8, dur = 0.35) {
+  shake = { t: dur, dur, mag };
+}
+
+export function fxFloatText(x, y, text, cls = '') {
+  if (!domLayer) return;
+  const s = document.createElement('div');
+  s.className = `fx-float ${cls}`;
+  s.textContent = text;
+  s.style.left = x + 'px';
+  s.style.top = y + 'px';
+  domLayer.appendChild(s);
+  setTimeout(() => s.remove(), 1100);
+}
+
+const AMMO_COLORS = {
+  classic: '#ffd27f', explosive: '#ff9a3c', incendiary: '#ff5a2c',
+  chain: '#bcd0e0', harpoon: '#e0c080',
+};
+
+export function fxExplosion(x, y, { scale = 1, color = '#ff9a3c' } = {}) {
+  flash(x, y, 42 * scale, 'rgba(255,220,150,0.9)', 0.18);
+  ring(x, y, color, 0.4, 46 * scale);
+  for (let i = 0; i < 14 * scale; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = rand(80, 260) * scale;
+    spark(x, y, Math.cos(a) * sp, Math.sin(a) * sp, i % 2 ? color : '#ffe6a0', rand(0.3, 0.6), rand(2, 4));
+  }
+  for (let i = 0; i < 4 * scale; i++) smoke(x + rand(-8, 8), y + rand(-8, 8), rand(-20, 20), rand(-30, -10), rand(0.6, 1.1), rand(6, 12));
+}
+
+// Fire a cannon shot from attacker to target. Fire-and-forget visual.
+export function fxCannon(fromIid, toIid, { ammo = 'classic', hit = true, damage = 0, absorbed = 0, killed = false } = {}) {
+  const from = centerOf(fromIid);
+  const to = centerOf(toIid);
+  if (!from || !to) {
+    // Fallback: still show the number on the target if we can locate it.
+    if (to) fxImpact(to, { ammo, hit, damage, absorbed, killed });
+    return;
+  }
+  const color = AMMO_COLORS[ammo] || '#ffd27f';
+  const dir = Math.atan2(to.y - from.y, to.x - from.x);
+  const muzzleX = from.x + Math.cos(dir) * 42;
+  const muzzleY = from.y + Math.sin(dir) * 20;
+
+  // Muzzle flash + smoke.
+  flash(muzzleX, muzzleY, 20, 'rgba(255,230,170,0.95)', 0.14);
+  for (let i = 0; i < 4; i++) smoke(muzzleX, muzzleY, Math.cos(dir) * rand(20, 60), Math.sin(dir) * rand(20, 60) - 10, rand(0.4, 0.8), rand(4, 8));
+  for (let i = 0; i < 5; i++) spark(muzzleX, muzzleY, Math.cos(dir + rand(-0.4, 0.4)) * rand(120, 240), Math.sin(dir + rand(-0.4, 0.4)) * rand(120, 240), color, rand(0.15, 0.3), 2);
+
+  // Projectile.
+  const dist = Math.hypot(to.x - from.x, to.y - from.y);
+  const dur = Math.min(0.5, 0.12 + dist / 1400);
+  const nBalls = ammo === 'chain' ? 2 : 1;
+  for (let b = 0; b < nBalls; b++) {
+    const offset = (b - (nBalls - 1) / 2) * 8;
+    const px0 = muzzleX, py0 = muzzleY + offset;
+    const px1 = to.x, py1 = to.y + offset;
+    particles.push({
+      x: px0, y: py0, life: dur, max: dur, color,
+      update(dt) {
+        const k = 1 - this.life / this.max;
+        this.x = px0 + (px1 - px0) * k;
+        this.y = py0 + (py1 - py0) * k - Math.sin(k * Math.PI) * 18; // slight arc
+        if (Math.random() < 0.6) smoke(this.x, this.y, rand(-10, 10), rand(-10, 10), 0.3, 3, '120,120,120');
+      },
+      draw(c) {
+        c.fillStyle = ammo === 'harpoon' ? '#d9c07a' : '#20232a';
+        c.beginPath();
+        if (ammo === 'harpoon') { c.save(); c.translate(this.x, this.y); c.rotate(dir); c.fillRect(-6, -1.5, 12, 3); c.restore(); }
+        else { c.arc(this.x, this.y, ammo === 'explosive' ? 5 : 4, 0, 7); c.fill(); c.strokeStyle = color; c.lineWidth = 1; c.stroke(); }
+      },
+      onImpact: b === nBalls - 1 ? () => fxImpact(to, { ammo, hit, damage, absorbed, killed }) : null,
+      _impacted: false,
+    });
+  }
+}
+
+function fxImpact(to, { ammo, hit, damage, absorbed, killed }) {
+  const color = AMMO_COLORS[ammo] || '#ff9a3c';
+  if (!hit) {
+    // Splash miss: little water plume + MISS text.
+    for (let i = 0; i < 6; i++) spark(to.x + rand(-10, 10), to.y + 20, rand(-40, 40), rand(-120, -40), '#8fd0e8', rand(0.3, 0.5), 3);
+    fxFloatText(to.x, to.y - 10, 'MISS', 'miss');
+    return;
+  }
+  const scale = ammo === 'explosive' ? 1.5 : (killed ? 1.6 : 1);
+  fxExplosion(to.x, to.y, { scale, color });
+  if (ammo === 'incendiary') for (let i = 0; i < 8; i++) spark(to.x, to.y, rand(-60, 60), rand(-140, -30), '#ff5a2c', rand(0.4, 0.8), 3);
+  fxScreenShake(killed ? 12 : (ammo === 'explosive' ? 9 : 6), killed ? 0.5 : 0.3);
+  if (damage > 0) fxFloatText(to.x, to.y - 12, `-${damage}`, killed ? 'kill' : 'dmg');
+  else if (absorbed > 0) fxFloatText(to.x, to.y - 12, `-${absorbed}🛡️`, 'shield');
+  if (killed) { setTimeout(() => fxExplosion(to.x, to.y, { scale: 2, color: '#ffcf6a' }), 120); fxScreenShake(14, 0.55); }
+}
+
+// Secondary explosion on a ship (e.g. explosive splash) by ship id.
+export function fxSplash(iid, damage = 0, killed = false) {
+  const p = centerOf(iid); if (!p) return;
+  fxExplosion(p.x, p.y, { scale: killed ? 1.4 : 0.9, color: '#ffb14a' });
+  fxScreenShake(killed ? 10 : 5, 0.28);
+  if (damage > 0) fxFloatText(p.x, p.y - 12, `-${damage}`, killed ? 'kill' : 'dmg');
+}
+
+// Repair sparkle burst.
+export function fxHeal(iid) {
+  const p = centerOf(iid); if (!p) return;
+  for (let i = 0; i < 12; i++) spark(p.x + rand(-18, 18), p.y + 20, rand(-20, 20), rand(-120, -40), '#7fe0a0', rand(0.5, 0.9), 3);
+  ring(p.x, p.y, '#7fe0a0', 0.5, 40);
+  fxFloatText(p.x, p.y - 12, '+♥', 'heal');
+}
+
+// Shield brace shimmer.
+export function fxBrace(iid) {
+  const p = centerOf(iid); if (!p) return;
+  ring(p.x, p.y, '#7ab8f0', 0.5, 44);
+  flash(p.x, p.y, 30, 'rgba(120,184,240,0.5)', 0.3);
+}

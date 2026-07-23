@@ -12,6 +12,7 @@ import { toast, toastSuccess, toastDanger, toastInfo } from './toast.js';
 import { getAbility } from './abilities.js';
 import { attachTooltip } from './tooltip.js';
 import { modal } from './ui.js';
+import { fxCannon, fxSplash, fxHeal, fxBrace, fxScreenShake } from './fx.js';
 
 let C = null; // active combat controller
 
@@ -127,12 +128,16 @@ function attack(attacker, target, ammoId, { damageMult = 1, ignoreEvasionPct = 0
   if (!hit) {
     C.log(`${log.attacker} → ${log.target}: ${t('intent')} ✗`);
     flashCard(target, 'miss');
+    fxCannon(attacker.iid, target.iid, { ammo: ammoId, hit: false });
     return log;
   }
   const fleetMult = attacker.isEnemy ? 1 : mods.fleetDamageMult;
   const raw = attacker.damage * (ammo.damageMult || 1) * damageMult * fleetMult * moraleFactor(attacker) * (attacker.damageMult || 1);
   const res = dealDamage(attacker, target, raw);
   flashCard(target, 'hit');
+  fxCannon(attacker.iid, target.iid, {
+    ammo: ammoId, hit: true, damage: res.hullDamage, absorbed: res.absorbed, killed: target.hp <= 0,
+  });
 
   // Ammo side-effects.
   if (ammo.applyFire) addEffect(target, { type: 'fire', amount: ammo.applyFire.amount, turns: ammo.applyFire.turns });
@@ -153,6 +158,7 @@ function attack(attacker, target, ammoId, { damageMult = 1, ignoreEvasionPct = 0
       flashCard(nb, 'hit');
       C.log(`  ↳ ${nb.name || locName(nb.def)}: −${sres.hullDamage}`);
       checkDeath(nb);
+      fxSplash(nb.iid, sres.hullDamage, nb.hp <= 0);
     }
   }
 
@@ -302,6 +308,7 @@ function decideIntent(enemy) {
         }
         toastInfo(locField(ph, 'name'), '👑');
         C.log(`👑 ${locField(ph, 'name')}`);
+        fxScreenShake(16, 0.6);
       }
     }
   }
@@ -341,6 +348,7 @@ function executeEnemy(enemy) {
   if (intent.type === 'defend') {
     enemy.shield = enemy.maxShield;
     addEffect(enemy, { type: 'braced', turns: 1, armor: 10 });
+    fxBrace(enemy.iid);
     C.log(`${enemy.name}: ${t('intent_defend')}`);
     render();
     return setTimeout(advance, 600);
@@ -360,7 +368,7 @@ function executeEnemy(enemy) {
     }
   }
   render();
-  setTimeout(advance, 650);
+  setTimeout(advance, 820);
 }
 
 // ---- Player actions ----
@@ -390,6 +398,7 @@ function playerAbility(target) {
       ship.shield = ship.maxShield;
       addEffect(ship, { type: 'braced', turns: 1, armor: 20 });
       C.log(`${ship.name || locName(ship.def)}: ${t('ability_reinforce')}`);
+      fxBrace(ship.iid);
       break;
     case 'kraken_shot':
       attack(ship, target, 'classic', { damageMult: 2.0 });
@@ -418,6 +427,7 @@ function playerRepair() {
   ship.hp = Math.min(ship.maxHp, ship.hp + heal);
   C.log(`🔧 ${ship.name || locName(ship.def)}: +${heal} ${t('stat_hp')}`);
   toastSuccess(`+${heal} ${t('stat_hp')}`, '🔧');
+  fxHeal(ship.iid);
   finishPlayerAction();
 }
 
@@ -426,6 +436,7 @@ function playerDefend() {
   ship.shield = ship.maxShield;
   addEffect(ship, { type: 'braced', turns: 1, armor: 8 });
   C.log(`🛡️ ${ship.name || locName(ship.def)}: ${t('action_defend')}`);
+  fxBrace(ship.iid);
   finishPlayerAction();
 }
 
@@ -433,7 +444,7 @@ function finishPlayerAction() {
   C.active._pendingAbility = null;
   C.targeting = null;
   render();
-  setTimeout(advance, 450);
+  setTimeout(advance, 650);
 }
 
 function tryFlee() {
@@ -449,6 +460,7 @@ function render() {
     const intentNode = e.hp > 0 ? intentBadge(e) : null;
     const card = shipCard(e, {
       isEnemy: true,
+      combat: true,
       showIntent: intentNode,
       selectable: C.targeting === 'enemy' && e.hp > 0,
       onClick: C.targeting === 'enemy' ? (ship) => onTargetPicked(ship) : null,
@@ -461,6 +473,7 @@ function render() {
   C.allies.forEach((s) => {
     const card = shipCard(s, {
       isEnemy: false,
+      combat: true,
       selectable: C.targeting === 'ally' && s.hp > 0,
       onClick: C.targeting === 'ally' ? (ship) => onTargetPicked(ship) : null,
     });

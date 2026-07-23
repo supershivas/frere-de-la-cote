@@ -106,6 +106,7 @@ src/
   hud.js              Shared resource/act/relics/pause header
   sprites.js          Procedural pixel-art ship renderer (no image assets)
   ocean.js            Animated pixel ocean background
+  fx.js               Combat FX: cannonballs, explosions, shake, damage numbers
   toast.js            Stackable toast notifications (success / danger / info)
   tooltip.js          Cursor-following hover tooltips
   abilities.js        Ability metadata (ids → i18n keys + cooldowns)
@@ -131,6 +132,9 @@ src/
 - [x] Title screen + language toggle
 - [x] Procedurally generated branching map
 - [x] Turn-based naval combat with readable enemy intentions
+- [x] Juicy combat visuals: ships floating on animated water, cannon muzzle
+      flashes, flying cannonballs, impact explosions, smoke from damaged hulls,
+      screen shake and floating damage numbers
 - [x] 3 allied ship classes (Sloop, Frigate, Galleon) with unique abilities
 - [x] 5 base enemies + AI behaviours
 - [x] Mechanical Kraken boss (multi-phase, enrage)

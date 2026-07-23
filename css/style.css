@@ -234,11 +234,19 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .ship-name { font-size: 12px; font-weight: 700; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ship-bars { display: flex; flex-direction: column; gap: 3px; }
 
-.bar { position: relative; height: 14px; background: #0007; border-radius: 4px; overflow: hidden; border: 1px solid #0008; }
-.bar-fill { position: absolute; inset: 0; width: 0; transition: width 0.4s ease; }
-.bar-hp .bar-fill { background: linear-gradient(90deg, #d9534f, #f0806c); }
-.bar-shield .bar-fill { background: linear-gradient(90deg, #4a90d9, #7ab8f0); }
-.bar-label { position: relative; font-size: 10px; line-height: 14px; text-shadow: 0 1px 1px #000; font-weight: 700; }
+.bar { position: relative; height: 19px; background: #05070bcc; border-radius: 5px; overflow: hidden; border: 1px solid #000a; box-shadow: inset 0 1px 2px #000a; }
+.bar-fill { position: absolute; inset: 0; width: 0; transition: width 0.35s ease; border-radius: 5px 0 0 5px; }
+.bar-hp .bar-fill { background: linear-gradient(90deg, #b5352f, #f0806c); box-shadow: inset 0 0 8px #ff9a8a55; }
+.bar-shield .bar-fill { background: linear-gradient(90deg, #2f6fb5, #7ab8f0); box-shadow: inset 0 0 8px #9fd0ff55; }
+.bar-label {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 12px; line-height: 1; font-weight: 800;
+  color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  letter-spacing: 0.02em;
+}
+.bar-ico { font-size: 11px; filter: drop-shadow(0 1px 1px #000); }
+.bar-num { font-variant-numeric: tabular-nums; }
 
 .effects { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; margin-top: 4px; min-height: 18px; }
 .eff { font-size: 12px; background: #0006; border-radius: 4px; padding: 0 4px; cursor: help; }
@@ -503,6 +511,71 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
   padding: 3px 8px; border-radius: 4px; pointer-events: none;
 }
 .debug-on #app { outline: 1px dashed #3fae8644; outline-offset: -2px; }
+
+/* ---------- Combat visuals: water, floating ships, FX ---------- */
+.ship-stage { position: relative; width: 110px; height: 92px; margin: 0 auto; }
+.ship-stage .ship-canvas { position: relative; z-index: 2; margin: 0 auto; display: block; }
+
+/* The pool of water the ship sits in (combat only). */
+.ship-stage.in-combat::before {
+  content: ''; position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
+  width: 108px; height: 24px; border-radius: 50%; z-index: 1;
+  background: radial-gradient(ellipse at center, rgba(30,110,150,0.9), rgba(10,55,85,0.35) 68%, transparent 72%);
+}
+/* Animated ripple band across the waterline. */
+.ship-stage.in-combat::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 2px; height: 22px; z-index: 3;
+  background: repeating-linear-gradient(90deg, rgba(160,215,240,0.30) 0 5px, transparent 5px 13px);
+  -webkit-mask-image: linear-gradient(transparent, #000); mask-image: linear-gradient(transparent, #000);
+  animation: water-scroll 2.2s linear infinite; pointer-events: none;
+}
+@keyframes water-scroll { from { background-position: 0 0; } to { background-position: 26px 0; } }
+
+/* Ships bob on the swell. */
+.ship-stage.in-combat .ship-canvas { animation: bob-combat 2.8s ease-in-out infinite; transform-origin: 50% 80%; }
+.combat-row .ship-card:nth-child(2n) .ship-stage.in-combat .ship-canvas { animation-delay: -0.7s; animation-duration: 3.2s; }
+.combat-row .ship-card:nth-child(3n) .ship-stage.in-combat .ship-canvas { animation-delay: -1.4s; animation-duration: 2.5s; }
+@keyframes bob-combat { 0%,100% { transform: translateY(0) rotate(-1.6deg); } 50% { transform: translateY(-4px) rotate(1.6deg); } }
+
+.wake { position: absolute; left: 50%; bottom: 5px; transform: translateX(-50%); width: 68px; height: 8px; z-index: 1;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.28), transparent 70%); animation: wake-pulse 2.8s ease-in-out infinite; }
+@keyframes wake-pulse { 0%,100% { opacity: 0.3; width: 58px; } 50% { opacity: 0.6; width: 84px; } }
+
+/* Smoke pouring from badly damaged ships. */
+.ship-card.smoking::after {
+  content: ''; position: absolute; top: 8px; left: 52%; width: 13px; height: 13px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(50,50,50,0.75), transparent 70%);
+  animation: smoke-rise 1.7s ease-out infinite; pointer-events: none; z-index: 5;
+}
+.ship-card.smoking.ally::after { animation-delay: -0.8s; }
+@keyframes smoke-rise {
+  0% { transform: translate(-50%, 8px) scale(0.5); opacity: 0; }
+  25% { opacity: 0.75; }
+  100% { transform: translate(-50%, -26px) scale(1.7); opacity: 0; }
+}
+
+/* Hit / heal card flashes. */
+.ship-card.active-turn .ship-stage .ship-canvas { animation-duration: 1.8s; }
+
+/* FX overlay (cannonballs, explosions, sparks) + floating numbers. */
+#fx-layer { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+#fx-dom { position: fixed; inset: 0; z-index: 31; pointer-events: none; overflow: hidden; }
+.fx-float {
+  position: fixed; transform: translate(-50%, -50%);
+  font-weight: 900; font-size: 21px; color: #fff;
+  text-shadow: 0 2px 3px #000, 0 0 7px #000; pointer-events: none; white-space: nowrap;
+  animation: fx-float-up 1.05s ease-out forwards;
+}
+.fx-float.dmg { color: #ffd27f; }
+.fx-float.kill { color: #ff6a4a; font-size: 28px; }
+.fx-float.shield { color: #8fc4ff; }
+.fx-float.heal { color: #7fe0a0; }
+.fx-float.miss { color: #d3dbe2; font-size: 17px; letter-spacing: 0.1em; }
+@keyframes fx-float-up {
+  0% { opacity: 0; transform: translate(-50%, -20%) scale(0.6); }
+  18% { opacity: 1; transform: translate(-50%, -55%) scale(1.18); }
+  100% { opacity: 0; transform: translate(-50%, -165%) scale(1); }
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
