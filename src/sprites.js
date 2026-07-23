@@ -67,7 +67,6 @@ export const PART_LEGEND = [
   { ch: 'C', key: 'part_cannon' },
   { ch: 'E', key: 'part_eye' },
   { ch: 'T', key: 'part_tentacle' },
-  { ch: 'W', key: 'part_wave' },
   { ch: '.', key: 'part_empty' },
 ];
 
@@ -154,7 +153,7 @@ export function drawGrid(canvas, grid, { color = '#c9a24b', flag = '#b23b3b', fa
     for (let x = 0; x < cols; x++) {
       const cx = facing === 1 ? x : cols - 1 - x;
       const c = grid[y][cx];
-      if (!c || c === '.') continue;
+      if (!c || c === '.' || c === 'W') continue; // 'W' foam trim no longer drawn
       ctx.fillStyle = palette[c] || color;
       ctx.fillRect(ox + x * px, oy + y * px, px, px);
       if (c === 'H') { // top-edge highlight for depth

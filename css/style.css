@@ -208,15 +208,18 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .map-node.elite { border-color: #b06fd4; }
 
 /* ---------- Combat ---------- */
-.combat-screen { }
+/* No fade on combat re-renders — it caused a flash on every action/selection. */
+.combat-screen { animation: none; }
 .combat-arena { flex: 1; display: flex; flex-direction: column; padding: 10px; }
 
-/* Battlefield: allies LEFT, enemies RIGHT, turn info in the middle. */
+/* Battlefield: allies LEFT, enemies RIGHT, turn info in the middle. On wide
+   screens the two fleets sit near the centre rather than at the far edges. */
 .combat-field {
-  flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  gap: clamp(28px, 7vw, 150px);
 }
-.side { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
-.side-ships { display: flex; flex-direction: column; gap: 22px; justify-content: center; }
+.side { display: flex; flex-direction: column; gap: 6px; flex: 0 1 auto; min-width: 0; }
+.side-ships { display: flex; flex-direction: column; gap: 20px; justify-content: center; }
 .ally-side { align-items: flex-start; }
 .ally-side .side-ships { align-items: flex-start; }
 .enemy-side { align-items: flex-end; }
@@ -227,22 +230,25 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .battle-center { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 0 0 auto; }
 .battle-vs { font-size: 26px; opacity: 0.55; filter: drop-shadow(0 2px 3px #000); }
 
+/* Ship cards carry NO frame by default — only the selected / targetable /
+   acting ship is highlighted. */
 .ship-card {
   position: relative;
   width: 130px;
-  background: linear-gradient(180deg, #ffffff0a, #0003);
-  border: 2px solid var(--wood-light);
+  background: transparent;
+  border: 2px solid transparent;
   border-radius: 8px;
   padding: 6px;
   text-align: center;
   transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s;
 }
-.ship-card.enemy { border-color: #6a3535; }
-.ship-card.flagship { border-color: var(--gold); }
-.ship-card.selectable { cursor: pointer; border-color: var(--gold); box-shadow: 0 0 0 3px #e8c05a55; animation: node-pulse 1s infinite; }
+.ship-card.selectable { cursor: pointer; border-color: var(--gold); box-shadow: 0 0 0 3px #e8c05a55; animation: node-pulse 1s infinite; border-radius: 8px; }
 .ship-card.selectable:hover { transform: translateY(-4px) scale(1.04); }
-.ship-card.active-turn { box-shadow: 0 0 0 3px var(--gold), 0 0 18px #e8c05a66; border-color: var(--gold); }
-.ship-card.dead { opacity: 0.35; filter: grayscale(1); }
+.ship-card.clickable-active { cursor: pointer; }
+.ship-card.clickable-active:hover { transform: translateY(-3px); }
+.ship-card.active-turn { box-shadow: 0 0 0 3px var(--red), 0 0 18px #e05a4a55; border-color: var(--red); }
+.ship-card.acted { opacity: 0.5; }
+.ship-card.dead { opacity: 0.32; filter: grayscale(1); }
 .ship-canvas { display: block; margin: 0 auto; }
 .ship-name { font-size: 12px; font-weight: 700; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ship-bars { display: flex; flex-direction: column; gap: 3px; }
@@ -342,6 +348,12 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .ammo-label { font-size: 12px; color: var(--text-dim); }
 .ammo-btn { width: 34px; height: 34px; font-size: 16px; border-radius: 6px; border: 2px solid var(--wood-light); background: #0004; cursor: pointer; color: #fff; }
 .ammo-btn.active { border-color: var(--gold); background: #e8c05a22; }
+.ammo-block { display: flex; flex-direction: column; gap: 5px; width: 100%; }
+.ammo-info { background: #0004; border: 1px solid var(--wood-light); border-radius: 6px; padding: 5px 8px; }
+.ammo-info-top { font-size: 12px; color: var(--text); }
+.ammo-info-top b { color: var(--gold); }
+.ammo-info-detail { color: #f0c987; font-weight: 700; }
+.ammo-info-desc { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 .action-buttons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .action-btn { position: relative; flex-direction: column; gap: 2px; min-width: 74px; padding: 6px 10px; }
 .ab-icon { font-size: 18px; }
@@ -607,31 +619,13 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 /* ---------- Combat visuals: water, floating ships, FX ---------- */
 .ship-stage { position: relative; width: 110px; height: 92px; margin: 0 auto; }
 .ship-stage .ship-canvas { position: relative; z-index: 2; margin: 0 auto; display: block; }
+.wake { display: none; } /* foam removed */
 
-/* The pool of water the ship sits in (combat only). */
-.ship-stage.in-combat::before {
-  content: ''; position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
-  width: 108px; height: 24px; border-radius: 50%; z-index: 1;
-  background: radial-gradient(ellipse at center, rgba(30,110,150,0.9), rgba(10,55,85,0.35) 68%, transparent 72%);
-}
-/* Animated ripple band across the waterline. */
-.ship-stage.in-combat::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 2px; height: 22px; z-index: 3;
-  background: repeating-linear-gradient(90deg, rgba(160,215,240,0.30) 0 5px, transparent 5px 13px);
-  -webkit-mask-image: linear-gradient(transparent, #000); mask-image: linear-gradient(transparent, #000);
-  animation: water-scroll 2.2s linear infinite; pointer-events: none;
-}
-@keyframes water-scroll { from { background-position: 0 0; } to { background-position: 26px 0; } }
-
-/* Ships bob on the swell. */
+/* Ships bob gently on the swell (no water pool / foam under them). */
 .ship-stage.in-combat .ship-canvas { animation: bob-combat 2.8s ease-in-out infinite; transform-origin: 50% 80%; }
 .side-ships .ship-card:nth-child(2n) .ship-stage.in-combat .ship-canvas { animation-delay: -0.7s; animation-duration: 3.2s; }
 .side-ships .ship-card:nth-child(3n) .ship-stage.in-combat .ship-canvas { animation-delay: -1.4s; animation-duration: 2.5s; }
 @keyframes bob-combat { 0%,100% { transform: translateY(0) rotate(-1.6deg); } 50% { transform: translateY(-4px) rotate(1.6deg); } }
-
-.wake { position: absolute; left: 50%; bottom: 5px; transform: translateX(-50%); width: 68px; height: 8px; z-index: 1;
-  background: radial-gradient(ellipse at center, rgba(255,255,255,0.28), transparent 70%); animation: wake-pulse 2.8s ease-in-out infinite; }
-@keyframes wake-pulse { 0%,100% { opacity: 0.3; width: 58px; } 50% { opacity: 0.6; width: 84px; } }
 
 /* Smoke pouring from badly damaged ships. */
 .ship-card.smoking::after {

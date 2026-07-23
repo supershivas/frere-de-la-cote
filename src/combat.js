@@ -96,12 +96,13 @@ function effectiveArmor(ship) {
 }
 
 // Apply damage to a defender. Returns { hullDamage, absorbed, killed }.
+// Everything is integer-rounded so no fractional values ever reach the UI.
 function dealDamage(attacker, defender, raw) {
-  let dmg = Math.max(0, raw);
+  let dmg = Math.max(0, Math.round(raw));
   let absorbed = 0;
   if (defender.shield > 0) {
     absorbed = Math.min(defender.shield, dmg);
-    defender.shield -= absorbed;
+    defender.shield = Math.max(0, defender.shield - absorbed);
     dmg -= absorbed;
   }
   let hullDamage = 0;
@@ -277,49 +278,66 @@ function initCombat(opts) {
   startRound();
 }
 
+// Round structure: PLAYER PHASE first — the player activates each of their
+// ships once, in whatever order they choose — then the ENEMY PHASE.
 function startRound() {
   C.round++;
-  // Reset per-round speed (slow reapplied), decide enemy intents.
+  // Fire damage ticks once at the start of the round.
+  C.all().filter((s) => s.hp > 0).forEach(tickStartOfTurn);
+  if (checkEnd()) return;
+  // Enemies reveal their intentions for the coming round.
   C.enemies.filter((e) => e.hp > 0).forEach(decideIntent);
-  // Turn order by current speed, ties broken by allies first.
-  const actors = C.all().filter((s) => s.hp > 0);
-  actors.sort((a, b) => (b.speed - a.speed) || ((a.isEnemy ? 1 : 0) - (b.isEnemy ? 1 : 0)));
-  C.order = actors.map((s) => s.iid);
-  C.idx = -1;
+  // Reset who has acted; immobilized allies auto-skip their action.
+  C.allies.forEach((s) => { s.acted = s.hp <= 0; });
+  C.livingAllies().forEach((s) => {
+    if (isImmobile(s)) { s.acted = true; C.log(`${s.name || locName(s.def)}: ${t('eff_immobilized')}`); }
+  });
+  C.phase = 'player';
+  C.active = null;
+  C.menuOpen = false;
   render();
-  setTimeout(advance, 500);
+  if (allAlliesActed()) setTimeout(beginEnemyPhase, 400);
 }
 
-function advance() {
+function allAlliesActed() {
+  return C.livingAllies().every((s) => s.acted);
+}
+
+// Player clicks one of their un-acted ships to make it act.
+function selectAlly(ship) {
+  if (C.phase !== 'player' || C.targeting) return;
+  if (!ship || ship.hp <= 0 || ship.acted) return;
+  C.active = ship;
+  C.menuOpen = true;
+  render();
+}
+
+function beginEnemyPhase() {
   if (C.phase === 'done' || C._ended) return;
   if (checkEnd()) return;
-  C.idx++;
-  if (C.idx >= C.order.length) {
-    endRound();
-    return;
-  }
-  const actor = C.byIid(C.order[C.idx]);
-  if (!actor || actor.hp <= 0) return advance();
+  C.phase = 'enemy';
+  C.active = null;
+  C.menuOpen = false;
+  C.targeting = null;
+  C._enemyQueue = C.livingEnemies().sort((a, b) => b.speed - a.speed).map((e) => e.iid);
+  render();
+  setTimeout(nextEnemy, 500);
+}
 
-  C.active = actor;
-  tickStartOfTurn(actor);
-  if (actor.hp <= 0) { render(); return setTimeout(advance, 350); }
-
-  if (isImmobile(actor)) {
-    C.log(`${actor.name || locName(actor.def)}: ${t('eff_immobilized')}`);
+function nextEnemy() {
+  if (C.phase === 'done' || C._ended || checkEnd()) return;
+  const iid = C._enemyQueue.shift();
+  if (iid === undefined) { endRound(); return; }
+  const enemy = C.byIid(iid);
+  if (!enemy || enemy.hp <= 0) return nextEnemy();
+  C.active = enemy;
+  if (isImmobile(enemy)) {
+    C.log(`${enemy.name}: ${t('eff_immobilized')}`);
     render();
-    return setTimeout(advance, 500);
+    return setTimeout(nextEnemy, 450);
   }
-
-  if (actor.isEnemy) {
-    C.phase = 'enemy';
-    render();
-    setTimeout(() => executeEnemy(actor), 650);
-  } else {
-    C.phase = 'player';
-    C.menuOpen = false; // player must select the ship to open its menu
-    render();
-  }
+  render();
+  setTimeout(() => executeEnemy(enemy), 500);
 }
 
 function endRound() {
@@ -386,7 +404,7 @@ function decideIntent(enemy) {
 
 function executeEnemy(enemy) {
   const intent = enemy.intent;
-  if (!intent) return setTimeout(advance, 300);
+  if (!intent) return setTimeout(nextEnemy, 300);
   if (intent.type === 'defend') {
     enemy.shield = enemy.maxShield;
     commitShown(enemy);
@@ -394,11 +412,11 @@ function executeEnemy(enemy) {
     fxBrace(enemy.iid);
     C.log(`${enemy.name}: ${t('intent_defend')}`);
     render();
-    return setTimeout(advance, 600);
+    return setTimeout(nextEnemy, 600);
   }
   let target = C.byIid(intent.target);
   if (!target || target.hp <= 0) target = C.livingAllies()[0];
-  if (!target) return setTimeout(advance, 300);
+  if (!target) return setTimeout(nextEnemy, 300);
 
   const hits = intent.hits || 1;
   for (let i = 0; i < hits; i++) {
@@ -411,7 +429,7 @@ function executeEnemy(enemy) {
     }
   }
   render();
-  setTimeout(advance, 820);
+  setTimeout(nextEnemy, 820);
 }
 
 // ---- Player actions ----
@@ -487,11 +505,16 @@ function playerDefend() {
 }
 
 function finishPlayerAction() {
-  C.active._pendingAbility = null;
+  const ship = C.active;
+  if (ship) { ship._pendingAbility = null; ship.acted = true; }
+  C.active = null;
   C.targeting = null;
   C.menuOpen = false; // close the popover after acting
   render();
-  setTimeout(advance, 650);
+  // The action may have destroyed the last enemy — end the battle immediately.
+  if (checkEnd()) return;
+  // Once every living ally has acted, the enemy phase begins.
+  if (allAlliesActed()) setTimeout(beginEnemyPhase, 500);
 }
 
 function tryFlee() {
@@ -502,25 +525,27 @@ function tryFlee() {
 
 // ---- Rendering ----
 function render() {
-  // Allied fleet — always on the LEFT, facing right.
+  // Allied fleet — always on the LEFT, facing right. During the player phase the
+  // player clicks any un-acted ship (in any order) to make it act.
   const allyCol = el('div', { class: 'side-ships' });
   C.allies.forEach((s) => {
-    const active = isActivePlayerShip(s);
-    const clickForMenu = active && !C.targeting;
+    const isSelected = C.active === s && C.phase === 'player';
+    const canAct = C.phase === 'player' && !C.targeting && s.hp > 0 && !s.acted;
     const card = shipCard(s, {
       isEnemy: false,
       combat: true,
       selectable: C.targeting === 'ally' && s.hp > 0,
       onClick: (C.targeting === 'ally' && s.hp > 0)
         ? (ship) => onTargetPicked(ship)
-        : (clickForMenu ? () => { C.menuOpen = !C.menuOpen; render(); } : null),
+        : (canAct
+          ? () => { if (C.active === s) { C.active = null; C.menuOpen = false; render(); } else selectAlly(s); }
+          : null),
     });
-    if (clickForMenu) card.classList.add('clickable-active');
-    if (C.active === s) card.classList.add('active-turn');
-    if (active) card.classList.add('is-selected');
-    // Prompt the player to click the active ship to open its menu.
-    if (active && !C.menuOpen && !C.targeting) {
-      card.classList.add('awaiting');
+    if (isSelected) card.classList.add('is-selected');
+    if (s.acted && s.hp > 0) card.classList.add('acted');
+    // Prompt the player to click an un-acted ship to make it act.
+    if (canAct && !isSelected) {
+      card.classList.add('clickable-active', 'awaiting');
       card.appendChild(el('div', { class: 'act-hint', text: `👆 ${t('click_to_act')}` }));
     }
     allyCol.appendChild(card);
@@ -537,7 +562,7 @@ function render() {
       selectable: C.targeting === 'enemy' && e.hp > 0,
       onClick: C.targeting === 'enemy' ? (ship) => onTargetPicked(ship) : null,
     });
-    if (C.active === e) card.classList.add('active-turn');
+    if (C.active === e && C.phase === 'enemy') card.classList.add('active-turn');
     enemyCol.appendChild(card);
   });
 
@@ -641,6 +666,16 @@ function isActivePlayerShip(s) {
   return C.phase === 'player' && C.active === s && !C.active.isEnemy;
 }
 
+// Compact mechanical summary of an ammo type (damage %, effects, duration).
+function ammoDetail(a) {
+  const parts = [`💥 ${Math.round((a.damageMult || 1) * 100)}%`];
+  if (a.splash) parts.push(`🎯 ${t('eff_splash')} ${Math.round(a.splash * 100)}%`);
+  if (a.applyFire) parts.push(`🔥 ${a.applyFire.amount}/${t('turn')} ×${a.applyFire.turns}`);
+  if (a.applySlow) parts.push(`⛓️ -${a.applySlow.amount} ${t('stat_speed')} ×${a.applySlow.turns}`);
+  if (a.applyImmobilize) parts.push(`🪝 ${t('eff_immobilized')} ×${a.applyImmobilize.turns}`);
+  return parts.join(' · ');
+}
+
 // The contextual action popover — rendered ONLY for the selected (active) ship,
 // and positioned next to that ship (see positionActionPopover). Returns null
 // when nothing should be shown (enemy phase, or menu not opened yet).
@@ -664,17 +699,24 @@ function renderActionPopover() {
   const set = shipActionSet(ship);
   const actions = el('div', { class: 'action-buttons' });
 
-  // Ammo selector — only when this ship can attack.
+  // Ammo selector — only when this ship can attack — with an info line
+  // describing the currently selected special cannonball.
   let ammoWrap = null;
   if (set.includes('attack')) {
-    ammoWrap = el('div', { class: 'ammo-selector' });
-    ammoWrap.appendChild(el('span', { class: 'ammo-label', text: `${t('action_ammo')}:` }));
+    const row = el('div', { class: 'ammo-selector' });
+    row.appendChild(el('span', { class: 'ammo-label', text: `${t('action_ammo')}:` }));
     for (const id of ['classic', 'explosive', 'incendiary', 'chain', 'harpoon']) {
       const a = DB.ammo[id];
       const b = el('button', { class: `ammo-btn ${C.selectedAmmo === id ? 'active' : ''}`, text: a.icon, on: { click: () => { C.selectedAmmo = id; render(); } } });
-      attachTooltip(b, () => `<b>${locName(a)}</b><br>${locField(a, 'desc')}`);
-      ammoWrap.appendChild(b);
+      attachTooltip(b, () => `<b>${a.icon} ${locName(a)}</b><br>${locField(a, 'desc')}<br><i>${ammoDetail(a)}</i>`);
+      row.appendChild(b);
     }
+    const sel = DB.ammo[C.selectedAmmo] || DB.ammo.classic;
+    const info = el('div', { class: 'ammo-info' }, [
+      el('div', { class: 'ammo-info-top', html: `${sel.icon} <b>${locName(sel)}</b> · <span class="ammo-info-detail">${ammoDetail(sel)}</span>` }),
+      el('div', { class: 'ammo-info-desc', text: locField(sel, 'desc') }),
+    ]);
+    ammoWrap = el('div', { class: 'ammo-block' }, [row, info]);
   }
 
   for (const act of set) {
