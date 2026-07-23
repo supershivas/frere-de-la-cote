@@ -1,13 +1,13 @@
-// Combat visual effects: muzzle flashes, flying cannonballs, impact explosions,
-// smoke, screen shake and floating damage numbers. Rendered on a full-screen
-// canvas overlay (pointer-events: none) that survives screen re-renders.
+// Combat visual effects: muzzle smoke, flying cannonballs, LOCAL impact
+// explosions, ship recoil/impact jolts and floating damage numbers. All effects
+// are localized to the ships involved — nothing flashes or shakes the whole
+// screen. Rendered on a full-screen canvas overlay that survives re-renders.
 
-let canvas, ctx, domLayer, shakeEl;
+let canvas, ctx, domLayer;
 let W = 0, H = 0, dpr = 1;
 let particles = [];
 let running = false;
 let last = 0;
-let shake = { t: 0, dur: 0, mag: 0 };
 
 export function initFx() {
   if (canvas) return;
@@ -18,7 +18,6 @@ export function initFx() {
   domLayer = document.createElement('div');
   domLayer.id = 'fx-dom';
   document.body.appendChild(domLayer);
-  shakeEl = document.getElementById('app');
   resize();
   window.addEventListener('resize', resize);
   running = true;
@@ -45,17 +44,6 @@ function loop(now) {
     p.draw(ctx);
   }
   particles = particles.filter((p) => p.life > 0);
-
-  // Screen shake decay.
-  if (shake.t > 0) {
-    shake.t -= dt;
-    const k = Math.max(0, shake.t / shake.dur);
-    const m = shake.mag * k;
-    const x = (Math.random() * 2 - 1) * m;
-    const y = (Math.random() * 2 - 1) * m;
-    if (shakeEl) shakeEl.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
-    if (shake.t <= 0 && shakeEl) shakeEl.style.transform = '';
-  }
   if (running) requestAnimationFrame(loop);
 }
 
@@ -104,10 +92,36 @@ function flash(x, y, r, color, life) {
   });
 }
 
-// ---- public effects ----
-export function fxScreenShake(mag = 8, dur = 0.35) {
-  shake = { t: dur, dur, mag };
+// ---- local ship jolts (recoil / impact) via the Web Animations API ----
+function cardEl(iid) {
+  return document.querySelector(`.ship-card[data-iid="${CSS.escape(String(iid))}"]`);
 }
+function animEl(elm, keyframes, dur) {
+  if (elm && elm.animate) { try { elm.animate(keyframes, { duration: dur, easing: 'ease-out' }); } catch (e) {} }
+}
+// Recoil the firing ship a little, away from its target.
+export function fxRecoil(iid, awayX = -8) {
+  animEl(cardEl(iid), [
+    { transform: 'translate(0,0)' },
+    { transform: `translate(${awayX}px, -2px)` },
+    { transform: 'translate(0,0)' },
+  ], 200);
+}
+// Jolt a struck ship: a quick shudder + a brightness flash on its sprite only.
+function impactBumpEl(elm) {
+  if (!elm) return;
+  animEl(elm, [
+    { transform: 'translate(0,0)' },
+    { transform: 'translate(5px,-1px)' },
+    { transform: 'translate(-4px,1px)' },
+    { transform: 'translate(0,0)' },
+  ], 240);
+  animEl(elm.querySelector('.ship-canvas'), [
+    { filter: 'brightness(2.6) saturate(0.6)' },
+    { filter: 'brightness(1)' },
+  ], 260);
+}
+export function fxImpactBump(iid) { impactBumpEl(cardEl(iid)); }
 
 export function fxFloatText(x, y, text, cls = '') {
   if (!domLayer) return;
@@ -126,8 +140,9 @@ const AMMO_COLORS = {
 };
 
 export function fxExplosion(x, y, { scale = 1, color = '#ff9a3c' } = {}) {
-  flash(x, y, 42 * scale, 'rgba(255,220,150,0.9)', 0.18);
-  ring(x, y, color, 0.4, 46 * scale);
+  // Small, contained core glow (never a full-screen flash).
+  flash(x, y, 18 * scale, 'rgba(255,190,120,0.5)', 0.13);
+  ring(x, y, color, 0.4, 44 * scale);
   for (let i = 0; i < 14 * scale; i++) {
     const a = Math.random() * Math.PI * 2;
     const sp = rand(80, 260) * scale;
@@ -150,10 +165,12 @@ export function fxCannon(fromIid, toIid, { ammo = 'classic', hit = true, damage 
   const muzzleX = from.x + Math.cos(dir) * 42;
   const muzzleY = from.y + Math.sin(dir) * 20;
 
-  // Muzzle flash + smoke.
-  flash(muzzleX, muzzleY, 20, 'rgba(255,230,170,0.95)', 0.14);
-  for (let i = 0; i < 4; i++) smoke(muzzleX, muzzleY, Math.cos(dir) * rand(20, 60), Math.sin(dir) * rand(20, 60) - 10, rand(0.4, 0.8), rand(4, 8));
-  for (let i = 0; i < 5; i++) spark(muzzleX, muzzleY, Math.cos(dir + rand(-0.4, 0.4)) * rand(120, 240), Math.sin(dir + rand(-0.4, 0.4)) * rand(120, 240), color, rand(0.15, 0.3), 2);
+  // Muzzle smoke + sparks (no bright flash), plus a recoil on the firing ship.
+  for (let i = 0; i < 5; i++) smoke(muzzleX, muzzleY, Math.cos(dir) * rand(20, 60), Math.sin(dir) * rand(20, 60) - 10, rand(0.4, 0.8), rand(4, 8));
+  for (let i = 0; i < 6; i++) spark(muzzleX, muzzleY, Math.cos(dir + rand(-0.4, 0.4)) * rand(120, 240), Math.sin(dir + rand(-0.4, 0.4)) * rand(120, 240), color, rand(0.15, 0.3), 2);
+  // Defer recoil so it runs after the combat re-render replaces the card.
+  const awayX = (Math.sign(from.x - to.x) || -1) * 8;
+  setTimeout(() => fxRecoil(fromIid, awayX), 0);
 
   // Projectile.
   const dist = Math.hypot(to.x - from.x, to.y - from.y);
@@ -194,17 +211,17 @@ function fxImpact(to, { ammo, hit, damage, absorbed, killed }) {
   const scale = ammo === 'explosive' ? 1.5 : (killed ? 1.6 : 1);
   fxExplosion(to.x, to.y, { scale, color });
   if (ammo === 'incendiary') for (let i = 0; i < 8; i++) spark(to.x, to.y, rand(-60, 60), rand(-140, -30), '#ff5a2c', rand(0.4, 0.8), 3);
-  fxScreenShake(killed ? 12 : (ammo === 'explosive' ? 9 : 6), killed ? 0.5 : 0.3);
+  impactBumpEl(to.el); // local jolt on the struck ship only
   if (damage > 0) fxFloatText(to.x, to.y - 12, `-${damage}`, killed ? 'kill' : 'dmg');
   else if (absorbed > 0) fxFloatText(to.x, to.y - 12, `-${absorbed}🛡️`, 'shield');
-  if (killed) { setTimeout(() => fxExplosion(to.x, to.y, { scale: 2, color: '#ffcf6a' }), 120); fxScreenShake(14, 0.55); }
+  if (killed) setTimeout(() => fxExplosion(to.x, to.y, { scale: 2, color: '#ffcf6a' }), 120);
 }
 
 // Secondary explosion on a ship (e.g. explosive splash) by ship id.
 export function fxSplash(iid, damage = 0, killed = false) {
   const p = centerOf(iid); if (!p) return;
   fxExplosion(p.x, p.y, { scale: killed ? 1.4 : 0.9, color: '#ffb14a' });
-  fxScreenShake(killed ? 10 : 5, 0.28);
+  impactBumpEl(p.el);
   if (damage > 0) fxFloatText(p.x, p.y - 12, `-${damage}`, killed ? 'kill' : 'dmg');
 }
 
@@ -216,9 +233,9 @@ export function fxHeal(iid) {
   fxFloatText(p.x, p.y - 12, '+♥', 'heal');
 }
 
-// Shield brace shimmer.
+// Shield brace shimmer (local).
 export function fxBrace(iid) {
   const p = centerOf(iid); if (!p) return;
-  ring(p.x, p.y, '#7ab8f0', 0.5, 44);
-  flash(p.x, p.y, 30, 'rgba(120,184,240,0.5)', 0.3);
+  ring(p.x, p.y, '#7ab8f0', 0.5, 40);
+  for (let i = 0; i < 8; i++) spark(p.x + rand(-16, 16), p.y + rand(-14, 14), rand(-30, 30), rand(-40, 0), '#8fc4ff', rand(0.3, 0.6), 2);
 }

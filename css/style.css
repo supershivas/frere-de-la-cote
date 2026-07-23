@@ -209,10 +209,23 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 
 /* ---------- Combat ---------- */
 .combat-screen { }
-.combat-arena { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 10px; }
-.row-label { text-align: center; color: var(--text-dim); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; }
-.combat-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; min-height: 150px; align-items: center; }
-.enemy-row { align-items: flex-start; }
+.combat-arena { flex: 1; display: flex; flex-direction: column; padding: 10px; }
+
+/* Battlefield: allies LEFT, enemies RIGHT, turn info in the middle. */
+.combat-field {
+  flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.side { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.side-ships { display: flex; flex-direction: column; gap: 22px; justify-content: center; }
+.ally-side { align-items: flex-start; }
+.ally-side .side-ships { align-items: flex-start; }
+.enemy-side { align-items: flex-end; }
+.enemy-side .side-ships { align-items: flex-end; }
+.side-label { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; padding: 2px 4px; }
+.side-label.ally { color: #8fe0b5; }
+.side-label.enemy { color: #f2a79b; }
+.battle-center { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 0 0 auto; }
+.battle-vs { font-size: 26px; opacity: 0.55; filter: drop-shadow(0 2px 3px #000); }
 
 .ship-card {
   position: relative;
@@ -254,16 +267,17 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .eff-slow { color: #9bd; }
 .eff-immobilized { color: #ccc; }
 
+/* Enemy intention badge sits on the LEFT of the enemy card, facing the fleet. */
 .intent {
-  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 50%; left: -8px; transform: translate(-100%, -50%);
   background: var(--wood-panel); border: 2px solid var(--red); border-radius: 14px;
-  padding: 1px 8px; font-size: 13px; display: flex; align-items: center; gap: 3px;
-  white-space: nowrap; box-shadow: 0 2px 5px #000a;
+  padding: 2px 9px; font-size: 14px; display: flex; align-items: center; gap: 4px;
+  white-space: nowrap; box-shadow: 0 2px 6px #000b; z-index: 6;
 }
-.intent-dmg { color: var(--red-light); font-weight: 700; font-size: 12px; }
+.intent-dmg { color: var(--red-light); font-weight: 800; font-size: 13px; }
 .intent-defend { border-color: var(--info); }
 
-.turn-banner { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 4px; }
+.turn-banner { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 4px; }
 .turn-count { color: var(--gold); font-weight: 700; letter-spacing: 0.08em; }
 .turn-phase { font-size: 13px; padding: 3px 12px; border-radius: 14px; letter-spacing: 0.05em; }
 .turn-phase.player { background: #4caf7d33; color: #8fe0b5; border: 1px solid var(--green); }
@@ -279,10 +293,28 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .action-panel {
   background: linear-gradient(180deg, var(--wood-panel), #1a110b);
   border-top: 3px solid var(--gold-dark);
-  padding: 10px 14px; min-height: 92px;
+  padding: 10px 14px; min-height: 96px;
   display: flex; flex-direction: column; gap: 8px; align-items: center;
 }
-.active-ship-label { color: var(--gold); font-weight: 700; font-size: 14px; }
+
+/* Contextual header bound to the active ship: portrait, name, HP/shield, effects. */
+.active-ship-info {
+  display: flex; align-items: center; gap: 12px;
+  background: #0004; border: 2px solid var(--gold-dark); border-radius: 10px;
+  padding: 6px 14px 6px 6px; max-width: 420px; width: 100%;
+}
+.active-portrait { flex: 0 0 auto; background: radial-gradient(circle at 50% 60%, var(--ocean-light), var(--ocean-deep)); border-radius: 8px; border: 1px solid var(--wood-light); }
+.active-ship-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.active-ship-name { display: flex; align-items: center; gap: 6px; color: var(--gold); font-weight: 800; font-size: 15px; }
+.sel-marker { color: var(--green); animation: pulse-line 1s infinite; }
+.active-ship-lvl { margin-left: auto; font-size: 11px; color: var(--text-dim); background: #0005; border-radius: 10px; padding: 1px 8px; }
+.active-ship-bars { display: flex; flex-direction: column; gap: 3px; }
+.active-ship-bars .bar { height: 16px; }
+.active-ship-info .effects { justify-content: flex-start; margin-top: 0; min-height: 0; }
+
+.ship-card.is-selected { box-shadow: 0 0 0 3px var(--green), 0 0 20px #4caf7d88; border-color: var(--green); }
+.cancel-target { margin-top: 2px; }
+
 .action-hint { color: var(--text-dim); }
 .action-hint.big { color: var(--gold); font-size: 16px; font-weight: 700; }
 .ammo-selector { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
@@ -533,8 +565,8 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 
 /* Ships bob on the swell. */
 .ship-stage.in-combat .ship-canvas { animation: bob-combat 2.8s ease-in-out infinite; transform-origin: 50% 80%; }
-.combat-row .ship-card:nth-child(2n) .ship-stage.in-combat .ship-canvas { animation-delay: -0.7s; animation-duration: 3.2s; }
-.combat-row .ship-card:nth-child(3n) .ship-stage.in-combat .ship-canvas { animation-delay: -1.4s; animation-duration: 2.5s; }
+.side-ships .ship-card:nth-child(2n) .ship-stage.in-combat .ship-canvas { animation-delay: -0.7s; animation-duration: 3.2s; }
+.side-ships .ship-card:nth-child(3n) .ship-stage.in-combat .ship-canvas { animation-delay: -1.4s; animation-duration: 2.5s; }
 @keyframes bob-combat { 0%,100% { transform: translateY(0) rotate(-1.6deg); } 50% { transform: translateY(-4px) rotate(1.6deg); } }
 
 .wake { position: absolute; left: 50%; bottom: 5px; transform: translateX(-50%); width: 68px; height: 8px; z-index: 1;
@@ -584,8 +616,21 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
   .pause-nav { width: auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 2px solid var(--wood-light); }
   .map-board { min-height: 560px; }
 }
+@media (max-width: 640px) {
+  /* Narrow: stack allies above enemies but keep left/right identity via labels. */
+  .combat-field { flex-direction: column; gap: 6px; }
+  .side { width: 100%; }
+  .ally-side, .ally-side .side-ships { align-items: center; }
+  .enemy-side, .enemy-side .side-ships { align-items: center; }
+  .side-ships { flex-direction: row; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .battle-center .turn-banner { flex-direction: row; gap: 12px; }
+  .battle-vs { display: none; }
+  /* Intent back on top when stacked horizontally. */
+  .intent { top: -14px; left: 50%; transform: translate(-50%, 0); }
+}
 @media (max-width: 560px) {
   .ship-card { width: 108px; }
   .btn-big { min-width: 200px; }
   .hud-res { width: 100%; margin-left: 0; }
+  .active-ship-info { max-width: 100%; }
 }

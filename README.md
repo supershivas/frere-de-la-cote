@@ -131,10 +131,14 @@ src/
 
 - [x] Title screen + language toggle
 - [x] Procedurally generated branching map
-- [x] Turn-based naval combat with readable enemy intentions
-- [x] Juicy combat visuals: ships floating on animated water, cannon muzzle
-      flashes, flying cannonballs, impact explosions, smoke from damaged hulls,
-      screen shake and floating damage numbers
+- [x] Turn-based naval combat with a clear battlefield: allies always LEFT,
+      enemies always RIGHT, enemy intentions on their inner edge
+- [x] Contextual per-ship action menu — the active ship's portrait, name, HP,
+      shield and active effects are shown, and its available actions depend on
+      its type, capabilities and upgrades (e.g. the Galleon can Protect an ally)
+- [x] Localized combat visuals: ships floating on animated water, flying
+      cannonballs, impact explosions, ship recoil and struck-ship jolts, smoke
+      from damaged hulls and floating damage numbers — no full-screen flash
 - [x] 3 allied ship classes (Sloop, Frigate, Galleon) with unique abilities
 - [x] 5 base enemies + AI behaviours
 - [x] Mechanical Kraken boss (multi-phase, enrage)

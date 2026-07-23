@@ -1,6 +1,7 @@
 // Turn-based naval combat engine. Readable, deterministic damage; enemy
 // intentions shown before the player acts (Into the Breach style).
-import { el, mount, shipCard, bar } from './ui.js';
+import { el, mount, shipCard, bar, effectChips } from './ui.js';
+import { shipThumb } from './sprites.js';
 import { t, locName, locField } from './i18n.js';
 import { register, go } from './nav.js';
 import { DB } from './data.js';
@@ -12,7 +13,7 @@ import { toast, toastSuccess, toastDanger, toastInfo } from './toast.js';
 import { getAbility } from './abilities.js';
 import { attachTooltip } from './tooltip.js';
 import { modal } from './ui.js';
-import { fxCannon, fxSplash, fxHeal, fxBrace, fxScreenShake } from './fx.js';
+import { fxCannon, fxSplash, fxHeal, fxBrace, fxImpactBump } from './fx.js';
 
 let C = null; // active combat controller
 
@@ -308,7 +309,7 @@ function decideIntent(enemy) {
         }
         toastInfo(locField(ph, 'name'), '👑');
         C.log(`👑 ${locField(ph, 'name')}`);
-        fxScreenShake(16, 0.6);
+        fxImpactBump(enemy.iid);
       }
     }
   }
@@ -455,7 +456,22 @@ function tryFlee() {
 
 // ---- Rendering ----
 function render() {
-  const enemyRow = el('div', { class: 'combat-row enemy-row' });
+  // Allied fleet — always on the LEFT, facing right.
+  const allyCol = el('div', { class: 'side-ships' });
+  C.allies.forEach((s) => {
+    const card = shipCard(s, {
+      isEnemy: false,
+      combat: true,
+      selectable: C.targeting === 'ally' && s.hp > 0,
+      onClick: C.targeting === 'ally' ? (ship) => onTargetPicked(ship) : null,
+    });
+    if (C.active === s) card.classList.add('active-turn');
+    if (C.phase === 'player' && C.active === s) card.classList.add('is-selected');
+    allyCol.appendChild(card);
+  });
+
+  // Enemy fleet — always on the RIGHT, facing left.
+  const enemyCol = el('div', { class: 'side-ships' });
   C.enemies.forEach((e) => {
     const intentNode = e.hp > 0 ? intentBadge(e) : null;
     const card = shipCard(e, {
@@ -466,38 +482,33 @@ function render() {
       onClick: C.targeting === 'enemy' ? (ship) => onTargetPicked(ship) : null,
     });
     if (C.active === e) card.classList.add('active-turn');
-    enemyRow.appendChild(card);
-  });
-
-  const allyRow = el('div', { class: 'combat-row ally-row' });
-  C.allies.forEach((s) => {
-    const card = shipCard(s, {
-      isEnemy: false,
-      combat: true,
-      selectable: C.targeting === 'ally' && s.hp > 0,
-      onClick: C.targeting === 'ally' ? (ship) => onTargetPicked(ship) : null,
-    });
-    if (C.active === s) card.classList.add('active-turn');
-    allyRow.appendChild(card);
+    enemyCol.appendChild(card);
   });
 
   const banner = el('div', { class: 'turn-banner' }, [
     el('span', { class: 'turn-count', text: `${t('turn')} ${C.round}` }),
     el('span', { class: `turn-phase ${C.phase}`, text: C.phase === 'player' ? t('your_turn') : t('enemy_turn') }),
+    el('div', { class: 'battle-vs', text: '⚔️' }),
+  ]);
+
+  const field = el('div', { class: 'combat-field' }, [
+    el('div', { class: 'side ally-side' }, [
+      el('div', { class: 'side-label ally', text: `⚓ ${t('your_fleet')}` }),
+      allyCol,
+    ]),
+    el('div', { class: 'battle-center' }, [banner]),
+    el('div', { class: 'side enemy-side' }, [
+      el('div', { class: 'side-label enemy', text: `☠️ ${t('enemies')}` }),
+      enemyCol,
+    ]),
   ]);
 
   const logBox = el('div', { class: 'combat-log' },
-    C.logs.slice(-6).map((l) => el('div', { class: 'log-line', text: l })));
+    C.logs.slice(-5).map((l) => el('div', { class: 'log-line', text: l })));
 
   const root = el('div', { class: 'screen combat-screen' }, [
     renderHud(),
-    el('div', { class: 'combat-arena' }, [
-      el('div', { class: 'row-label', text: t('enemies') }),
-      enemyRow,
-      banner,
-      el('div', { class: 'row-label', text: t('your_fleet') }),
-      allyRow,
-    ]),
+    el('div', { class: 'combat-arena' }, [field]),
     logBox,
     renderActionPanel(),
   ]);
@@ -518,6 +529,46 @@ function intentBadge(enemy) {
   return node;
 }
 
+// Which actions a ship can take, driven by its type, capabilities and upgrades.
+function shipActionSet(ship) {
+  const type = ship.def?.type || 'frigate';
+  const set = ['attack'];
+  if (getAbility(ship.ability)) set.push('ability');
+  const byType = {
+    sloop: ['defend'],
+    frigate: ['repair', 'defend'],
+    galleon: ['protect', 'repair'],
+    brigantine: ['repair', 'defend'],
+    monster: [],
+  };
+  set.push(...(byType[type] || ['repair', 'defend']));
+  // Upgrades unlock extra actions: heavy plating lets a ship escort/protect an ally.
+  const defensive = ['iron_plating', 'reinforced_shield', 'reinforced_hull'];
+  if (!set.includes('protect') && (ship.upgrades || []).some((u) => defensive.includes(u))) set.push('protect');
+  set.push('end');
+  return set;
+}
+
+// Active-ship info header: portrait, name, level, HP/shield, active effects.
+function activeShipInfo(ship) {
+  const portrait = shipThumb({ type: ship.def.type, color: ship.color, facing: 1 }, 58);
+  portrait.classList.add('active-portrait');
+  const bars = el('div', { class: 'active-ship-bars' }, [bar(ship.hp, ship.maxHp, 'hp', '❤️')]);
+  if (ship.maxShield > 0) bars.appendChild(bar(ship.shield, ship.maxShield, 'shield', '🛡️'));
+  return el('div', { class: 'active-ship-info' }, [
+    portrait,
+    el('div', { class: 'active-ship-meta' }, [
+      el('div', { class: 'active-ship-name' }, [
+        el('span', { class: 'sel-marker', text: '▶' }),
+        el('span', { text: (ship.name || locName(ship.def)) + (ship.flagship ? ' ★' : '') }),
+        el('span', { class: 'active-ship-lvl', text: `Lv.${ship.level}` }),
+      ]),
+      bars,
+      effectChips(ship),
+    ]),
+  ]);
+}
+
 function renderActionPanel() {
   const panel = el('div', { class: 'action-panel' });
   if (C.phase !== 'player' || !C.active || C.active.isEnemy) {
@@ -527,40 +578,50 @@ function renderActionPanel() {
   const ship = C.active;
 
   if (C.targeting) {
-    panel.appendChild(el('div', { class: 'action-hint big', text: t('select_target') }));
-    panel.appendChild(el('button', { class: 'btn btn-ghost', text: t('no'), on: { click: () => { C.targeting = null; ship._pendingAbility = null; render(); } } }));
+    const hint = C.targetingMode === 'protect' ? t('select_ally') : t('select_target');
+    panel.appendChild(activeShipInfo(ship));
+    panel.appendChild(el('div', { class: 'action-hint big', text: hint }));
+    panel.appendChild(el('button', { class: 'btn btn-ghost cancel-target', text: `✖ ${t('no')}`, on: { click: () => { C.targeting = null; ship._pendingAbility = null; render(); } } }));
     return panel;
   }
 
-  panel.appendChild(el('div', { class: 'active-ship-label', text: `${ship.name || locName(ship.def)} — ${t('select_action')}` }));
-
+  const set = shipActionSet(ship);
   const actions = el('div', { class: 'action-buttons' });
 
-  // Ammo selector.
-  const ammoWrap = el('div', { class: 'ammo-selector' });
-  ammoWrap.appendChild(el('span', { class: 'ammo-label', text: `${t('action_ammo')}:` }));
-  for (const id of ['classic', 'explosive', 'incendiary', 'chain', 'harpoon']) {
-    const a = DB.ammo[id];
-    const b = el('button', {
-      class: `ammo-btn ${C.selectedAmmo === id ? 'active' : ''}`,
-      text: a.icon,
-      on: { click: () => { C.selectedAmmo = id; render(); } },
-    });
-    attachTooltip(b, () => `<b>${locName(a)}</b><br>${locField(a, 'desc')}`);
-    ammoWrap.appendChild(b);
+  // Ammo selector — only when this ship can attack.
+  let ammoWrap = null;
+  if (set.includes('attack')) {
+    ammoWrap = el('div', { class: 'ammo-selector' });
+    ammoWrap.appendChild(el('span', { class: 'ammo-label', text: `${t('action_ammo')}:` }));
+    for (const id of ['classic', 'explosive', 'incendiary', 'chain', 'harpoon']) {
+      const a = DB.ammo[id];
+      const b = el('button', { class: `ammo-btn ${C.selectedAmmo === id ? 'active' : ''}`, text: a.icon, on: { click: () => { C.selectedAmmo = id; render(); } } });
+      attachTooltip(b, () => `<b>${locName(a)}</b><br>${locField(a, 'desc')}`);
+      ammoWrap.appendChild(b);
+    }
   }
 
-  actions.appendChild(actionBtn('⚔️', t('action_attack'), () => beginTargeting('attack')));
-
-  // Ability button(s).
-  const ab = getAbility(ship.ability);
-  if (ab) {
-    const ready = ship.abilityCd <= 0;
-    const b = actionBtn(ab.icon, t(ab.nameKey), () => useAbility(ship.ability), !ready);
-    if (!ready) b.appendChild(el('span', { class: 'cd-badge', text: ship.abilityCd }));
-    attachTooltip(b, () => `<b>${t(ab.nameKey)}</b><br>${t(ab.descKey)}<br><i>${t('cooldown')}: ${ab.cooldown}</i>`);
-    actions.appendChild(b);
+  for (const act of set) {
+    if (act === 'attack') {
+      actions.appendChild(actionBtn('⚔️', t('action_attack'), () => beginTargeting('attack', 'enemy')));
+    } else if (act === 'ability') {
+      const ab = getAbility(ship.ability);
+      const ready = ship.abilityCd <= 0;
+      const b = actionBtn(ab.icon, t(ab.nameKey), () => useAbility(ship.ability), !ready);
+      if (!ready) b.appendChild(el('span', { class: 'cd-badge', text: ship.abilityCd }));
+      attachTooltip(b, () => `<b>${t(ab.nameKey)}</b><br>${t(ab.descKey)}<br><i>${t('cooldown')}: ${ab.cooldown}</i>`);
+      actions.appendChild(b);
+    } else if (act === 'repair') {
+      actions.appendChild(withTip(actionBtn('🔧', t('action_repair'), playerRepair), `<b>${t('action_repair')}</b>`));
+    } else if (act === 'defend') {
+      actions.appendChild(withTip(actionBtn('🛡️', t('action_defend'), playerDefend), `<b>${t('action_defend')}</b>`));
+    } else if (act === 'protect') {
+      actions.appendChild(withTip(actionBtn('🤝', t('action_protect'), () => beginTargeting('protect', 'ally')), `<b>${t('action_protect')}</b><br>${t('action_protect_desc')}`));
+    } else if (act === 'end') {
+      actions.appendChild(actionBtn('⏭️', t('end_turn'), finishPlayerAction));
+    }
   }
+
   // Kraken relic grants the flagship a once-per-battle ability.
   if (ship.flagship && hasRelic('kraken_relic') && !ship.krakenUsed) {
     const kb = getAbility('kraken_shot');
@@ -568,16 +629,15 @@ function renderActionPanel() {
     attachTooltip(b, () => `<b>${t(kb.nameKey)}</b><br>${t(kb.descKey)}`);
     actions.appendChild(b);
   }
-
-  actions.appendChild(actionBtn('🔧', t('action_repair'), playerRepair));
-  actions.appendChild(actionBtn('🛡️', t('action_defend'), playerDefend));
-  actions.appendChild(actionBtn('⏭️', t('end_turn'), finishPlayerAction));
   if (C.opts.kind !== 'boss') actions.appendChild(actionBtn('🏴', t('flee'), tryFlee));
 
-  panel.appendChild(ammoWrap);
+  panel.appendChild(activeShipInfo(ship));
+  if (ammoWrap) panel.appendChild(ammoWrap);
   panel.appendChild(actions);
   return panel;
 }
+
+function withTip(node, html) { attachTooltip(node, () => html); return node; }
 
 function actionBtn(icon, label, onClick, disabled = false) {
   const b = el('button', { class: `btn action-btn ${disabled ? 'disabled' : ''}`, on: { click: () => { if (!disabled) onClick(); } } }, [
@@ -588,9 +648,9 @@ function actionBtn(icon, label, onClick, disabled = false) {
   return b;
 }
 
-function beginTargeting(mode) {
+function beginTargeting(mode, side = 'enemy') {
   C.targetingMode = mode;
-  C.targeting = 'enemy';
+  C.targeting = side;
   render();
 }
 
@@ -610,7 +670,19 @@ function onTargetPicked(ship) {
   const mode = C.targetingMode;
   C.targeting = null;
   if (mode === 'ability') playerAbility(ship);
+  else if (mode === 'protect') playerProtect(ship);
   else playerAttack(ship);
+}
+
+// Protect: escort an ally, refilling its shield and bracing it for the round.
+function playerProtect(target) {
+  const ship = C.active;
+  if (target.maxShield > 0) target.shield = target.maxShield;
+  addEffect(target, { type: 'braced', turns: 1, armor: 14 });
+  C.log(`🤝 ${ship.name || locName(ship.def)} → ${target.name || locName(target.def)}: ${t('action_protect')}`);
+  toastSuccess(t('action_protect'), '🤝');
+  fxBrace(target.iid);
+  finishPlayerAction();
 }
 
 function flashCard(ship, kind) {
