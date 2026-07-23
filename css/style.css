@@ -290,11 +290,32 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 }
 .log-line { line-height: 1.5; }
 
-.action-panel {
-  background: linear-gradient(180deg, var(--wood-panel), #1a110b);
-  border-top: 3px solid var(--gold-dark);
-  padding: 10px 14px; min-height: 96px;
-  display: flex; flex-direction: column; gap: 8px; align-items: center;
+/* Contextual action popover — floats next to the selected ship. */
+.action-popover {
+  position: fixed; left: -9999px; top: 0; z-index: 32;
+  width: 300px; max-width: 92vw;
+  background: linear-gradient(180deg, #2a1c12f5, #150c06f5);
+  border: 2px solid var(--gold-dark); border-radius: 12px;
+  box-shadow: 0 12px 34px #000c;
+  padding: 10px; display: flex; flex-direction: column; gap: 8px;
+  visibility: hidden;
+}
+.action-popover.placed { visibility: visible; animation: pop-in 0.14s ease-out; }
+.action-popover.targeting { width: auto; align-items: center; gap: 6px; }
+@keyframes pop-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+.action-popover .active-ship-info { max-width: none; border: none; background: #0003; padding: 6px 8px; }
+.action-popover .ammo-selector { justify-content: flex-start; }
+.action-popover .action-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.action-popover .action-btn { min-width: 0; }
+
+/* Prompt on the active ship to open its menu. */
+.ship-card.clickable-active { cursor: pointer; }
+.ship-card.awaiting { animation: node-pulse 1.3s infinite; }
+.act-hint {
+  position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%);
+  background: var(--green); color: #06251a; font-weight: 800; font-size: 11px;
+  padding: 2px 9px; border-radius: 10px; white-space: nowrap; z-index: 7;
+  box-shadow: 0 2px 6px #0009;
 }
 
 /* Contextual header bound to the active ship: portrait, name, HP/shield, effects. */

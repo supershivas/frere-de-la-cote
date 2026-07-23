@@ -228,6 +228,7 @@ function initCombat(opts) {
     phase: 'idle',
     logs: [],
     selectedAmmo: 'classic',
+    menuOpen: false,
     log(msg) { this.logs.push(msg); if (this.logs.length > 40) this.logs.shift(); },
     livingAllies() { return this.allies.filter((s) => s.hp > 0); },
     livingEnemies() { return this.enemies.filter((s) => s.hp > 0); },
@@ -277,6 +278,7 @@ function advance() {
     setTimeout(() => executeEnemy(actor), 650);
   } else {
     C.phase = 'player';
+    C.menuOpen = false; // player must select the ship to open its menu
     render();
   }
 }
@@ -444,6 +446,7 @@ function playerDefend() {
 function finishPlayerAction() {
   C.active._pendingAbility = null;
   C.targeting = null;
+  C.menuOpen = false; // close the popover after acting
   render();
   setTimeout(advance, 650);
 }
@@ -459,14 +462,24 @@ function render() {
   // Allied fleet — always on the LEFT, facing right.
   const allyCol = el('div', { class: 'side-ships' });
   C.allies.forEach((s) => {
+    const active = isActivePlayerShip(s);
+    const clickForMenu = active && !C.targeting;
     const card = shipCard(s, {
       isEnemy: false,
       combat: true,
       selectable: C.targeting === 'ally' && s.hp > 0,
-      onClick: C.targeting === 'ally' ? (ship) => onTargetPicked(ship) : null,
+      onClick: (C.targeting === 'ally' && s.hp > 0)
+        ? (ship) => onTargetPicked(ship)
+        : (clickForMenu ? () => { C.menuOpen = !C.menuOpen; render(); } : null),
     });
+    if (clickForMenu) card.classList.add('clickable-active');
     if (C.active === s) card.classList.add('active-turn');
-    if (C.phase === 'player' && C.active === s) card.classList.add('is-selected');
+    if (active) card.classList.add('is-selected');
+    // Prompt the player to click the active ship to open its menu.
+    if (active && !C.menuOpen && !C.targeting) {
+      card.classList.add('awaiting');
+      card.appendChild(el('div', { class: 'act-hint', text: `👆 ${t('click_to_act')}` }));
+    }
     allyCol.appendChild(card);
   });
 
@@ -506,13 +519,24 @@ function render() {
   const logBox = el('div', { class: 'combat-log' },
     C.logs.slice(-5).map((l) => el('div', { class: 'log-line', text: l })));
 
+  const arena = el('div', { class: 'combat-arena' }, [field]);
+  // Clicking empty arena space closes an open contextual menu.
+  arena.addEventListener('click', (e) => {
+    if (e.target === arena && C.menuOpen && !C.targeting) { C.menuOpen = false; render(); }
+  });
+
   const root = el('div', { class: 'screen combat-screen' }, [
     renderHud(),
-    el('div', { class: 'combat-arena' }, [field]),
+    arena,
     logBox,
-    renderActionPanel(),
   ]);
+
+  // Contextual action popover — appears next to the selected ship only.
+  const popover = renderActionPopover();
+  if (popover) root.appendChild(popover);
+
   mount(root);
+  if (popover) requestAnimationFrame(positionActionPopover);
 }
 
 function intentBadge(enemy) {
@@ -569,22 +593,31 @@ function activeShipInfo(ship) {
   ]);
 }
 
-function renderActionPanel() {
-  const panel = el('div', { class: 'action-panel' });
-  if (C.phase !== 'player' || !C.active || C.active.isEnemy) {
-    panel.appendChild(el('div', { class: 'action-hint', text: C.phase === 'player' ? '' : t('enemy_turn') }));
-    return panel;
-  }
+// True when it is this ally's turn and the player may act with it.
+function isActivePlayerShip(s) {
+  return C.phase === 'player' && C.active === s && !C.active.isEnemy;
+}
+
+// The contextual action popover — rendered ONLY for the selected (active) ship,
+// and positioned next to that ship (see positionActionPopover). Returns null
+// when nothing should be shown (enemy phase, or menu not opened yet).
+function renderActionPopover() {
+  if (C.phase !== 'player' || !C.active || C.active.isEnemy) return null;
   const ship = C.active;
 
+  // While picking a target, show a compact hint bubble by the ship.
   if (C.targeting) {
     const hint = C.targetingMode === 'protect' ? t('select_ally') : t('select_target');
-    panel.appendChild(activeShipInfo(ship));
-    panel.appendChild(el('div', { class: 'action-hint big', text: hint }));
-    panel.appendChild(el('button', { class: 'btn btn-ghost cancel-target', text: `✖ ${t('no')}`, on: { click: () => { C.targeting = null; ship._pendingAbility = null; render(); } } }));
-    return panel;
+    return el('div', { class: 'action-popover targeting' }, [
+      el('div', { class: 'action-hint big', text: hint }),
+      el('button', { class: 'btn btn-ghost cancel-target', text: `✖ ${t('no')}`, on: { click: () => { C.targeting = null; ship._pendingAbility = null; render(); } } }),
+    ]);
   }
 
+  // Menu only appears once the player selects (clicks) the active ship.
+  if (!C.menuOpen) return null;
+
+  const panel = el('div', { class: 'action-popover' });
   const set = shipActionSet(ship);
   const actions = el('div', { class: 'action-buttons' });
 
@@ -638,6 +671,24 @@ function renderActionPanel() {
 }
 
 function withTip(node, html) { attachTooltip(node, () => html); return node; }
+
+// Place the contextual popover next to the selected ship card.
+function positionActionPopover() {
+  const pop = document.querySelector('.action-popover');
+  const card = document.querySelector('.ship-card.is-selected');
+  if (!pop || !card) return;
+  const cr = card.getBoundingClientRect();
+  const pr = pop.getBoundingClientRect();
+  const gap = 14;
+  let left = cr.right + gap; // prefer to the right of the ship (allies are on the left)
+  if (left + pr.width > window.innerWidth - 8) left = cr.left - gap - pr.width; // else to its left
+  if (left < 8) left = Math.min(Math.max(8, cr.left + cr.width / 2 - pr.width / 2), window.innerWidth - pr.width - 8);
+  let top = cr.top + cr.height / 2 - pr.height / 2;
+  top = Math.min(Math.max(60, top), window.innerHeight - pr.height - 8);
+  pop.style.left = `${Math.round(left)}px`;
+  pop.style.top = `${Math.round(top)}px`;
+  pop.classList.add('placed');
+}
 
 function actionBtn(icon, label, onClick, disabled = false) {
   const b = el('button', { class: `btn action-btn ${disabled ? 'disabled' : ''}`, on: { click: () => { if (!disabled) onClick(); } } }, [

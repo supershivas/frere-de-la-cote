@@ -41,6 +41,7 @@
   "enemy_turn": "Enemy turn",
   "player_phase": "Player phase",
   "select_action": "Select an action",
+  "click_to_act": "Click to act",
   "select_target": "Select an enemy target",
   "select_ally": "Choose an ally to protect",
   "action_attack": "Fire",

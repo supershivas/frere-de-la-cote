@@ -41,6 +41,7 @@
   "enemy_turn": "Tour ennemi",
   "player_phase": "Phase du joueur",
   "select_action": "Sélectionnez une action",
+  "click_to_act": "Cliquez pour agir",
   "select_target": "Sélectionnez une cible ennemie",
   "select_ally": "Choisissez un allié à protéger",
   "action_attack": "Tirer",
