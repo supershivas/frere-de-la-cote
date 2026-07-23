@@ -66,12 +66,15 @@ Toggle with **`Ctrl + Shift + D`**. Opens a console + FPS overlay.
 - Shortcuts: `F1` menu · `F2` +gold · `F3` heal · `F4` level up · `F5` win ·
   `F6` spawn enemy · `F7` spawn boss · `F8` ship editor.
 
-### Ship Editor
+### Sprite Editor (game-design tool)
 
-From the title screen → **Ship Editor**. Create and balance a ship (identity,
-stats, ability, hull colour) with a live pixel-art preview. Run an automated
-**test battle** (logs + result), **export** it as JSON, or **add it to your
-fleet** and play a run with it as flagship.
+From the title screen → **Sprite Editor**. A pure **pixel-art editor** for ship
+sprites: start from a **library of base shapes** (Sloop, Frigate, Galleon,
+Monster, or blank), then redraw the hull, masts, castles, sails, flags and
+cannons on a 10×10 grid (left-click paints the selected part, right-click
+erases). Pick hull/flag colours, see a live preview, and **export the sprite as
+JSON**. This is an internal design tool and is meant to be removed from the
+final game.
 
 ---
 
@@ -149,7 +152,7 @@ src/
 - [x] Developer/debug mode (console + shortcuts)
 - [x] FR/EN internationalization (JSON)
 - [x] Externalized game data (JSON)
-- [x] Internal ship editor with live preview + test battle
+- [x] Internal pixel-art sprite editor (shape library + grid painting + export)
 
 ### Roadmap (V2+)
 
