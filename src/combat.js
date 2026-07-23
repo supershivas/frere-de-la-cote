@@ -28,9 +28,11 @@ function makeEnemy(defId, { isBoss = false, scale = 1 } = {}) {
     name: locName(def),
     maxHp: Math.round(s.hp * scale),
     hp: Math.round(s.hp * scale),
+    shownHp: Math.round(s.hp * scale),
     armor: s.armor,
     maxShield: s.shield || 0,
     shield: s.shield || 0,
+    shownShield: s.shield || 0,
     damage: Math.round(s.damage * scale),
     accuracy: s.accuracy,
     speed: s.speed,
@@ -136,9 +138,6 @@ function attack(attacker, target, ammoId, { damageMult = 1, ignoreEvasionPct = 0
   const raw = attacker.damage * (ammo.damageMult || 1) * damageMult * fleetMult * moraleFactor(attacker) * (attacker.damageMult || 1);
   const res = dealDamage(attacker, target, raw);
   flashCard(target, 'hit');
-  fxCannon(attacker.iid, target.iid, {
-    ammo: ammoId, hit: true, damage: res.hullDamage, absorbed: res.absorbed, killed: target.hp <= 0,
-  });
 
   // Ammo side-effects.
   if (ammo.applyFire) addEffect(target, { type: 'fire', amount: ammo.applyFire.amount, turns: ammo.applyFire.turns });
@@ -151,20 +150,57 @@ function attack(attacker, target, ammoId, { damageMult = 1, ignoreEvasionPct = 0
 
   C.log(`${log.attacker} → ${log.target}: −${res.hullDamage} ${t('stat_hp')}${res.absorbed ? ` (−${res.absorbed} 🔰)` : ''}`);
 
-  // Explosive splash to neighbors.
+  // Explosive splash to neighbors — damage applied now, shown/animated on impact.
+  const splashHits = [];
   if (ammo.splash && splashList) {
     for (const nb of splashList) {
       if (nb === target || nb.hp <= 0) continue;
       const sres = dealDamage(attacker, nb, raw * ammo.splash);
-      flashCard(nb, 'hit');
       C.log(`  ↳ ${nb.name || locName(nb.def)}: −${sres.hullDamage}`);
       checkDeath(nb);
-      fxSplash(nb.iid, sres.hullDamage, nb.hp <= 0);
+      splashHits.push({ nb, dmg: sres.hullDamage });
     }
   }
 
   checkDeath(target);
+
+  // The HP/shield bars drop when the cannonball lands (onHit), not when fired.
+  fxCannon(attacker.iid, target.iid, {
+    ammo: ammoId, hit: true, damage: res.hullDamage, absorbed: res.absorbed, killed: target.hp <= 0,
+    onHit: () => {
+      syncShown(target);
+      for (const { nb, dmg } of splashHits) { fxSplash(nb.iid, dmg, nb.hp <= 0); syncShown(nb); }
+    },
+  });
   return log;
+}
+
+// The bars render from shownHp/shownShield, which lag behind the real values
+// until the shot visually lands (see syncShown). This keeps the HP bar from
+// dropping before the cannonball arrives.
+function commitShown(ship) {
+  ship.shownHp = ship.hp;
+  ship.shownShield = ship.shield;
+}
+
+// Called at projectile impact: commit the shown values and animate the bar
+// of that ship in place (so it slides down exactly when the hit connects).
+function syncShown(ship) {
+  commitShown(ship);
+  const card = document.querySelector(`.ship-card[data-iid="${CSS.escape(String(ship.iid))}"]`);
+  if (!card) return;
+  const setBar = (sel, cur, max) => {
+    const b = card.querySelector(sel);
+    if (!b) return;
+    const fill = b.querySelector('.bar-fill');
+    const num = b.querySelector('.bar-num');
+    const pct = max > 0 ? Math.max(0, Math.min(100, (cur / max) * 100)) : 0;
+    if (fill) fill.style.width = `${pct}%`;
+    if (num) num.textContent = `${Math.max(0, Math.round(cur))} / ${Math.round(max)}`;
+  };
+  setBar('.bar-hp', ship.shownHp, ship.maxHp);
+  if (ship.maxShield > 0) setBar('.bar-shield', ship.shownShield, ship.maxShield);
+  if (ship.shownHp <= 0) card.classList.add('dead');
 }
 
 function checkDeath(ship) {
@@ -187,6 +223,7 @@ function tickStartOfTurn(ship) {
       C.log(`🔥 ${ship.name || locName(ship.def)}: −${e.amount}`);
       if (ship.isEnemy) {} else toastDanger(t('toast_fire'), '🔥');
       checkDeath(ship);
+      commitShown(ship);
     }
   }
 }
@@ -209,6 +246,8 @@ function initCombat(opts) {
   allies.forEach((s) => {
     s.effects = [];
     s.shield = s.maxShield;
+    s.shownShield = s.maxShield;
+    s.shownHp = s.hp;
     s.abilityCd = 0;
     s.speed = s.baseSpeed;
     s._dead = false;
@@ -350,6 +389,7 @@ function executeEnemy(enemy) {
   if (!intent) return setTimeout(advance, 300);
   if (intent.type === 'defend') {
     enemy.shield = enemy.maxShield;
+    commitShown(enemy);
     addEffect(enemy, { type: 'braced', turns: 1, armor: 10 });
     fxBrace(enemy.iid);
     C.log(`${enemy.name}: ${t('intent_defend')}`);
@@ -399,6 +439,7 @@ function playerAbility(target) {
       break;
     case 'reinforce':
       ship.shield = ship.maxShield;
+      commitShown(ship);
       addEffect(ship, { type: 'braced', turns: 1, armor: 20 });
       C.log(`${ship.name || locName(ship.def)}: ${t('ability_reinforce')}`);
       fxBrace(ship.iid);
@@ -428,6 +469,7 @@ function playerRepair() {
   const mods = relicMods();
   const heal = Math.round(30 * mods.repairMult);
   ship.hp = Math.min(ship.maxHp, ship.hp + heal);
+  commitShown(ship);
   C.log(`🔧 ${ship.name || locName(ship.def)}: +${heal} ${t('stat_hp')}`);
   toastSuccess(`+${heal} ${t('stat_hp')}`, '🔧');
   fxHeal(ship.iid);
@@ -437,6 +479,7 @@ function playerRepair() {
 function playerDefend() {
   const ship = C.active;
   ship.shield = ship.maxShield;
+  commitShown(ship);
   addEffect(ship, { type: 'braced', turns: 1, armor: 8 });
   C.log(`🛡️ ${ship.name || locName(ship.def)}: ${t('action_defend')}`);
   fxBrace(ship.iid);
@@ -577,8 +620,8 @@ function shipActionSet(ship) {
 function activeShipInfo(ship) {
   const portrait = shipThumb({ type: ship.def.type, color: ship.color, facing: 1 }, 58);
   portrait.classList.add('active-portrait');
-  const bars = el('div', { class: 'active-ship-bars' }, [bar(ship.hp, ship.maxHp, 'hp', '❤️')]);
-  if (ship.maxShield > 0) bars.appendChild(bar(ship.shield, ship.maxShield, 'shield', '🛡️'));
+  const bars = el('div', { class: 'active-ship-bars' }, [bar(ship.shownHp ?? ship.hp, ship.maxHp, 'hp', '❤️')]);
+  if (ship.maxShield > 0) bars.appendChild(bar(ship.shownShield ?? ship.shield, ship.maxShield, 'shield', '🛡️'));
   return el('div', { class: 'active-ship-info' }, [
     portrait,
     el('div', { class: 'active-ship-meta' }, [
@@ -729,6 +772,7 @@ function onTargetPicked(ship) {
 function playerProtect(target) {
   const ship = C.active;
   if (target.maxShield > 0) target.shield = target.maxShield;
+  commitShown(target);
   addEffect(target, { type: 'braced', turns: 1, armor: 14 });
   C.log(`🤝 ${ship.name || locName(ship.def)} → ${target.name || locName(target.def)}: ${t('action_protect')}`);
   toastSuccess(t('action_protect'), '🤝');
@@ -896,7 +940,7 @@ export function debugWinCombat() {
 }
 export function debugHealFleet() {
   if (!C) return;
-  C.allies.forEach((s) => { s.hp = s.maxHp; s.shield = s.maxShield; });
+  C.allies.forEach((s) => { s.hp = s.maxHp; s.shield = s.maxShield; commitShown(s); });
   render();
 }
 export function debugSpawn(id, isBoss = false) {

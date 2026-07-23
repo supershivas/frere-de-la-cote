@@ -5,6 +5,7 @@ import { state } from './state.js';
 import { go, currentScreen } from './nav.js';
 import { initDebug } from './debug.js';
 import { startOcean } from './ocean.js';
+import { loadTemplateOverrides } from './sprites.js';
 import { initFx } from './fx.js';
 import { openPause, closePause, isPauseOpen } from './pause.js';
 
@@ -29,6 +30,7 @@ async function boot() {
   }
 
   window.__state = state; // debug/inspection convenience
+  loadTemplateOverrides(); // apply any saved custom ship sprites
 
   document.documentElement.lang = getLang();
   onLangChange((l) => {

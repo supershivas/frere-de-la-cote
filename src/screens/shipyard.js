@@ -17,13 +17,21 @@ function render() {
   let selectedShip = state._yardShip || state.fleet[0];
   state._yardShip = selectedShip;
 
-  const shipPicker = el('div', { class: 'yard-ships' }, state.fleet.map((s) =>
-    el('button', { class: `yard-ship ${s === selectedShip ? 'active' : ''}`, on: { click: () => { state._yardShip = s; render(); } } }, [
+  // Selecting a ship only changes the highlight — update it in place (no full
+  // re-render) so the screen doesn't flash.
+  const shipBtns = [];
+  const shipPicker = el('div', { class: 'yard-ships' }, state.fleet.map((s) => {
+    const btn = el('button', { class: `yard-ship ${s === selectedShip ? 'active' : ''}`, on: { click: () => {
+      state._yardShip = s;
+      shipBtns.forEach(({ ship, el: b }) => b.classList.toggle('active', ship === s));
+    } } }, [
       shipThumb({ type: s.def.type, color: s.color, facing: 1 }, 60),
       el('div', { class: 'mini-name', text: (s.name || locName(s.def)) + (s.flagship ? ' ★' : '') }),
       el('div', { class: 'mini-hp', text: `Lv.${s.level}` }),
-    ])
-  ));
+    ]);
+    shipBtns.push({ ship: s, el: btn });
+    return btn;
+  }));
 
   const upWrap = el('div', { class: 'upgrade-options' }, options.map((up) =>
     el('button', { class: 'upgrade-card', on: { click: () => buy(up) } }, [

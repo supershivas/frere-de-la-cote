@@ -14,7 +14,7 @@ const MAX_FLEET = 5;
 function render() {
   state.screen = 'port';
   const mods = relicMods();
-  const repairCost = Math.round(45 * mods.repairCostMult);
+  const repairCost = Math.round(60 * mods.repairCostMult);
 
   // Offers are rolled once per visit and cached on the node flow.
   if (!state._portOffers) state._portOffers = rollOffers();
@@ -60,8 +60,8 @@ function rollOffers() {
   const shipId = recruitable[Math.floor(Math.random() * recruitable.length)];
   const relicIds = Object.keys(DB.relics).filter((id) => !state.relics.includes(id) && id !== 'kraken_relic');
   const relicId = relicIds[Math.floor(Math.random() * relicIds.length)] || null;
-  const shipCosts = { sloop: 80, frigate: 120, galleon: 160 };
-  const relicCosts = { rare: 150, uncommon: 100, cursed: 90, legendary: 250 };
+  const shipCosts = { sloop: 110, frigate: 150, galleon: 190 };
+  const relicCosts = { rare: 175, uncommon: 125, cursed: 115, legendary: 300 };
   return {
     ship: { id: shipId, cost: shipCosts[shipId] || 120 },
     relic: relicId ? { id: relicId, cost: relicCosts[DB.relics[relicId].rarity] || 130 } : null,

@@ -71,6 +71,36 @@ export const PART_LEGEND = [
   { ch: '.', key: 'part_empty' },
 ];
 
+// --- Template overrides (from the Sprite Editor) ---
+// A saved shape replaces the default template for a ship type, persisted to
+// localStorage so the game (and the editor) use it on the next load.
+const OVERRIDE_KEY = 'fdlc_sprite_overrides';
+
+export function saveTemplateOverride(id, gridStrings) {
+  TEMPLATES[id] = gridStrings.slice();
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem(OVERRIDE_KEY) || '{}'); } catch {}
+  all[id] = gridStrings;
+  localStorage.setItem(OVERRIDE_KEY, JSON.stringify(all));
+}
+
+export function loadTemplateOverrides() {
+  try {
+    const all = JSON.parse(localStorage.getItem(OVERRIDE_KEY) || '{}');
+    for (const [k, v] of Object.entries(all)) {
+      if (Array.isArray(v) && v.length) TEMPLATES[k] = v;
+    }
+  } catch {}
+}
+
+export function resetTemplateOverride(id) {
+  try {
+    const all = JSON.parse(localStorage.getItem(OVERRIDE_KEY) || '{}');
+    delete all[id];
+    localStorage.setItem(OVERRIDE_KEY, JSON.stringify(all));
+  } catch {}
+}
+
 function shade(hex, pct) {
   const n = parseInt(hex.slice(1), 16);
   let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;

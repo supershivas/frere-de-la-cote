@@ -98,12 +98,15 @@ export function statBlockHtml(ship, { isEnemy = false } = {}) {
 
 // A ship card used in combat/fleet: canvas sprite + name + hp/shield bars + effects.
 export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = null, selectable = false, combat = false } = {}) {
-  const damaged = 1 - Math.max(0, ship.hp) / ship.maxHp;
+  // Bars render from the "shown" values, which lag real HP until a shot lands.
+  const shownHp = ship.shownHp ?? ship.hp;
+  const shownShield = ship.shownShield ?? ship.shield;
+  const damaged = 1 - Math.max(0, shownHp) / ship.maxHp;
   const card = el('div', {
-    class: `ship-card ${isEnemy ? 'enemy' : 'ally'} ${ship.flagship ? 'flagship' : ''} ${selectable ? 'selectable' : ''} ${damaged > 0.6 && ship.hp > 0 ? 'smoking' : ''}`,
+    class: `ship-card ${isEnemy ? 'enemy' : 'ally'} ${ship.flagship ? 'flagship' : ''} ${selectable ? 'selectable' : ''} ${damaged > 0.6 && shownHp > 0 ? 'smoking' : ''}`,
     attrs: { 'data-iid': ship.iid },
   });
-  if (ship.hp <= 0) card.classList.add('dead');
+  if (shownHp <= 0) card.classList.add('dead');
 
   const canvas = el('canvas', { class: 'ship-canvas' });
   canvas.width = 110; canvas.height = 90;
@@ -122,8 +125,8 @@ export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = n
   card.appendChild(stage);
 
   card.appendChild(el('div', { class: 'ship-name', text: (ship.name || locName(ship.def)) + (ship.flagship ? ' ★' : '') }));
-  const bars = el('div', { class: 'ship-bars' }, [bar(ship.hp, ship.maxHp, 'hp', '❤️')]);
-  if (ship.maxShield > 0) bars.appendChild(bar(ship.shield, ship.maxShield, 'shield', '🛡️'));
+  const bars = el('div', { class: 'ship-bars' }, [bar(shownHp, ship.maxHp, 'hp', '❤️')]);
+  if (ship.maxShield > 0) bars.appendChild(bar(shownShield, ship.maxShield, 'shield', '🛡️'));
   card.appendChild(bars);
   card.appendChild(effectChips(ship));
 
@@ -153,6 +156,20 @@ export function modal(contentNode, { closable = true, cls = '' } = {}) {
   }
   document.body.appendChild(overlay);
   return { overlay, box, close };
+}
+
+// Colour-coded result modal for events / treasure / rewards.
+// tone: 'positive' (green), 'negative' (red), 'reward' (gold), 'curse' (purple),
+// 'neutral' (blue). lines are HTML strings.
+export function outcomeModal({ tone = 'neutral', icon = '', title = '', lines = [], onClose } = {}) {
+  const box = el('div', { class: `result-box outcome tone-${tone}` }, [
+    icon ? el('div', { class: 'outcome-icon', text: icon }) : null,
+    el('h2', { class: 'result-title', text: title }),
+    ...lines.filter(Boolean).map((l) => el('div', { class: 'outcome-line', html: l })),
+    el('button', { class: 'btn btn-big', text: t('continue_btn'), on: { click: () => { close(); if (onClose) onClose(); } } }),
+  ]);
+  const { close } = modal(box, { closable: false, cls: 'result-overlay' });
+  return box;
 }
 
 export function goldPill() {

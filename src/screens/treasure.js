@@ -1,12 +1,11 @@
 // Treasure node: choose a safe chest (small, sure reward) or a cursed chest
 // (big reward with a chance of a curse).
-import { el, mount } from '../ui.js';
-import { t, locName } from '../i18n.js';
+import { el, mount, outcomeModal } from '../ui.js';
+import { t, locName, locField } from '../i18n.js';
 import { register, go } from '../nav.js';
 import { DB } from '../data.js';
 import { state, addGold, addRelic, relicMods, saveGame } from '../state.js';
 import { renderHud } from '../hud.js';
-import { toastSuccess, toastDanger } from '../toast.js';
 
 function render() {
   state.screen = 'treasure';
@@ -33,12 +32,16 @@ function chest(icon, title, desc, onClick) {
   ]);
 }
 
+const done = () => go('map');
+
 function openSafe() {
   const mods = relicMods();
-  const gold = Math.round((40 + Math.floor(Math.random() * 30)) * mods.goldMult);
+  const gold = Math.round((30 + Math.floor(Math.random() * 20)) * mods.goldMult);
   addGold(gold);
-  toastSuccess(t('toast_gold_gain', { n: gold }), '💰');
-  go('map');
+  outcomeModal({
+    tone: 'positive', icon: '🧰', title: t('treasure_safe'),
+    lines: [`💰 <b>+${gold}</b> ${t('gold')}`], onClose: done,
+  });
 }
 
 function openCursed() {
@@ -46,25 +49,33 @@ function openCursed() {
   const roll = Math.random();
   const curseChance = mods.dangerUp ? 0.55 : 0.4;
   if (roll < curseChance) {
-    // Curse: damage the fleet a bit but still grab some gold.
+    // Curse: damage the fleet but still grab a little gold.
     state.fleet.forEach((s) => { s.hp = Math.max(1, s.hp - 25); });
-    toastDanger(t('toast_curse'), '☠️');
     const gold = Math.round(30 * mods.goldMult);
     addGold(gold);
+    outcomeModal({
+      tone: 'curse', icon: '☠️', title: t('toast_curse'),
+      lines: [`❤️ <b>-25</b> ${t('stat_hp')} · ${t('your_fleet')}`, `💰 <b>+${gold}</b> ${t('gold')}`], onClose: done,
+    });
   } else {
-    // Big reward: a relic if available, else lots of gold.
     const pool = Object.keys(DB.relics).filter((id) => !state.relics.includes(id) && id !== 'kraken_relic');
     if (pool.length && Math.random() < 0.6) {
       const id = pool[Math.floor(Math.random() * pool.length)];
       addRelic(id);
-      toastSuccess(t('toast_relic', { name: locName(DB.relics[id]) }), DB.relics[id].icon || '⭐');
+      const rel = DB.relics[id];
+      outcomeModal({
+        tone: 'reward', icon: rel.icon || '⭐', title: t('toast_relic', { name: locName(rel) }),
+        lines: [`<span class="tt-desc">${locField(rel, 'desc')}</span>`], onClose: done,
+      });
     } else {
-      const gold = Math.round((120 + Math.floor(Math.random() * 80)) * mods.goldMult);
+      const gold = Math.round((90 + Math.floor(Math.random() * 60)) * mods.goldMult);
       addGold(gold);
-      toastSuccess(t('toast_gold_gain', { n: gold }), '💰');
+      outcomeModal({
+        tone: 'reward', icon: '💰', title: t('treasure_cursed'),
+        lines: [`💰 <b>+${gold}</b> ${t('gold')}`], onClose: done,
+      });
     }
   }
-  go('map');
 }
 
 register('treasure', render);

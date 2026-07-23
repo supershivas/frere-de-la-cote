@@ -107,7 +107,7 @@ export function fxRecoil(iid, awayX = -8) {
     { transform: 'translate(0,0)' },
   ], 200);
 }
-// Jolt a struck ship: a quick shudder + a brightness flash on its sprite only.
+// Jolt a struck ship: a quick shudder only (no brightness flash).
 function impactBumpEl(elm) {
   if (!elm) return;
   animEl(elm, [
@@ -116,10 +116,6 @@ function impactBumpEl(elm) {
     { transform: 'translate(-4px,1px)' },
     { transform: 'translate(0,0)' },
   ], 240);
-  animEl(elm.querySelector('.ship-canvas'), [
-    { filter: 'brightness(2.6) saturate(0.6)' },
-    { filter: 'brightness(1)' },
-  ], 260);
 }
 export function fxImpactBump(iid) { impactBumpEl(cardEl(iid)); }
 
@@ -140,24 +136,27 @@ const AMMO_COLORS = {
 };
 
 export function fxExplosion(x, y, { scale = 1, color = '#ff9a3c' } = {}) {
-  // Small, contained core glow (never a full-screen flash).
-  flash(x, y, 18 * scale, 'rgba(255,190,120,0.5)', 0.13);
+  // No bright core glow — just an expanding ring, directional sparks and smoke,
+  // so the hit reads as an impact without flashing the screen.
   ring(x, y, color, 0.4, 44 * scale);
-  for (let i = 0; i < 14 * scale; i++) {
+  for (let i = 0; i < 12 * scale; i++) {
     const a = Math.random() * Math.PI * 2;
-    const sp = rand(80, 260) * scale;
-    spark(x, y, Math.cos(a) * sp, Math.sin(a) * sp, i % 2 ? color : '#ffe6a0', rand(0.3, 0.6), rand(2, 4));
+    const sp = rand(70, 230) * scale;
+    spark(x, y, Math.cos(a) * sp, Math.sin(a) * sp, color, rand(0.3, 0.55), rand(2, 4));
   }
   for (let i = 0; i < 4 * scale; i++) smoke(x + rand(-8, 8), y + rand(-8, 8), rand(-20, 20), rand(-30, -10), rand(0.6, 1.1), rand(6, 12));
 }
 
 // Fire a cannon shot from attacker to target. Fire-and-forget visual.
-export function fxCannon(fromIid, toIid, { ammo = 'classic', hit = true, damage = 0, absorbed = 0, killed = false } = {}) {
+// onHit (if given) runs the moment the projectile lands — used to drop the
+// target's HP bar in sync with the impact rather than when the shot is fired.
+export function fxCannon(fromIid, toIid, { ammo = 'classic', hit = true, damage = 0, absorbed = 0, killed = false, onHit = null } = {}) {
   const from = centerOf(fromIid);
   const to = centerOf(toIid);
   if (!from || !to) {
-    // Fallback: still show the number on the target if we can locate it.
-    if (to) fxImpact(to, { ammo, hit, damage, absorbed, killed });
+    // Fallback: still show the number and apply the hit if we can locate the target.
+    if (to) fxImpact(to, { ammo, hit, damage, absorbed, killed, onHit });
+    else if (onHit) onHit();
     return;
   }
   const color = AMMO_COLORS[ammo] || '#ffd27f';
@@ -194,14 +193,15 @@ export function fxCannon(fromIid, toIid, { ammo = 'classic', hit = true, damage 
         if (ammo === 'harpoon') { c.save(); c.translate(this.x, this.y); c.rotate(dir); c.fillRect(-6, -1.5, 12, 3); c.restore(); }
         else { c.arc(this.x, this.y, ammo === 'explosive' ? 5 : 4, 0, 7); c.fill(); c.strokeStyle = color; c.lineWidth = 1; c.stroke(); }
       },
-      onImpact: b === nBalls - 1 ? () => fxImpact(to, { ammo, hit, damage, absorbed, killed }) : null,
+      onImpact: b === nBalls - 1 ? () => fxImpact(to, { ammo, hit, damage, absorbed, killed, onHit }) : null,
       _impacted: false,
     });
   }
 }
 
-function fxImpact(to, { ammo, hit, damage, absorbed, killed }) {
+function fxImpact(to, { ammo, hit, damage, absorbed, killed, onHit }) {
   const color = AMMO_COLORS[ammo] || '#ff9a3c';
+  if (onHit) onHit(); // drop the HP bar exactly when the shot lands
   if (!hit) {
     // Splash miss: little water plume + MISS text.
     for (let i = 0; i < 6; i++) spark(to.x + rand(-10, 10), to.y + 20, rand(-40, 40), rand(-120, -40), '#8fd0e8', rand(0.3, 0.5), 3);
@@ -218,7 +218,8 @@ function fxImpact(to, { ammo, hit, damage, absorbed, killed }) {
 }
 
 // Secondary explosion on a ship (e.g. explosive splash) by ship id.
-export function fxSplash(iid, damage = 0, killed = false) {
+export function fxSplash(iid, damage = 0, killed = false, onHit = null) {
+  if (onHit) onHit();
   const p = centerOf(iid); if (!p) return;
   fxExplosion(p.x, p.y, { scale: killed ? 1.4 : 0.9, color: '#ffb14a' });
   impactBumpEl(p.el);

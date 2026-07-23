@@ -4,8 +4,10 @@
 import { el, mount, modal } from '../ui.js';
 import { t } from '../i18n.js';
 import { register, go } from '../nav.js';
-import { TEMPLATES, PART_LEGEND, swatchColor, drawGrid } from '../sprites.js';
+import { TEMPLATES, PART_LEGEND, swatchColor, drawGrid, saveTemplateOverride } from '../sprites.js';
 import { toastSuccess } from '../toast.js';
+
+const SAVE_SLOTS = ['sloop', 'frigate', 'galleon', 'monster'];
 
 const COLS = 10, ROWS = 10;
 
@@ -72,11 +74,22 @@ function render() {
     ]),
   ]);
 
+  // Save-to-slot: replaces a ship type's default sprite with the current drawing.
+  const targetSel = el('select', { class: 'ed-input' });
+  const target = SAVE_SLOTS.includes(shapeId) ? shapeId : 'frigate';
+  SAVE_SLOTS.forEach((slot) => {
+    const opt = el('option', { text: t(`shape_${slot}`), attrs: { value: slot } });
+    if (slot === target) opt.selected = true;
+    targetSel.appendChild(opt);
+  });
+
   const right = el('div', { class: 'editor-col' }, [
     el('h3', { text: t('editor_preview') }),
     previewCanvas,
     el('div', { class: 'editor-actions' }, [
-      el('button', { class: 'btn btn-primary', text: t('editor_export'), on: { click: exportJson } }),
+      el('label', { class: 'ed-field save-target' }, [el('span', { text: t('editor_save_target') }), targetSel]),
+      el('button', { class: 'btn btn-primary', text: `💾 ${t('editor_save')}`, on: { click: () => saveShape(targetSel.value) } }),
+      el('button', { class: 'btn', text: t('editor_export'), on: { click: exportJson } }),
       el('button', { class: 'btn btn-ghost', text: t('editor_back'), on: { click: () => { grid = null; go('title'); } } }),
     ]),
     el('div', { class: 'editor-note', text: t('editor_note') }),
@@ -172,6 +185,14 @@ function toggleField(label, value, onChange) {
   const btn = el('button', { class: `toggle ${value ? 'on' : 'off'}`, text: value ? t('options_on') : t('options_off') });
   btn.addEventListener('click', () => { onChange(!btn.classList.contains('on')); btn.className = `toggle ${!value ? 'on' : 'off'}`; });
   return el('label', { class: 'ed-field' }, [el('span', { text: label }), btn]);
+}
+
+// Save the current drawing as the new default sprite for a ship type.
+function saveShape(slot) {
+  saveTemplateOverride(slot, gridToStrings());
+  toastSuccess(`💾 ${t('editor_saved')} — ${t(`shape_${slot}`)}`, '💾');
+  shapeId = slot;
+  render(); // refresh shape-library thumbnails from the updated template
 }
 
 function exportJson() {

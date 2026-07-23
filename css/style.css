@@ -371,6 +371,21 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .reward-relic { font-size: 20px; margin: 10px 0 16px; padding: 10px; background: #e8c05a15; border-radius: 8px; }
 .result-stats { color: var(--gold); margin: 12px 0; letter-spacing: 0.05em; }
 
+/* Colour-coded outcome modals (events / treasure / rewards). */
+.result-box.outcome { max-width: 440px; }
+.outcome-icon { font-size: 54px; margin-bottom: 4px; filter: drop-shadow(0 3px 4px #000a); }
+.outcome-line { font-size: 17px; margin: 6px 0; }
+.result-box.tone-positive { border-color: var(--green); box-shadow: 0 12px 40px #000c, 0 0 22px #4caf7d44; }
+.result-box.tone-positive .result-title { color: #7fe0a0; }
+.result-box.tone-negative { border-color: var(--red); box-shadow: 0 12px 40px #000c, 0 0 22px #c0392b55; }
+.result-box.tone-negative .result-title { color: var(--red-light); }
+.result-box.tone-reward { border-color: var(--gold); box-shadow: 0 12px 40px #000c, 0 0 24px #e8c05a55; }
+.result-box.tone-reward .result-title { color: var(--gold); }
+.result-box.tone-curse { border-color: #b06fd4; box-shadow: 0 12px 40px #000c, 0 0 26px #b06fd455; }
+.result-box.tone-curse .result-title { color: #cf9be6; }
+.result-box.tone-neutral { border-color: var(--info); }
+.result-box.tone-neutral .result-title { color: #8fc4ff; }
+
 .upgrade-options { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
 .upgrade-card {
   width: 150px; background: linear-gradient(180deg, #ffffff0c, #0004);
@@ -522,6 +537,8 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .editor-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; margin-top: 14px; }
 .editor-tools .ed-field { flex-direction: row; align-items: center; gap: 6px; margin: 0; }
 .editor-note { font-size: 11px; color: var(--text-dim); margin-top: 12px; font-style: italic; text-align: center; line-height: 1.5; }
+.editor-actions .ed-field.save-target { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; }
+.editor-actions .ed-field.save-target .ed-input { flex: 1; }
 
 /* ---------- Toasts ---------- */
 #toast-container {

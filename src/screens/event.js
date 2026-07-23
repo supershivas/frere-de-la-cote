@@ -1,11 +1,11 @@
 // Narrative events (Mysterious Isle nodes). Data-driven from events.json.
-import { el, mount } from '../ui.js';
-import { t, locField } from '../i18n.js';
+import { el, mount, outcomeModal } from '../ui.js';
+import { t, locField, locName } from '../i18n.js';
 import { register, go } from '../nav.js';
 import { DB } from '../data.js';
 import { state, addGold, addRelic, relicMods, saveGame } from '../state.js';
 import { renderHud } from '../hud.js';
-import { toast, toastSuccess, toastDanger, toastInfo } from '../toast.js';
+import { toastInfo } from '../toast.js';
 
 function render() {
   state.screen = 'event';
@@ -58,53 +58,51 @@ function pickOutcome(outcomes) {
 function applyOutcome(o) {
   const mods = relicMods();
   const msg = locField(o, 'toast');
+  const done = () => go('map');
+  const show = (tone, icon, lines) => outcomeModal({ tone, icon, title: msg || '', lines, onClose: done });
+
   switch (o.type) {
     case 'gold': {
       const g = Math.round((o.value || 0) * mods.goldMult);
       addGold(g);
-      toastSuccess(msg || t('toast_gold_gain', { n: g }), '💰');
-      break;
+      return show('positive', '💰', [`💰 <b>+${g}</b> ${t('gold')}`]);
     }
     case 'damage_flagship': {
       const fs = state.fleet.find((s) => s.flagship) || state.fleet[0];
       if (fs) fs.hp = Math.max(1, fs.hp - (o.value || 0));
-      toastDanger(msg || t('toast_hull'), '⚠️');
-      break;
+      return show('negative', '⚠️', [`❤️ <b>-${o.value || 0}</b> ${t('stat_hp')}`]);
     }
     case 'damage_fleet':
       state.fleet.forEach((s) => { s.hp = Math.max(1, s.hp - (o.value || 0)); });
-      toastDanger(msg || t('toast_hull'), '⚠️');
-      break;
+      return show('negative', '🌊', [`❤️ <b>-${o.value || 0}</b> ${t('stat_hp')} · ${t('your_fleet')}`]);
     case 'heal_fleet':
       state.fleet.forEach((s) => { s.hp = Math.min(s.maxHp, s.hp + (o.value || 0)); });
-      toastSuccess(msg, '💤');
-      break;
+      return show('positive', '💤', [`❤️ <b>+${o.value || 0}</b> ${t('stat_hp')} · ${t('your_fleet')}`]);
     case 'relic_random': {
       const pool = Object.keys(DB.relics).filter((id) => !state.relics.includes(id) && id !== 'kraken_relic');
       if (pool.length) {
         const id = pool[Math.floor(Math.random() * pool.length)];
         addRelic(id);
-        toastSuccess(msg || t('toast_relic', { name: id }), DB.relics[id].icon || '⭐');
-      } else { addGold(80); toastSuccess(msg, '💰'); }
-      break;
+        const rel = DB.relics[id];
+        return show('reward', rel.icon || '⭐', [`<b>${locName(rel)}</b>`, `<span class="tt-desc">${locField(rel, 'desc')}</span>`]);
+      }
+      addGold(80);
+      return show('positive', '💰', [`💰 <b>+80</b> ${t('gold')}`]);
     }
     case 'rare_materials':
       state.resources.rareMaterials += o.value || 1;
-      toastSuccess(msg, '⭐');
-      break;
+      return show('reward', '⭐', [`⭐ <b>+${o.value || 1}</b> ${t('rare_materials')}`]);
     case 'reputation':
       state.resources.reputation += o.value || 1;
-      toastInfo(msg, '🏴‍☠️');
-      break;
+      return show('neutral', '🏴‍☠️', [`🏴‍☠️ <b>+${o.value || 1}</b> ${t('reputation')}`]);
     case 'combat':
       toastInfo(msg, '⚔️');
       go('combat', { kind: 'combat', danger: 1 });
       return; // combat flow handles navigation
     case 'none':
     default:
-      if (msg) toast(msg, { type: 'info', icon: '📜' });
+      return show('neutral', '📜', []);
   }
-  go('map');
 }
 
 register('event', render);
