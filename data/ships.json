@@ -1,0 +1,74 @@
+{
+  "sloop": {
+    "id": "sloop",
+    "name_fr": "Sloop Rapide",
+    "name_en": "Swift Sloop",
+    "type": "sloop",
+    "role": "scout",
+    "faction": "free_pirates",
+    "rarity": "common",
+    "desc_fr": "Léger et véloce, il frappe puis disparaît. Faible coque mais esquive redoutable.",
+    "desc_en": "Light and fast, it strikes then vanishes. Fragile hull but deadly evasion.",
+    "stats": {
+      "hp": 90,
+      "armor": 4,
+      "shield": 0,
+      "damage": 22,
+      "accuracy": 0.9,
+      "speed": 18,
+      "evasion": 0.35,
+      "morale": 60,
+      "crew_capacity": 4
+    },
+    "ability": "swift_strike",
+    "color": "#7fd4c1"
+  },
+  "frigate": {
+    "id": "frigate",
+    "name_fr": "Frégate",
+    "name_en": "Frigate",
+    "type": "frigate",
+    "role": "versatile",
+    "faction": "free_pirates",
+    "rarity": "common",
+    "desc_fr": "L'équilibre parfait entre attaque, défense et mobilité. La colonne vertébrale de toute flotte.",
+    "desc_en": "The perfect balance of attack, defense and mobility. The backbone of any fleet.",
+    "stats": {
+      "hp": 160,
+      "armor": 12,
+      "shield": 20,
+      "damage": 34,
+      "accuracy": 0.85,
+      "speed": 12,
+      "evasion": 0.15,
+      "morale": 70,
+      "crew_capacity": 8
+    },
+    "ability": "broadside",
+    "color": "#d98b5f"
+  },
+  "galleon": {
+    "id": "galleon",
+    "name_fr": "Galion",
+    "name_en": "Galleon",
+    "type": "galleon",
+    "role": "tank",
+    "faction": "free_pirates",
+    "rarity": "uncommon",
+    "desc_fr": "Une forteresse flottante. Énorme coque, lente mais presque impossible à couler.",
+    "desc_en": "A floating fortress. Enormous hull, slow but nearly impossible to sink.",
+    "stats": {
+      "hp": 280,
+      "armor": 24,
+      "shield": 30,
+      "damage": 40,
+      "accuracy": 0.75,
+      "speed": 6,
+      "evasion": 0.05,
+      "morale": 80,
+      "crew_capacity": 12
+    },
+    "ability": "reinforce",
+    "color": "#c9a24b"
+  }
+}

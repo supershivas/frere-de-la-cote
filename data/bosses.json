@@ -1,0 +1,43 @@
+{
+  "mechanical_kraken": {
+    "id": "mechanical_kraken",
+    "name_fr": "Le Kraken Mécanique",
+    "name_en": "The Mechanical Kraken",
+    "type": "naval_monster",
+    "faction": "cursed_pirates",
+    "isBoss": true,
+    "desc_fr": "Une abomination d'acier et de tentacules. Il frappe fort, mais le feu ronge ses rouages.",
+    "desc_en": "An abomination of steel and tentacles. It hits hard, but fire eats away at its gears.",
+    "weakness": "incendiary",
+    "stats": {
+      "hp": 520,
+      "armor": 20,
+      "shield": 40,
+      "damage": 48,
+      "accuracy": 0.9,
+      "speed": 9,
+      "evasion": 0.05,
+      "morale": 100
+    },
+    "ai": { "style": "boss", "priority": "attack_player" },
+    "phases": [
+      {
+        "at": 1.0,
+        "name_fr": "Éveil des tentacules",
+        "name_en": "Tentacle Awakening",
+        "intent_fr": "Le Kraken déploie ses tentacules mécaniques.",
+        "intent_en": "The Kraken deploys its mechanical tentacles."
+      },
+      {
+        "at": 0.5,
+        "name_fr": "Broyeur d'acier",
+        "name_en": "Steel Crusher",
+        "intent_fr": "Enragé, il frappe désormais deux fois par tour.",
+        "intent_en": "Enraged, it now strikes twice per turn.",
+        "onEnter": { "multiAttack": 2, "damageMult": 1.15 }
+      }
+    ],
+    "reward": { "gold": 250, "xp": 120, "relic": "kraken_relic", "rareMaterials": 2 },
+    "color": "#3fae86"
+  }
+}

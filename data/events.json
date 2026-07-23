@@ -1,0 +1,106 @@
+{
+  "abandoned_ship": {
+    "id": "abandoned_ship",
+    "title_fr": "Le Navire Abandonné",
+    "title_en": "The Abandoned Ship",
+    "text_fr": "Un vieux galion dérive sans équipage, ses voiles en lambeaux claquant dans le vent.",
+    "text_en": "An old galleon drifts crewless, its tattered sails snapping in the wind.",
+    "choices": [
+      {
+        "label_fr": "Monter à bord",
+        "label_en": "Board it",
+        "outcomes": [
+          { "weight": 60, "type": "gold", "value": 90, "toast_fr": "Trésor trouvé dans la cale !", "toast_en": "Treasure found in the hold!" },
+          { "weight": 40, "type": "damage_flagship", "value": 40, "toast_fr": "Une malédiction endommage votre coque !", "toast_en": "A curse damages your hull!" }
+        ]
+      },
+      {
+        "label_fr": "Ignorer",
+        "label_en": "Ignore",
+        "outcomes": [
+          { "weight": 100, "type": "none", "toast_fr": "Vous poursuivez votre route.", "toast_en": "You sail on." }
+        ]
+      }
+    ]
+  },
+  "old_captain": {
+    "id": "old_captain",
+    "title_fr": "L'Ancien Capitaine",
+    "title_en": "The Old Captain",
+    "text_fr": "Un vieux pirate borgne vous propose une carte marquée d'une croix.",
+    "text_en": "A one-eyed old pirate offers you a map marked with a cross.",
+    "choices": [
+      {
+        "label_fr": "Acheter (50 or)",
+        "label_en": "Buy (50 gold)",
+        "cost": { "gold": 50 },
+        "outcomes": [
+          { "weight": 100, "type": "relic_random", "toast_fr": "La carte mène à une relique !", "toast_en": "The map leads to a relic!" }
+        ]
+      },
+      {
+        "label_fr": "Voler la carte",
+        "label_en": "Steal the map",
+        "outcomes": [
+          { "weight": 50, "type": "relic_random", "toast_fr": "Vous vous emparez de la carte !", "toast_en": "You snatch the map!" },
+          { "weight": 50, "type": "combat", "toast_fr": "Le vieux pirate appelle ses hommes !", "toast_en": "The old pirate calls his men!" }
+        ]
+      },
+      {
+        "label_fr": "Refuser",
+        "label_en": "Refuse",
+        "outcomes": [
+          { "weight": 100, "type": "none", "toast_fr": "Le pirate hausse les épaules.", "toast_en": "The pirate shrugs." }
+        ]
+      }
+    ]
+  },
+  "the_storm": {
+    "id": "the_storm",
+    "title_fr": "La Tempête",
+    "title_en": "The Storm",
+    "text_fr": "Un mur de nuages noirs barre l'horizon. Le tonnerre gronde.",
+    "text_en": "A wall of black clouds blocks the horizon. Thunder rumbles.",
+    "choices": [
+      {
+        "label_fr": "Traverser",
+        "label_en": "Sail through",
+        "outcomes": [
+          { "weight": 55, "type": "gold", "value": 120, "toast_fr": "Vous trouvez une épave pleine d'or !", "toast_en": "You find a wreck full of gold!" },
+          { "weight": 45, "type": "damage_fleet", "value": 25, "toast_fr": "La tempête malmène la flotte !", "toast_en": "The storm batters the fleet!" }
+        ]
+      },
+      {
+        "label_fr": "Contourner",
+        "label_en": "Go around",
+        "outcomes": [
+          { "weight": 100, "type": "heal_fleet", "value": 15, "toast_fr": "Route calme : l'équipage se repose.", "toast_en": "Calm route: the crew rests." }
+        ]
+      }
+    ]
+  },
+  "forgotten_temple": {
+    "id": "forgotten_temple",
+    "title_fr": "Le Temple Oublié",
+    "title_en": "The Forgotten Temple",
+    "text_fr": "Sur une île embrumée se dresse un temple couvert de symboles anciens.",
+    "text_en": "On a foggy island stands a temple covered in ancient symbols.",
+    "choices": [
+      {
+        "label_fr": "Piller le temple",
+        "label_en": "Loot the temple",
+        "outcomes": [
+          { "weight": 50, "type": "rare_materials", "value": 2, "toast_fr": "Matériaux rares récupérés !", "toast_en": "Rare materials recovered!" },
+          { "weight": 50, "type": "damage_flagship", "value": 30, "toast_fr": "Un piège se déclenche !", "toast_en": "A trap springs!" }
+        ]
+      },
+      {
+        "label_fr": "Prier aux idoles",
+        "label_en": "Pray to the idols",
+        "outcomes": [
+          { "weight": 100, "type": "reputation", "value": 5, "toast_fr": "Votre réputation grandit.", "toast_en": "Your reputation grows." }
+        ]
+      }
+    ]
+  }
+}

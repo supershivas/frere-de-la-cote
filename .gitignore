@@ -1,0 +1,13 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Node (not required to run, but ignore if a dev adds tooling)
+node_modules/
+npm-debug.log*
+
+# Local server / scratch
+*.log

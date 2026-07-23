@@ -1,0 +1,56 @@
+{
+  "reinforced_cannon": {
+    "id": "reinforced_cannon",
+    "name_fr": "Canon Renforcé",
+    "name_en": "Reinforced Cannon",
+    "desc_fr": "+15% de dégâts",
+    "desc_en": "+15% damage",
+    "effect": { "stat": "damage", "mult": 1.15 },
+    "icon": "💥"
+  },
+  "reinforced_hull": {
+    "id": "reinforced_hull",
+    "name_fr": "Coque Renforcée",
+    "name_en": "Reinforced Hull",
+    "desc_fr": "+30 PV max",
+    "desc_en": "+30 max HP",
+    "effect": { "stat": "hp", "add": 30 },
+    "icon": "❤️"
+  },
+  "veteran_crew": {
+    "id": "veteran_crew",
+    "name_fr": "Équipage Vétéran",
+    "name_en": "Veteran Crew",
+    "desc_fr": "+8% précision, +5 moral",
+    "desc_en": "+8% accuracy, +5 morale",
+    "effect": { "stat": "accuracy", "add": 0.08, "morale": 5 },
+    "icon": "⚓"
+  },
+  "iron_plating": {
+    "id": "iron_plating",
+    "name_fr": "Blindage de Fer",
+    "name_en": "Iron Plating",
+    "desc_fr": "+8 armure",
+    "desc_en": "+8 armor",
+    "effect": { "stat": "armor", "add": 8 },
+    "icon": "🛡️"
+  },
+  "swift_sails": {
+    "id": "swift_sails",
+    "name_fr": "Voiles Rapides",
+    "name_en": "Swift Sails",
+    "desc_fr": "+4 vitesse, +8% esquive",
+    "desc_en": "+4 speed, +8% evasion",
+    "effect": { "stat": "speed", "add": 4, "evasion": 0.08 },
+    "icon": "⛵"
+  },
+  "reinforced_shield": {
+    "id": "reinforced_shield",
+    "name_fr": "Bouclier Renforcé",
+    "name_en": "Reinforced Shield",
+    "desc_fr": "+25 bouclier max",
+    "desc_en": "+25 max shield",
+    "effect": { "stat": "shield", "add": 25 },
+    "icon": "🔰"
+  }
+}

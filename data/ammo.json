@@ -1,0 +1,51 @@
+{
+  "classic": {
+    "id": "classic",
+    "name_fr": "Boulets Classiques",
+    "name_en": "Classic Cannonballs",
+    "icon": "⚫",
+    "damageMult": 1.0,
+    "desc_fr": "Dégâts standards, fiables.",
+    "desc_en": "Standard, reliable damage."
+  },
+  "explosive": {
+    "id": "explosive",
+    "name_fr": "Boulets Explosifs",
+    "name_en": "Explosive Shot",
+    "icon": "💥",
+    "damageMult": 0.8,
+    "splash": 0.5,
+    "desc_fr": "Dégâts de zone : touche aussi les navires voisins.",
+    "desc_en": "Splash damage: also hits neighboring ships."
+  },
+  "incendiary": {
+    "id": "incendiary",
+    "name_fr": "Boulets Incendiaires",
+    "name_en": "Incendiary Shot",
+    "icon": "🔥",
+    "damageMult": 0.7,
+    "applyFire": { "amount": 10, "turns": 3 },
+    "desc_fr": "Applique Feu pendant 3 tours.",
+    "desc_en": "Applies Fire for 3 turns."
+  },
+  "chain": {
+    "id": "chain",
+    "name_fr": "Chaînes",
+    "name_en": "Chain Shot",
+    "icon": "⛓️",
+    "damageMult": 0.6,
+    "applySlow": { "amount": 6, "turns": 2 },
+    "desc_fr": "Réduit la vitesse de la cible.",
+    "desc_en": "Reduces the target's speed."
+  },
+  "harpoon": {
+    "id": "harpoon",
+    "name_fr": "Harpons",
+    "name_en": "Harpoons",
+    "icon": "🪝",
+    "damageMult": 0.5,
+    "applyImmobilize": { "turns": 1 },
+    "desc_fr": "Immobilise la cible pendant 1 tour.",
+    "desc_en": "Immobilizes the target for 1 turn."
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "pirate_longboat": {
+    "id": "pirate_longboat",
+    "name_fr": "Chaloupe Pirate",
+    "name_en": "Pirate Longboat",
+    "tier": "small",
+    "faction": "free_pirates",
+    "desc_fr": "Rapide et fragile, elle attaque en meute.",
+    "desc_en": "Fast and fragile, it attacks in packs.",
+    "weakness": "damage",
+    "stats": {
+      "hp": 55,
+      "armor": 0,
+      "shield": 0,
+      "damage": 14,
+      "accuracy": 0.85,
+      "speed": 16,
+      "evasion": 0.2,
+      "morale": 40
+    },
+    "ai": { "style": "aggressive", "priority": "attack_player" },
+    "reward": { "gold": 18, "xp": 10 },
+    "color": "#8a8f98"
+  },
+  "pirate_sloop": {
+    "id": "pirate_sloop",
+    "name_fr": "Sloop Pirate",
+    "name_en": "Pirate Sloop",
+    "tier": "small",
+    "faction": "free_pirates",
+    "desc_fr": "Attaquant mobile à l'esquive élevée.",
+    "desc_en": "Mobile attacker with high evasion.",
+    "weakness": "chain",
+    "stats": {
+      "hp": 75,
+      "armor": 2,
+      "shield": 0,
+      "damage": 20,
+      "accuracy": 0.85,
+      "speed": 15,
+      "evasion": 0.3,
+      "morale": 50
+    },
+    "ai": { "style": "aggressive", "priority": "attack_weakest" },
+    "reward": { "gold": 26, "xp": 14 },
+    "color": "#6f9bb5"
+  },
+  "thief_brigantine": {
+    "id": "thief_brigantine",
+    "name_fr": "Brigantin Voleur",
+    "name_en": "Thief Brigantine",
+    "tier": "small",
+    "faction": "cursed_pirates",
+    "desc_fr": "Harceleur qui dérobe or et ressources.",
+    "desc_en": "Harasser that steals gold and resources.",
+    "weakness": "harpoon",
+    "stats": {
+      "hp": 90,
+      "armor": 4,
+      "shield": 10,
+      "damage": 16,
+      "accuracy": 0.8,
+      "speed": 13,
+      "evasion": 0.2,
+      "morale": 55
+    },
+    "ai": { "style": "harasser", "priority": "steal" },
+    "reward": { "gold": 40, "xp": 18 },
+    "color": "#9b7bbd"
+  },
+  "armed_merchant": {
+    "id": "armed_merchant",
+    "name_fr": "Marchand Armé",
+    "name_en": "Armed Merchant",
+    "tier": "small",
+    "faction": "black_indies",
+    "desc_fr": "Faible attaque mais butin généreux.",
+    "desc_en": "Weak attack but generous loot.",
+    "weakness": "damage",
+    "stats": {
+      "hp": 120,
+      "armor": 8,
+      "shield": 0,
+      "damage": 12,
+      "accuracy": 0.7,
+      "speed": 8,
+      "evasion": 0.05,
+      "morale": 45
+    },
+    "ai": { "style": "defensive", "priority": "attack_player" },
+    "reward": { "gold": 70, "xp": 20 },
+    "color": "#c98f4b"
+  },
+  "royal_frigate": {
+    "id": "royal_frigate",
+    "name_fr": "Frégate Royale",
+    "name_en": "Royal Frigate",
+    "tier": "medium",
+    "faction": "royal_corsairs",
+    "desc_fr": "Navire militaire à l'armure épaisse et aux canons puissants.",
+    "desc_en": "Military ship with thick armor and powerful cannons.",
+    "weakness": "incendiary",
+    "stats": {
+      "hp": 170,
+      "armor": 18,
+      "shield": 20,
+      "damage": 30,
+      "accuracy": 0.85,
+      "speed": 11,
+      "evasion": 0.1,
+      "morale": 75
+    },
+    "ai": { "style": "aggressive", "priority": "attack_flagship" },
+    "reward": { "gold": 55, "xp": 30 },
+    "color": "#4b74c9"
+  }
+}
