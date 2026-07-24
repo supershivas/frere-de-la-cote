@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI Bible — Frères de la Côte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'IM Fell English', Georgia, serif;
+    background: #fdfbf7;
+    color: #2c2c2c;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 40px 60px;
+    line-height: 1.6;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'IM Fell English', serif;
+    color: #5a3d25;
+    border-bottom: 2px solid #d4a017;
+    padding-bottom: 6px;
+    margin-top: 2em;
+  }
+  h1 { font-size: 2.2em; text-align: center; border-bottom: 3px double #d4a017; }
+  h2 { font-size: 1.6em; }
+  h3 { font-size: 1.3em; }
+  h4 { font-size: 1.1em; border-bottom: 1px solid #d4a017; }
+  .meta {
+    text-align: center;
+    font-style: italic;
+    color: #6b4f3a;
+    margin-bottom: 2em;
+    font-size: 0.95em;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  th, td {
+    border: 1px solid #c9b79c;
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 0.95em;
+  }
+  th {
+    background: #5a3d25;
+    color: #f5f5dc;
+    font-weight: bold;
+  }
+  tr:nth-child(even) { background: #f8f3e8; }
+  code, pre {
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    background: #1a1210;
+    color: #f5f5dc;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  pre {
+    padding: 16px;
+    overflow-x: auto;
+    border-left: 4px solid #d4a017;
+    margin: 1em 0;
+  }
+  pre code { background: none; padding: 0; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+  blockquote {
+    border-left: 4px solid #d4a017;
+    margin: 1em 0;
+    padding: 8px 16px;
+    background: #f8f3e8;
+    font-style: italic;
+    color: #5a3d25;
+  }
+  .toc {
+    background: #f8f3e8;
+    border: 1px solid #c9b79c;
+    padding: 16px 24px;
+    border-radius: 6px;
+    margin: 2em 0;
+  }
+  .toc a { color: #5a3d25; text-decoration: none; }
+  .toc a:hover { color: #d4a017; }
+  .rule-box {
+    background: #fff3cd;
+    border: 2px solid #d4a017;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 1em 0;
+  }
+  .rule-box strong { color: #8b4513; }
+  @media print {
+    body { margin: 0; padding: 20px; }
+    h1, h2, h3 { page-break-after: avoid; }
+    table, pre, .rule-box { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<h1>UI Bible — Frères de la Côte</h1>
+<div class="meta">
+  <strong>Brothers of the Coast — Design System & Interface Guidelines</strong><br>
+  Version 1.1 (Corrigée & Harmonisée) · Date : 2026-07-24<br>
+  Pour : Équipe de développement & Artistes · Langues : FR / EN
+</div>
+
+<div class="toc">
+  <h3 style="border:none;margin-top:0;">Table des matières</h3>
+  <ol>
+    <li><a href="#s1">Philosophie de Design</a></li>
+    <li><a href="#s2">Identité Visuelle</a></li>
+    <li><a href="#s3">Système de Couleurs</a></li>
+    <li><a href="#s4">Typographie</a></li>
+    <li><a href="#s5">Spacing & Grid</a></li>
+    <li><a href="#s6">Composants UI</a></li>
+    <li><a href="#s7">Layouts par Écran</a></li>
+    <li><a href="#s8">Animations & Transitions</a></li>
+    <li><a href="#s9">Feedback Visuel</a></li>
+    <li><a href="#s10">Icônes & Pictogrammes</a></li>
+    <li><a href="#s11">États des Composants</a></li>
+    <li><a href="#s12">Accessibilité</a></li>
+    <li><a href="#s13">Responsive & Échelles</a></li>
+    <li><a href="#s14">Fichiers Source & Assets</a></li>
+  </ol>
+</div>
+
+<h2 id="s1">1. Philosophie de Design</h2>
+<h3>Vision</h3>
+<p>L'interface de <em>Frères de la Côte</em> doit évoquer :</p>
+<ul>
+  <li>Une <strong>carte de navigateur</strong> : lisible, précise, authentique.</li>
+  <li>Un <strong>journal de bord</strong> : texturé, chaleureux, immersif.</li>
+  <li>Un <strong>combat tactique</strong> : clair, anticipable, satisfaisant.</li>
+</ul>
+
+<h3>Principes fondamentaux</h3>
+<table>
+  <tr><th>Principe</th><th>Description</th><th>Application</th></tr>
+  <tr><td>Lisibilité avant tout</td><td>Chaque information doit être visible en 1 seconde</td><td>Contraste élevé, hiérarchie claire, pas de surcharge</td></tr>
+  <tr><td>Immersion constante</td><td>L'UI ne casse jamais l'ambiance pirate</td><td>Couleurs sombres, textures bois/parchemin, pas de blanc pur</td></tr>
+  <tr><td>Feedback immédiat</td><td>Chaque action a une réponse visuelle</td><td>Animations, sons, toasts, particules</td></tr>
+  <tr><td>Anticipation</td><td>Le joueur doit prévoir les conséquences</td><td>Intentions ennemies visibles, stats transparentes</td></tr>
+  <tr><td>Cohérence totale</td><td>Même langage visuel sur tous les écrans</td><td>Mêmes couleurs, mêmes composants, mêmes animations</td></tr>
+</table>
+
+<h2 id="s2">2. Identité Visuelle</h2>
+<h3>Moodboard</h3>
+<p><strong>Ambiance :</strong> XVIIe siècle, océan, bois vieilli, parchemin, or, sang, tempête.</p>
+<p><strong>Mots-clés :</strong> Rugueux/Texturé, Sombre/Mystérieux, Doré/Prestigieux, Rouge/Dangereux, Bleu océan/Profond.</p>
+
+<h3>Références UI</h3>
+<table>
+  <tr><th>Jeu</th><th>Élément repris</th></tr>
+  <tr><td>FTL</td><td>Clarté des infos de combat, toasts discrets</td></tr>
+  <tr><td>Into the Breach</td><td>Intentions ennemies, lisibilité tactique</td></tr>
+  <tr><td>Darkest Dungeon</td><td>Ambiance sombre, stress visuel maîtrisé</td></tr>
+  <tr><td>Sea of Stars</td><td>Pixel art raffiné, couleurs chaudes</td></tr>
+  <tr><td>Papers, Please</td><td>Interface "document", immersion bureaucratique/pirate</td></tr>
+</table>
+
+<h2 id="s3">3. Système de Couleurs</h2>
+<h3>Palette principale</h3>
+<pre><code>:root {
+  /* === FONDS === */
+  --bg-deep: #0d1b2a;       /* Fond très sombre, ciel nocturne */
+  --bg-ocean: #1b3a4b;      /* Océan profond */
+  --bg-water: #0f3460;      /* Eau de surface */
+  --bg-dark: #0d0908;       /* Noir chaud, bois brûlé (JAMAIS #000000) */
+  --bg-panel: #1a1210;      /* Panneaux, cartes */
+  --bg-card: #2a1f1d;       /* Cartes de bateau (alliés) */
+  --bg-card-enemy: #2a1a1a; /* Cartes de bateau (ennemis) */
+  --bg-card-select: #3a2a1d;/* Carte sélectionnée */
+  --bg-hover: #3d2817;      /* Survol */
+  --bg-active: #5a3d25;     /* Clic/actif */
+
+  /* === OR (Accent principal) === */
+  --gold: #d4a017;          /* Or standard */
+  --gold-light: #f1c40f;    /* Or brillant, highlights */
+  --gold-dark: #b8860b;     /* Or ombre, profond */
+  --gold-glow: rgba(212, 160, 23, 0.4);
+
+  /* === VIE & DÉGÂTS === */
+  --hp: #e74c3c;            /* Points de vie */
+  --hp-dark: #c0392b;       /* PV bas, critique */
+  --hp-bg: #1a1210;         /* Fond barre PV */
+
+  /* === BOUCLIER === */
+  --shield: #3498db;        /* Bouclier actif */
+  --shield-dark: #2980b9;   /* Bouclier faible */
+
+  /* === ARMURE === */
+  --armor: #95a5a6;         /* Armure, métal */
+  --armor-light: #bdc3c7;   /* Armure highlight */
+
+  /* === ÉTATS === */
+  --success: #2ecc71;       /* Succès, soin, gain */
+  --danger: #e74c3c;        /* Danger, dégâts, mort */
+  --warning: #f39c12;       /* Attention, feu, orage */
+  --info: #3498db;          /* Info, eau, glace */
+
+  /* === TEXTES === */
+  --text-primary: #f5f5dc;  /* Blanc cassé, parchemin (JAMAIS #FFFFFF) */
+  --text-secondary: #95a5a6;/* Gris clair, descriptions */
+  --text-muted: #888888;    /* Gris, inactif, hint */
+  --text-dark: #1a1210;     /* Texte sur fond clair/or */
+
+  /* === BORDURES === */
+  --border: #5a3d25;        /* Bordure standard (bois) */
+  --border-light: #d4a017;  /* Bordure active/or */
+  --border-enemy: #e74c3c;  /* Bordure ennemi */
+  --border-disabled: #444444;/* Bordure inactif */
+}</code></pre>
+
+<div class="rule-box">
+  <strong>Règles d'or :</strong>
+  <ol>
+    <li>Jamais de blanc pur (<code>#FFFFFF</code>) — toujours <code>--text-primary</code> (<code>#f5f5dc</code>).</li>
+    <li>Jamais de noir pur (<code>#000000</code>) — toujours <code>--bg-dark</code> (<code>#0d0908</code>).</li>
+    <li>Or pour l'accent : sélection, récompenses, titres.</li>
+    <li>Rouge uniquement pour danger : dégâts, mort, ennemis.</li>
+    <li>Vert uniquement pour succès : soin, gain, alliés.</li>
+  </ol>
+</div>
+
+<h2 id="s4">4. Typographie</h2>
+<h3>Polices</h3>
+<table>
+  <tr><th>Rôle</th><th>Police</th><th>Fallback</th><th>Usage</th></tr>
+  <tr><td>Titres</td><td>IM Fell English</td><td>Georgia, serif</td><td>Titres d'écran, noms de boss, titres de section</td></tr>
+  <tr><td>Corps / UI</td><td>Courier Prime</td><td>Courier New, monospace</td><td>Stats, nombres, logs, boutons, descriptions</td></tr>
+  <tr><td>Accent</td><td>IM Fell English Italic</td><td>serif italic</td><td>Flavor text, citations, lore</td></tr>
+</table>
+
+<h3>Échelle typographique</h3>
+<table>
+  <tr><th>Niveau</th><th>Taille</th><th>Poids</th><th>Usage</th><th>Exemple</th></tr>
+  <tr><td>H1</td><td>24px</td><td>Bold</td><td>Titre d'écran</td><td>"Acte I — Les Eaux Interdites"</td></tr>
+  <tr><td>H2</td><td>18px</td><td>Bold</td><td>Sous-titre, nom de boss</td><td>"Le Kraken Mécanique"</td></tr>
+  <tr><td>H3</td><td>14px</td><td>Bold</td><td>Nom de bateau, section</td><td>"Frégate"</td></tr>
+  <tr><td>Body</td><td>13px</td><td>Normal</td><td>Texte général</td><td>Descriptions, choix</td></tr>
+  <tr><td>Caption</td><td>11px</td><td>Normal</td><td>Stats, labels</td><td>"200/200", "Armure: 20"</td></tr>
+  <tr><td>Micro</td><td>9px</td><td>Normal</td><td>Hints, raccourcis</td><td>"[A]", "CD: 3t"</td></tr>
+  <tr><td>Toast</td><td>12px</td><td>Bold</td><td>Notifications</td><td>"+100 pièces d'or"</td></tr>
+</table>
+
+<h3>Règles typographiques</h3>
+<ul>
+  <li>Titres : <code>letter-spacing: 1px</code> pour l'élégance.</li>
+  <li>Nombres : toujours en monospace pour l'alignement.</li>
+  <li>Noms de bateaux : toujours en IM Fell English, bold.</li>
+  <li>Texte de lore : IM Fell English italic, <code>--text-muted</code>.</li>
+  <li>Logs de combat : Courier Prime, couleur selon faction.</li>
+</ul>
+
+<h2 id="s5">5. Spacing & Grid</h2>
+<p>L'unité de base est <code>4px</code> (0.25rem).</p>
+<pre><code>:root {
+  --space-unit: 4px;
+  --space-xs: 4px;   /* 1 unit */
+  --space-sm: 8px;   /* 2 units */
+  --space-md: 16px;  /* 4 units */
+  --space-lg: 24px;  /* 6 units */
+  --space-xl: 32px;  /* 8 units */
+  --space-2xl: 48px; /* 12 units */
+}</code></pre>
+
+<h2 id="s6">6. Composants UI</h2>
+
+<h3>6.1 Boutons</h3>
+<pre><code>.btn-primary {
+  background: linear-gradient(180deg, #3d2817, #2a1a0f);
+  border: 2px solid var(--gold);
+  border-radius: 10px;
+  padding: 12px 24px;
+  color: var(--text-primary);
+  font-family: 'IM Fell English', serif;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(212, 160, 23, 0.3);
+  transition: all 0.15s ease;
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, #5a3d25, #3d2817);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(212, 160, 23, 0.5);
+}
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 0 10px rgba(212, 160, 23, 0.3);
+}</code></pre>
+
+<h3>6.2 Cartes de Bateau</h3>
+<p><em>Note : La largeur de 200px inclut le sprite du bateau (160px) + 20px de padding/bordure de chaque côté pour l'encadrement UI.</em></p>
+<pre><code>.ship-card {
+  width: 200px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  transition: all 0.3s ease;
+}
+.ship-card--selected {
+  background: var(--bg-card-select);
+  border-color: var(--gold);
+  box-shadow: 0 0 15px rgba(212, 160, 23, 0.4);
+}
+.ship-card--enemy {
+  background: var(--bg-card-enemy);
+  border-color: var(--border-enemy);
+}
+.ship-card--dead {
+  opacity: 0.5;
+  pointer-events: none;
+}</code></pre>
+
+<h3>6.3 Barres de progression</h3>
+<pre><code>.bar-hp {
+  width: 100%;
+  height: 14px;
+  background: var(--bg-dark);
+  border: 1px solid #333;
+  border-radius: 7px;
+  overflow: hidden;
+  position: relative;
+}
+.bar-hp__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--hp-dark), var(--hp));
+  border-radius: inherit;
+  transition: width 0.3s ease;
+}</code></pre>
+
+<h2 id="s7">7. Layouts par Écran</h2>
+<h3>7.1 Écran de Combat (Principal)</h3>
+<pre><code>.combat-screen {
+  display: grid;
+  grid-template-rows: 50px 1fr 120px 220px;
+  grid-template-columns: 280px 1fr 280px;
+  grid-template-areas:
+    "topbar topbar topbar"
+    "allies center enemies"
+    "log log log"
+    "actions actions actions";
+  height: 100vh;
+  width: 100vw;
+}</code></pre>
+<p><strong>Règles de placement :</strong></p>
+<ul>
+  <li>Alliés : colonne gauche (0-25%)</li>
+  <li>Ennemis : colonne droite (75-100%)</li>
+  <li>Centre : zone de combat, VS, trajectoires</li>
+  <li>Log : bandeau milieu-bas</li>
+  <li>Actions : bandeau inférieur, contextuel au bateau sélectionné</li>
+</ul>
+
+<h2 id="s8">8. Animations & Transitions</h2>
+<h3>8.1 Durées standard</h3>
+<table>
+  <tr><th>Type</th><th>Durée</th><th>Usage</th></tr>
+  <tr><td>Instant</td><td>0ms</td><td>Hover border, changement de couleur</td></tr>
+  <tr><td>Rapide</td><td>150ms</td><td>Hover bouton, sélection carte</td></tr>
+  <tr><td>Normal</td><td>300ms</td><td>Changement d'écran, apparition panel</td></tr>
+  <tr><td>Lent</td><td>500ms</td><td>Mort d'ennemi, victoire de combat</td></tr>
+  <tr><td>Atmosphérique</td><td>2-4s</td><td>Vagues, drapeaux, météo</td></tr>
+</table>
+
+<h3>8.2 Courbes d'animation</h3>
+<pre><code>--ease-fast: cubic-bezier(0.4, 0, 0.2, 1);     /* Standard Material */
+--ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55); /* Bounce léger */
+--ease-sharp: cubic-bezier(0.4, 0, 0.6, 1);    /* Entrée rapide */</code></pre>
+
+<h3>8.3 Animations clés & Sprite Sheets</h3>
+<p><strong>Sélection de bateau :</strong></p>
+<pre><code>@keyframes select-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(212, 160, 23, 0.3); }
+  50%      { box-shadow: 0 0 20px rgba(212, 160, 23, 0.6); }
+}
+.ship-card--selected {
+  animation: select-pulse 2s ease-in-out infinite;
+}</code></pre>
+
+<div class="rule-box">
+  <strong>Note technique pour les sprite sheets (effets) :</strong><br>
+  Pour les animations d'effets (ex: <code>fx_explosion.png</code>), utiliser impérativement <code>animation: nom steps(X) infinite</code> (où X est le nombre de frames) sur la propriété <code>background-position</code>. Cela garantit un rendu pixel art net, <strong>sans interpolation fluide</strong> entre les frames.
+</div>
+
+<h2 id="s9">9. Feedback Visuel</h2>
+<h3>9.1 Effets de combat — INTERDICTIONS</h3>
+<table>
+  <tr><th>INTERDIT</th><th>REMPLACÉ PAR</th></tr>
+  <tr><td>Flash blanc éblouissant</td><td>Sparks dorés (4-8 lignes croisées)</td></tr>
+  <tr><td>Écran qui clignote</td><td>Tremblement léger de la carte cible</td></tr>
+  <tr><td>Saturation soudaine</td><td>Particules oranges/rouges qui s'éparpillent</td></tr>
+  <tr><td>Zoom brutal</td><td>Zoom lent + focus sur l'action</td></tr>
+</table>
+
+<h3>9.2 Feedback des actions</h3>
+<table>
+  <tr><th>Action</th><th>Feedback visuel</th></tr>
+  <tr><td>Attaque réussie</td><td>Sparks + dégâts flottants + shake</td></tr>
+  <tr><td>Attaque bloquée</td><td>Popup gris + son métallique</td></tr>
+  <tr><td>Coup critique</td><td>Sparks plus gros + texte jaune + screen shake</td></tr>
+  <tr><td>Soin</td><td>Particules vertes + "+XX PV" montant</td></tr>
+  <tr><td>Mort ennemie</td><td>Opacité 50% + overlay + nom barré</td></tr>
+  <tr><td>Niveau up</td><td>Glow doré + "NIVEAU X" + particules</td></tr>
+  <tr><td>Loot or</td><td>Pièces qui tombent + "+XX or"</td></tr>
+</table>
+
+<h2 id="s10">10. Icônes & Pictogrammes</h2>
+<h3>10.1 Icônes de statut</h3>
+<table>
+  <tr><th>Icône</th><th>Signification</th><th>Couleur</th></tr>
+  <tr><td>❤️</td><td>Points de vie</td><td>Rouge</td></tr>
+  <tr><td>🛡️</td><td>Armure / Bouclier</td><td>Gris / Bleu</td></tr>
+  <tr><td>⚓</td><td>Moral / Ancre</td><td>Bleu</td></tr>
+  <tr><td>💥</td><td>Puissance canon</td><td>Orange</td></tr>
+  <tr><td>🎯</td><td>Précision</td><td>Jaune</td></tr>
+  <tr><td>⛵</td><td>Vitesse</td><td>Bleu clair</td></tr>
+  <tr><td>🔥</td><td>Feu / Brûlure</td><td>Rouge vif</td></tr>
+  <tr><td>☠️</td><td>Mort / Coupé</td><td>Rouge sombre</td></tr>
+</table>
+
+<h3>10.2 Icônes d'action</h3>
+<table>
+  <tr><th>Icône</th><th>Action</th><th>Raccourci</th></tr>
+  <tr><td>⚔️</td><td>Attaquer</td><td>A</td></tr>
+  <tr><td>🔨</td><td>Réparer</td><td>R</td></tr>
+  <tr><td>🛡️</td><td>Défendre</td><td>D</td></tr>
+  <tr><td>⭐</td><td>Capacité spéciale</td><td>S</td></tr>
+  <tr><td>⏭️</td><td>Passer</td><td>Espace</td></tr>
+  <tr><td>🏃</td><td>Fuir</td><td>F</td></tr>
+</table>
+
+<h3>10.3 Munitions</h3>
+<table>
+  <tr><th>Icône</th><th>Type</th><th>Effet</th></tr>
+  <tr><td>⚫</td><td>Standard</td><td>Dégâts normaux</td></tr>
+  <tr><td>💥</td><td>Explosif</td><td>Dégâts de zone</td></tr>
+  <tr><td>🔥</td><td>Feu</td><td>Brûlure sur plusieurs tours</td></tr>
+  <tr><td>⛓️</td><td>Chaînes</td><td>Ralentissement</td></tr>
+  <tr><td>⚓</td><td>Harpon</td><td>Immobilisation</td></tr>
+</table>
+
+<h2 id="s11">11. États des Composants</h2>
+<h3>11.1 Boutons</h3>
+<table>
+  <tr><th>État</th><th>Visuel</th></tr>
+  <tr><td>Default</td><td>Fond bois, bordure marron, texte beige</td></tr>
+  <tr><td>Hover</td><td>Bordure or, fond plus clair, translateY(-2px)</td></tr>
+  <tr><td>Active/Pressed</td><td>translateY(0), ombre réduite</td></tr>
+  <tr><td>Disabled</td><td>Opacité 50%, grayscale, cursor: not-allowed</td></tr>
+  <tr><td>Selected</td><td>Bordure or + glow doré</td></tr>
+</table>
+
+<h3>11.2 Cartes de bateau</h3>
+<table>
+  <tr><th>État</th><th>Visuel</th></tr>
+  <tr><td>Default</td><td>Bordure marron, ombre standard</td></tr>
+  <tr><td>Hover</td><td>Bordure or clair, ombre plus grande</td></tr>
+  <tr><td>Selected</td><td>Bordure or, glow pulsant, fond plus clair</td></tr>
+  <tr><td>Active turn</td><td>Flèche "ACTIF" dorée au-dessus</td></tr>
+  <tr><td>Dead</td><td>Opacité 50%, nom barré, overlay</td></tr>
+  <tr><td>Targeted</td><td>Bordure rouge pulsante</td></tr>
+</table>
+
+<h3>11.3 Barres de progression</h3>
+<table>
+  <tr><th>État</th><th>Visuel</th></tr>
+  <tr><td>Full</td><td>Gradient complet</td></tr>
+  <tr><td>Medium (>50%)</td><td>Gradient normal</td></tr>
+  <tr><td>Low (&lt;25%)</td><td>Gradient + pulse rouge subtil</td></tr>
+  <tr><td>Critical (&lt;10%)</td><td>Pulse rouge rapide + glow</td></tr>
+</table>
+
+<h2 id="s12">12. Accessibilité</h2>
+<h3>12.1 Contraste</h3>
+<ul>
+  <li>Tout texte doit avoir un ratio de contraste ≥ 4.5:1</li>
+  <li>Texte sur fond or : utiliser <code>--text-dark</code> (<code>#1a1210</code>)</li>
+  <li>Éviter les combinaisons rouge/vert pour daltoniens : ajouter des icônes</li>
+</ul>
+
+<h3>12.2 Taille minimale</h3>
+<ul>
+  <li>Boutons interactifs : min 44×44px</li>
+  <li>Texte lisible : min 11px</li>
+  <li>Zone de clic carte : toute la carte</li>
+</ul>
+
+<h3>12.3 Réduction des animations</h3>
+<pre><code>@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}</code></pre>
+
+<h3>12.4 Focus visible</h3>
+<pre><code>*:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}</code></pre>
+
+<h2 id="s13">13. Responsive & Échelles</h2>
+<h3>13.1 Facteurs d'échelle</h3>
+<table>
+  <tr><th>Élément</th><th>Desktop</th><th>Laptop</th><th>Tablet</th><th>Mobile</th></tr>
+  <tr><td>Carte bateau</td><td>200px</td><td>180px</td><td>160px</td><td>100% width</td></tr>
+  <tr><td>Panel actions</td><td>220px</td><td>200px</td><td>180px</td><td>160px</td></tr>
+  <tr><td>Font H1</td><td>24px</td><td>22px</td><td>20px</td><td>18px</td></tr>
+  <tr><td>Font body</td><td>13px</td><td>12px</td><td>12px</td><td>11px</td></tr>
+  <tr><td>Spacing</td><td>16px</td><td>14px</td><td>12px</td><td>8px</td></tr>
+</table>
+
+<h3>13.2 Règles de réduction</h3>
+<ul>
+  <li>&lt; 1200px : Colonnes latérales passent à 240px</li>
+  <li>&lt; 1000px : Colonnes passent à 200px, textes réduits</li>
+  <li>&lt; 768px : Layout vertical, 1 colonne, scroll</li>
+  <li>&lt; 480px : Cartes full-width, actions en grille 2×3</li>
+</ul>
+
+<h2 id="s14">14. Fichiers Source & Assets</h2>
+<h3>Structure des assets UI</h3>
+<p><em>Harmonisée avec le <code>assets-manifest.json</code> (format PNG exclusif, naming <code>snake_case</code>)</em></p>
+<pre><code>/assets/ui/
+├── fonts/
+│   ├── im-fell-english.woff2
+│   └── courier-prime.woff2
+├── sprites/
+│   ├── ships/
+│   │   ├── ship_fregate_ally.png
+│   │   ├── ship_sloop_ally.png
+│   │   └── ...
+│   └── ammo/
+│       ├── ammo_standard.png
+│       └── ...
+├── effects/
+│   ├── fx_spark.png
+│   ├── fx_fire.png
+│   ├── fx_smoke.png
+│   └── fx_explosion.png
+├── icons/
+│   ├── icon_stat_hull.png
+│   ├── icon_stat_shield.png
+│   └── ...
+├── frames/
+│   ├── frame_panel.png
+│   └── ...
+├── map/
+│   ├── map_acte1_tile_1.png
+│   └── ...
+└── backgrounds/
+    ├── bg_sea_tile.png
+    └── bg_menu.png</code></pre>
+
+<h3>Fichiers CSS recommandés</h3>
+<table>
+  <tr><th>Fichier</th><th>Contenu</th></tr>
+  <tr><td><code>variables.css</code></td><td>Toutes les variables CSS (couleurs, spacing, fonts)</td></tr>
+  <tr><td><code>reset.css</code></td><td>Reset de base, scrollbar custom</td></tr>
+  <tr><td><code>components.css</code></td><td>Boutons, cartes, barres, toasts, tooltips</td></tr>
+  <tr><td><code>layouts.css</code></td><td>Grids des écrans (combat, map, event, menu)</td></tr>
+  <tr><td><code>animations.css</code></td><td>Toutes les keyframes (y compris les <code>steps()</code> pour les sprites)</td></tr>
+  <tr><td><code>effects.css</code></td><td>Hit effects, particules, trajectoires</td></tr>
+  <tr><td><code>responsive.css</code></td><td>Media queries</td></tr>
+</table>
+
+<h3>Checklist d'implémentation</h3>
+<p>Avant de considérer un écran comme terminé, vérifier :</p>
+<ul>
+  <li>[ ] Les couleurs respectent la palette définie (pas de <code>#000000</code> ni <code>#FFFFFF</code>).</li>
+  <li>[ ] La typographie utilise les bonnes polices (<code>IM Fell English</code> / <code>Courier Prime</code>).</li>
+  <li>[ ] Les espacements suivent le grid 4px.</li>
+  <li>[ ] Les états hover/active/disabled sont implémentés.</li>
+  <li>[ ] Les animations respectent les durées standard (et <code>steps()</code> pour les sprites).</li>
+  <li>[ ] Pas de flash blanc ni d'effet agressif.</li>
+  <li>[ ] Le contraste est suffisant (≥ 4.5:1).</li>
+  <li>[ ] Les raccourcis clavier sont affichés.</li>
+  <li>[ ] Le texte est externalisé (i18n ready).</li>
+  <li>[ ] Le layout est testé en 1920×1080 et 1366×768.</li>
+</ul>
+
+<div style="text-align:center; margin-top:3em; padding:1em; border-top:2px solid #d4a017; color:#5a3d25; font-style:italic;">
+  UI Bible — Frères de la Côte · Document de référence pour toute l'interface du jeu.
+</div>
+
+</body>
+</html>
