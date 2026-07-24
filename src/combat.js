@@ -14,6 +14,7 @@ import { getAbility } from './abilities.js';
 import { attachTooltip } from './tooltip.js';
 import { modal } from './ui.js';
 import { fxCannon, fxSplash, fxHeal, fxBrace, fxImpactBump } from './fx.js';
+import { randomOceanScene } from './ocean.js';
 
 let C = null; // active combat controller
 
@@ -243,6 +244,8 @@ function tickEndOfRound(ship) {
 
 // ---- Controller ----
 function initCombat(opts) {
+  state.screen = 'combat';
+  randomOceanScene(); // fresh weather + decor for this battle
   const allies = state.fleet.filter((s) => s.hp > 0);
   allies.forEach((s) => {
     s.effects = [];

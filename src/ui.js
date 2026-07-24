@@ -1,7 +1,7 @@
 // Shared DOM helpers and reusable UI components (ship cards, stat rows, tooltips).
 import { t, locName, locField } from './i18n.js';
 import { DB } from './data.js';
-import { abilityMeta } from './state.js';
+import { abilityMeta, state } from './state.js';
 import { attachTooltip, hideTooltip } from './tooltip.js';
 import { drawShip } from './sprites.js';
 
@@ -37,6 +37,9 @@ export function mount(node) {
   hideTooltip();
   clear(root);
   root.appendChild(node);
+  // The sea scene shows on the title & combat; everything else is on parchment.
+  const sea = state.screen === 'combat' || state.screen === 'title';
+  document.body.dataset.bg = sea ? 'sea' : 'parchment';
 }
 
 // A stat bar (hp/shield) with fill and an always-visible icon + number.
