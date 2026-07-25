@@ -30,6 +30,9 @@
     --text-muted: #888888; --text-dark: #1a1210;
     --border: #5a3d25; --border-light: #d4a017; --border-enemy: #e74c3c;
 
+    --font-title: 'IM Fell English', Georgia, serif;         /* titres, noms, boutons, onglets, labels */
+    --font-body:  'Courier Prime', 'Courier New', monospace; /* corps, stats, champs, logs */
+
     --ease-fast: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
     --ease-sharp: cubic-bezier(0.4, 0, 0.6, 1);

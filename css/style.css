@@ -4,8 +4,9 @@
 @import "variables.css";
 @import "animations.css";
 @import "components.css";
+@import "pattern.css";
 
-* { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
   margin: 0;
@@ -13,11 +14,21 @@ html, body {
   overflow: hidden;
   background: var(--bg-deep);
   color: var(--text-primary);
-  font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
 
 canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+/* Titles / names / labels use the engraved serif; body/technical text stays monospace. */
+h1, h2, h3, h4,
+.game-subtitle, .hud-act, .side-label, .turn-count, .turn-phase,
+.active-ship-name, .active-ship-lvl, .fleet-name, .mini-name,
+.relic-name, .enc-name, .up-name, .service-title, .chest-title,
+.lang-btn, .pause-nav-btn, .ammo-label, .form-label,
+.ed-field > span, .opt-row > span, .act-hint, .side-label.ally, .side-label.enemy {
+  font-family: var(--font-title);
+}
 
 #ocean, #parchment {
   position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0;
@@ -281,7 +292,7 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .combat-log {
   max-height: 92px; overflow-y: auto; margin: 4px 10px;
   background: #0006; border: 1px solid var(--bg-hover); border-radius: 6px;
-  padding: 6px 10px; font-size: 12px; font-family: "Consolas", monospace; color: var(--text-secondary);
+  padding: 6px 10px; font-size: 12px; font-family: var(--font-body); color: var(--text-secondary);
 }
 .log-line { line-height: 1.5; }
 
@@ -467,7 +478,7 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .pause-header { background: #0004; padding: 14px 20px; font-size: 22px; font-weight: 700; color: var(--gold); letter-spacing: 0.08em; border-bottom: 2px solid var(--bg-hover); }
 .pause-body { display: flex; flex: 1; overflow: hidden; }
 .pause-nav { width: 210px; background: #0003; padding: 10px; display: flex; flex-direction: column; gap: 4px; border-right: 2px solid var(--bg-hover); }
-.pause-nav-btn { display: flex; align-items: center; gap: 10px; background: transparent; border: none; color: var(--text-secondary); font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif; font-size: 15px; padding: 10px 12px; border-radius: 8px; cursor: pointer; text-align: left; }
+.pause-nav-btn { display: flex; align-items: center; gap: 10px; background: transparent; border: none; color: var(--text-secondary); font-family: var(--font-title); font-size: 15px; padding: 10px 12px; border-radius: 8px; cursor: pointer; text-align: left; }
 .pause-nav-btn:hover { background: #ffffff10; color: var(--text-primary); }
 .pause-nav-btn.active { background: var(--gold); color: var(--text-dark); font-weight: 700; }
 .pause-pane { flex: 1; overflow-y: auto; padding: 18px 22px; }
@@ -521,7 +532,7 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .editor-actions { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 10px; }
 .ed-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; font-size: 13px; color: var(--text-secondary); }
 .ed-field.ed-slider { display: grid; grid-template-columns: 1fr 1.4fr auto; align-items: center; gap: 8px; }
-.ed-input, .ed-color { background: #0005; border: 1px solid var(--bg-hover); border-radius: 6px; color: var(--text-primary); padding: 7px 10px; font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+.ed-input, .ed-color { background: #0005; border: 1px solid var(--bg-hover); border-radius: 6px; color: var(--text-primary); padding: 7px 10px; font-family: var(--font-body); font-size: 14px; }
 .ed-color { padding: 2px; height: 34px; }
 .ed-range { width: 100%; accent-color: var(--gold); }
 .ed-slider b { color: var(--gold); text-align: right; }

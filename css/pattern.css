@@ -1,6 +1,7 @@
 /* patterns.css — motifs & textures du design system (identité visuelle).
    Fonds d'écran, panneaux : pattern-wood / sea / parchment / gold / rope / compass. */
 
+/* =========================================
    3. MOTIFS
    ========================================= */
 .pattern-wood {
@@ -56,4 +57,4 @@
     background-size: 20px 20px, 20px 20px, 40px 40px, 40px 40px, 100% 100%;
 }
 
-/* =========================================
+/* ========================================= */
