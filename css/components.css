@@ -1,0 +1,314 @@
+/* components.css — composants génériques du design system (boutons, états,
+   cartes, barres, modales, badges, icônes, toasts, formulaires, tooltips).
+   Extrait de la bible, sections démo/docs exclues.
+   ⚠ = classe présente AUSSI dans le css du jeu → réconcilier à la main. */
+
+   10. BOUTONS
+   ========================================= */
+.button-grid { display: flex; flex-wrap: wrap; gap: var(--space-md); align-items: center; justify-content: flex-start; }
+.button-grid.align-center { justify-content: center; }
+
+.btn-level-1 {
+    background: linear-gradient(180deg, #4a3018, #2a1a0f); border: 3px solid var(--gold-light);
+    border-radius: 12px; padding: 20px 48px; color: var(--gold-light);
+    font-family: 'IM Fell English', serif; font-size: 24px; font-weight: bold;
+    letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+    box-shadow: 0 0 25px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: all 0.2s var(--ease-fast); position: relative; overflow: hidden;
+}
+.btn-level-1::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.6s ease; }
+.btn-level-1:hover { background: linear-gradient(180deg, #5a3d25, #3d2817); transform: translateY(-3px); box-shadow: 0 0 35px var(--gold-glow); }
+.btn-level-1:hover::before { left: 100%; }
+.btn-level-1:active { transform: translateY(0); }
+
+.btn-level-2 {
+    background: linear-gradient(180deg, #3d2817, #2a1a0f); border: 2px solid var(--gold);
+    border-radius: 10px; padding: 14px 28px; color: var(--text-primary);
+    font-family: 'IM Fell English', serif; font-size: 16px; font-weight: bold;
+    letter-spacing: 1px; cursor: pointer;
+    box-shadow: 0 0 15px rgba(212,160,23,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: all 0.15s var(--ease-fast); position: relative; overflow: hidden;
+}
+.btn-level-2::after { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; background: radial-gradient(circle, rgba(241,196,15,0.4), transparent); border-radius: 50%; transform: translate(-50%, -50%); transition: width 0.4s ease, height 0.4s ease; }
+.btn-level-2:hover { background: linear-gradient(180deg, #5a3d25, #3d2817); transform: translateY(-2px); box-shadow: 0 0 25px rgba(212,160,23,0.5); }
+.btn-level-2:hover::after { width: 200px; height: 200px; }
+.btn-level-2:active { transform: translateY(0); }
+.btn-level-2--success { border-color: var(--success); box-shadow: 0 0 15px rgba(46,204,113,0.25); }
+.btn-level-2--success:hover { box-shadow: 0 0 25px rgba(46,204,113,0.5); }
+.btn-level-2--danger { border-color: var(--danger); box-shadow: 0 0 15px rgba(231,76,60,0.25); }
+.btn-level-2--danger:hover { box-shadow: 0 0 25px rgba(231,76,60,0.5); }
+
+.btn-level-3 {
+    background: linear-gradient(180deg, #3d2817, #2a1a0f); border: 2px solid var(--gold);
+    border-radius: 10px; padding: 12px 24px; color: var(--text-primary);
+    font-family: 'IM Fell English', serif; font-size: 14px; font-weight: bold;
+    cursor: pointer; box-shadow: 0 0 15px rgba(212,160,23,0.2);
+    transition: all 0.15s var(--ease-fast);
+}
+.btn-level-3:hover { background: linear-gradient(180deg, #5a3d25, #3d2817); transform: translateY(-2px); box-shadow: 0 0 20px rgba(212,160,23,0.4); }
+.btn-level-3:active { transform: translateY(0); background: linear-gradient(180deg, #2a1a0f, #1a1210); }
+.btn-level-3:disabled { opacity: 0.5; filter: grayscale(80%); cursor: not-allowed; transform: none; box-shadow: none; border-color: var(--border); }
+.btn-level-3--success { background: linear-gradient(180deg, #1a4a2a, #0f3d1a); border-color: var(--success); box-shadow: 0 0 15px rgba(46,204,113,0.2); }
+.btn-level-3--success:hover { background: linear-gradient(180deg, #2a6a3a, #1a4a2a); box-shadow: 0 0 20px rgba(46,204,113,0.4); }
+.btn-level-3--danger { background: linear-gradient(180deg, #5a1a1a, #3d0f0f); border-color: var(--danger); box-shadow: 0 0 15px rgba(231,76,60,0.2); }
+.btn-level-3--danger:hover { background: linear-gradient(180deg, #7a2a2a, #5a1a1a); box-shadow: 0 0 20px rgba(231,76,60,0.4); }
+
+.btn-level-4 {
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 16px; color: var(--text-secondary);
+    font-family: 'Courier Prime', monospace; font-size: 12px; font-weight: bold;
+    cursor: pointer; transition: all 0.15s var(--ease-fast);
+}
+.btn-level-4:hover { border-color: var(--gold); color: var(--gold-light); background: rgba(212,160,23,0.08); transform: translateY(-1px); }
+.btn-level-4:active { transform: translateY(0); background: rgba(212,160,23,0.15); }
+.btn-level-4:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(180deg, #3d2817, #2a1a0f); border: 2px solid var(--gold);
+    border-radius: 10px; font-size: 20px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s var(--ease-fast); box-shadow: 0 0 10px rgba(212,160,23,0.2);
+}
+.btn-icon:hover { transform: translateY(-2px) rotate(-5deg); box-shadow: 0 0 15px rgba(212,160,23,0.4); }
+.btn-icon--danger { border-color: var(--danger); box-shadow: 0 0 10px rgba(231,76,60,0.2); }
+.btn-icon--danger:hover { box-shadow: 0 0 15px rgba(231,76,60,0.4); }
+
+.btn--magic { animation: magic-glow 2s ease-in-out infinite; }
+@keyframes magic-glow {
+    0%, 100% { box-shadow: 0 0 25px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,0.1); }
+    50% { box-shadow: 0 0 40px var(--gold-glow), 0 0 60px rgba(241,196,15,0.3); }
+}
+
+/* =========================================
+   11. ÉTATS SIMULÉS
+   ========================================= */
+.effects-showcase { display: flex; flex-direction: column; gap: var(--space-lg); }
+.effect-group { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 8px; padding: var(--space-md); }
+.effect-row { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; margin-top: var(--space-sm); }
+.effect-row-bars { display: flex; flex-direction: column; gap: var(--space-sm); max-width: 300px; margin-top: var(--space-sm); }
+
+.state-hover { background: linear-gradient(180deg, #5a3d25, #3d2817) !important; transform: translateY(-2px); box-shadow: 0 0 20px rgba(212,160,23,0.4) !important; }
+.state-active { transform: translateY(0) !important; box-shadow: 0 0 10px rgba(212,160,23,0.2) !important; background: linear-gradient(180deg, #2a1a0f, #1a1210) !important; }
+.state-focus { outline: 2px solid var(--gold) !important; outline-offset: 2px; }
+.state-selected { border-color: var(--gold-light) !important; box-shadow: 0 0 25px var(--gold-glow) !important; }
+
+.mini-card {
+    width: 80px; height: 60px; background: var(--bg-card);
+    border: 1.5px solid var(--border); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--text-secondary);
+    transition: all 0.2s var(--ease-fast);
+}
+.mini-card.state-hover { border-color: var(--gold); box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+.mini-card.state-selected { background: var(--bg-card-select); border-color: var(--gold); box-shadow: 0 0 15px var(--gold-glow); animation: select-pulse 2s ease-in-out infinite; }
+.mini-card.state-targeted { border-color: var(--border-enemy); box-shadow: 0 0 15px rgba(231,76,60,0.4); animation: targeted-pulse 1s ease-in-out infinite; }
+.mini-card.state-dead { opacity: 0.5; filter: grayscale(50%); }
+
+@keyframes select-pulse { 0%, 100% { box-shadow: 0 0 10px rgba(212,160,23,0.3); } 50% { box-shadow: 0 0 25px rgba(212,160,23,0.7); } }
+@keyframes targeted-pulse { 0%, 100% { box-shadow: 0 0 10px rgba(231,76,60,0.3); } 50% { box-shadow: 0 0 20px rgba(231,76,60,0.6); } }
+
+/* =========================================
+
+   13. CARTES
+   ========================================= */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-lg); }
+/* ⚠ RÉCONCILIER avec la version jeu : .ship-card */
+.ship-card {
+    width: 100%; max-width: 220px; background: var(--bg-card);
+    border: 1.5px solid var(--border); border-radius: 12px;
+    padding: var(--space-md); box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    transition: all 0.3s var(--ease-fast); display: flex; flex-direction: column; gap: var(--space-sm);
+}
+.ship-sprite { height: 90px; background: var(--bg-dark); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 36px; border: 1px solid var(--border); margin-bottom: var(--space-xs); }
+.ship-sprite.ally { border-color: var(--gold-dark); }
+.ship-sprite.enemy { border-color: var(--border-enemy); background: #1a0d0d; }
+/* ⚠ RÉCONCILIER avec la version jeu : .ship-name */
+.ship-name { font-family: 'IM Fell English', serif; font-size: 16px; font-weight: bold; color: var(--text-primary); text-align: center; margin: 0; }
+.ship-stats { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); }
+/* ⚠ RÉCONCILIER avec la version jeu : .ship-card */
+.ship-card--selected { background: var(--bg-card-select); border-color: var(--gold); box-shadow: 0 0 15px var(--gold-glow); animation: select-pulse 2s ease-in-out infinite; }
+/* ⚠ RÉCONCILIER avec la version jeu : .ship-card */
+.ship-card--enemy { background: var(--bg-card-enemy); border-color: var(--border-enemy); }
+/* ⚠ RÉCONCILIER avec la version jeu : .ship-card */
+.ship-card--dead { opacity: 0.5; filter: grayscale(50%); pointer-events: none; }
+/* ⚠ RÉCONCILIER avec la version jeu : .ship-card */
+.ship-card--torn {
+    border: none; border-radius: 0; background: var(--bg-card);
+    clip-path: polygon(0% 2%, 3% 0%, 7% 3%, 12% 1%, 18% 4%, 23% 0%, 28% 2%, 34% 1%, 40% 3%, 46% 0%, 52% 2%, 58% 1%, 64% 4%, 70% 0%, 76% 3%, 82% 1%, 88% 2%, 94% 0%, 100% 3%, 100% 8%, 98% 14%, 100% 20%, 97% 26%, 100% 32%, 98% 38%, 100% 44%, 97% 50%, 100% 56%, 98% 62%, 100% 68%, 97% 74%, 100% 80%, 98% 86%, 100% 92%, 97% 98%, 100% 100%, 94% 97%, 88% 100%, 82% 98%, 76% 100%, 70% 97%, 64% 100%, 58% 98%, 52% 100%, 46% 97%, 40% 100%, 34% 98%, 28% 100%, 23% 97%, 18% 100%, 12% 98%, 7% 100%, 3% 97%, 0% 100%, 0% 92%, 3% 86%, 0% 80%, 2% 74%, 0% 68%, 3% 62%, 0% 56%, 2% 50%, 0% 44%, 3% 38%, 0% 32%, 2% 26%, 0% 20%, 3% 14%, 0% 8%);
+    background-image: radial-gradient(circle at 30% 40%, rgba(212,160,23,0.2) 0%, transparent 50%), linear-gradient(135deg, #4a3820 0%, #3d2f1a 100%);
+}
+
+/* =========================================
+   14. BARRES
+   ========================================= */
+.bars-grid { display: flex; flex-direction: column; gap: var(--space-lg); max-width: 500px; }
+.bar-item { display: flex; flex-direction: column; gap: var(--space-xs); }
+/* ⚠ RÉCONCILIER avec la version jeu : .bar-hp */
+.bar-hp { width: 100%; height: 16px; background: var(--bg-dark); border: 1px solid #333; border-radius: 8px; overflow: hidden; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
+/* ⚠ RÉCONCILIER avec la version jeu : .bar-hp */
+.bar-hp__fill { height: 100%; border-radius: inherit; transition: width 0.4s var(--ease-fast); box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.2); }
+.bar--hp .bar-hp__fill { background: linear-gradient(90deg, var(--hp-dark), var(--hp)); }
+.bar--shield .bar-hp__fill { background: linear-gradient(90deg, var(--shield-dark), var(--shield)); }
+.bar--armor .bar-hp__fill { background: linear-gradient(90deg, #7f8c8d, var(--armor-light)); }
+.bar--morale .bar-hp__fill { background: linear-gradient(90deg, var(--morale-dark), var(--gold-light)); }
+.bar--fatigue .bar-hp__fill { background: linear-gradient(90deg, var(--fatigue-dark), var(--fatigue)); }
+.bar--low .bar-hp__fill { animation: pulse-low 2s infinite; }
+.bar--critical .bar-hp__fill { background: linear-gradient(90deg, #8e1600, var(--hp)); animation: pulse-critical 0.8s infinite; }
+@keyframes pulse-low { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+@keyframes pulse-critical { 0%, 100% { opacity: 1; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 0 8px var(--hp); } 50% { opacity: 0.7; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 0 15px var(--hp); } }
+
+/* =========================================
+   15. MODALES
+   ========================================= */
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal-demo { display: flex; justify-content: center; margin: var(--space-md) 0; }
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal { background: var(--bg-panel); border: 2px solid var(--gold-dark); border-radius: 12px; max-width: 420px; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 20px rgba(212,160,23,0.2); overflow: hidden; }
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal-header { padding: var(--space-md) var(--space-lg); background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-panel) 100%); border-bottom: 1px solid var(--border); text-align: center; }
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal-title { font-family: 'IM Fell English', serif; font-size: 18px; color: var(--gold-light); letter-spacing: 1px; }
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal-body { padding: var(--space-lg); text-align: center; }
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal-footer { padding: var(--space-md) var(--space-lg); border-top: 1px solid var(--border); display: flex; justify-content: center; gap: var(--space-sm); background: var(--bg-dark); }
+
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal--torn {
+    border: none; border-radius: 0;
+    clip-path: polygon(0% 1.5%, 2% 0.5%, 4% 2%, 6% 0.3%, 8% 1.8%, 10% 0.5%, 12% 2.2%, 14% 0.4%, 16% 1.5%, 18% 0.7%, 20% 2.5%, 22% 0.3%, 24% 1.9%, 26% 0.6%, 28% 2.1%, 30% 0.4%, 32% 1.6%, 34% 0.8%, 36% 2.4%, 38% 0.5%, 40% 1.3%, 42% 0.3%, 44% 2.7%, 46% 0.6%, 48% 1.7%, 50% 0.4%, 52% 2.2%, 54% 0.8%, 56% 1.4%, 58% 0.5%, 60% 2.6%, 62% 0.3%, 64% 1.8%, 66% 0.7%, 68% 2.3%, 70% 0.4%, 72% 1.1%, 74% 0.6%, 76% 2.5%, 78% 0.3%, 80% 1.6%, 82% 0.8%, 84% 2.1%, 86% 0.5%, 88% 1.4%, 90% 0.3%, 92% 2.8%, 94% 0.6%, 96% 1.9%, 98% 0.4%, 100% 1.2%, 100% 5%, 99% 10%, 100% 15%, 99% 20%, 100% 25%, 99% 30%, 100% 35%, 99% 40%, 100% 45%, 99% 50%, 100% 55%, 99% 60%, 100% 65%, 99% 70%, 100% 75%, 99% 80%, 100% 85%, 99% 90%, 100% 95%, 100% 100%, 95% 99%, 90% 100%, 85% 99%, 80% 100%, 75% 99%, 70% 100%, 65% 99%, 60% 100%, 55% 99%, 50% 100%, 45% 99%, 40% 100%, 35% 99%, 30% 100%, 25% 99%, 20% 100%, 15% 99%, 10% 100%, 5% 99%, 0% 100%, 0% 95%, 1% 90%, 0% 85%, 1% 80%, 0% 75%, 1% 70%, 0% 65%, 1% 60%, 0% 55%, 1% 50%, 0% 45%, 1% 40%, 0% 35%, 1% 30%, 0% 25%, 1% 20%, 0% 15%, 1% 10%, 0% 5%);
+    background-image: radial-gradient(circle at 20% 30%, rgba(212,160,23,0.1) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(139,90,43,0.15) 0%, transparent 40%), linear-gradient(135deg, #2a1f1d 0%, #1a1210 100%);
+}
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal--torn .modal-header { background: transparent; border-bottom: 1px dashed var(--gold-dark); }
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal--torn .modal-footer { background: transparent; border-top: 1px dashed var(--gold-dark); }
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal--reward { border-color: var(--gold); box-shadow: 0 0 30px var(--gold-glow); }
+/* ⚠ RÉCONCILIER avec la version jeu : .modal */
+.modal--reward.modal--torn { background-image: radial-gradient(circle at 20% 30%, rgba(241,196,15,0.2) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(241,196,15,0.15) 0%, transparent 40%), linear-gradient(135deg, #3a2a1d 0%, #2a1a0f 100%); }
+/* ⚠ RÉCONCILIER avec la version jeu : .reward-list */
+.reward-list { display: flex; flex-direction: column; gap: var(--space-sm); }
+/* ⚠ RÉCONCILIER avec la version jeu : .reward-item */
+.reward-item { display: flex; justify-content: space-between; padding: var(--space-sm) var(--space-md); background: var(--bg-dark); border-radius: 6px; border-left: 3px solid var(--gold); font-size: 13px; text-align: left; }
+/* ⚠ RÉCONCILIER avec la version jeu : .reward-item */
+.reward-item--legendary { border-left-color: var(--legendary); background: linear-gradient(90deg, rgba(255,107,157,0.15), var(--bg-dark)); background-size: 200% 200%; animation: legendary-shimmer 3s ease-in-out infinite; }
+
+/* =========================================
+   16. BADGES
+   ========================================= */
+.badges-grid { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; }
+.badge, .tag { padding: var(--space-xs) var(--space-md); border-radius: 12px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; position: relative; overflow: hidden; transition: all 0.2s var(--ease-fast); }
+
+.badge--legendary {
+    background: linear-gradient(135deg, #ff6b9d, #c44569, #ff6b9d);
+    background-size: 200% 200%; color: var(--text-dark);
+    border: 1px solid #ff9ec7;
+    animation: legendary-shimmer 3s ease-in-out infinite, legendary-float 2s ease-in-out infinite;
+    box-shadow: 0 0 15px rgba(255,107,157,0.5), 0 0 30px rgba(255,107,157,0.3);
+}
+.badge--legendary::before { content: '✨'; position: absolute; top: -2px; right: -2px; font-size: 10px; animation: sparkle-rotate 2s linear infinite; }
+.badge--legendary::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); animation: badge-shine 3s ease-in-out infinite; }
+.badge--legendary:hover { transform: scale(1.1) rotate(-2deg); box-shadow: 0 0 25px rgba(255,107,157,0.8); }
+
+@keyframes legendary-shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes legendary-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes sparkle-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes badge-shine { 0% { left: -100%; } 50%, 100% { left: 100%; } }
+
+.badge--epic { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: var(--text-primary); border: 1px solid #bb8fce; animation: epic-pulse 2s ease-in-out infinite; box-shadow: 0 0 10px rgba(155,89,182,0.4); }
+@keyframes epic-pulse { 0%, 100% { box-shadow: 0 0 10px rgba(155,89,182,0.4); } 50% { box-shadow: 0 0 20px rgba(155,89,182,0.7); } }
+
+.badge--rare { background: linear-gradient(135deg, #3498db, #2980b9); color: var(--text-primary); border: 1px solid #5dade2; box-shadow: 0 0 8px rgba(52,152,219,0.4); }
+.badge--gold { background: var(--gold-dark); color: var(--text-dark); border: 1px solid var(--gold); }
+.badge--danger { background: var(--danger-dark); color: var(--text-primary); border: 1px solid var(--danger); }
+.badge--success { background: var(--success-dark); color: var(--text-primary); border: 1px solid var(--success); }
+.badge--info { background: var(--info-dark); color: var(--text-primary); border: 1px solid var(--info); }
+.badge--warning { background: var(--warning-dark); color: var(--text-dark); border: 1px solid var(--warning); }
+.badge--new { background: var(--success); color: var(--text-dark); border: 1px solid var(--success); }
+.badge--new:hover { animation: badge-bounce 0.4s var(--ease-bounce); }
+@keyframes badge-bounce { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+.tag { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); text-transform: none; padding: var(--space-xs) var(--space-sm); border-radius: 6px; font-size: 11px; }
+.tag:hover { border-color: var(--gold); color: var(--gold); }
+
+/* =========================================
+   17. ICÔNES
+   ========================================= */
+.feedback-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-lg); }
+.icons-row { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+.icon-item { display: flex; flex-direction: column; align-items: center; font-size: 24px; background: var(--bg-dark); padding: var(--space-sm); border-radius: 8px; border: 1px solid var(--border); min-width: 60px; transition: all 0.15s var(--ease-fast); }
+.icon-item:hover { border-color: var(--gold); transform: translateY(-2px); }
+.icon-item small { font-size: 10px; color: var(--text-muted); margin-top: var(--space-xs); }
+
+/* =========================================
+   18. TOASTS
+   ========================================= */
+/* ⚠ RÉCONCILIER avec la version jeu : .toast */
+.toast-demo { display: flex; flex-direction: column; gap: var(--space-sm); max-width: 360px; }
+/* ⚠ RÉCONCILIER avec la version jeu : .toast */
+.toast { padding: var(--space-sm) var(--space-md); border-radius: 8px; font-family: 'Courier Prime', monospace; font-size: 12px; font-weight: bold; border-left: 4px solid; background: var(--bg-dark); box-shadow: 0 4px 12px rgba(0,0,0,0.5); animation: toast-slide-in 0.3s var(--ease-sharp); }
+/* ⚠ RÉCONCILIER avec la version jeu : .toast */
+.toast--success { border-color: var(--success); color: var(--success); }
+/* ⚠ RÉCONCILIER avec la version jeu : .toast */
+.toast--danger { border-color: var(--danger); color: var(--danger); }
+/* ⚠ RÉCONCILIER avec la version jeu : .toast */
+.toast--info { border-color: var(--info); color: var(--info); }
+/* ⚠ RÉCONCILIER avec la version jeu : .toast */
+.toast--warning { border-color: var(--warning); color: var(--warning); }
+/* ⚠ RÉCONCILIER avec la version jeu : .toast */
+.toast--legendary { border-color: var(--legendary); color: var(--legendary); background: linear-gradient(90deg, rgba(255,107,157,0.15), var(--bg-dark)); background-size: 200% 200%; animation: toast-slide-in 0.3s var(--ease-sharp), legendary-shimmer 3s ease-in-out infinite; }
+@keyframes toast-slide-in { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* =========================================
+   19. FORMULAIRES
+   ========================================= */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-md); }
+.form-field { display: flex; flex-direction: column; gap: var(--space-xs); }
+.form-label { font-family: 'IM Fell English', serif; font-size: 13px; color: var(--gold); letter-spacing: 0.5px; }
+.form-input, .form-select, .form-textarea { background: var(--bg-dark); border: 1.5px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text-primary); font-family: 'Courier Prime', monospace; font-size: 13px; transition: all 0.15s var(--ease-fast); }
+.form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 10px rgba(212,160,23,0.3); }
+.form-input.state-focus { border-color: var(--gold) !important; box-shadow: 0 0 10px rgba(212,160,23,0.3) !important; }
+.form-input:disabled { opacity: 0.5; cursor: not-allowed; }
+.form-textarea { resize: vertical; }
+.form-select { cursor: pointer; }
+.checks-grid { display: flex; flex-wrap: wrap; gap: var(--space-md); }
+.form-check, .form-radio { display: flex; align-items: center; gap: var(--space-sm); cursor: pointer; font-size: 13px; color: var(--text-primary); }
+.form-check input, .form-radio input { accent-color: var(--gold); width: 16px; height: 16px; cursor: pointer; }
+
+/* =========================================
+   20. TABS, TOOLTIPS, DIVIDERS, LOADERS, EMPTY
+   ========================================= */
+.tabs { display: flex; gap: var(--space-xs); border-bottom: 2px solid var(--border); margin-bottom: var(--space-md); }
+.tab { background: transparent; border: none; padding: 10px 20px; color: var(--text-secondary); font-family: 'IM Fell English', serif; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s var(--ease-fast); }
+.tab:hover { color: var(--gold); }
+.tab--active { color: var(--gold-light); border-bottom-color: var(--gold); }
+
+/* ⚠ RÉCONCILIER avec la version jeu : .tooltip */
+.tooltip-demo { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+/* ⚠ RÉCONCILIER avec la version jeu : .tooltip */
+.tooltip { position: relative; display: inline-block; }
+/* ⚠ RÉCONCILIER avec la version jeu : .tooltip */
+.tooltip::after { content: attr(data-tooltip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: var(--bg-dark); color: var(--text-primary); padding: 6px 12px; border: 1px solid var(--gold); border-radius: 6px; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s ease; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+/* ⚠ RÉCONCILIER avec la version jeu : .tooltip */
+.tooltip:hover::after { opacity: 1; }
+
+.divider-demo { display: flex; flex-direction: column; gap: var(--space-md); }
+.divider { height: 20px; display: flex; align-items: center; }
+.divider--simple { height: 1px; background: var(--border); }
+.divider--ornate { background: transparent; position: relative; }
+.divider--ornate::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--border); }
+.divider--ornate span { position: relative; z-index: 1; margin: 0 auto; padding: 0 var(--space-sm); background: var(--bg-panel); color: var(--gold); font-size: 16px; }
+.divider--gold { height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+
+.loading-demo { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state { text-align: center; padding: var(--space-2xl) var(--space-lg); background: var(--bg-dark); border: 1px dashed var(--border); border-radius: 12px; }
+.empty-icon { font-size: 48px; margin-bottom: var(--space-md); opacity: 0.6; }
+.empty-title { font-family: 'IM Fell English', serif; font-size: 18px; color: var(--gold); margin-bottom: var(--space-sm); }
+.empty-desc { color: var(--text-secondary); font-size: 13px; margin-bottom: var(--space-lg); }
+
+/* =========================================

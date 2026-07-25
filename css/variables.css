@@ -1,0 +1,36 @@
+/* variables.css — tokens canoniques du design system (source de vérité).
+   Extrait de la bible. Importé en tête de css/style.css. */
+
+:root {
+    --space-unit: 4px;
+    --space-xs: 4px; --space-sm: 8px; --space-md: 16px;
+    --space-lg: 24px; --space-xl: 32px; --space-2xl: 48px;
+
+    --bg-deep: #0d1b2a; --bg-ocean: #1b3a4b; --bg-water: #0f3460;
+    --bg-dark: #0d0908; --bg-panel: #1a1210; --bg-card: #2a1f1d;
+    --bg-card-enemy: #2a1a1a; --bg-card-select: #3a2a1d;
+    --bg-hover: #3d2817; --bg-active: #5a3d25;
+
+    --gold: #d4a017; --gold-light: #f1c40f; --gold-dark: #b8860b;
+    --gold-glow: rgba(212, 160, 23, 0.4);
+
+    --hp: #e74c3c; --hp-dark: #c0392b;
+    --shield: #3498db; --shield-dark: #2980b9;
+    --armor: #95a5a6; --armor-light: #bdc3c7;
+    --morale: #f1c40f; --morale-dark: #d4a017;
+    --fatigue: #8e44ad; --fatigue-dark: #6c3483;
+
+    --success: #2ecc71; --success-dark: #27ae60;
+    --danger: #e74c3c; --danger-dark: #c0392b;
+    --warning: #f39c12; --warning-dark: #d68910;
+    --info: #3498db; --info-dark: #2874a6;
+    --legendary: #ff6b9d; --epic: #9b59b6; --rare: #3498db;
+
+    --text-primary: #f5f5dc; --text-secondary: #95a5a6;
+    --text-muted: #888888; --text-dark: #1a1210;
+    --border: #5a3d25; --border-light: #d4a017; --border-enemy: #e74c3c;
+
+    --ease-fast: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --ease-sharp: cubic-bezier(0.4, 0, 0.6, 1);
+}

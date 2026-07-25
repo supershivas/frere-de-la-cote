@@ -1,0 +1,31 @@
+/* animations.css — toutes les keyframes du design system.
+   Portent la majorité des effets (boutons, badges, pulses). */
+
+@keyframes magic-glow {
+    0%, 100% { box-shadow: 0 0 25px var(--gold-glow), inset 0 1px 0 rgba(255,255,255,0.1); }
+    50% { box-shadow: 0 0 40px var(--gold-glow), 0 0 60px rgba(241,196,15,0.3); }
+}
+
+@keyframes select-pulse { 0%, 100% { box-shadow: 0 0 10px rgba(212,160,23,0.3); } 50% { box-shadow: 0 0 25px rgba(212,160,23,0.7); } }
+
+@keyframes targeted-pulse { 0%, 100% { box-shadow: 0 0 10px rgba(231,76,60,0.3); } 50% { box-shadow: 0 0 20px rgba(231,76,60,0.6); } }
+
+@keyframes pulse-low { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+
+@keyframes pulse-critical { 0%, 100% { opacity: 1; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 0 8px var(--hp); } 50% { opacity: 0.7; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 0 15px var(--hp); } }
+
+@keyframes legendary-shimmer { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+@keyframes legendary-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+@keyframes sparkle-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+@keyframes badge-shine { 0% { left: -100%; } 50%, 100% { left: 100%; } }
+
+@keyframes epic-pulse { 0%, 100% { box-shadow: 0 0 10px rgba(155,89,182,0.4); } 50% { box-shadow: 0 0 20px rgba(155,89,182,0.7); } }
+
+@keyframes badge-bounce { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+@keyframes toast-slide-in { from { transform: translateX(-20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+@keyframes spin { to { transform: rotate(360deg); } }
