@@ -44,7 +44,7 @@ function render() {
         el('div', { class: 'mini-hp', text: `❤️ ${Math.round(s.hp)}/${s.maxHp}` }),
       ])
     )),
-    el('button', { class: 'btn btn-big leave-btn', text: `⛵ ${t('port_leave')}`, on: { click: leavePort } }),
+    el('button', { class: 'btn-level-1 leave-btn', text: `⛵ ${t('port_leave')}`, on: { click: leavePort } }),
   ]);
   mount(root);
   saveGame();
@@ -79,7 +79,7 @@ function serviceCard(icon, title, desc, priceLabel, onBuy, disabled = false) {
     el('div', { class: 'service-icon', text: icon }),
     el('div', { class: 'service-title', text: title }),
     el('div', { class: 'service-desc', text: desc }),
-    el('button', { class: 'btn', text: `${t('buy')} · ${priceLabel}`, on: { click: () => { if (!disabled) onBuy(); } } }),
+    el('button', { class: 'btn-level-3', text: `${t('buy')} · ${priceLabel}`, on: { click: () => { if (!disabled) onBuy(); } } }),
   ]);
 }
 
@@ -91,7 +91,7 @@ function recruitCard(offer) {
     el('div', { class: 'service-title', text: `${t('port_recruit')}: ${locName(def)}` }),
     el('div', { class: 'service-desc', text: full ? t('full_fleet') : locField(def, 'desc') }),
     el('button', {
-      class: 'btn', text: full ? t('fleet_full_short') : `${t('buy')} · ${offer.cost} 💰`,
+      class: 'btn-level-3', text: full ? t('fleet_full_short') : `${t('buy')} · ${offer.cost} 💰`,
       on: { click: () => {
         if (full) return;
         if (!spend(offer.cost)) return;
@@ -112,7 +112,7 @@ function relicCard(offer) {
     el('div', { class: 'service-icon', text: rel.icon || '⭐' }),
     el('div', { class: 'service-title', text: `${t('port_buy_relic')}` }),
     el('div', { class: 'service-desc', text: locName(rel) }),
-    el('button', { class: 'btn', text: `${t('buy')} · ${offer.cost} 💰`, on: { click: () => {
+    el('button', { class: 'btn-level-3', text: `${t('buy')} · ${offer.cost} 💰`, on: { click: () => {
       if (!spend(offer.cost)) return;
       addRelic(offer.id);
       toastSuccess(t('toast_relic', { name: locName(rel) }), rel.icon || '⭐');

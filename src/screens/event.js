@@ -17,7 +17,7 @@ function render() {
   ev.choices.forEach((choice) => {
     const affordable = !choice.cost || state.resources.gold >= (choice.cost.gold || 0);
     const btn = el('button', {
-      class: `btn event-choice ${affordable ? '' : 'disabled'}`,
+      class: `btn-level-3 event-choice ${affordable ? '' : 'disabled'}`,
       text: locField(choice, 'label'),
       on: { click: () => { if (affordable) resolveChoice(choice); } },
     });

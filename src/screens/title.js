@@ -43,8 +43,8 @@ function render() {
 }
 
 function bigBtn(label, icon, onClick) {
-  return el('button', { class: 'btn btn-big', on: { click: onClick } }, [
-    el('span', { class: 'btn-icon', text: icon }),
+  return el('button', { class: 'btn-level-1', on: { click: onClick } }, [
+    el('span', { class: 'btn-ico', text: icon }),
     el('span', { text: label }),
   ]);
 }

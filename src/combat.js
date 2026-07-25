@@ -691,7 +691,7 @@ function renderActionPopover() {
     const hint = C.targetingMode === 'protect' ? t('select_ally') : t('select_target');
     return el('div', { class: 'action-popover targeting' }, [
       el('div', { class: 'action-hint big', text: hint }),
-      el('button', { class: 'btn btn-ghost cancel-target', text: `✖ ${t('no')}`, on: { click: () => { C.targeting = null; ship._pendingAbility = null; render(); } } }),
+      el('button', { class: 'btn-level-4 cancel-target', text: `✖ ${t('no')}`, on: { click: () => { C.targeting = null; ship._pendingAbility = null; render(); } } }),
     ]);
   }
 
@@ -779,7 +779,7 @@ function positionActionPopover() {
 }
 
 function actionBtn(icon, label, onClick, disabled = false) {
-  const b = el('button', { class: `btn action-btn ${disabled ? 'disabled' : ''}`, on: { click: () => { if (!disabled) onClick(); } } }, [
+  const b = el('button', { class: `btn-level-3 action-btn ${disabled ? 'disabled' : ''}`, on: { click: () => { if (!disabled) onClick(); } } }, [
     el('span', { class: 'ab-icon', text: icon }),
     el('span', { class: 'ab-label', text: label }),
   ]);
@@ -896,7 +896,7 @@ function showVictory({ gold, rareMats, relicGained, leveled, isBoss }) {
     el('div', { class: 'result-sub', text: t('victory_rewards') }),
     items,
     relicGained ? el('div', { class: 'reward-relic', html: `${DB.relics[relicGained].icon || '⭐'} <b>${locName(DB.relics[relicGained])}</b>` }) : null,
-    el('button', { class: 'btn btn-big', text: t('continue_btn'), on: { click: () => { m1.close(); proceed(); } } }),
+    el('button', { class: 'btn-level-1', text: t('continue_btn'), on: { click: () => { m1.close(); proceed(); } } }),
   ]);
   const m1 = modal(box, { closable: false, cls: 'result-overlay' });
 }
@@ -940,7 +940,7 @@ function showDefeat() {
     el('h1', { class: 'result-title', text: t('defeat') }),
     el('div', { class: 'result-sub', text: t('defeat_text') }),
     el('div', { class: 'result-stats', html: `⚔️ ${state.stats.battlesWon} · ☠️ ${state.stats.shipsSunk} · 💰 ${state.stats.goldEarned}` }),
-    el('button', { class: 'btn btn-big', text: t('return_title'), on: { click: () => { m.close(); endRunToTitle(false); } } }),
+    el('button', { class: 'btn-level-1', text: t('return_title'), on: { click: () => { m.close(); endRunToTitle(false); } } }),
   ]);
   const m = modal(box, { closable: false, cls: 'result-overlay' });
 }
@@ -950,7 +950,7 @@ function showRunComplete() {
     el('h1', { class: 'result-title', text: t('run_complete') }),
     el('div', { class: 'result-sub', text: t('run_complete_text') }),
     el('div', { class: 'result-stats', html: `⚔️ ${state.stats.battlesWon} · ☠️ ${state.stats.shipsSunk} · 💰 ${state.stats.goldEarned}` }),
-    el('button', { class: 'btn btn-big', text: t('return_title'), on: { click: () => { m.close(); endRunToTitle(true); } } }),
+    el('button', { class: 'btn-level-1', text: t('return_title'), on: { click: () => { m.close(); endRunToTitle(true); } } }),
   ]);
   const m = modal(box, { closable: false, cls: 'result-overlay' });
 }

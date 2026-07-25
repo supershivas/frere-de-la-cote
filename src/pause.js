@@ -193,11 +193,11 @@ function renderQuit(pane) {
   pane.appendChild(el('h3', { text: t('pause_quit') }));
   pane.appendChild(el('p', { text: t('confirm_quit') }));
   pane.appendChild(el('div', { class: 'confirm-row' }, [
-    el('button', { class: 'btn btn-danger', text: t('yes'), on: { click: () => {
+    el('button', { class: 'btn-level-3 btn-level-3--danger', text: t('yes'), on: { click: () => {
       saveGame();
       closePause();
       go('title');
     } } }),
-    el('button', { class: 'btn btn-ghost', text: t('no'), on: { click: () => renderSection('fleet', pane) } }),
+    el('button', { class: 'btn-level-4', text: t('no'), on: { click: () => renderSection('fleet', pane) } }),
   ]));
 }

@@ -70,7 +70,7 @@ function render() {
       colorField(t('editor_color'), hull, (v) => { hull = v; repaint(); }),
       colorField(t('editor_flag_color'), flag, (v) => { flag = v; repaint(); }),
       toggleField(t('editor_monster'), isMonster, (v) => { isMonster = v; repaint(); }),
-      el('button', { class: 'btn btn-ghost', text: `🧹 ${t('editor_clear')}`, on: { click: () => { grid = blankGrid(); repaint(); } } }),
+      el('button', { class: 'btn-level-4', text: `🧹 ${t('editor_clear')}`, on: { click: () => { grid = blankGrid(); repaint(); } } }),
     ]),
   ]);
 
@@ -88,9 +88,9 @@ function render() {
     previewCanvas,
     el('div', { class: 'editor-actions' }, [
       el('label', { class: 'ed-field save-target' }, [el('span', { text: t('editor_save_target') }), targetSel]),
-      el('button', { class: 'btn btn-primary', text: `💾 ${t('editor_save')}`, on: { click: () => saveShape(targetSel.value) } }),
-      el('button', { class: 'btn', text: t('editor_export'), on: { click: exportJson } }),
-      el('button', { class: 'btn btn-ghost', text: t('editor_back'), on: { click: () => { grid = null; go('title'); } } }),
+      el('button', { class: 'btn-level-2', text: `💾 ${t('editor_save')}`, on: { click: () => saveShape(targetSel.value) } }),
+      el('button', { class: 'btn-level-3', text: t('editor_export'), on: { click: exportJson } }),
+      el('button', { class: 'btn-level-4', text: t('editor_back'), on: { click: () => { grid = null; go('title'); } } }),
     ]),
     el('div', { class: 'editor-note', text: t('editor_note') }),
   ]);
@@ -211,7 +211,7 @@ function exportJson() {
     el('h3', { text: t('editor_export') }),
     el('div', { class: 'result-sub', text: t('editor_copied') }),
     ta,
-    el('button', { class: 'btn', text: t('close'), on: { click: () => close() } }),
+    el('button', { class: 'btn-level-3', text: t('close'), on: { click: () => close() } }),
   ]);
   const { close } = modal(box, { cls: 'result-overlay' });
   ta.select();

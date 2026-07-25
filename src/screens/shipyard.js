@@ -50,7 +50,7 @@ function render() {
     ]),
     shipPicker,
     upWrap,
-    el('button', { class: 'btn btn-big leave-btn', text: `⛵ ${t('port_leave')}`, on: { click: leave } }),
+    el('button', { class: 'btn-level-1 leave-btn', text: `⛵ ${t('port_leave')}`, on: { click: leave } }),
   ]);
   mount(root);
   saveGame();

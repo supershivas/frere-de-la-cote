@@ -169,7 +169,7 @@ export function outcomeModal({ tone = 'neutral', icon = '', title = '', lines = 
     icon ? el('div', { class: 'outcome-icon', text: icon }) : null,
     el('h2', { class: 'result-title', text: title }),
     ...lines.filter(Boolean).map((l) => el('div', { class: 'outcome-line', html: l })),
-    el('button', { class: 'btn btn-big', text: t('continue_btn'), on: { click: () => { close(); if (onClose) onClose(); } } }),
+    el('button', { class: 'btn-level-1', text: t('continue_btn'), on: { click: () => { close(); if (onClose) onClose(); } } }),
   ]);
   const { close } = modal(box, { closable: false, cls: 'result-overlay' });
   return box;
