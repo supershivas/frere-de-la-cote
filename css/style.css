@@ -1,30 +1,7 @@
 /* Frères de la Côte — pixel-art naval roguelite UI.
    Palette: deep ocean blue, dark wood, gold, pirate red, tropical green. */
 
-:root {
-  --ocean-deep: #062033;
-  --ocean: #0a3a5c;
-  --ocean-light: #10557f;
-  --wood: #3a2a1c;
-  --wood-light: #5a4632;
-  --wood-panel: #241812;
-  --gold: #e8c05a;
-  --gold-dark: #b8912f;
-  --red: #c0392b;
-  --red-light: #e05a4a;
-  --green: #4caf7d;
-  --parchment: #efe4c8;
-  --ink: #2a1e14;
-  --text: #f2e9d6;
-  --text-dim: #b8a98c;
-  --danger: #d9534f;
-  --success: #5cb27d;
-  --info: #5a9bd4;
-  --shadow: rgba(0, 0, 0, 0.45);
-
-  --font: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
-  --pixel-shadow: 0 2px 0 rgba(0,0,0,0.4);
-}
+@import "variables.css"; @import "animations.css"; @import "components.css";,
 
 * { box-sizing: border-box; }
 
