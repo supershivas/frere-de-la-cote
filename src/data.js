@@ -36,3 +36,22 @@ export async function loadData() {
 export function registerShip(def) {
   DB.ships[def.id] = def;
 }
+
+// Dev persistence for ships authored in the Ship Editor — kept in
+// localStorage so they survive a reload and can be tested in-game right away.
+const CUSTOM_SHIPS_KEY = 'fdlc_custom_ships';
+
+export function saveCustomShip(def) {
+  registerShip(def);
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem(CUSTOM_SHIPS_KEY) || '{}'); } catch {}
+  all[def.id] = def;
+  localStorage.setItem(CUSTOM_SHIPS_KEY, JSON.stringify(all));
+}
+
+export function loadCustomShips() {
+  try {
+    const all = JSON.parse(localStorage.getItem(CUSTOM_SHIPS_KEY) || '{}');
+    Object.values(all).forEach(registerShip);
+  } catch {}
+}

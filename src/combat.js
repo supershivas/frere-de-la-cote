@@ -646,7 +646,7 @@ function shipActionSet(ship) {
 
 // Active-ship info header: portrait, name, level, HP/shield, active effects.
 function activeShipInfo(ship) {
-  const portrait = shipThumb({ type: ship.def.type, color: ship.color, facing: 1 }, 58);
+  const portrait = shipThumb({ type: ship.def.type, color: ship.color, facing: 1, spriteSpec: ship.def.spriteSpec }, 58);
   portrait.classList.add('active-portrait');
   const bars = el('div', { class: 'active-ship-bars' }, [bar(ship.shownHp ?? ship.hp, ship.maxHp, 'hp', '❤️')]);
   if (ship.maxShield > 0) bars.appendChild(bar(ship.shownShield ?? ship.shield, ship.maxShield, 'shield', '🛡️'));

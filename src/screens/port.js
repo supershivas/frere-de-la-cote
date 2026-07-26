@@ -39,7 +39,7 @@ function render() {
     services,
     el('div', { class: 'port-fleet-preview' }, state.fleet.map((s) =>
       el('div', { class: 'mini-ship' }, [
-        shipThumb({ type: s.def.type, color: s.color, facing: 1 }, 64),
+        shipThumb({ type: s.def.type, color: s.color, facing: 1, spriteSpec: s.def.spriteSpec }, 64),
         el('div', { class: 'mini-name', text: (s.name || locName(s.def)) }),
         el('div', { class: 'mini-hp', text: `❤️ ${Math.round(s.hp)}/${s.maxHp}` }),
       ])
@@ -87,7 +87,7 @@ function recruitCard(offer) {
   const def = DB.ships[offer.id];
   const full = state.fleet.length >= MAX_FLEET;
   const card = el('div', { class: `service-card recruit ${full ? 'disabled' : ''}` }, [
-    shipThumb({ type: def.type, color: def.color, facing: 1 }, 72),
+    shipThumb({ type: def.type, color: def.color, facing: 1, spriteSpec: def.spriteSpec }, 72),
     el('div', { class: 'service-title', text: `${t('port_recruit')}: ${locName(def)}` }),
     el('div', { class: 'service-desc', text: full ? t('full_fleet') : locField(def, 'desc') }),
     el('button', {

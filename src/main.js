@@ -1,5 +1,5 @@
 // Bootstrap: load data + locales, register screens, wire global input, start.
-import { loadData } from './data.js';
+import { loadData, loadCustomShips } from './data.js';
 import { loadLocales, onLangChange, getLang } from './i18n.js';
 import { state } from './state.js';
 import { go, currentScreen } from './nav.js';
@@ -30,7 +30,8 @@ async function boot() {
   }
 
   window.__state = state; // debug/inspection convenience
-  loadTemplateOverrides(); // apply any saved custom ship sprites
+  loadTemplateOverrides(); // apply any saved custom ship sprites (legacy pixel editor)
+  loadCustomShips(); // register ships authored in the Ship Editor
 
   document.documentElement.lang = getLang();
   onLangChange((l) => {

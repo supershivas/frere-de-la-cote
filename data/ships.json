@@ -21,7 +21,15 @@
       "crew_capacity": 4
     },
     "ability": "swift_strike",
-    "color": "#7fd4c1"
+    "color": "#7fd4c1",
+    "spriteSpec": {
+      "hullClass": 6,
+      "sailsPerMast": 2,
+      "jibs": 2,
+      "seed": 1337,
+      "flag": { "motif": "Crâne", "bg": "#161616", "sym": "#e6d9bd" },
+      "colors": { "hull": "#3f6f66", "sail": "#e6d9bd", "faction": "#7fd4c1" }
+    }
   },
   "frigate": {
     "id": "frigate",
@@ -45,7 +53,15 @@
       "crew_capacity": 8
     },
     "ability": "broadside",
-    "color": "#d98b5f"
+    "color": "#d98b5f",
+    "spriteSpec": {
+      "hullClass": 3,
+      "sailsPerMast": 2,
+      "jibs": 1,
+      "seed": 4242,
+      "flag": { "motif": "Croix", "bg": "#1f3aa8", "sym": "#f4f4f4" },
+      "colors": { "hull": "#d98b5f", "sail": "#eee7d5", "faction": "#3a4a7a" }
+    }
   },
   "galleon": {
     "id": "galleon",
@@ -69,6 +85,14 @@
       "crew_capacity": 12
     },
     "ability": "reinforce",
-    "color": "#c9a24b"
+    "color": "#c9a24b",
+    "spriteSpec": {
+      "hullClass": 1,
+      "sailsPerMast": 3,
+      "jibs": 2,
+      "seed": 777,
+      "flag": { "motif": "Bandes", "bg": "#b5121b", "sym": "#f1c40f" },
+      "colors": { "hull": "#6b4a2b", "sail": "#efe6cf", "faction": "#b5121b" }
+    }
   }
 }
