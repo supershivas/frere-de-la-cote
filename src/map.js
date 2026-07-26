@@ -145,15 +145,20 @@ function render(opts = {}) {
   const current = map.byId[state.currentNodeId];
   const available = new Set(current.visited ? current.next : []);
 
+  // Horizontal layout: progression runs left→right (start at left, boss at right),
+  // the branch spread stacks vertically. Insets keep end nodes off the torn edges.
+  const px = (n) => 7 + n.y * 86;   // % from left — progression axis
+  const py = (n) => 12 + n.x * 76;  // % from top  — spread axis
+
   // Draw edges.
   for (const node of Object.values(map.byId)) {
     for (const nid of node.next) {
       const to = map.byId[nid];
       const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', `${node.x * 100}%`);
-      line.setAttribute('y1', `${node.y * 100}%`);
-      line.setAttribute('x2', `${to.x * 100}%`);
-      line.setAttribute('y2', `${to.y * 100}%`);
+      line.setAttribute('x1', `${px(node)}%`);
+      line.setAttribute('y1', `${py(node)}%`);
+      line.setAttribute('x2', `${px(to)}%`);
+      line.setAttribute('y2', `${py(to)}%`);
       const active = node.id === current.id && available.has(nid);
       line.setAttribute('class', `edge ${active ? 'edge-active' : ''} ${node.visited && to.visited ? 'edge-done' : ''}`);
       svg.appendChild(line);
@@ -167,7 +172,7 @@ function render(opts = {}) {
     const isCurrent = node.id === current.id;
     const btn = el('button', {
       class: `map-node ${node.type} ${isAvailable ? 'available' : ''} ${node.visited ? 'visited' : ''} ${isCurrent ? 'current' : ''}`,
-      style: `left:${node.x * 100}%; top:${node.y * 100}%`,
+      style: `left:${px(node)}%; top:${py(node)}%`,
       text: meta.icon,
     });
     if (isAvailable) {
@@ -179,7 +184,7 @@ function render(opts = {}) {
     board.appendChild(btn);
   }
 
-  const root = el('div', { class: 'screen map-screen' }, [
+  const root = el('div', { class: 'screen map-screen pattern-wood' }, [
     renderHud(),
     el('div', { class: 'map-title-bar' }, [
       el('h2', { text: t('map_title') }),

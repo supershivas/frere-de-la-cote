@@ -13,6 +13,13 @@
 <body>
   <canvas id="ocean"></canvas>
   <div id="parchment"></div>
+  <!-- Torn-paper edge for the map chart (referenced by CSS filter: url(#torn-paper)). -->
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute; pointer-events:none;">
+    <filter id="torn-paper" x="-6%" y="-8%" width="112%" height="116%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018 0.028" numOctaves="3" seed="8" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="13" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </svg>
   <div id="loading" class="loading">
     <div class="loading-anchor">⚓</div>
     <div>Frères de la Côte…</div>

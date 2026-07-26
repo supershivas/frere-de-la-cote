@@ -156,25 +156,63 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .rarity-cursed { color: #b06fd4; }
 
 /* ---------- Map ---------- */
+/* Map: a parchment chart pinned onto a wooden board, read left → right. */
 .map-screen { }
 .map-title-bar { text-align: center; padding: 10px; }
 .map-title-bar h2 { color: var(--gold); margin: 0; }
 .map-hint { color: var(--text-secondary); font-size: 13px; }
+/* Title/hint sit on the wood, so keep them bright (overrides the parchment rules). */
+.map-screen .map-title-bar h2 { color: var(--gold); text-shadow: 0 2px 3px rgba(0,0,0,0.6); }
+.map-screen .map-hint { color: #e6d2a0; }
+
 .map-board {
   position: relative;
-  flex: 1;
-  margin: 0 auto;
-  width: min(760px, 94%);
-  min-height: 620px;
-  padding: 20px 0;
+  align-self: center;
+  width: min(1080px, 96%);
+  aspect-ratio: 16 / 9;
+  max-height: 64vh;
+  margin: 6px auto 22px;
 }
-.map-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.edge { stroke: #ffffff22; stroke-width: 2; stroke-dasharray: 5 6; }
-.edge-done { stroke: var(--gold-dark); stroke-dasharray: none; opacity: 0.6; }
-.edge-active { stroke: var(--gold); stroke-width: 3; stroke-dasharray: none; animation: pulse-line 1.2s infinite; }
+/* Torn parchment sheet (behind the routes). */
+.map-board::before {
+  content: '';
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse at 26% 20%, rgba(120,86,40,0.12), transparent 55%),
+    radial-gradient(ellipse at 76% 80%, rgba(90,60,20,0.18), transparent 55%),
+    radial-gradient(ellipse at 55% 45%, rgba(60,40,15,0.08), transparent 60%),
+    repeating-linear-gradient(46deg, rgba(120,90,50,0.05) 0 3px, transparent 3px 7px),
+    radial-gradient(circle at 50% 45%, #ecdcb4 0%, #e0cd9e 55%, #cbb277 85%, #b6995f 100%);
+  box-shadow: inset 0 0 120px rgba(80,52,18,0.5), inset 0 0 36px rgba(80,52,18,0.32);
+  filter: url(#torn-paper) drop-shadow(0 14px 22px rgba(0,0,0,0.55));
+}
+/* Brass push-pins (punaises) at the four corners. */
+.map-board::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 6; pointer-events: none;
+  background-image:
+    radial-gradient(circle at 34% 32%, #fff2c4, #e8b923 40%, #a9800f 72%, rgba(0,0,0,0.45) 78%, transparent 82%),
+    radial-gradient(circle at 34% 32%, #fff2c4, #e8b923 40%, #a9800f 72%, rgba(0,0,0,0.45) 78%, transparent 82%),
+    radial-gradient(circle at 34% 32%, #fff2c4, #e8b923 40%, #a9800f 72%, rgba(0,0,0,0.45) 78%, transparent 82%),
+    radial-gradient(circle at 34% 32%, #fff2c4, #e8b923 40%, #a9800f 72%, rgba(0,0,0,0.45) 78%, transparent 82%);
+  background-repeat: no-repeat;
+  background-size: 28px 28px;
+  background-position:
+    18px 16px,
+    calc(100% - 18px) 16px,
+    18px calc(100% - 16px),
+    calc(100% - 18px) calc(100% - 16px);
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
+}
+.map-edges { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; }
+/* Routes drawn in sepia ink on the chart. */
+.edge { stroke: rgba(74,48,20,0.35); stroke-width: 2; stroke-dasharray: 6 6; }
+.edge-done { stroke: rgba(74,48,20,0.6); stroke-dasharray: none; opacity: 0.8; }
+.edge-active { stroke: var(--gold-dark); stroke-width: 3; stroke-dasharray: none; animation: pulse-line 1.2s infinite; }
 @keyframes pulse-line { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 .map-node {
   position: absolute;
+  z-index: 2;
   transform: translate(-50%, -50%);
   width: 52px; height: 52px;
   border-radius: 12px;
@@ -679,7 +717,7 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
   .editor-grid { grid-template-columns: 1fr; }
   .pause-body { flex-direction: column; }
   .pause-nav { width: auto; flex-direction: row; flex-wrap: wrap; border-right: none; border-bottom: 2px solid var(--bg-hover); }
-  .map-board { min-height: 560px; }
+  .map-board { aspect-ratio: 4 / 3; max-height: none; }
 }
 @media (max-width: 640px) {
   /* Narrow: stack allies above enemies but keep left/right identity via labels. */
