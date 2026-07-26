@@ -119,6 +119,7 @@ export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = n
     flag: isEnemy ? '#7a2b2b' : '#b23b3b',
     facing: isEnemy ? -1 : 1,
     damaged,
+    spriteSpec: isEnemy ? null : ship.def.spriteSpec,
   });
   // Water stage: ship floats on an animated waterline with a wake reflection.
   const stage = el('div', { class: `ship-stage ${combat ? 'in-combat' : ''}` }, [
