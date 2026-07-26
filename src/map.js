@@ -1,8 +1,9 @@
 // Procedurally generated branching sea chart (Slay the Spire / FTL style).
 import { el, mount } from './ui.js';
-import { t } from './i18n.js';
+import { t, locName } from './i18n.js';
 import { register, go } from './nav.js';
 import { state, saveGame, relicMods } from './state.js';
+import { DB } from './data.js';
 import { renderHud } from './hud.js';
 import { attachTooltip } from './tooltip.js';
 import { toastInfo } from './toast.js';
@@ -38,6 +39,17 @@ function pickWeighted(table) {
     if (r <= 0) return val;
   }
   return table[0][0];
+}
+
+// Weather is rolled once per node and stored on it, so it stays stable for
+// the whole run (the node's fight, if any, always happens under that sky).
+// Harsher weather is gated behind minAct so later acts feel rougher.
+function pickWeather(act) {
+  const entries = Object.values(DB.weather).filter((w) => (w.minAct || 1) <= act);
+  const pool = entries.length ? entries : Object.values(DB.weather);
+  if (!pool.length) return null;
+  const table = pool.map((w) => [w.id, w.weight || 1]);
+  return pickWeighted(table);
 }
 
 export function generateMap(act = 1) {
@@ -97,6 +109,7 @@ function makeNode(id, row, col, rowCount, type, act) {
     visited: false,
     danger,
     reward: rewardFor(type),
+    weather: pickWeather(act),
   };
 }
 
@@ -207,6 +220,8 @@ function nodeTooltip(node, revealed) {
   if (node.reward && node.reward.label) {
     html += `<div class="tt-desc">${t('reward')}: ${node.reward.label}</div>`;
   }
+  const w = node.weather && DB.weather[node.weather];
+  if (w) html += `<div class="tt-sub">${w.icon} ${locName(w)}</div>`;
   return html;
 }
 

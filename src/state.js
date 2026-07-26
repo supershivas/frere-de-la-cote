@@ -115,6 +115,45 @@ export function relicMods() {
   return m;
 }
 
+// The weather def rolled for the node currently being played, if any.
+function currentWeatherDef() {
+  const map = state.map;
+  const node = map && map.byId[state.currentNodeId];
+  const w = node && node.weather;
+  return (w && DB.weather[w]) || null;
+}
+
+export function currentWeather() {
+  return currentWeatherDef();
+}
+
+// Weather modifiers for the node currently being played — same shape/spirit
+// as relicMods(), read fresh each time so it always reflects the current node.
+export function weatherMods() {
+  const w = currentWeatherDef();
+  const m = w && w.mods;
+  return {
+    accuracyDelta: m?.accuracyDelta || 0,
+    evasionDelta: m?.evasionDelta || 0,
+    damageMult: m?.damageMult ?? 1,
+    speedMult: m?.speedMult ?? 1,
+  };
+}
+
+// Combat-facing mods: relics + weather merged (multipliers multiplied,
+// deltas summed). Use this instead of relicMods() wherever combat reads mods.
+export function combatMods() {
+  const r = relicMods();
+  const w = weatherMods();
+  return {
+    ...r,
+    accuracyDelta: w.accuracyDelta,
+    evasionDelta: w.evasionDelta,
+    weatherDamageMult: w.damageMult,
+    speedMult: w.speedMult,
+  };
+}
+
 export function addGold(n) {
   state.resources.gold = Math.max(0, state.resources.gold + n);
   if (n > 0) state.stats.goldEarned += n;
