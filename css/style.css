@@ -402,6 +402,9 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .action-buttons-primary .action-btn { flex: 1 1 0; min-width: 96px; padding: 12px 10px; }
 .action-buttons-primary .ab-icon { font-size: 26px; }
 .action-buttons-primary .ab-label { font-size: 13px; letter-spacing: 0.03em; }
+/* Both primary CTAs read as gold — btn-level-2's default cream text is too
+   close to the secondary buttons' tone to feel like a dominant action here. */
+.action-buttons-primary .btn-level-2 { color: var(--gold-light); }
 .action-buttons-secondary { gap: 6px; }
 .action-buttons-secondary .action-btn { min-width: 0; padding: 5px 9px; }
 .action-buttons-secondary .ab-icon { font-size: 15px; }
