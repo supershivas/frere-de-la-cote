@@ -21,6 +21,10 @@
   "node_treasure": "Treasure",
   "node_mystery": "Mysterious Isle",
   "node_start": "Start",
+  "node_epave": "Wreck",
+  "node_repaire": "Den",
+  "node_sanctuaire": "Shrine",
+  "node_chasse": "Bounty Hunt",
 
   "danger": "Danger",
   "danger_low": "Low",

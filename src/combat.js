@@ -847,6 +847,9 @@ function win() {
     xp += rw.xp || 0;
     rareMats += rw.rareMaterials || 0;
   }
+  // A 'chasse' (bounty hunt) node pays an extra bounty on top of the enemy's
+  // own reward, scaled with the danger level it was fought at.
+  if (C.opts && C.opts.bounty) gold += 50 + (C.opts.danger || 0) * 25;
   gold = Math.round(gold * mods.goldMult);
   addGold(gold);
   if (rareMats) state.resources.rareMaterials += rareMats;
