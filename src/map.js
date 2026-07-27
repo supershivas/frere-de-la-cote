@@ -228,6 +228,12 @@ function nodeTooltip(node, revealed) {
 function visitNode(node) {
   state.currentNodeId = node.id;
   node.visited = true;
+  // A 'weather_change' event outcome can force the weather of the very next
+  // node the player steps into; consume it once so it doesn't stick around.
+  if (state.forcedNextWeather && DB.weather[state.forcedNextWeather]) {
+    node.weather = state.forcedNextWeather;
+    state.forcedNextWeather = null;
+  }
   routeToNode(node);
 }
 

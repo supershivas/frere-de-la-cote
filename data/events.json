@@ -102,5 +102,126 @@
         ]
       }
     ]
+  },
+  "castaway_carpenter": {
+    "id": "castaway_carpenter",
+    "title_fr": "Le Charpentier Naufragé",
+    "title_en": "The Castaway Carpenter",
+    "text_fr": "Accroché à un radeau de fortune, un charpentier hurle pour qu'on le recueille.",
+    "text_en": "Clinging to a makeshift raft, a carpenter shouts to be taken aboard.",
+    "choices": [
+      {
+        "label_fr": "Le recueillir à bord",
+        "label_en": "Take him aboard",
+        "outcomes": [
+          { "weight": 70, "type": "wood", "value": 15, "toast_fr": "Reconnaissant, il répare la coque avec le bois du radeau.", "toast_en": "Grateful, he patches the hull with the raft's timber." },
+          { "weight": 30, "type": "damage_flagship", "value": 15, "toast_fr": "C'était un piège : des pirates surgissent du radeau !", "toast_en": "It was a trap: pirates spring from the raft!" }
+        ]
+      },
+      {
+        "label_fr": "Poursuivre sa route",
+        "label_en": "Sail on",
+        "outcomes": [
+          { "weight": 100, "type": "none", "toast_fr": "Vous le laissez à son sort.", "toast_en": "You leave him to his fate." }
+        ]
+      }
+    ]
+  },
+  "brewing_squall": {
+    "id": "brewing_squall",
+    "title_fr": "Le Grain qui Couve",
+    "title_en": "The Brewing Squall",
+    "text_fr": "Le vigile pointe un mur de nuages noirs à l'horizon : un grain se prépare sur la route à venir.",
+    "text_en": "The lookout points at a wall of black clouds ahead: a squall is brewing on the route ahead.",
+    "choices": [
+      {
+        "label_fr": "Foncer droit dessus",
+        "label_en": "Sail straight for it",
+        "outcomes": [
+          { "weight": 100, "type": "weather_change", "value": "grain", "toast_fr": "Vous filez droit vers le grain.", "toast_en": "You sail straight into the squall." }
+        ]
+      },
+      {
+        "label_fr": "Faire relâche pour souffler",
+        "label_en": "Lay to and rest",
+        "outcomes": [
+          { "weight": 100, "type": "heal_fleet", "value": 10, "toast_fr": "L'équipage profite du répit pour se soigner.", "toast_en": "The crew makes the most of the lull to patch up." }
+        ]
+      }
+    ]
+  },
+  "grateful_shipwright": {
+    "id": "grateful_shipwright",
+    "title_fr": "Le Charpentier Reconnaissant",
+    "title_en": "The Grateful Shipwright",
+    "text_fr": "Un vieux charpentier, dont la réputation de votre équipage a précédé, insiste pour retaper votre flotte gratuitement.",
+    "text_en": "An old shipwright, whose reputation of your crew preceded you, insists on patching up your fleet for free.",
+    "require": { "minReputation": 3 },
+    "choices": [
+      {
+        "label_fr": "Accepter",
+        "label_en": "Accept",
+        "outcomes": [
+          { "weight": 100, "type": "repair_fleet", "toast_fr": "La flotte est remise à neuf !", "toast_en": "The fleet is patched up like new!" }
+        ]
+      },
+      {
+        "label_fr": "Refuser poliment",
+        "label_en": "Politely decline",
+        "outcomes": [
+          { "weight": 100, "type": "reputation", "value": 1, "toast_fr": "Votre humilité forge encore votre légende.", "toast_en": "Your humility only adds to your legend." }
+        ]
+      }
+    ]
+  },
+  "eye_of_the_storm": {
+    "id": "eye_of_the_storm",
+    "title_fr": "L'Œil de la Tempête",
+    "title_en": "The Eye of the Storm",
+    "text_fr": "En pleine tempête, une accalmie étrange s'ouvre autour d'un tourbillon phosphorescent.",
+    "text_en": "In the middle of the storm, an eerie lull opens around a glowing whirlpool.",
+    "require": { "weather": "tempete" },
+    "choices": [
+      {
+        "label_fr": "Plonger dans le tourbillon",
+        "label_en": "Dive into the whirlpool",
+        "outcomes": [
+          { "weight": 55, "type": "gold", "value": 150, "toast_fr": "Le tourbillon recrache un coffre entier !", "toast_en": "The whirlpool spits out an entire chest!" },
+          { "weight": 45, "type": "damage_fleet", "value": 30, "toast_fr": "Le tourbillon manque d'engloutir la flotte !", "toast_en": "The whirlpool nearly swallows the fleet!" }
+        ]
+      },
+      {
+        "label_fr": "Rester en lisière",
+        "label_en": "Keep clear",
+        "outcomes": [
+          { "weight": 100, "type": "none", "toast_fr": "Vous laissez le tourbillon à ses mystères.", "toast_en": "You leave the whirlpool to its mysteries." }
+        ]
+      }
+    ]
+  },
+  "omen_of_the_kraken": {
+    "id": "omen_of_the_kraken",
+    "title_fr": "Présage du Kraken",
+    "title_en": "Omen of the Kraken",
+    "text_fr": "Des tentacules géantes, gravées dans une amulette échouée, semblent bouger sous vos doigts.",
+    "text_en": "Giant tentacles, carved into a washed-up amulet, seem to shift under your fingers.",
+    "require": { "act": 2 },
+    "choices": [
+      {
+        "label_fr": "Garder l'amulette",
+        "label_en": "Keep the amulet",
+        "outcomes": [
+          { "weight": 50, "type": "relic_random", "toast_fr": "L'amulette révèle un pouvoir caché.", "toast_en": "The amulet reveals a hidden power." },
+          { "weight": 50, "type": "damage_flagship", "value": 20, "toast_fr": "L'amulette se referme sur votre main !", "toast_en": "The amulet snaps shut on your hand!" }
+        ]
+      },
+      {
+        "label_fr": "La rejeter à la mer",
+        "label_en": "Cast it back into the sea",
+        "outcomes": [
+          { "weight": 100, "type": "reputation", "value": 3, "toast_fr": "Votre prudence inspire l'équipage.", "toast_en": "Your caution inspires the crew." }
+        ]
+      }
+    ]
   }
 }

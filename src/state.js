@@ -18,6 +18,7 @@ export const state = {
   stats: { battlesWon: 0, shipsSunk: 0, goldEarned: 0 },
   options: { sound: true, music: true },
   inRun: false,
+  forcedNextWeather: null, // set by a 'weather_change' event outcome, consumed on next node visit
 };
 
 let nextInstanceId = 1;
