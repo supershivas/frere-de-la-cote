@@ -25,7 +25,7 @@ function render() {
       state._yardShip = s;
       shipBtns.forEach(({ ship, el: b }) => b.classList.toggle('active', ship === s));
     } } }, [
-      shipThumb({ type: s.def.type, color: s.color, facing: 1, spriteSpec: s.def.spriteSpec }, 60),
+      shipThumb({ type: s.def.type, color: s.color, facing: 1, spriteSpec: s.spriteSpec }, 60),
       el('div', { class: 'mini-name', text: (s.name || locName(s.def)) + (s.flagship ? ' ★' : '') }),
       el('div', { class: 'mini-hp', text: `Lv.${s.level}` }),
     ]);

@@ -5,7 +5,7 @@
 // A stats panel lets you author the full ships.json def (stats + ability +
 // rarity/role/faction) and copy it out, ready to paste.
 import { el, mount } from '../ui.js';
-import { t } from '../i18n.js';
+import { t, locName } from '../i18n.js';
 import { register, go } from '../nav.js';
 import { HULL_CLASSES, FLAG_KEYS, generateShipGrid, generatedShipPalette, drawGrid } from '../sprites.js';
 import { DB, saveCustomShip } from '../data.js';
@@ -16,25 +16,56 @@ import { toastSuccess } from '../toast.js';
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI'];
 const RARITIES = ['common', 'uncommon', 'rare', 'legendary', 'cursed'];
 const SCALE = 5; // fixed px-per-cell so all hull classes render at the same absolute scale
+const WEAR_LABELS = ['Neuf', 'Usé', 'Vieux', 'Épave'];
+const TRIM_VALS = ['aucun', 'simple', 'nelson', 'doré'];
+const TRIM_LABELS = { aucun: 'Aucun', simple: 'Simple', nelson: 'Nelson', doré: 'Doré' };
+const EMBLEM_VALS = ['aucun', 'petit', 'grand'];
+const EMBLEM_LABELS = { aucun: 'Aucun', petit: 'Petit', grand: 'Grand' };
+const HULL_SHAPE_VALS = ['auto', 'ronde', 'fine'];
+const HULL_SHAPE_LABELS = { auto: 'Auto', ronde: 'Ronde', fine: 'Fine' };
 
-let spec, meta, statsState;
+let spec, meta, statsState, factionChoice; // factionChoice: a DB.factions id, or 'custom' for hand-tuned colours
 let previewCanvas, readoutEl;
 
+function firstFactionId() {
+  return Object.keys(DB.factions)[0] || null;
+}
+
+// Identity (flag/colours/trim) always starts from a faction — in-game a ship
+// never picks its own colours, so the editor mirrors that by default too.
 function defaultSpec() {
+  const fac = DB.factions[firstFactionId()];
   return {
     hullClass: 3,
+    hullShape: 'auto',
     sailsPerMast: 2,
     jibs: 1,
     seed: (Math.random() * 1e9) | 0,
-    flag: { motif: 'Crâne', bg: '#161616', sym: '#e6d9bd' },
-    colors: { hull: '#5a3d25', sail: '#e6d9bd', faction: '#8a1f1f' },
+    wear: 0,
+    trim: fac ? fac.livery.trim : 'aucun',
+    emblem: 'petit',
+    flag: fac ? { ...fac.emblem } : { motif: 'Crâne', bg: '#161616', sym: '#e6d9bd', accent: '#f1c40f' },
+    colors: fac ? { hull: fac.livery.hull, sail: fac.livery.sail, faction: fac.livery.faction } : { hull: '#5a3d25', sail: '#e6d9bd', faction: '#8a1f1f' },
   };
 }
 function defaultMeta() {
-  return { name: 'Le Corsaire', role: 'versatile', rarity: 'common', faction: 'free_pirates' };
+  return { name: 'Le Corsaire', role: 'versatile', rarity: 'common' };
 }
 function defaultStats() {
   return { hp: 160, armor: 12, shield: 20, damage: 34, accuracy: 0.85, speed: 12, evasion: 0.15, morale: 70, crew_capacity: 8, ability: 'broadside' };
+}
+
+// Apply a faction's shared identity (flag + livery colours + trim) onto the
+// current spec. Picking 'custom' just switches the swatches to hand-tuning
+// mode without touching the current colours — useful for designing a new
+// faction's livery from scratch.
+function applyFaction(id) {
+  factionChoice = id;
+  const fac = DB.factions[id];
+  if (!fac) return;
+  spec.flag = { ...fac.emblem };
+  spec.colors = { hull: fac.livery.hull, sail: fac.livery.sail, faction: fac.livery.faction };
+  spec.trim = fac.livery.trim || 'aucun';
 }
 
 function jibRange() {
@@ -51,7 +82,7 @@ function clampToClass() {
 }
 
 function render() {
-  if (!spec) { spec = defaultSpec(); meta = defaultMeta(); statsState = defaultStats(); }
+  if (!spec) { spec = defaultSpec(); meta = defaultMeta(); statsState = defaultStats(); factionChoice = firstFactionId(); }
   clampToClass();
 
   const root = el('div', { class: 'screen editor-screen' }, [
@@ -107,11 +138,22 @@ function leftCol() {
   const [jMin, jMax] = jibRange();
   const sailsVals = []; for (let s = 1; s <= c.sailsMax; s++) sailsVals.push(s);
   const jibVals = []; for (let j = jMin; j <= jMax; j++) jibVals.push(j);
+  const factionKeys = [...Object.keys(DB.factions), 'custom'];
+  const customize = () => { factionChoice = 'custom'; };
 
   return el('div', { class: 'editor-col' }, [
+    el('h3', { text: t('editor_faction') }),
+    seg(factionKeys, factionChoice, (v) => { applyFaction(v); render(); }, (v) => (v === 'custom' ? t('editor_custom') : locName(DB.factions[v]))),
+    el('div', { class: 'hint', text: t('editor_faction_hint') }),
+
+    el('div', { class: 'divider' }),
+
     el('h3', { text: t('editor_hull_class') }),
     seg([1, 2, 3, 4, 5, 6], spec.hullClass, (v) => { spec.hullClass = v; render(); }, (v) => ROMAN[v - 1]),
     el('div', { class: 'hint', text: t('editor_hull_class_hint', { masts: c.masts, ports: c.rows * c.ports }) }),
+
+    el('h3', { text: t('editor_hull_shape') }),
+    seg(HULL_SHAPE_VALS, spec.hullShape, (v) => { spec.hullShape = v; drawPreview(); }, (v) => HULL_SHAPE_LABELS[v]),
 
     el('h3', { text: t('editor_sails_per_mast') }),
     seg(sailsVals, spec.sailsPerMast, (v) => { spec.sailsPerMast = v; render(); }),
@@ -120,21 +162,31 @@ function leftCol() {
     seg(jibVals, spec.jibs, (v) => { spec.jibs = v; render(); }),
     el('div', { class: 'hint', text: c.masts === 1 ? t('editor_jibs_hint_solo') : t('editor_jibs_hint') }),
 
+    el('h3', { text: t('editor_wear') }),
+    seg([0, 1, 2, 3], spec.wear, (v) => { spec.wear = v; drawPreview(); }, (v) => WEAR_LABELS[v]),
+
     el('div', { class: 'divider' }),
 
     el('h3', { text: t('editor_colors') }),
     el('div', { class: 'colors' }, [
-      colorField(t('editor_hull_color'), spec.colors.hull, (v) => { spec.colors.hull = v; drawPreview(); }),
-      colorField(t('editor_sail_color'), spec.colors.sail, (v) => { spec.colors.sail = v; drawPreview(); }),
-      colorField(t('editor_faction_color'), spec.colors.faction, (v) => { spec.colors.faction = v; drawPreview(); }),
+      colorField(t('editor_hull_color'), spec.colors.hull, (v) => { spec.colors.hull = v; customize(); drawPreview(); }),
+      colorField(t('editor_sail_color'), spec.colors.sail, (v) => { spec.colors.sail = v; customize(); drawPreview(); }),
+      colorField(t('editor_faction_color'), spec.colors.faction, (v) => { spec.colors.faction = v; customize(); drawPreview(); }),
     ]),
 
+    el('h3', { text: t('editor_trim') }),
+    seg(TRIM_VALS, spec.trim, (v) => { spec.trim = v; customize(); drawPreview(); }, (v) => TRIM_LABELS[v]),
+
     el('h3', { text: t('editor_flag') }),
-    seg(FLAG_KEYS, spec.flag.motif, (v) => { spec.flag.motif = v; render(); }),
+    seg(FLAG_KEYS, spec.flag.motif, (v) => { spec.flag.motif = v; customize(); render(); }),
     el('div', { class: 'colors', style: 'margin-top:8px' }, [
-      colorField(t('editor_flag_bg'), spec.flag.bg, (v) => { spec.flag.bg = v; drawPreview(); }),
-      colorField(t('editor_flag_sym'), spec.flag.sym, (v) => { spec.flag.sym = v; drawPreview(); }),
+      colorField(t('editor_flag_bg'), spec.flag.bg, (v) => { spec.flag.bg = v; customize(); drawPreview(); }),
+      colorField(t('editor_flag_sym'), spec.flag.sym, (v) => { spec.flag.sym = v; customize(); drawPreview(); }),
+      colorField(t('editor_flag_accent'), spec.flag.accent || '#f1c40f', (v) => { spec.flag.accent = v; customize(); drawPreview(); }),
     ]),
+
+    el('h3', { text: t('editor_emblem') }),
+    seg(EMBLEM_VALS, spec.emblem, (v) => { spec.emblem = v; drawPreview(); }, (v) => EMBLEM_LABELS[v]),
   ]);
 }
 
@@ -144,7 +196,7 @@ function centerCol() {
   previewCanvas = el('canvas', { class: 'editor-preview' });
   readoutEl = el('div', { class: 'hint', style: 'margin-top:8px' });
 
-  const stage = el('div', { class: 'ship-preview-stage' }, [previewCanvas]);
+  const stage = el('div', { class: 'ship-preview-stage pattern-sea' }, [previewCanvas]);
 
   return el('div', { class: 'editor-center' }, [
     el('h3', { text: t('editor_preview') }),
@@ -234,7 +286,6 @@ function rightCol() {
     el('label', { class: 'ed-field' }, [el('span', { text: t('editor_rarity') })]),
     seg(RARITIES, meta.rarity, (v) => { meta.rarity = v; render(); }, (v) => t(`rarity_${v}`) || v),
     textField(t('editor_role'), meta.role, (v) => { meta.role = v; }),
-    textField(t('editor_faction'), meta.faction, (v) => { meta.faction = v; }),
   ]);
 }
 
@@ -265,19 +316,26 @@ function buildDef() {
   const id = `custom_${slug(meta.name)}`;
   const rounded = {};
   for (const [key] of STAT_ROWS) rounded[key] = PCT_STATS.has(key) ? Math.round(statsState[key] * 100) / 100 : Math.round(statsState[key]);
+  // In-game, a ship's identity (flag/livery/trim) always comes from its
+  // faction, not from the ship itself — so the canonical def only carries
+  // its OWN structural hull data (hullSpec). `spriteSpec` is included too,
+  // as a snapshot of the current preview, purely for reference when
+  // authoring/tuning a faction's livery in data/factions.json.
+  const hullSpec = { hullClass: spec.hullClass, hullShape: spec.hullShape, sailsPerMast: spec.sailsPerMast, jibs: spec.jibs, wear: spec.wear };
   return {
     id,
     name_fr: meta.name,
     name_en: meta.name,
     type: typeForClass(),
     role: meta.role || 'versatile',
-    faction: meta.faction || 'free_pirates',
+    faction: factionChoice === 'custom' ? (firstFactionId() || 'free_pirates') : factionChoice,
     rarity: meta.rarity || 'common',
     desc_fr: `Navire de classe ${ROMAN[spec.hullClass - 1]}, conçu dans l'éditeur de bateau.`,
     desc_en: `Class ${ROMAN[spec.hullClass - 1]} ship, designed in the Ship Editor.`,
     stats: rounded,
     ability: statsState.ability,
     color: spec.colors.hull,
+    hullSpec,
     spriteSpec: JSON.parse(JSON.stringify(spec)),
   };
 }

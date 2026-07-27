@@ -119,6 +119,14 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .title-showcase .ship-canvas:nth-child(3) { animation-delay: 1s; }
 @keyframes float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-8px) rotate(2deg); } }
 .title-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; margin-bottom: 20px; }
+.faction-grid { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; max-width: 820px; margin: 10px auto 22px; }
+.faction-card {
+  width: 150px; background: #0004; border: 2px solid var(--bg-hover); border-radius: 10px; padding: 14px 10px 10px;
+  cursor: pointer; text-align: center; transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.faction-card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 6px 16px #000a; }
+.faction-card .ship-canvas { display: block; margin: 0 auto; }
+.faction-name { font-family: var(--font-title); font-weight: 700; color: var(--gold); margin-top: 8px; font-size: 14px; }
 .title-credits { color: var(--text-secondary); font-size: 13px; letter-spacing: 0.1em; margin-bottom: 16px; }
 .lang-toggle { display: inline-flex; gap: 4px; background: #0006; border-radius: 8px; padding: 4px; }
 .lang-btn { border: none; background: transparent; color: var(--text-secondary); font-weight: 700; padding: 6px 14px; border-radius: 6px; cursor: pointer; letter-spacing: 0.05em; }
@@ -587,9 +595,12 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .seg button[aria-pressed="true"] { background: var(--gold); color: var(--text-dark); border-color: var(--gold-light); box-shadow: 0 0 12px var(--gold-glow); font-weight: 700; }
 .hint { font-size: 11px; color: var(--text-secondary); margin-top: 6px; margin-bottom: 12px; line-height: 1.5; }
 .colors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* Static, discreet backdrop — no animated sky/sea scene behind the editor's
+   ship preview, just the design system's sea texture. */
 .ship-preview-stage {
-  width: 100%; min-height: 260px; display: flex; align-items: flex-end; justify-content: center;
-  background: radial-gradient(circle at 50% 45%, var(--bg-ocean), var(--bg-deep)); border: 2px solid var(--bg-hover); border-radius: 8px; margin: 8px 0; padding: 10px 0;
+  width: 100%; min-height: 260px; display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--bg-hover); border-radius: 8px; margin: 8px 0; padding: 10px 0;
+  opacity: 0.92;
 }
 .editor-preview { image-rendering: pixelated; max-width: 100%; height: auto; }
 .stat-row-block { margin-bottom: 6px; }
