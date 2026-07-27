@@ -8,6 +8,7 @@ let W = 0, H = 0, dpr = 1;
 let particles = [];
 let running = false;
 let last = 0;
+let aimLine = null; // { fromIid, toIid } — purely visual firing-line overlay
 
 export function initFx() {
   if (canvas) return;
@@ -37,6 +38,7 @@ function loop(now) {
   const dt = Math.min(50, now - last) / 1000;
   last = now;
   ctx.clearRect(0, 0, W, H);
+  drawAimLine();
   for (const p of particles) {
     p.life -= dt;
     p.update(dt);
@@ -45,6 +47,36 @@ function loop(now) {
   }
   particles = particles.filter((p) => p.life > 0);
   if (running) requestAnimationFrame(loop);
+}
+
+// ---- Firing line: a dashed line from the active ship to a hovered/selected
+// target, purely visual — it never affects targeting logic. Clears itself if
+// either ship disappears (e.g. re-render after the shot lands).
+export function fxSetAimTarget(fromIid, toIid) { aimLine = { fromIid, toIid }; }
+export function fxClearAimTarget() { aimLine = null; }
+
+function drawAimLine() {
+  if (!aimLine) return;
+  const from = centerOf(aimLine.fromIid);
+  const to = centerOf(aimLine.toIid);
+  if (!from || !to) { aimLine = null; return; }
+  ctx.save();
+  ctx.setLineDash([9, 7]);
+  ctx.strokeStyle = 'rgba(232,192,90,0.85)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const ang = Math.atan2(to.y - from.y, to.x - from.x);
+  ctx.translate(to.x, to.y);
+  ctx.rotate(ang);
+  ctx.fillStyle = 'rgba(232,192,90,0.9)';
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(-11, -5); ctx.lineTo(-11, 5); ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 // ---- helpers ----
@@ -232,6 +264,16 @@ export function fxHeal(iid) {
   for (let i = 0; i < 12; i++) spark(p.x + rand(-18, 18), p.y + 20, rand(-20, 20), rand(-120, -40), '#7fe0a0', rand(0.5, 0.9), 3);
   ring(p.x, p.y, '#7fe0a0', 0.5, 40);
   fxFloatText(p.x, p.y - 12, '+♥', 'heal');
+}
+
+// Gold confetti burst for the victory modal's entrance.
+export function fxCelebrate(x, y) {
+  ring(x, y, '#e8c05a', 0.6, 70);
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = rand(60, 240);
+    spark(x, y, Math.cos(a) * sp, Math.sin(a) * sp - 60, '#ffd27f', rand(0.5, 1.0), rand(2, 4));
+  }
 }
 
 // Shield brace shimmer (local).

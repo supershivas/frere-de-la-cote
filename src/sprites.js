@@ -138,8 +138,25 @@ export function templateFor(type) {
   return 'frigate';
 }
 
+// The single reference generator: same grid data for the editor and combat,
+// so both are always visually identical (no separate copy to keep in sync).
+export function generateShipGrid(type) {
+  return TEMPLATES[templateFor(type)];
+}
+
+// Row index of the waterline — the first row made only of 'W' (foam trim) or
+// empty cells. Used in combat to clip the hull so nothing renders "underwater".
+function waterlineRow(grid) {
+  for (let y = 0; y < grid.length; y++) {
+    if ([...grid[y]].every((c) => c === 'W' || c === '.')) return y;
+  }
+  return grid.length;
+}
+
 // Render an explicit grid (array of equal-length strings) onto a canvas.
-export function drawGrid(canvas, grid, { color = '#c9a24b', flag = '#b23b3b', facing = 1, damaged = 0, isMonster = false } = {}) {
+// waterline: true clips anything at/below the hull's waterline row — used in
+// combat so no keel is ever visible "underwater"; the editor leaves it off.
+export function drawGrid(canvas, grid, { color = '#c9a24b', flag = '#b23b3b', facing = 1, damaged = 0, isMonster = false, waterline = false } = {}) {
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   const rows = grid.length, cols = grid[0].length;
@@ -147,6 +164,14 @@ export function drawGrid(canvas, grid, { color = '#c9a24b', flag = '#b23b3b', fa
   const ox = Math.floor((canvas.width - cols * px) / 2);
   const oy = Math.floor((canvas.height - rows * px) / 2);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  ctx.save();
+  if (waterline) {
+    const wy = waterlineRow(grid);
+    ctx.beginPath();
+    ctx.rect(0, 0, canvas.width, oy + wy * px);
+    ctx.clip();
+  }
 
   const palette = buildPalette(color, flag, isMonster);
   for (let y = 0; y < rows; y++) {
@@ -167,12 +192,13 @@ export function drawGrid(canvas, grid, { color = '#c9a24b', flag = '#b23b3b', fa
     ctx.fillStyle = `rgba(20,20,20,${0.12 * damaged})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
+  ctx.restore();
 }
 
 // Draw a ship by type. facing: 1 = right (player), -1 = left (enemy).
-export function drawShip(canvas, { type = 'frigate', color = '#c9a24b', flag = '#b23b3b', facing = 1, damaged = 0 } = {}) {
+export function drawShip(canvas, { type = 'frigate', color = '#c9a24b', flag = '#b23b3b', facing = 1, damaged = 0, waterline = false } = {}) {
   const key = templateFor(type);
-  drawGrid(canvas, TEMPLATES[key], { color, flag, facing, damaged, isMonster: key === 'monster' });
+  drawGrid(canvas, generateShipGrid(type), { color, flag, facing, damaged, isMonster: key === 'monster', waterline });
 }
 
 // Convenience: build a small canvas element already rendered.

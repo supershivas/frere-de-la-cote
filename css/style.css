@@ -236,18 +236,20 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 
 /* ---------- Combat ---------- */
 /* No fade on combat re-renders — it caused a flash on every action/selection. */
-.combat-screen { animation: none; }
+/* Fixed height + hidden overflow: with 3+ ships per side the sprites scale
+   down (see sizeForFleet in combat.js) instead of ever producing a scrollbar. */
+.combat-screen { animation: none; height: 100%; max-height: 100%; overflow: hidden; }
 /* Push the fleets down so ships always sit in the sea, below the high horizon. */
-.combat-arena { flex: 1; display: flex; flex-direction: column; padding: clamp(70px, 13vh, 140px) 12px 16px; }
+.combat-arena { flex: 1; display: flex; flex-direction: column; padding: clamp(70px, 13vh, 140px) 12px 16px; min-height: 0; overflow: hidden; }
 
 /* Battlefield: allies LEFT, enemies RIGHT, turn info in the middle. On wide
    screens the two fleets sit near the centre rather than at the far edges. */
 .combat-field {
   flex: 1; display: flex; align-items: center; justify-content: center;
-  gap: clamp(28px, 7vw, 150px);
+  gap: clamp(28px, 7vw, 150px); min-height: 0;
 }
-.side { display: flex; flex-direction: column; gap: 6px; flex: 0 1 auto; min-width: 0; }
-.side-ships { display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.side { display: flex; flex-direction: column; gap: 6px; flex: 0 1 auto; min-width: 0; min-height: 0; }
+.side-ships { display: flex; flex-direction: column; gap: 12px; justify-content: center; min-height: 0; overflow: hidden; }
 .ally-side { align-items: flex-start; }
 .ally-side .side-ships { align-items: flex-start; }
 .enemy-side { align-items: flex-end; }
@@ -258,22 +260,27 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .battle-center { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 0 0 auto; }
 .battle-vs { font-size: 26px; opacity: 0.55; filter: drop-shadow(0 2px 3px #000); }
 
-/* Ship cards carry NO frame by default — only the selected / targetable /
-   acting ship is highlighted. */
+/* Ship cards carry NO frame, ever — sprites sit bare on the water. Selection
+   is a direct click on the sprite itself (pointer cursor + hover halo),
+   never a box, a label, or a "click to act" caption. */
 .ship-card {
   position: relative;
-  width: 130px;
   background: transparent;
-  border: 2px solid transparent;
+  border: none;
   border-radius: 8px;
   padding: 6px;
   text-align: center;
-  transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s;
+  transition: transform 0.1s, filter 0.1s;
 }
-/* Frames appear ONLY on hover; selection / target are shown with a glow + a
-   crosshair marker, never a permanent box. */
-.ship-card:hover { border-color: rgba(255,255,255,0.5); box-shadow: 0 5px 16px #0008; }
 .ship-card.selectable, .ship-card.clickable-active { cursor: pointer; }
+/* Hover halo on the sprite itself — the only affordance that a ship is
+   clickable, replacing the old bordered frame + "click to act" hint. */
+.ship-card.selectable .ship-canvas, .ship-card.clickable-active .ship-canvas {
+  transition: filter 0.15s;
+}
+.ship-card.selectable:hover .ship-canvas, .ship-card.clickable-active:hover .ship-canvas {
+  filter: drop-shadow(0 0 10px #ffd27fcc) drop-shadow(0 0 22px #ffd27f66);
+}
 .ship-card.selectable { animation: sel-glow 0.9s ease-in-out infinite; }
 .ship-card.selectable::before { content: '🎯'; position: absolute; top: -8px; right: -2px; font-size: 18px; z-index: 8; filter: drop-shadow(0 1px 2px #000); animation: node-pulse 0.9s infinite; }
 .ship-card.is-selected { transform: translateY(-5px); filter: drop-shadow(0 0 8px #7fe0a0); }
@@ -349,17 +356,9 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 @keyframes pop-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
 .action-popover .active-ship-info { max-width: none; border: none; background: #0003; padding: 6px 8px; }
 .action-popover .ammo-selector { justify-content: flex-start; }
-.action-popover .action-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.action-popover .action-buttons-primary { display: flex; }
+.action-popover .action-buttons-secondary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .action-popover .action-btn { min-width: 0; }
-
-/* Prompt on the active ship to open its menu (no box — just the hint chip). */
-.act-hint {
-  position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%);
-  background: var(--success); color: #06251a; font-weight: 800; font-size: 11px;
-  padding: 2px 9px; border-radius: 10px; white-space: nowrap; z-index: 7;
-  box-shadow: 0 2px 6px #0009; animation: hint-bob 1.1s ease-in-out infinite;
-}
-@keyframes hint-bob { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -3px); } }
 
 /* Contextual header bound to the active ship: portrait, name, HP/shield, effects. */
 .active-ship-info {
@@ -397,6 +396,17 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .ab-label { font-size: 11px; }
 .cd-badge { position: absolute; top: -6px; right: -6px; background: var(--danger); color: #fff; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
 
+/* Primary CTAs (Fire / Special) dominate the popover: bigger, gold, side by
+   side. Everything else is a clearly secondary row of small ghost buttons. */
+.action-buttons-primary { gap: 10px; margin-bottom: 2px; }
+.action-buttons-primary .action-btn { flex: 1 1 0; min-width: 96px; padding: 12px 10px; }
+.action-buttons-primary .ab-icon { font-size: 26px; }
+.action-buttons-primary .ab-label { font-size: 13px; letter-spacing: 0.03em; }
+.action-buttons-secondary { gap: 6px; }
+.action-buttons-secondary .action-btn { min-width: 0; padding: 5px 9px; }
+.action-buttons-secondary .ab-icon { font-size: 15px; }
+.action-buttons-secondary .ab-label { font-size: 10px; }
+
 /* ---------- Result overlays ---------- */
 .overlay {
   position: fixed; inset: 0; z-index: 40;
@@ -406,7 +416,10 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 }
 /* Wrapper only — the styled panel is .result-box (parchment). Neutralise the
    design-system .modal panel look here so it doesn't double-frame. */
-.modal { max-width: 92vw; background: none; border: none; box-shadow: none; overflow: visible; }
+.modal { max-width: 92vw; background: none; border: none; box-shadow: none; overflow: visible; margin: auto; }
+/* Entrance flourish for the end-of-battle panel: fade + a light scale-in. */
+.result-box { animation: result-pop-in 0.4s cubic-bezier(.2,.8,.3,1.2) both; }
+@keyframes result-pop-in { from { opacity: 0; transform: scale(0.88) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 /* Modals are old parchment with dark ink text. */
 .result-box {
   background:
@@ -423,8 +436,17 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .result-box.defeat .result-title { color: #a5342a; }
 .result-box.complete .result-title { color: #2e7d4f; }
 .result-sub { color: #6a5636; margin-bottom: 16px; }
-/* .reward-list / .reward-item adopt the design-system look (components.css). */
-.reward-list { margin: 12px 0; }
+/* Reward lines need their own light parchment look — the design-system
+   .reward-item (components.css) is dark-on-dark and unreadable here. */
+.reward-list { margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+.result-box .reward-item {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(180deg, #fff6df, #f0dda2);
+  border: 1px solid #c79a30; border-left: 5px solid #9a6a12; border-radius: 8px;
+  padding: 10px 16px; font-size: 17px; color: #4a3010; font-weight: 700;
+  box-shadow: inset 0 1px 0 #fff9, 0 2px 6px #0002;
+}
+.result-box .reward-item b { color: #8a5a10; font-size: 21px; }
 .reward-relic { font-size: 20px; margin: 10px 0 16px; padding: 10px; background: rgba(120,86,40,0.14); border-radius: 8px; }
 .result-stats { color: #7a5320; margin: 12px 0; letter-spacing: 0.05em; }
 .result-box .up-name { color: #3a2a16; }
@@ -666,7 +688,9 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .debug-on #app { outline: 1px dashed #3fae8644; outline-offset: -2px; }
 
 /* ---------- Combat visuals: water, floating ships, FX ---------- */
-.ship-stage { position: relative; width: 110px; height: 92px; margin: 0 auto; }
+/* Base/fallback size — combat.js sets the actual width/height inline per
+   fleet size (bigger ships when 1-2 per side, scaled down at 3+). */
+.ship-stage { position: relative; width: 150px; height: 123px; margin: 0 auto; }
 .ship-stage .ship-canvas { position: relative; z-index: 2; margin: 0 auto; display: block; }
 .wake { display: none; } /* foam removed */
 
@@ -691,6 +715,47 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 
 /* Hit / heal card flashes. */
 .ship-card.active-turn .ship-stage .ship-canvas { animation-duration: 1.8s; }
+
+/* A destroyed ship visibly goes down — rotates, sinks and fades — before the
+   end-of-battle modal is allowed to appear (see SINK_DELAY_MS in combat.js). */
+.ship-card.sinking .ship-stage { animation: ship-sink 950ms ease-in forwards; }
+@keyframes ship-sink {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  40% { transform: translateY(6px) rotate(6deg); opacity: 0.9; }
+  100% { transform: translateY(34px) rotate(14deg); opacity: 0.25; }
+}
+
+/* ---------- Turn-intro overlay (Lot C) ---------- */
+.turn-intro-overlay {
+  position: fixed; inset: 0; z-index: 55;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6,10,16,0.45); cursor: pointer;
+  animation: fade 0.15s ease;
+}
+.turn-intro-overlay.out { animation: turn-intro-out 0.2s ease forwards; }
+@keyframes turn-intro-out { to { opacity: 0; } }
+.turn-intro-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.turn-intro-stage { position: relative; display: flex; align-items: center; justify-content: center; gap: 18px; }
+.turn-sabre { font-size: 64px; filter: drop-shadow(0 4px 10px #000a); animation: sabre-clash 0.6s cubic-bezier(.3,.1,.2,1.4) forwards; }
+.sabre-left { transform-origin: 70% 70%; animation-name: sabre-clash-left; }
+.sabre-right { transform-origin: 30% 70%; animation-name: sabre-clash-right; }
+@keyframes sabre-clash-left {
+  0% { transform: translate(-140px, -60px) rotate(-70deg); opacity: 0; }
+  70% { transform: translate(6px, 0) rotate(-18deg); opacity: 1; }
+  100% { transform: translate(0, 0) rotate(-22deg); opacity: 1; }
+}
+@keyframes sabre-clash-right {
+  0% { transform: translate(140px, -60px) rotate(70deg); opacity: 0; }
+  70% { transform: translate(-6px, 0) rotate(18deg); opacity: 1; }
+  100% { transform: translate(0, 0) rotate(22deg); opacity: 1; }
+}
+.turn-intro-text {
+  position: absolute; top: 100%; margin-top: 22px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap; font-family: var(--font-title); font-size: 30px; font-weight: 700;
+  color: var(--gold-light); letter-spacing: 0.08em; text-shadow: 0 3px 8px #000c;
+  animation: turn-text-in 0.4s ease 0.15s both;
+}
+@keyframes turn-text-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
 /* FX overlay (cannonballs, explosions, sparks) + floating numbers. */
 #fx-layer { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
@@ -732,7 +797,8 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
   .intent { top: -14px; left: 50%; transform: translate(-50%, 0); }
 }
 @media (max-width: 560px) {
-  .ship-card { width: 108px; }
+  /* Ship-card width is set inline per fleet size (see sizeForFleet in
+     combat.js), which already accounts for narrow viewports. */
   .btn-level-1 { min-width: 200px; }
   .hud-res { width: 100%; margin-left: 0; }
   .active-ship-info { max-width: 100%; }

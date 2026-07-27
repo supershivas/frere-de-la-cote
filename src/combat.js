@@ -13,7 +13,7 @@ import { toast, toastSuccess, toastDanger, toastInfo } from './toast.js';
 import { getAbility } from './abilities.js';
 import { attachTooltip } from './tooltip.js';
 import { modal } from './ui.js';
-import { fxCannon, fxSplash, fxHeal, fxBrace, fxImpactBump } from './fx.js';
+import { fxCannon, fxSplash, fxHeal, fxBrace, fxImpactBump, fxSetAimTarget, fxClearAimTarget, fxCelebrate } from './fx.js';
 import { randomOceanScene } from './ocean.js';
 
 let C = null; // active combat controller
@@ -202,8 +202,13 @@ function syncShown(ship) {
   };
   setBar('.bar-hp', ship.shownHp, ship.maxHp);
   if (ship.maxShield > 0) setBar('.bar-shield', ship.shownShield, ship.maxShield);
-  if (ship.shownHp <= 0) card.classList.add('dead');
+  if (ship.shownHp <= 0) card.classList.add('dead', 'sinking');
 }
+
+// How long the sinking animation + impact FX take to fully play out. The end
+// (victory/defeat) modal never appears before this, so the last ship is
+// always seen going down before the results are shown.
+const SINK_DELAY_MS = 1150;
 
 function checkDeath(ship) {
   if (ship.hp <= 0 && !ship._dead) {
@@ -299,7 +304,65 @@ function startRound() {
   C.active = null;
   C.menuOpen = false;
   render();
+  showTurnIntro(C.round);
   if (allAlliesActed()) setTimeout(beginEnemyPhase, 400);
+}
+
+// ---- Turn-intro overlay: purely decorative, never gates combat logic ----
+// A short animated banner (crossed sabres + particles) at the start of each
+// player round. Skippable with a click; auto-dismisses on its own otherwise.
+function showTurnIntro(round) {
+  const overlay = el('div', { class: 'turn-intro-overlay' });
+  const canvas = el('canvas', { class: 'turn-intro-fx' });
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const label = el('div', { class: 'turn-intro-text', text: `${t('turn')} ${round}` });
+  const stage = el('div', { class: 'turn-intro-stage' }, [
+    el('span', { class: 'turn-sabre sabre-left', text: '⚔️' }),
+    el('span', { class: 'turn-sabre sabre-right', text: '⚔️' }),
+    label,
+  ]);
+  overlay.appendChild(canvas);
+  overlay.appendChild(stage);
+  document.body.appendChild(overlay);
+
+  const ctx = canvas.getContext('2d');
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  let parts = [];
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 90 + Math.random() * 180;
+    parts.push({ x: cx, y: cy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1 });
+  }
+  let raf = null;
+  let last = performance.now();
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const p of parts) {
+      p.life -= dt * 1.4;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = '#e8c05a';
+      ctx.fillRect(p.x, p.y, 3, 3);
+    }
+    parts = parts.filter((p) => p.life > 0);
+    if (parts.length) raf = requestAnimationFrame(loop);
+  }
+  raf = requestAnimationFrame(loop);
+
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    if (raf) cancelAnimationFrame(raf);
+    overlay.classList.add('out');
+    setTimeout(() => overlay.remove(), 220);
+  };
+  overlay.addEventListener('click', finish);
+  setTimeout(() => { label.textContent = t('your_turn'); }, 500);
+  setTimeout(finish, 1050);
 }
 
 function allAlliesActed() {
@@ -526,19 +589,32 @@ function tryFlee() {
   go('map');
 }
 
+// Ship sprite size for a fleet column: shrinks once a fleet grows past 2 ships
+// so the whole arena stays inside a fixed-height frame with no scrollbar.
+function sizeForFleet(n) {
+  let s = n <= 2 ? 150 : n === 3 ? 122 : 100;
+  if (window.innerWidth < 640) s = Math.round(s * 0.7); // stacked mobile layout
+  return s;
+}
+
 // ---- Rendering ----
 function render() {
+  const allySize = sizeForFleet(C.allies.length);
+  const enemySize = sizeForFleet(C.enemies.length);
+
   // Allied fleet — always on the LEFT, facing right. During the player phase the
-  // player clicks any un-acted ship (in any order) to make it act.
+  // player clicks directly on any un-acted ship's sprite (in any order) to act.
   const allyCol = el('div', { class: 'side-ships' });
   C.allies.forEach((s) => {
     const isSelected = C.active === s && C.phase === 'player';
     const canAct = C.phase === 'player' && !C.targeting && s.hp > 0 && !s.acted;
+    const targetable = C.targeting === 'ally' && s.hp > 0;
     const card = shipCard(s, {
       isEnemy: false,
       combat: true,
-      selectable: C.targeting === 'ally' && s.hp > 0,
-      onClick: (C.targeting === 'ally' && s.hp > 0)
+      size: allySize,
+      selectable: targetable,
+      onClick: targetable
         ? (ship) => onTargetPicked(ship)
         : (canAct
           ? () => { if (C.active === s) { C.active = null; C.menuOpen = false; render(); } else selectAlly(s); }
@@ -546,10 +622,10 @@ function render() {
     });
     if (isSelected) card.classList.add('is-selected');
     if (s.acted && s.hp > 0) card.classList.add('acted');
-    // Prompt the player to click an un-acted ship to make it act.
-    if (canAct && !isSelected) {
-      card.classList.add('clickable-active', 'awaiting');
-      card.appendChild(el('div', { class: 'act-hint', text: `👆 ${t('click_to_act')}` }));
+    if (canAct && !isSelected) card.classList.add('clickable-active');
+    if (targetable) {
+      card.addEventListener('mouseenter', () => fxSetAimTarget(C.active.iid, s.iid));
+      card.addEventListener('mouseleave', () => fxClearAimTarget());
     }
     allyCol.appendChild(card);
   });
@@ -558,14 +634,20 @@ function render() {
   const enemyCol = el('div', { class: 'side-ships' });
   C.enemies.forEach((e) => {
     const intentNode = e.hp > 0 ? intentBadge(e) : null;
+    const targetable = C.targeting === 'enemy' && e.hp > 0;
     const card = shipCard(e, {
       isEnemy: true,
       combat: true,
+      size: enemySize,
       showIntent: intentNode,
-      selectable: C.targeting === 'enemy' && e.hp > 0,
-      onClick: C.targeting === 'enemy' ? (ship) => onTargetPicked(ship) : null,
+      selectable: targetable,
+      onClick: targetable ? (ship) => onTargetPicked(ship) : null,
     });
     if (C.active === e && C.phase === 'enemy') card.classList.add('active-turn');
+    if (targetable) {
+      card.addEventListener('mouseenter', () => fxSetAimTarget(C.active.iid, e.iid));
+      card.addEventListener('mouseleave', () => fxClearAimTarget());
+    }
     enemyCol.appendChild(card);
   });
 
@@ -646,7 +728,7 @@ function shipActionSet(ship) {
 
 // Active-ship info header: portrait, name, level, HP/shield, active effects.
 function activeShipInfo(ship) {
-  const portrait = shipThumb({ type: ship.def.type, color: ship.color, facing: 1 }, 58);
+  const portrait = shipThumb({ type: ship.def.type, color: ship.color, facing: 1, waterline: true }, 68);
   portrait.classList.add('active-portrait');
   const bars = el('div', { class: 'active-ship-bars' }, [bar(ship.shownHp ?? ship.hp, ship.maxHp, 'hp', '❤️')]);
   if (ship.maxShield > 0) bars.appendChild(bar(ship.shownShield ?? ship.shield, ship.maxShield, 'shield', '🛡️'));
@@ -691,7 +773,7 @@ function renderActionPopover() {
     const hint = C.targetingMode === 'protect' ? t('select_ally') : t('select_target');
     return el('div', { class: 'action-popover targeting' }, [
       el('div', { class: 'action-hint big', text: hint }),
-      el('button', { class: 'btn-level-4 cancel-target', text: `✖ ${t('no')}`, on: { click: () => { C.targeting = null; ship._pendingAbility = null; render(); } } }),
+      el('button', { class: 'btn-level-4 cancel-target', text: `✖ ${t('no')}`, on: { click: () => { C.targeting = null; ship._pendingAbility = null; fxClearAimTarget(); render(); } } }),
     ]);
   }
 
@@ -700,7 +782,10 @@ function renderActionPopover() {
 
   const panel = el('div', { class: 'action-popover' });
   const set = shipActionSet(ship);
-  const actions = el('div', { class: 'action-buttons' });
+  // Primary CTAs (attack / special ability) are visually dominant; everything
+  // else is a smaller, clearly secondary action.
+  const primary = el('div', { class: 'action-buttons action-buttons-primary' });
+  const actions = el('div', { class: 'action-buttons action-buttons-secondary' });
 
   // Ammo selector — only when this ship can attack — with an info line
   // describing the currently selected special cannonball.
@@ -724,36 +809,37 @@ function renderActionPopover() {
 
   for (const act of set) {
     if (act === 'attack') {
-      actions.appendChild(actionBtn('⚔️', t('action_attack'), () => beginTargeting('attack', 'enemy')));
+      primary.appendChild(actionBtn('⚔️', t('action_attack'), () => beginTargeting('attack', 'enemy'), { level: 1 }));
     } else if (act === 'ability') {
       const ab = getAbility(ship.ability);
       const ready = ship.abilityCd <= 0;
-      const b = actionBtn(ab.icon, t(ab.nameKey), () => useAbility(ship.ability), !ready);
+      const b = actionBtn(ab.icon, t(ab.nameKey), () => useAbility(ship.ability), { level: 2, disabled: !ready });
       if (!ready) b.appendChild(el('span', { class: 'cd-badge', text: ship.abilityCd }));
       attachTooltip(b, () => `<b>${t(ab.nameKey)}</b><br>${t(ab.descKey)}<br><i>${t('cooldown')}: ${ab.cooldown}</i>`);
-      actions.appendChild(b);
+      primary.appendChild(b);
     } else if (act === 'repair') {
-      actions.appendChild(withTip(actionBtn('🔧', t('action_repair'), playerRepair), `<b>${t('action_repair')}</b>`));
+      actions.appendChild(withTip(actionBtn('🔧', t('action_repair'), playerRepair, { level: 4 }), `<b>${t('action_repair')}</b>`));
     } else if (act === 'defend') {
-      actions.appendChild(withTip(actionBtn('🛡️', t('action_defend'), playerDefend), `<b>${t('action_defend')}</b>`));
+      actions.appendChild(withTip(actionBtn('🛡️', t('action_defend'), playerDefend, { level: 4 }), `<b>${t('action_defend')}</b>`));
     } else if (act === 'protect') {
-      actions.appendChild(withTip(actionBtn('🤝', t('action_protect'), () => beginTargeting('protect', 'ally')), `<b>${t('action_protect')}</b><br>${t('action_protect_desc')}`));
+      actions.appendChild(withTip(actionBtn('🤝', t('action_protect'), () => beginTargeting('protect', 'ally'), { level: 4 }), `<b>${t('action_protect')}</b><br>${t('action_protect_desc')}`));
     } else if (act === 'end') {
-      actions.appendChild(actionBtn('⏭️', t('end_turn'), finishPlayerAction));
+      actions.appendChild(actionBtn('⏭️', t('end_turn'), finishPlayerAction, { level: 4 }));
     }
   }
 
-  // Kraken relic grants the flagship a once-per-battle ability.
+  // Kraken relic grants the flagship a once-per-battle ability — a special CTA too.
   if (ship.flagship && hasRelic('kraken_relic') && !ship.krakenUsed) {
     const kb = getAbility('kraken_shot');
-    const b = actionBtn(kb.icon, t(kb.nameKey), () => useAbility('kraken_shot'));
+    const b = actionBtn(kb.icon, t(kb.nameKey), () => useAbility('kraken_shot'), { level: 2 });
     attachTooltip(b, () => `<b>${t(kb.nameKey)}</b><br>${t(kb.descKey)}`);
-    actions.appendChild(b);
+    primary.appendChild(b);
   }
-  if (C.opts.kind !== 'boss') actions.appendChild(actionBtn('🏴', t('flee'), tryFlee));
+  if (C.opts.kind !== 'boss') actions.appendChild(actionBtn('🏴', t('flee'), tryFlee, { level: 4 }));
 
   panel.appendChild(activeShipInfo(ship));
   if (ammoWrap) panel.appendChild(ammoWrap);
+  panel.appendChild(primary);
   panel.appendChild(actions);
   return panel;
 }
@@ -778,8 +864,9 @@ function positionActionPopover() {
   pop.classList.add('placed');
 }
 
-function actionBtn(icon, label, onClick, disabled = false) {
-  const b = el('button', { class: `btn-level-3 action-btn ${disabled ? 'disabled' : ''}`, on: { click: () => { if (!disabled) onClick(); } } }, [
+// level: 1 = primary CTA (attack), 2 = special/ability, 4 = secondary/ghost action.
+function actionBtn(icon, label, onClick, { level = 3, disabled = false } = {}) {
+  const b = el('button', { class: `btn-level-${level} action-btn ${disabled ? 'disabled' : ''}`, on: { click: () => { if (!disabled) onClick(); } } }, [
     el('span', { class: 'ab-icon', text: icon }),
     el('span', { class: 'ab-label', text: label }),
   ]);
@@ -808,6 +895,7 @@ function useAbility(abId) {
 function onTargetPicked(ship) {
   const mode = C.targetingMode;
   C.targeting = null;
+  fxClearAimTarget(); // the shot is about to fire — drop the aiming line
   if (mode === 'ability') playerAbility(ship);
   else if (mode === 'protect') playerProtect(ship);
   else playerAttack(ship);
@@ -860,14 +948,16 @@ function win() {
     if (grantXp(s, xp)) leveled.push(s);
   }
 
-  showVictory({ gold, rareMats, relicGained, leveled, isBoss: !!boss });
+  // Wait for the last ship's sinking animation before showing the results.
+  setTimeout(() => showVictory({ gold, rareMats, relicGained, leveled, isBoss: !!boss }), SINK_DELAY_MS);
 }
 
 function lose() {
   if (C._ended) return;
   C._ended = true;
   C.phase = 'done';
-  showDefeat();
+  // Wait for the last ship's sinking animation before showing the results.
+  setTimeout(showDefeat, SINK_DELAY_MS);
 }
 
 // ---- Victory / defeat screens ----
@@ -899,6 +989,7 @@ function showVictory({ gold, rareMats, relicGained, leveled, isBoss }) {
     el('button', { class: 'btn-level-1', text: t('continue_btn'), on: { click: () => { m1.close(); proceed(); } } }),
   ]);
   const m1 = modal(box, { closable: false, cls: 'result-overlay' });
+  fxCelebrate(window.innerWidth / 2, window.innerHeight / 2);
 }
 
 // Present level-up upgrade choices sequentially, then callback.

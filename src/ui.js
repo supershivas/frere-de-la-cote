@@ -100,7 +100,10 @@ export function statBlockHtml(ship, { isEnemy = false } = {}) {
 }
 
 // A ship card used in combat/fleet: canvas sprite + name + hp/shield bars + effects.
-export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = null, selectable = false, combat = false } = {}) {
+// size: canvas width in px (height follows the same 110:90 aspect ratio). Combat
+// scales this down automatically when a fleet has 3+ ships, to keep a fixed-
+// height arena without ever scrolling.
+export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = null, selectable = false, combat = false, size = 150 } = {}) {
   // Bars render from the "shown" values, which lag real HP until a shot lands.
   const shownHp = ship.shownHp ?? ship.hp;
   const shownShield = ship.shownShield ?? ship.shield;
@@ -108,20 +111,24 @@ export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = n
   const card = el('div', {
     class: `ship-card ${isEnemy ? 'enemy' : 'ally'} ${ship.flagship ? 'flagship' : ''} ${selectable ? 'selectable' : ''} ${damaged > 0.6 && shownHp > 0 ? 'smoking' : ''}`,
     attrs: { 'data-iid': ship.iid },
+    style: `width:${size + 20}px`,
   });
   if (shownHp <= 0) card.classList.add('dead');
 
+  const w = size, h = Math.round(size * 90 / 110);
   const canvas = el('canvas', { class: 'ship-canvas' });
-  canvas.width = 110; canvas.height = 90;
+  canvas.width = w; canvas.height = h;
   drawShip(canvas, {
     type: isEnemy ? enemyTemplate(ship.def) : ship.def.type,
     color: ship.color || ship.def.color || '#c9a24b',
     flag: isEnemy ? '#7a2b2b' : '#b23b3b',
     facing: isEnemy ? -1 : 1,
     damaged,
+    // Combat truncates the hull at the waterline; other screens show the full ship.
+    waterline: combat,
   });
   // Water stage: ship floats on an animated waterline with a wake reflection.
-  const stage = el('div', { class: `ship-stage ${combat ? 'in-combat' : ''}` }, [
+  const stage = el('div', { class: `ship-stage ${combat ? 'in-combat' : ''}`, style: `width:${w}px;height:${h}px` }, [
     canvas,
     combat ? el('div', { class: 'wake' }) : null,
   ]);
