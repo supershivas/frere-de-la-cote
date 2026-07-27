@@ -102,5 +102,208 @@
         ]
       }
     ]
+  },
+  "castaway_carpenter": {
+    "id": "castaway_carpenter",
+    "title_fr": "Le Charpentier Naufragé",
+    "title_en": "The Castaway Carpenter",
+    "text_fr": "Accroché à un radeau de fortune, un charpentier hurle pour qu'on le recueille.",
+    "text_en": "Clinging to a makeshift raft, a carpenter shouts to be taken aboard.",
+    "choices": [
+      {
+        "label_fr": "Le recueillir à bord",
+        "label_en": "Take him aboard",
+        "outcomes": [
+          { "weight": 70, "type": "wood", "value": 15, "toast_fr": "Reconnaissant, il répare la coque avec le bois du radeau.", "toast_en": "Grateful, he patches the hull with the raft's timber." },
+          { "weight": 30, "type": "damage_flagship", "value": 15, "toast_fr": "C'était un piège : des pirates surgissent du radeau !", "toast_en": "It was a trap: pirates spring from the raft!" }
+        ]
+      },
+      {
+        "label_fr": "Poursuivre sa route",
+        "label_en": "Sail on",
+        "outcomes": [
+          { "weight": 100, "type": "none", "toast_fr": "Vous le laissez à son sort.", "toast_en": "You leave him to his fate." }
+        ]
+      }
+    ]
+  },
+  "brewing_squall": {
+    "id": "brewing_squall",
+    "title_fr": "Le Grain qui Couve",
+    "title_en": "The Brewing Squall",
+    "text_fr": "Le vigile pointe un mur de nuages noirs à l'horizon : un grain se prépare sur la route à venir.",
+    "text_en": "The lookout points at a wall of black clouds ahead: a squall is brewing on the route ahead.",
+    "choices": [
+      {
+        "label_fr": "Foncer droit dessus",
+        "label_en": "Sail straight for it",
+        "outcomes": [
+          { "weight": 100, "type": "weather_change", "value": "grain", "toast_fr": "Vous filez droit vers le grain.", "toast_en": "You sail straight into the squall." }
+        ]
+      },
+      {
+        "label_fr": "Faire relâche pour souffler",
+        "label_en": "Lay to and rest",
+        "outcomes": [
+          { "weight": 100, "type": "heal_fleet", "value": 10, "toast_fr": "L'équipage profite du répit pour se soigner.", "toast_en": "The crew makes the most of the lull to patch up." }
+        ]
+      }
+    ]
+  },
+  "grateful_shipwright": {
+    "id": "grateful_shipwright",
+    "title_fr": "Le Charpentier Reconnaissant",
+    "title_en": "The Grateful Shipwright",
+    "text_fr": "Un vieux charpentier, dont la réputation de votre équipage a précédé, insiste pour retaper votre flotte gratuitement.",
+    "text_en": "An old shipwright, whose reputation of your crew preceded you, insists on patching up your fleet for free.",
+    "require": { "minReputation": 3 },
+    "choices": [
+      {
+        "label_fr": "Accepter",
+        "label_en": "Accept",
+        "outcomes": [
+          { "weight": 100, "type": "repair_fleet", "toast_fr": "La flotte est remise à neuf !", "toast_en": "The fleet is patched up like new!" }
+        ]
+      },
+      {
+        "label_fr": "Refuser poliment",
+        "label_en": "Politely decline",
+        "outcomes": [
+          { "weight": 100, "type": "reputation", "value": 1, "toast_fr": "Votre humilité forge encore votre légende.", "toast_en": "Your humility only adds to your legend." }
+        ]
+      }
+    ]
+  },
+  "eye_of_the_storm": {
+    "id": "eye_of_the_storm",
+    "title_fr": "L'Œil de la Tempête",
+    "title_en": "The Eye of the Storm",
+    "text_fr": "En pleine tempête, une accalmie étrange s'ouvre autour d'un tourbillon phosphorescent.",
+    "text_en": "In the middle of the storm, an eerie lull opens around a glowing whirlpool.",
+    "require": { "weather": "tempete" },
+    "choices": [
+      {
+        "label_fr": "Plonger dans le tourbillon",
+        "label_en": "Dive into the whirlpool",
+        "outcomes": [
+          { "weight": 55, "type": "gold", "value": 150, "toast_fr": "Le tourbillon recrache un coffre entier !", "toast_en": "The whirlpool spits out an entire chest!" },
+          { "weight": 45, "type": "damage_fleet", "value": 30, "toast_fr": "Le tourbillon manque d'engloutir la flotte !", "toast_en": "The whirlpool nearly swallows the fleet!" }
+        ]
+      },
+      {
+        "label_fr": "Rester en lisière",
+        "label_en": "Keep clear",
+        "outcomes": [
+          { "weight": 100, "type": "none", "toast_fr": "Vous laissez le tourbillon à ses mystères.", "toast_en": "You leave the whirlpool to its mysteries." }
+        ]
+      }
+    ]
+  },
+  "omen_of_the_kraken": {
+    "id": "omen_of_the_kraken",
+    "title_fr": "Présage du Kraken",
+    "title_en": "Omen of the Kraken",
+    "text_fr": "Des tentacules géantes, gravées dans une amulette échouée, semblent bouger sous vos doigts.",
+    "text_en": "Giant tentacles, carved into a washed-up amulet, seem to shift under your fingers.",
+    "require": { "act": 2 },
+    "choices": [
+      {
+        "label_fr": "Garder l'amulette",
+        "label_en": "Keep the amulet",
+        "outcomes": [
+          { "weight": 50, "type": "relic_random", "toast_fr": "L'amulette révèle un pouvoir caché.", "toast_en": "The amulet reveals a hidden power." },
+          { "weight": 50, "type": "damage_flagship", "value": 20, "toast_fr": "L'amulette se referme sur votre main !", "toast_en": "The amulet snaps shut on your hand!" }
+        ]
+      },
+      {
+        "label_fr": "La rejeter à la mer",
+        "label_en": "Cast it back into the sea",
+        "outcomes": [
+          { "weight": 100, "type": "reputation", "value": 3, "toast_fr": "Votre prudence inspire l'équipage.", "toast_en": "Your caution inspires the crew." }
+        ]
+      }
+    ]
+  },
+  "shipwreck_salvage": {
+    "id": "shipwreck_salvage",
+    "title_fr": "L'Épave",
+    "title_en": "The Wreck",
+    "text_fr": "Une coque brisée gît à demi engloutie, sa cale encore scellée par les algues.",
+    "text_en": "A broken hull lies half-swallowed by the sea, its hold still sealed by seaweed.",
+    "choices": [
+      {
+        "label_fr": "Fouiller la cale",
+        "label_en": "Search the hold",
+        "outcomes": [
+          { "weight": 55, "type": "gold", "value": 70, "toast_fr": "La cale cachait un petit trésor.", "toast_en": "The hold hid a small treasure." },
+          { "weight": 25, "type": "rare_materials", "value": 2, "toast_fr": "Des matériaux rares, intacts sous les décombres.", "toast_en": "Rare materials, untouched under the wreckage." },
+          { "weight": 20, "type": "damage_flagship", "value": 20, "toast_fr": "Le bois pourri cède sous vos pieds !", "toast_en": "The rotten timber gives way underfoot!" }
+        ]
+      },
+      {
+        "label_fr": "Ne pas s'approcher",
+        "label_en": "Keep your distance",
+        "outcomes": [
+          { "weight": 100, "type": "none", "toast_fr": "L'épave garde ses secrets.", "toast_en": "The wreck keeps its secrets." }
+        ]
+      }
+    ]
+  },
+  "black_market_den": {
+    "id": "black_market_den",
+    "title_fr": "Le Repaire du Marché Noir",
+    "title_en": "The Black Market Den",
+    "text_fr": "Dans une crique cachée, des contrebandiers proposent leur cargaison sans poser de questions.",
+    "text_en": "In a hidden cove, smugglers offer their cargo, no questions asked.",
+    "choices": [
+      {
+        "label_fr": "Acheter un lot suspect (80 or)",
+        "label_en": "Buy a shady lot (80 gold)",
+        "cost": { "gold": 80 },
+        "outcomes": [
+          { "weight": 50, "type": "relic_random", "toast_fr": "Le lot cachait une relique !", "toast_en": "The lot hid a relic!" },
+          { "weight": 50, "type": "rare_materials", "value": 3, "toast_fr": "Le lot contenait des matériaux rares.", "toast_en": "The lot held rare materials." }
+        ]
+      },
+      {
+        "label_fr": "Repartir",
+        "label_en": "Walk away",
+        "outcomes": [
+          { "weight": 100, "type": "none", "toast_fr": "Vous quittez le repaire sans un mot.", "toast_en": "You leave the den without a word." }
+        ]
+      }
+    ]
+  },
+  "ancient_shrine": {
+    "id": "ancient_shrine",
+    "title_fr": "L'Autel Ancien",
+    "title_en": "The Ancient Shrine",
+    "text_fr": "Un autel de pierre couvert de coraux réclame une offrande avant de livrer ses secrets.",
+    "text_en": "A coral-crusted stone altar demands an offering before it yields its secrets.",
+    "choices": [
+      {
+        "label_fr": "Offrir de l'or (100)",
+        "label_en": "Offer gold (100)",
+        "cost": { "gold": 100 },
+        "outcomes": [
+          { "weight": 100, "type": "relic_random", "toast_fr": "L'autel s'illumine et livre une relique.", "toast_en": "The altar lights up and yields a relic." }
+        ]
+      },
+      {
+        "label_fr": "Offrir le sang de la coque",
+        "label_en": "Offer the hull's blood",
+        "outcomes": [
+          { "weight": 70, "type": "relic_random", "toast_fr": "L'autel accepte le sacrifice.", "toast_en": "The altar accepts the sacrifice." },
+          { "weight": 30, "type": "damage_flagship", "value": 25, "toast_fr": "L'autel se referme, insatisfait.", "toast_en": "The altar closes, unsatisfied." }
+        ]
+      },
+      {
+        "label_fr": "Repartir sans rien laisser",
+        "label_en": "Leave without offering",
+        "outcomes": [
+          { "weight": 100, "type": "none", "toast_fr": "L'autel retombe dans le silence.", "toast_en": "The altar falls silent once more." }
+        ]
+      }
+    ]
   }
 }

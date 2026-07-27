@@ -6,7 +6,7 @@ import { t, locName, locField } from './i18n.js';
 import { register, go } from './nav.js';
 import { DB } from './data.js';
 import {
-  state, relicMods, addGold, grantXp, discover, applyUpgrade, hasRelic,
+  state, combatMods, currentWeather, addGold, grantXp, discover, applyUpgrade, hasRelic,
 } from './state.js';
 import { renderHud } from './hud.js';
 import { toast, toastSuccess, toastDanger, toastInfo } from './toast.js';
@@ -79,10 +79,12 @@ function isImmobile(ship) {
   return (ship.effects || []).some((e) => e.type === 'immobilized');
 }
 
-function computeHit(attacker, defender, { ignoreEvasionPct = 0, forceHit = false } = {}) {
+function computeHit(attacker, defender, { ignoreEvasionPct = 0, forceHit = false, mods = null } = {}) {
   if (forceHit) return true;
   const ev = isImmobile(defender) ? 0 : (defender.evasion || 0) * (1 - ignoreEvasionPct);
-  const chance = Math.max(0.1, Math.min(0.98, attacker.accuracy - ev));
+  const accuracy = attacker.accuracy + (mods?.accuracyDelta || 0);
+  const evasion = ev + (mods?.evasionDelta || 0);
+  const chance = Math.max(0.1, Math.min(0.98, accuracy - evasion));
   return Math.random() < chance;
 }
 
@@ -127,8 +129,8 @@ function addEffect(ship, effect) {
 // Perform an attack from attacker on target with a given ammo id.
 function attack(attacker, target, ammoId, { damageMult = 1, ignoreEvasionPct = 0, splashList = null } = {}) {
   const ammo = DB.ammo[ammoId] || DB.ammo.classic;
-  const mods = relicMods();
-  const hit = computeHit(attacker, target, { ignoreEvasionPct });
+  const mods = combatMods();
+  const hit = computeHit(attacker, target, { ignoreEvasionPct, mods });
   const log = { attacker: attacker.name || locName(attacker.def), target: target.name || locName(target.def), hit };
   if (!hit) {
     C.log(`${log.attacker} → ${log.target}: ${t('intent')} ✗`);
@@ -137,7 +139,7 @@ function attack(attacker, target, ammoId, { damageMult = 1, ignoreEvasionPct = 0
     return log;
   }
   const fleetMult = attacker.isEnemy ? 1 : mods.fleetDamageMult;
-  const raw = attacker.damage * (ammo.damageMult || 1) * damageMult * fleetMult * moraleFactor(attacker) * (attacker.damageMult || 1);
+  const raw = attacker.damage * (ammo.damageMult || 1) * damageMult * fleetMult * moraleFactor(attacker) * (attacker.damageMult || 1) * mods.weatherDamageMult;
   const res = dealDamage(attacker, target, raw);
   flashCard(target, 'hit');
 
@@ -245,7 +247,7 @@ function tickEndOfRound(ship) {
 // ---- Controller ----
 function initCombat(opts) {
   state.screen = 'combat';
-  randomOceanScene(); // fresh weather + decor for this battle
+  randomOceanScene(currentWeather()?.id); // fresh decor, sky matched to the node's mechanical weather
   const allies = state.fleet.filter((s) => s.hp > 0);
   allies.forEach((s) => {
     s.effects = [];
@@ -487,7 +489,7 @@ function abilityNeedsTarget(abId) {
 
 function playerRepair() {
   const ship = C.active;
-  const mods = relicMods();
+  const mods = combatMods();
   const heal = Math.round(30 * mods.repairMult);
   ship.hp = Math.min(ship.maxHp, ship.hp + heal);
   commitShown(ship);
@@ -837,7 +839,7 @@ function win() {
   C._ended = true;
   C.phase = 'done';
   state.stats.battlesWon++;
-  const mods = relicMods();
+  const mods = combatMods();
   let gold = 0, xp = 0, rareMats = 0;
   for (const e of C.enemies) {
     const rw = e.def.reward || {};
@@ -845,6 +847,9 @@ function win() {
     xp += rw.xp || 0;
     rareMats += rw.rareMaterials || 0;
   }
+  // A 'chasse' (bounty hunt) node pays an extra bounty on top of the enemy's
+  // own reward, scaled with the danger level it was fought at.
+  if (C.opts && C.opts.bounty) gold += 50 + (C.opts.danger || 0) * 25;
   gold = Math.round(gold * mods.goldMult);
   addGold(gold);
   if (rareMats) state.resources.rareMaterials += rareMats;

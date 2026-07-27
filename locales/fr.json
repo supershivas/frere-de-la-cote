@@ -21,6 +21,10 @@
   "node_treasure": "Trésor",
   "node_mystery": "Île Mystérieuse",
   "node_start": "Départ",
+  "node_epave": "Épave",
+  "node_repaire": "Repaire",
+  "node_sanctuaire": "Sanctuaire",
+  "node_chasse": "Chasse à la Prime",
 
   "danger": "Danger",
   "danger_low": "Faible",

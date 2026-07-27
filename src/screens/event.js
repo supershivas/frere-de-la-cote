@@ -3,14 +3,41 @@ import { el, mount, outcomeModal } from '../ui.js';
 import { t, locField, locName } from '../i18n.js';
 import { register, go } from '../nav.js';
 import { DB } from '../data.js';
-import { state, addGold, addRelic, relicMods, saveGame } from '../state.js';
+import { state, addGold, addRelic, combatMods, saveGame } from '../state.js';
 import { renderHud } from '../hud.js';
-import { toastInfo } from '../toast.js';
+import { toastInfo, toastSuccess } from '../toast.js';
 
-function render() {
+// Whether an event is reachable right now, per its optional `require` block:
+// { weather: "tempete" } current node's weather must match,
+// { minReputation: 3 } state.resources.reputation must be at least that,
+// { act: 2 } current act must match exactly.
+function meetsRequire(req) {
+  if (!req) return true;
+  if (req.weather) {
+    const node = state.map && state.map.byId[state.currentNodeId];
+    if (!node || node.weather !== req.weather) return false;
+  }
+  if (req.minReputation != null && state.resources.reputation < req.minReputation) return false;
+  if (req.act != null && state.act !== req.act) return false;
+  return true;
+}
+
+function eligibleEventIds() {
+  const ids = Object.keys(DB.events).filter((id) => meetsRequire(DB.events[id].require));
+  if (ids.length) return ids;
+  // Never fall back into an event whose requirement isn't met — fall back to
+  // unconditional events instead.
+  return Object.keys(DB.events).filter((id) => !DB.events[id].require);
+}
+
+function pickEvent() {
+  const ids = eligibleEventIds();
+  return DB.events[ids[Math.floor(Math.random() * ids.length)]];
+}
+
+function render(opts = {}) {
   state.screen = 'event';
-  const ids = Object.keys(DB.events);
-  const ev = DB.events[ids[Math.floor(Math.random() * ids.length)]];
+  const ev = (opts.eventId && DB.events[opts.eventId]) || pickEvent();
   state._currentEvent = ev;
 
   const choices = el('div', { class: 'event-choices' });
@@ -56,7 +83,7 @@ function pickOutcome(outcomes) {
 }
 
 function applyOutcome(o) {
-  const mods = relicMods();
+  const mods = combatMods();
   const msg = locField(o, 'toast');
   const done = () => go('map');
   const show = (tone, icon, lines) => outcomeModal({ tone, icon, title: msg || '', lines, onClose: done });
@@ -95,6 +122,19 @@ function applyOutcome(o) {
     case 'reputation':
       state.resources.reputation += o.value || 1;
       return show('neutral', '🏴‍☠️', [`🏴‍☠️ <b>+${o.value || 1}</b> ${t('reputation')}`]);
+    case 'wood':
+      state.resources.wood = Math.max(0, state.resources.wood + (o.value || 0));
+      return show(o.value < 0 ? 'negative' : 'positive', '🪵', [`🪵 <b>${o.value >= 0 ? '+' : ''}${o.value || 0}</b> ${t('wood')}`]);
+    case 'repair_fleet':
+      state.fleet.forEach((s) => { s.hp = s.maxHp; s.shield = s.maxShield; });
+      return show('positive', '🔧', [`🔧 ${t('port_repair')}`]);
+    case 'weather_change':
+      if (DB.weather[o.value]) {
+        state.forcedNextWeather = o.value;
+        const w = DB.weather[o.value];
+        return show('neutral', w.icon || '🌊', [`${w.icon || ''} <b>${locName(w)}</b>`]);
+      }
+      return show('neutral', '📜', []);
     case 'combat':
       toastInfo(msg, '⚔️');
       go('combat', { kind: 'combat', danger: 1 });
