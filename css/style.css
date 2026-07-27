@@ -289,21 +289,15 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
   transition: transform 0.1s, filter 0.1s;
 }
 .ship-card.selectable, .ship-card.clickable-active { cursor: pointer; }
-/* Hover halo on the sprite itself — the only affordance that a ship is
-   clickable, replacing the old bordered frame + "click to act" hint. */
-.ship-card.selectable .ship-canvas, .ship-card.clickable-active .ship-canvas {
-  transition: filter 0.15s;
-}
-.ship-card.selectable:hover .ship-canvas, .ship-card.clickable-active:hover .ship-canvas {
-  filter: drop-shadow(0 0 10px #ffd27fcc) drop-shadow(0 0 22px #ffd27f66);
-}
+/* No shadow/glow of any kind on the ship itself, ever — state is shown only
+   via brightness/opacity/position, never filter: drop-shadow or box-shadow. */
 .ship-card.selectable { animation: sel-glow 0.9s ease-in-out infinite; }
-.ship-card.selectable::before { content: '🎯'; position: absolute; top: -8px; right: -2px; font-size: 18px; z-index: 8; filter: drop-shadow(0 1px 2px #000); animation: node-pulse 0.9s infinite; }
-.ship-card.is-selected { transform: translateY(-5px); filter: drop-shadow(0 0 8px #7fe0a0); }
-.ship-card.active-turn { filter: drop-shadow(0 0 9px #f0806c); }
+.ship-card.selectable::before { content: '🎯'; position: absolute; top: -8px; right: -2px; font-size: 18px; z-index: 8; animation: node-pulse 0.9s infinite; }
+.ship-card.is-selected { transform: translateY(-5px); filter: brightness(1.2) saturate(1.15); }
+.ship-card.active-turn { filter: brightness(1.15) saturate(1.25); }
 .ship-card.acted { opacity: 0.5; }
 .ship-card.dead { opacity: 0.32; filter: grayscale(1); }
-@keyframes sel-glow { 0%,100% { filter: drop-shadow(0 0 2px #ffd27f88); } 50% { filter: drop-shadow(0 0 9px #ffd27f); } }
+@keyframes sel-glow { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.3) saturate(1.2); } }
 
 /* Staggered fleet formation so ships read as scattered on the water, not a line. */
 .ally-side .side-ships .ship-card:nth-child(2n) { margin-left: 54px; }
