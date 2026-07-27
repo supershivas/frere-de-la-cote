@@ -1,0 +1,58 @@
+{
+  "free_pirates": {
+    "id": "free_pirates",
+    "name_fr": "Flibuste",
+    "name_en": "Freebooters",
+    "emblem": { "motif": "Crâne", "bg": "#161616", "sym": "#e6d9bd", "accent": "#f1c40f" },
+    "livery": { "hull": "#5a3d25", "sail": "#e6d9bd", "faction": "#8a1f1f", "trim": "aucun" }
+  },
+  "cursed_pirates": {
+    "id": "cursed_pirates",
+    "name_fr": "Fantôme",
+    "name_en": "Ghosts",
+    "emblem": { "motif": "Os croisés", "bg": "#20282c", "sym": "#7fd6d6", "accent": "#aef0f0" },
+    "livery": { "hull": "#3b4650", "sail": "#c7d0cf", "faction": "#5aa0a0", "trim": "aucun" }
+  },
+  "black_indies": {
+    "id": "black_indies",
+    "name_fr": "Compagnie de l'Or",
+    "name_en": "Gold Company",
+    "emblem": { "motif": "Disque", "bg": "#2a1f10", "sym": "#e8c05a", "accent": "#f1c40f" },
+    "livery": { "hull": "#4a3520", "sail": "#efe6cf", "faction": "#caa03c", "trim": "doré" }
+  },
+  "royal_corsairs": {
+    "id": "royal_corsairs",
+    "name_fr": "Corsaires Royaux",
+    "name_en": "Royal Corsairs",
+    "emblem": { "motif": "Sabres", "bg": "#0d0d0d", "sym": "#c0392b", "accent": "#f1c40f" },
+    "livery": { "hull": "#2e2020", "sail": "#dcc9ad", "faction": "#a01020", "trim": "nelson" }
+  },
+  "marine_francaise": {
+    "id": "marine_francaise",
+    "name_fr": "Marine Française",
+    "name_en": "French Navy",
+    "emblem": { "motif": "Croix+point", "bg": "#1f3aa8", "sym": "#f4f4f4", "accent": "#f1c40f" },
+    "livery": { "hull": "#33405e", "sail": "#eef0ee", "faction": "#c8a13c", "trim": "nelson" }
+  },
+  "marine_anglaise": {
+    "id": "marine_anglaise",
+    "name_fr": "Marine Anglaise",
+    "name_en": "English Navy",
+    "emblem": { "motif": "Croix", "bg": "#f0f0f0", "sym": "#c0121b", "accent": "#1f3aa8" },
+    "livery": { "hull": "#3a3128", "sail": "#f0efe9", "faction": "#b5121b", "trim": "nelson" }
+  },
+  "espagnole": {
+    "id": "espagnole",
+    "name_fr": "Couronne Espagnole",
+    "name_en": "Spanish Crown",
+    "emblem": { "motif": "Bandes", "bg": "#b5121b", "sym": "#f1c40f", "accent": "#f4f4f4" },
+    "livery": { "hull": "#6b4a2b", "sail": "#efe6cf", "faction": "#b5121b", "trim": "simple" }
+  },
+  "hollandaise": {
+    "id": "hollandaise",
+    "name_fr": "Compagnie Hollandaise",
+    "name_en": "Dutch Company",
+    "emblem": { "motif": "Bandes", "bg": "#e8e2d0", "sym": "#2e6b4a", "accent": "#c8a13c" },
+    "livery": { "hull": "#4a3a24", "sail": "#eae4d2", "faction": "#2e6b4a", "trim": "simple" }
+  }
+}

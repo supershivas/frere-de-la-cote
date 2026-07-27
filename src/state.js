@@ -19,9 +19,45 @@ export const state = {
   options: { sound: true, music: true },
   inRun: false,
   forcedNextWeather: null, // set by a 'weather_change' event outcome, consumed on next node visit
+  run: { faction: null }, // the player's chosen faction for this run — drives fleet identity
 };
 
 let nextInstanceId = 1;
+
+// The first faction in data/factions.json, used whenever no faction has been
+// chosen yet (e.g. previewing ships outside of a run).
+export function defaultFactionId() {
+  const keys = Object.keys(DB.factions);
+  return keys[0] || null;
+}
+
+export function resolveFaction(id) {
+  return DB.factions[id] || DB.factions[defaultFactionId()] || null;
+}
+
+const DEFAULT_HULL_SPEC = { hullClass: 3, hullShape: 'auto', sailsPerMast: 2, jibs: 1, wear: 0 };
+
+// A ship's spriteSpec is its own structural hullSpec (class/rig/wear — what
+// makes it its ship type) merged with its faction's shared visual identity
+// (flag/emblem/livery/trim). Same hullSpec + same faction => same silhouette
+// and colours; only `seed` varies the cosmetic flourishes.
+export function buildSpriteSpec(hullSpec, factionId, seed) {
+  const fac = resolveFaction(factionId);
+  if (!fac) return null;
+  const hs = hullSpec || DEFAULT_HULL_SPEC;
+  return {
+    hullClass: hs.hullClass,
+    hullShape: hs.hullShape || 'auto',
+    sailsPerMast: hs.sailsPerMast,
+    jibs: hs.jibs,
+    wear: hs.wear || 0,
+    seed: seed || 1,
+    trim: fac.livery.trim || 'aucun',
+    emblem: 'petit',
+    flag: { ...fac.emblem },
+    colors: { hull: fac.livery.hull, sail: fac.livery.sail, faction: fac.livery.faction },
+  };
+}
 
 // Create a live ship instance from a data definition.
 export function makeShip(defId, { flagship = false } = {}) {
@@ -55,6 +91,7 @@ export function makeShip(defId, { flagship = false } = {}) {
     effects: [], // combat status effects (reset each battle)
     color: def.color || '#c9a24b',
   };
+  inst.spriteSpec = buildSpriteSpec(def.hullSpec, state.run.faction, inst.iid);
   if (flagship) {
     inst.maxHp += 40;
     inst.hp = inst.maxHp;
@@ -185,7 +222,7 @@ export function abilityMeta(ship) {
 }
 
 // --- New run ---
-export function startNewRun(flagshipId = 'frigate') {
+export function startNewRun(flagshipId = 'frigate', factionId = null) {
   const meta = loadMeta();
   state.resources = {
     gold: Math.round(120 * (meta.goldStartMult || 1)),
@@ -194,6 +231,7 @@ export function startNewRun(flagshipId = 'frigate') {
     reputation: 0,
   };
   state.relics = [];
+  state.run = { faction: factionId || defaultFactionId() };
   state.fleet = [makeShip(flagshipId, { flagship: true }), makeShip('sloop')];
   state.act = 1;
   state.inRun = true;
@@ -212,6 +250,7 @@ export function saveGame() {
     currentNodeId: state.currentNodeId,
     inRun: state.inRun,
     map: state.map,
+    run: state.run,
     fleet: state.fleet.map(serializeShip),
     discovered: state.discovered,
   };
@@ -236,6 +275,7 @@ export function loadGame() {
     state.inRun = s.inRun;
     state.map = s.map;
     state.discovered = s.discovered || { ships: {}, enemies: {}, bosses: {} };
+    state.run = s.run || { faction: defaultFactionId() };
     state.fleet = (s.fleet || []).map(deserializeShip);
     nextInstanceId = Math.max(100, ...state.fleet.map((f) => f.iid + 1));
     return true;
@@ -268,6 +308,7 @@ function deserializeShip(o) {
     abilityCd: 0,
     effects: [],
     color: def.color || '#c9a24b',
+    spriteSpec: buildSpriteSpec(def.hullSpec, state.run.faction, o.iid),
   };
 }
 

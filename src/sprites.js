@@ -152,9 +152,10 @@ export function templateFor(type) {
 //
 // New part chars (avoid the 'H'/'W' special-cased in drawGrid):
 //  h hull · k keel/deck line · p sabord (gunport) · m mât · y vergue (yard)
-//  b beaupré (bowsprit) · s voile · S voile ombrée/ris · j foc
+//  b beaupré (bowsprit) · s voile · S voile ombrée/ris/tachée · j foc
 //  f pavillon (fond) · g pavillon (symbole) · V pavillon (accent)
 //  L bande de faction · w fenêtre/fanal · R corde (haubans) · A doré · C cuivre
+//  E emblème (ton sur ton, sur la grand-voile)
 // ===========================================================================
 
 // Hull-class table: pilots hull length/height, gun rows, mast count/height,
@@ -202,7 +203,8 @@ function rngFor(seed) {
 export function generateShipGrid(spec = {}) {
   const cls = Math.min(6, Math.max(1, Math.round(spec.hullClass) || 1));
   const c = HULL_CLASSES[cls];
-  const fam = FAM[cls % 2 ? 'ronde' : 'fine'];
+  const famKey = spec.hullShape && spec.hullShape !== 'auto' ? spec.hullShape : (cls % 2 ? 'ronde' : 'fine');
+  const fam = FAM[famKey] || FAM[cls % 2 ? 'ronde' : 'fine'];
   const hh = Math.round(c.hh * fam.hhMul);
   const top = 10, x0 = 6, steeve = fam.steeve;
   const bowsprLen = Math.round(c.L * (0.22 + 0.03 * (6 - cls)) * fam.bowsprMul);
@@ -238,7 +240,7 @@ export function generateShipGrid(spec = {}) {
 
   // Fioritures budgétées (~4-5 actives) tirées par la graine — reproductible.
   const R = rngFor(spec.seed || 1);
-  const POOL = ['figurehead', 'anchor', 'ensign', 'ratlines', 'top', 'pennants', 'spritsail', 'copper', 'boat', 'barrels', 'trim'];
+  const POOL = ['figurehead', 'anchor', 'ensign', 'ratlines', 'top', 'pennants', 'spritsail', 'reef', 'copper', 'boat', 'barrels'];
   const shuf = POOL.map((v) => [v, R()]).sort((a, b) => a[1] - b[1]).map((v) => v[0]);
   const on = new Set(shuf.slice(0, 4 + Math.floor(R() * 2)));
   const cos = { windows: 2 + Math.floor(R() * 4), lanterns: 1 + Math.floor(R() * 2) };
@@ -343,10 +345,21 @@ export function generateShipGrid(spec = {}) {
     for (let p = 0; p < c.ports; p++) { const x = xS + 4 + p * step, yt = topAt(x), yb = botAt(x); set(x, yt + (yb - yt) * fy, 'p'); }
   }
 
-  // 6. COSMÉTIQUES (pilotées par la graine)
+  // 6. COSMÉTIQUES
   const inb = (x, y) => g[y] && x >= 0 && x < W && y >= 0 && y < H;
-  if (cos.trim) { // liséré de coque, couleur de la bande de faction
-    for (let x = xS + 2; x <= xB - 2; x++) { const tp = Math.round(topDeck(x)); if (inb(x, tp + 2)) set(x, tp + 2, 'L'); }
+  // LISÉRÉ (manuel, pas piloté par la graine — c'est un réglage explicite du bateau)
+  const strake = (ch, dy) => { for (let x = xS + 2; x <= xB - 2; x++) { const tp = Math.round(topDeck(x)); if (inb(x, tp + dy)) set(x, tp + dy, ch); } };
+  if (spec.trim === 'simple') { strake('L', 2); strake('L', 3); }
+  else if (spec.trim === 'doré') { strake('A', 2); }
+  else if (spec.trim === 'nelson') {
+    const fy = 0.40;
+    for (let x = xS + 2; x <= xB - 3; x++) {
+      const yt = topAt(x), yb = botAt(x), yy = Math.round(yt + (yb - yt) * fy);
+      for (let d = -1; d <= 1; d++) if (inb(x, yy + d) && g[yy + d][x] === 'h') set(x, yy + d, 'f');
+    }
+    const nStep = (c.L - 7) / c.ports;
+    for (let p = 0; p < c.ports; p++) { const x = xS + 4 + p * nStep, yt = topAt(x), yb = botAt(x); set(x, yt + (yb - yt) * fy, 'g'); }
+    strake('g', 2);
   }
   if (cos.copper) { // doublage cuivre sous la flottaison
     const wl = Math.round(deckMid + hh - hh * 0.30);
@@ -384,6 +397,24 @@ export function generateShipGrid(spec = {}) {
       for (let fx = 1; fx <= 5; fx++) set(mx - fx, topY - 2, fx % 2 ? 'f' : 'g');
     }
   });
+  // EMBLÈME de voile (manuel : motif du pavillon, ton sur ton, centré sur la grand-voile)
+  if (spec.emblem && spec.emblem !== 'aucun') {
+    const big = spec.emblem === 'grand', sc = big ? 2 : 1;
+    const Bm = bandInfo(mainX, mainIdx), FLm = FLAGS[motif] || FLAGS.Uni, emx = mainX, emy = Math.round(Bm.usableTop + Bm.Hn / 2);
+    for (let fy = 0; fy < 6; fy++) {
+      for (let fx = 0; fx < 9; fx++) {
+        const bch = FLm[fy][fx]; if (bch === '0') continue;
+        for (let ay = 0; ay < sc; ay++) {
+          for (let ax = 0; ax < sc; ax++) {
+            const X = Math.round(emx + (fx - 4) * sc + ax), Y = Math.round(emy + (fy - 3) * sc + ay);
+            if (inb(X, Y) && (g[Y][X] === 's' || g[Y][X] === 'S')) set(X, Y, 'E');
+          }
+        }
+      }
+    }
+  }
+  // bandes de ris sur les voiles (pilotées par la graine)
+  if (cos.reef) { for (let y = 0; y < H; y++) { if (y % 6 !== 0) continue; for (let x = 0; x < W; x++) if (g[y][x] === 's') g[y][x] = 'S'; } }
   if (cos.spritsail) { // civadière sous le beaupré
     const bx = xB + Math.round(bowsprLen * 0.55), by = Math.round(topAt(xB) - bowsprLen * steeve * 0.55);
     for (let dy = 1; dy <= 4; dy++) for (let dx = -3; dx <= 3; dx++) if (inb(bx + dx, by + dy) && g[by + dy][bx + dx] === '.') set(bx + dx, by + dy, dx >= 2 ? 'S' : 's');
@@ -396,6 +427,36 @@ export function generateShipGrid(spec = {}) {
   if (cos.barrels) { // tonneaux sur le pont
     const bx = Math.round(mainX + c.L * 0.10), by = Math.round(topAt(bx)) - 1;
     set(bx, by, 'A'); set(bx + 1, by, 'A'); set(bx, by - 1, 'k'); set(bx + 1, by - 1, 'k');
+  }
+
+  // USURE : coulures de coque + voiles ET focs délavés + algues ; Épave = trous + bordé manquant
+  if (spec.wear > 0) {
+    const amt = spec.wear;
+    for (let k = 0; k < amt * 16; k++) {
+      const x = xS + 2 + Math.floor(R() * (c.L - 4)), yt = topAt(x), yb = botAt(x), y = Math.round(yt + (yb - yt) * (0.30 + R() * 0.6));
+      if (inb(x, y) && g[y][x] === 'h') set(x, y, 'k');
+    }
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const ch = g[y][x];
+        if ((ch === 's' || ch === 'j') && R() < 0.07 * amt) g[y][x] = 'S';
+      }
+    }
+    { const wl = Math.round(deckMid + hh - hh * 0.30);
+      for (let x = xS + 1; x <= xB - 1; x++) {
+        const bt = Math.round(botAt(x));
+        for (let y = Math.max(wl, bt - 1); y <= bt; y++) if (inb(x, y) && g[y][x] === 'h' && R() < 0.4 * amt) set(x, y, 'C');
+      } }
+    if (amt >= 3) { // ÉPAVE : voiles/focs troués, planches de bordé manquantes, vergues cassées
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const ch = g[y][x];
+          if ((ch === 's' || ch === 'S' || ch === 'j') && R() < 0.16) g[y][x] = '.';
+          else if (ch === 'h' && R() < 0.05) g[y][x] = '.';
+          else if (ch === 'y' && R() < 0.12) g[y][x] = '.';
+        }
+      }
+    }
   }
 
   const waterY = Math.round(deckMid + hh - hh * 0.34);
@@ -425,13 +486,14 @@ export function generatedShipPalette(spec = {}) {
   const flag = spec.flag || {};
   const flagBg = flag.bg || '#161616';
   const flagSym = flag.sym || '#e6d9bd';
-  const flagAccent = tone(flagSym, 0.35);
+  const flagAccent = flag.accent || tone(flagSym, 0.35);
   return {
     h: hull, k: tone(hull, -0.45), p: '#120b06',
     m: tone(hull, -0.58), y: tone(hull, -0.62), b: tone(hull, -0.55),
     s: sail, S: tone(sail, -0.16), j: tone(sail, -0.07),
     f: flagBg, g: flagSym, V: flagAccent,
     L: faction, w: '#f2d27a', R: '#241a12', A: '#c69a3a', C: '#3e7d5a',
+    E: tone(sail, -0.24),
   };
 }
 
@@ -488,17 +550,19 @@ export function drawShip(canvas, { type = 'frigate', color = '#c9a24b', flag = '
   if (spriteSpec) {
     const gen = getGeneratedShip(spriteSpec);
     // Generated grids run far bigger (cell-count) than the hand-drawn templates
-    // the game's fixed canvas sizes were tuned for — drawGrid's auto-fit scale
-    // (px = floor(min(canvas.width/cols, canvas.height/rows))) would floor to 0
-    // and draw nothing. Keep the caller's intended on-screen box (CSS size) but
-    // give the canvas a bigger backing resolution sized to the grid, so px
-    // always resolves to a fixed, non-zero PX_PER_CELL.
-    const displayW = canvas.width, displayH = canvas.height;
-    const PX_PER_CELL = 4;
-    canvas.width = gen.W * PX_PER_CELL;
-    canvas.height = gen.H * PX_PER_CELL;
-    canvas.style.width = `${displayW}px`;
-    canvas.style.height = `${displayH}px`;
+    // the game's fixed canvas sizes were tuned for, and their W:H ratio varies
+    // by hull class — so we can't just draw at the caller's box size (that
+    // would floor to 0 pixels, or stretch non-uniformly if forced via CSS).
+    // Pick ONE integer px-per-cell that fits the grid inside the caller's box
+    // (px_x === px_y, always), then size the canvas to exactly that — never
+    // stretched, so the ship is never distorted. Centering within a larger
+    // box is left to the caller's layout (flex/text-align), as elsewhere.
+    const boxW = canvas.width, boxH = canvas.height;
+    const scale = Math.max(1, Math.floor(Math.min(boxW / gen.W, boxH / gen.H)));
+    canvas.width = gen.W * scale;
+    canvas.height = gen.H * scale;
+    canvas.style.width = `${canvas.width}px`;
+    canvas.style.height = `${canvas.height}px`;
     drawGrid(canvas, gen.grid, { color: gen.palette, flag: '', facing, damaged });
     return;
   }

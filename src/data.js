@@ -10,6 +10,7 @@ export const DB = {
   events: {},
   ammo: {},
   weather: {},
+  factions: {},
 };
 
 const DATA_FILES = [
@@ -21,6 +22,7 @@ const DATA_FILES = [
   ['events', 'data/events.json'],
   ['ammo', 'data/ammo.json'],
   ['weather', 'data/weather.json'],
+  ['factions', 'data/factions.json'],
 ];
 
 export async function loadData() {
