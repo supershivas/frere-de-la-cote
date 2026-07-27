@@ -9,6 +9,8 @@ export const DB = {
   relics: {},
   events: {},
   ammo: {},
+  weather: {},
+  factions: {},
 };
 
 const DATA_FILES = [
@@ -19,6 +21,8 @@ const DATA_FILES = [
   ['relics', 'data/relics.json'],
   ['events', 'data/events.json'],
   ['ammo', 'data/ammo.json'],
+  ['weather', 'data/weather.json'],
+  ['factions', 'data/factions.json'],
 ];
 
 export async function loadData() {
@@ -35,4 +39,23 @@ export async function loadData() {
 // Runtime-registered custom ships (from the ship editor).
 export function registerShip(def) {
   DB.ships[def.id] = def;
+}
+
+// Dev persistence for ships authored in the Ship Editor — kept in
+// localStorage so they survive a reload and can be tested in-game right away.
+const CUSTOM_SHIPS_KEY = 'fdlc_custom_ships';
+
+export function saveCustomShip(def) {
+  registerShip(def);
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem(CUSTOM_SHIPS_KEY) || '{}'); } catch {}
+  all[def.id] = def;
+  localStorage.setItem(CUSTOM_SHIPS_KEY, JSON.stringify(all));
+}
+
+export function loadCustomShips() {
+  try {
+    const all = JSON.parse(localStorage.getItem(CUSTOM_SHIPS_KEY) || '{}');
+    Object.values(all).forEach(registerShip);
+  } catch {}
 }

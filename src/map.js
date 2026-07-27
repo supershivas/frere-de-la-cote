@@ -1,8 +1,9 @@
 // Procedurally generated branching sea chart (Slay the Spire / FTL style).
 import { el, mount } from './ui.js';
-import { t } from './i18n.js';
+import { t, locName } from './i18n.js';
 import { register, go } from './nav.js';
 import { state, saveGame, relicMods } from './state.js';
+import { DB } from './data.js';
 import { renderHud } from './hud.js';
 import { attachTooltip } from './tooltip.js';
 import { toastInfo } from './toast.js';
@@ -17,6 +18,10 @@ const TYPE_WEIGHTS = [
   ['shipyard', 12],
   ['treasure', 12],
   ['mystery', 15],
+  ['epave', 10],
+  ['repaire', 8],
+  ['sanctuaire', 8],
+  ['chasse', 10],
 ];
 
 const NODE_META = {
@@ -28,6 +33,10 @@ const NODE_META = {
   shipyard: { icon: '🔨', key: 'node_shipyard', danger: 0 },
   treasure: { icon: '💰', key: 'node_treasure', danger: 0 },
   mystery: { icon: '🌫️', key: 'node_mystery', danger: 1 },
+  epave: { icon: '🪝', key: 'node_epave', danger: 1 },
+  repaire: { icon: '🕯️', key: 'node_repaire', danger: 0 },
+  sanctuaire: { icon: '⛩️', key: 'node_sanctuaire', danger: 1 },
+  chasse: { icon: '🎯', key: 'node_chasse', danger: 2 },
 };
 
 function pickWeighted(table) {
@@ -38,6 +47,17 @@ function pickWeighted(table) {
     if (r <= 0) return val;
   }
   return table[0][0];
+}
+
+// Weather is rolled once per node and stored on it, so it stays stable for
+// the whole run (the node's fight, if any, always happens under that sky).
+// Harsher weather is gated behind minAct so later acts feel rougher.
+function pickWeather(act) {
+  const entries = Object.values(DB.weather).filter((w) => (w.minAct || 1) <= act);
+  const pool = entries.length ? entries : Object.values(DB.weather);
+  if (!pool.length) return null;
+  const table = pool.map((w) => [w.id, w.weight || 1]);
+  return pickWeighted(table);
 }
 
 export function generateMap(act = 1) {
@@ -97,6 +117,7 @@ function makeNode(id, row, col, rowCount, type, act) {
     visited: false,
     danger,
     reward: rewardFor(type),
+    weather: pickWeather(act),
   };
 }
 
@@ -107,6 +128,10 @@ function rewardFor(type) {
     case 'boss': return { gold: 250, label: '👑⭐' };
     case 'treasure': return { gold: 0, label: '💰?' };
     case 'mystery': return { gold: 0, label: '🌫️?' };
+    case 'epave': return { gold: 0, label: '🪝?' };
+    case 'repaire': return { gold: 0, label: '🕯️💰' };
+    case 'sanctuaire': return { gold: 0, label: '⛩️⭐' };
+    case 'chasse': return { gold: 90, label: '💰🎯' };
     default: return { gold: 0, label: '' };
   }
 }
@@ -207,12 +232,20 @@ function nodeTooltip(node, revealed) {
   if (node.reward && node.reward.label) {
     html += `<div class="tt-desc">${t('reward')}: ${node.reward.label}</div>`;
   }
+  const w = node.weather && DB.weather[node.weather];
+  if (w) html += `<div class="tt-sub">${w.icon} ${locName(w)}</div>`;
   return html;
 }
 
 function visitNode(node) {
   state.currentNodeId = node.id;
   node.visited = true;
+  // A 'weather_change' event outcome can force the weather of the very next
+  // node the player steps into; consume it once so it doesn't stick around.
+  if (state.forcedNextWeather && DB.weather[state.forcedNextWeather]) {
+    node.weather = state.forcedNextWeather;
+    state.forcedNextWeather = null;
+  }
   routeToNode(node);
 }
 
@@ -240,6 +273,18 @@ function routeToNode(node) {
       break;
     case 'mystery':
       go('event');
+      break;
+    case 'epave':
+      go('event', { eventId: 'shipwreck_salvage' });
+      break;
+    case 'repaire':
+      go('event', { eventId: 'black_market_den' });
+      break;
+    case 'sanctuaire':
+      go('event', { eventId: 'ancient_shrine' });
+      break;
+    case 'chasse':
+      go('combat', { kind: 'elite', danger: node.danger, bounty: true });
       break;
     default:
       go('map');

@@ -124,6 +124,7 @@ export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = n
     flag: isEnemy ? '#7a2b2b' : '#b23b3b',
     facing: isEnemy ? -1 : 1,
     damaged,
+    spriteSpec: ship.spriteSpec || null,
     // Combat truncates the hull at the waterline; other screens show the full ship.
     waterline: combat,
   });

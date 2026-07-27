@@ -1,12 +1,12 @@
 // Turn-based naval combat engine. Readable, deterministic damage; enemy
 // intentions shown before the player acts (Into the Breach style).
 import { el, mount, shipCard, bar, effectChips } from './ui.js';
-import { shipThumb } from './sprites.js';
+import { shipThumb, HULL_CLASSES } from './sprites.js';
 import { t, locName, locField } from './i18n.js';
 import { register, go } from './nav.js';
 import { DB } from './data.js';
 import {
-  state, relicMods, addGold, grantXp, discover, applyUpgrade, hasRelic,
+  state, combatMods, currentWeather, addGold, grantXp, discover, applyUpgrade, hasRelic, buildSpriteSpec,
 } from './state.js';
 import { renderHud } from './hud.js';
 import { toast, toastSuccess, toastDanger, toastInfo } from './toast.js';
@@ -20,10 +20,38 @@ let C = null; // active combat controller
 
 // ---- Enemy instance ----
 let enemyIid = 1;
+
+// Random-but-plausible hull for an enemy's tier — small ships get a single
+// mast (class 5-6), medium ships get two (class 3-4). Bosses/monsters never
+// go through here (they keep their hand-drawn 'monster' template).
+function enemyHullSpec(def) {
+  const hullClass = def.tier === 'medium' ? 3 + Math.floor(Math.random() * 2) : 5 + Math.floor(Math.random() * 2);
+  const c = HULL_CLASSES[hullClass];
+  return {
+    hullClass,
+    hullShape: 'auto',
+    sailsPerMast: 1 + Math.floor(Math.random() * c.sailsMax),
+    jibs: Math.floor(Math.random() * (c.jibsMax + 1)),
+    wear: Math.random() < 0.3 ? 1 : 0,
+  };
+}
+
+// An enemy's visual identity is its own lore faction (def.faction) — unless
+// that happens to be the player's own chosen faction, in which case another
+// faction is picked so the two sides never look alike in combat.
+function enemyFactionId(def) {
+  let fid = def.faction;
+  if (!DB.factions[fid] || fid === state.run.faction) {
+    const pool = Object.keys(DB.factions).filter((id) => id !== state.run.faction);
+    fid = pool[Math.floor(Math.random() * pool.length)] || fid;
+  }
+  return fid;
+}
+
 function makeEnemy(defId, { isBoss = false, scale = 1 } = {}) {
   const def = isBoss ? DB.bosses[defId] : DB.enemies[defId];
   const s = def.stats;
-  return {
+  const inst = {
     iid: `e${enemyIid++}`,
     defId, def, isBoss,
     name: locName(def),
@@ -48,6 +76,11 @@ function makeEnemy(defId, { isBoss = false, scale = 1 } = {}) {
     damageMult: 1,
     isEnemy: true,
   };
+  if (!isBoss && def.type !== 'naval_monster') {
+    const seed = (Math.random() * 1e9) | 0;
+    inst.spriteSpec = buildSpriteSpec(enemyHullSpec(def), enemyFactionId(def), seed);
+  }
+  return inst;
 }
 
 // ---- Enemy roster generation ----
@@ -79,10 +112,12 @@ function isImmobile(ship) {
   return (ship.effects || []).some((e) => e.type === 'immobilized');
 }
 
-function computeHit(attacker, defender, { ignoreEvasionPct = 0, forceHit = false } = {}) {
+function computeHit(attacker, defender, { ignoreEvasionPct = 0, forceHit = false, mods = null } = {}) {
   if (forceHit) return true;
   const ev = isImmobile(defender) ? 0 : (defender.evasion || 0) * (1 - ignoreEvasionPct);
-  const chance = Math.max(0.1, Math.min(0.98, attacker.accuracy - ev));
+  const accuracy = attacker.accuracy + (mods?.accuracyDelta || 0);
+  const evasion = ev + (mods?.evasionDelta || 0);
+  const chance = Math.max(0.1, Math.min(0.98, accuracy - evasion));
   return Math.random() < chance;
 }
 
@@ -127,8 +162,8 @@ function addEffect(ship, effect) {
 // Perform an attack from attacker on target with a given ammo id.
 function attack(attacker, target, ammoId, { damageMult = 1, ignoreEvasionPct = 0, splashList = null } = {}) {
   const ammo = DB.ammo[ammoId] || DB.ammo.classic;
-  const mods = relicMods();
-  const hit = computeHit(attacker, target, { ignoreEvasionPct });
+  const mods = combatMods();
+  const hit = computeHit(attacker, target, { ignoreEvasionPct, mods });
   const log = { attacker: attacker.name || locName(attacker.def), target: target.name || locName(target.def), hit };
   if (!hit) {
     C.log(`${log.attacker} → ${log.target}: ${t('intent')} ✗`);
@@ -137,7 +172,7 @@ function attack(attacker, target, ammoId, { damageMult = 1, ignoreEvasionPct = 0
     return log;
   }
   const fleetMult = attacker.isEnemy ? 1 : mods.fleetDamageMult;
-  const raw = attacker.damage * (ammo.damageMult || 1) * damageMult * fleetMult * moraleFactor(attacker) * (attacker.damageMult || 1);
+  const raw = attacker.damage * (ammo.damageMult || 1) * damageMult * fleetMult * moraleFactor(attacker) * (attacker.damageMult || 1) * mods.weatherDamageMult;
   const res = dealDamage(attacker, target, raw);
   flashCard(target, 'hit');
 
@@ -250,7 +285,7 @@ function tickEndOfRound(ship) {
 // ---- Controller ----
 function initCombat(opts) {
   state.screen = 'combat';
-  randomOceanScene(); // fresh weather + decor for this battle
+  randomOceanScene(currentWeather()?.id); // fresh decor, sky matched to the node's mechanical weather
   const allies = state.fleet.filter((s) => s.hp > 0);
   allies.forEach((s) => {
     s.effects = [];
@@ -550,7 +585,7 @@ function abilityNeedsTarget(abId) {
 
 function playerRepair() {
   const ship = C.active;
-  const mods = relicMods();
+  const mods = combatMods();
   const heal = Math.round(30 * mods.repairMult);
   ship.hp = Math.min(ship.maxHp, ship.hp + heal);
   commitShown(ship);
@@ -728,7 +763,7 @@ function shipActionSet(ship) {
 
 // Active-ship info header: portrait, name, level, HP/shield, active effects.
 function activeShipInfo(ship) {
-  const portrait = shipThumb({ type: ship.def.type, color: ship.color, facing: 1, waterline: true }, 68);
+  const portrait = shipThumb({ type: ship.def.type, color: ship.color, facing: 1, spriteSpec: ship.spriteSpec, waterline: true }, 68);
   portrait.classList.add('active-portrait');
   const bars = el('div', { class: 'active-ship-bars' }, [bar(ship.shownHp ?? ship.hp, ship.maxHp, 'hp', '❤️')]);
   if (ship.maxShield > 0) bars.appendChild(bar(ship.shownShield ?? ship.shield, ship.maxShield, 'shield', '🛡️'));
@@ -925,7 +960,7 @@ function win() {
   C._ended = true;
   C.phase = 'done';
   state.stats.battlesWon++;
-  const mods = relicMods();
+  const mods = combatMods();
   let gold = 0, xp = 0, rareMats = 0;
   for (const e of C.enemies) {
     const rw = e.def.reward || {};
@@ -933,6 +968,9 @@ function win() {
     xp += rw.xp || 0;
     rareMats += rw.rareMaterials || 0;
   }
+  // A 'chasse' (bounty hunt) node pays an extra bounty on top of the enemy's
+  // own reward, scaled with the danger level it was fought at.
+  if (C.opts && C.opts.bounty) gold += 50 + (C.opts.danger || 0) * 25;
   gold = Math.round(gold * mods.goldMult);
   addGold(gold);
   if (rareMats) state.resources.rareMaterials += rareMats;

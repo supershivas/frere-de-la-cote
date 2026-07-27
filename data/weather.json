@@ -1,0 +1,68 @@
+{
+  "calme": {
+    "id": "calme",
+    "name_fr": "Calme plat",
+    "name_en": "Dead Calm",
+    "icon": "🌤️",
+    "desc_fr": "Une mer d'huile et un ciel dégagé. Les canonniers visent sans trembler.",
+    "desc_en": "A glassy sea and clear sky. The gunners aim without a tremble.",
+    "weight": 20,
+    "minAct": 1,
+    "mods": { "accuracyDelta": 0.05, "evasionDelta": 0, "damageMult": 1, "speedMult": 1 }
+  },
+  "brise": {
+    "id": "brise",
+    "name_fr": "Brise légère",
+    "name_en": "Light Breeze",
+    "icon": "🌬️",
+    "desc_fr": "Un vent portant gonfle les voiles sans gêner la manœuvre.",
+    "desc_en": "A favorable wind fills the sails without hindering maneuvers.",
+    "weight": 30,
+    "minAct": 1,
+    "mods": { "accuracyDelta": 0, "evasionDelta": 0, "damageMult": 1, "speedMult": 1.05 }
+  },
+  "vent_fort": {
+    "id": "vent_fort",
+    "name_fr": "Vent fort",
+    "name_en": "Strong Wind",
+    "icon": "💨",
+    "desc_fr": "Les rafales secouent les navires et compliquent la visée, mais accélèrent la flotte.",
+    "desc_en": "Gusts rock the ships and complicate aim, but speed up the fleet.",
+    "weight": 20,
+    "minAct": 1,
+    "mods": { "accuracyDelta": -0.05, "evasionDelta": 0.05, "damageMult": 1, "speedMult": 1.1 }
+  },
+  "brume": {
+    "id": "brume",
+    "name_fr": "Brume",
+    "name_en": "Fog",
+    "icon": "🌫️",
+    "desc_fr": "Une brume épaisse noie l'horizon. Difficile de bien viser à travers.",
+    "desc_en": "Thick fog blankets the horizon. Hard to aim true through it.",
+    "weight": 15,
+    "minAct": 1,
+    "mods": { "accuracyDelta": -0.12, "evasionDelta": 0, "damageMult": 1, "speedMult": 1 }
+  },
+  "tempete": {
+    "id": "tempete",
+    "name_fr": "Tempête",
+    "name_en": "Storm",
+    "icon": "⛈️",
+    "desc_fr": "Vagues et éclairs déstabilisent les tirs, mais brouillent aussi les esquives adverses… enfin, presque.",
+    "desc_en": "Waves and lightning throw off gunnery, though evasion suffers too.",
+    "weight": 10,
+    "minAct": 2,
+    "mods": { "accuracyDelta": -0.08, "evasionDelta": 0.08, "damageMult": 0.9, "speedMult": 0.9 }
+  },
+  "grain": {
+    "id": "grain",
+    "name_fr": "Grain",
+    "name_en": "Squall",
+    "icon": "🌧️",
+    "desc_fr": "Une averse violente et soudaine réduit la précision de tous les canonniers.",
+    "desc_en": "A sudden, violent squall cuts every gunner's accuracy.",
+    "weight": 15,
+    "minAct": 2,
+    "mods": { "accuracyDelta": -0.15, "evasionDelta": 0.05, "damageMult": 0.95, "speedMult": 0.95 }
+  }
+}

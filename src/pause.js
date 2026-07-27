@@ -78,7 +78,7 @@ function renderFleet(pane) {
   const grid = el('div', { class: 'fleet-grid' });
   state.fleet.forEach((s) => {
     const card = el('div', { class: `fleet-card ${s.flagship ? 'flagship' : ''}` }, [
-      shipThumb({ type: s.def.type, color: s.color, facing: 1 }, 96),
+      shipThumb({ type: s.def.type, color: s.color, facing: 1, spriteSpec: s.spriteSpec }, 96),
       el('div', { class: 'fleet-name', text: (s.name || locName(s.def)) + (s.flagship ? ` ★ (${t('fleet_flagship')})` : '') }),
       el('div', { class: 'fleet-lvl', text: `${t('fleet_level')} ${s.level} · ${s.xp}/${40 + s.level * 20} XP` }),
       statLine('❤️', `${Math.round(s.hp)}/${s.maxHp}`),

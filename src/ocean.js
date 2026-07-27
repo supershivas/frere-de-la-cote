@@ -20,8 +20,16 @@ const DECOR_KINDS = ['island', 'wreck', 'rocks', 'fort', 'fishermen', 'sharkfins
 
 let scene = null;
 
-export function randomOceanScene() {
-  const weather = WEATHER_KEYS[Math.floor(Math.random() * WEATHER_KEYS.length)];
+// Maps a data/weather.json mechanical weather id to one of the decorative
+// scenes above, so the backdrop reads as consistent with the combat mods
+// without hardcoding game-design values into the purely visual layer.
+const WEATHER_HINTS = {
+  calme: 'day', brise: 'day', vent_fort: 'cloudy', brume: 'cloudy', tempete: 'storm', grain: 'storm',
+};
+
+export function randomOceanScene(weatherHint) {
+  const hinted = weatherHint && WEATHER_HINTS[weatherHint];
+  const weather = hinted || WEATHER_KEYS[Math.floor(Math.random() * WEATHER_KEYS.length)];
   let decor = [];
   if (Math.random() > 0.18) { // sometimes an empty seascape
     const n = 1 + Math.floor(Math.random() * 3);

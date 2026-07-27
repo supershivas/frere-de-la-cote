@@ -21,7 +21,8 @@
       "crew_capacity": 4
     },
     "ability": "swift_strike",
-    "color": "#7fd4c1"
+    "color": "#7fd4c1",
+    "hullSpec": { "hullClass": 6, "hullShape": "auto", "sailsPerMast": 2, "jibs": 2, "wear": 0 }
   },
   "frigate": {
     "id": "frigate",
@@ -45,7 +46,8 @@
       "crew_capacity": 8
     },
     "ability": "broadside",
-    "color": "#d98b5f"
+    "color": "#d98b5f",
+    "hullSpec": { "hullClass": 3, "hullShape": "auto", "sailsPerMast": 2, "jibs": 1, "wear": 0 }
   },
   "galleon": {
     "id": "galleon",
@@ -69,6 +71,7 @@
       "crew_capacity": 12
     },
     "ability": "reinforce",
-    "color": "#c9a24b"
+    "color": "#c9a24b",
+    "hullSpec": { "hullClass": 1, "hullShape": "auto", "sailsPerMast": 3, "jibs": 2, "wear": 0 }
   }
 }
