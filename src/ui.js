@@ -3,7 +3,11 @@ import { t, locName, locField } from './i18n.js';
 import { DB } from './data.js';
 import { abilityMeta, state } from './state.js';
 import { attachTooltip, hideTooltip } from './tooltip.js';
-import { drawShip } from './sprites.js';
+import { drawShip, getGeneratedShip, drawGrid } from './sprites.js';
+
+// Headroom (px) kept above the waterline-clip window so the mast never gets
+// clipped as the ship bobs (see the waterline-clip wrapper in shipCard below).
+const WATER_TOP_BUFFER = 10;
 
 // Tiny hyperscript helper.
 export function el(tag, opts = {}, children = []) {
@@ -100,12 +104,16 @@ export function statBlockHtml(ship, { isEnemy = false } = {}) {
 }
 
 // A ship card used in combat/fleet: canvas sprite + name + hp/shield bars + effects.
-// size: square box (px) the sprite is fit into — generated hulls are taller
+// size: square box (px) the card/stage occupies — generated hulls are taller
 // than wide, so a square box (not the old 110:90 landscape one) is what lets
-// drawShip's fit-to-box scale actually pick a comfortable size. Combat scales
-// this down automatically when a fleet has 3+ ships, to keep a fixed-height
-// arena without ever scrolling.
-export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = null, selectable = false, combat = false, size = 150 } = {}) {
+// the sprite actually render at a comfortable size. Combat scales this down
+// automatically when a fleet has 3+ ships, to keep a fixed-height arena
+// without ever scrolling.
+// scale: shared px-per-grid-cell for the whole battle (combat.js computes it
+// once from the largest hull class present) — every ship uses the SAME
+// scale so a small sloop renders proportionally smaller than a big galleon,
+// instead of each ship being fit to its own box independently.
+export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = null, selectable = false, combat = false, size = 150, scale = null } = {}) {
   // Bars render from the "shown" values, which lag real HP until a shot lands.
   const shownHp = ship.shownHp ?? ship.hp;
   const shownShield = ship.shownShield ?? ship.shield;
@@ -120,21 +128,46 @@ export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = n
   if (shownHp <= 0) card.classList.add('dead');
 
   const w = size, h = size;
-  const canvas = el('canvas', { class: 'ship-canvas' });
-  canvas.width = w; canvas.height = h;
-  drawShip(canvas, {
-    type: isEnemy ? enemyTemplate(ship.def) : ship.def.type,
-    color: ship.color || ship.def.color || '#c9a24b',
-    flag: isEnemy ? '#7a2b2b' : '#b23b3b',
-    facing: isEnemy ? -1 : 1,
-    damaged,
-    spriteSpec: ship.spriteSpec || null,
-    // Combat truncates the hull at the waterline; other screens show the full ship.
-    waterline: combat,
-  });
+  let stageChildren;
+
+  if (combat && ship.spriteSpec) {
+    // Generative ship in combat: render the FULL hull (no bitmap clip) and cut
+    // it at the waterline with a fixed-size, overflow-hidden wrapper instead —
+    // the bob animation below moves the CANVAS inside that fixed window, so
+    // the waterline itself never shifts on screen while more/less hull shows
+    // as the ship bobs (see .ship-waterline-clip in style.css).
+    const gen = getGeneratedShip(ship.spriteSpec);
+    const s = scale || Math.max(1, Math.floor(Math.min(w / gen.W, h / gen.H)));
+    const canvas = el('canvas', { class: 'ship-canvas' });
+    canvas.width = gen.W * s; canvas.height = gen.H * s;
+    drawGrid(canvas, gen.grid, { color: gen.palette, flag: '', facing: isEnemy ? -1 : 1, damaged });
+    canvas.style.position = 'absolute';
+    canvas.style.top = `${WATER_TOP_BUFFER}px`;
+    canvas.style.left = '0';
+    const waterPx = Math.round(gen.waterY * s);
+    const clip = el('div', {
+      class: 'ship-waterline-clip',
+      style: `width:${gen.W * s}px;height:${waterPx + WATER_TOP_BUFFER}px`,
+    }, [canvas]);
+    stageChildren = [clip];
+  } else {
+    const canvas = el('canvas', { class: 'ship-canvas' });
+    canvas.width = w; canvas.height = h;
+    drawShip(canvas, {
+      type: isEnemy ? enemyTemplate(ship.def) : ship.def.type,
+      color: ship.color || ship.def.color || '#c9a24b',
+      flag: isEnemy ? '#7a2b2b' : '#b23b3b',
+      facing: isEnemy ? -1 : 1,
+      damaged,
+      spriteSpec: ship.spriteSpec || null,
+      // Combat truncates the hull at the waterline; other screens show the full ship.
+      waterline: combat,
+    });
+    stageChildren = [canvas];
+  }
   // Water stage: ship floats on an animated waterline with a wake reflection.
   const stage = el('div', { class: `ship-stage ${combat ? 'in-combat' : ''}`, style: `width:${w}px;height:${h}px` }, [
-    canvas,
+    ...stageChildren,
     combat ? el('div', { class: 'wake' }) : null,
   ]);
   card.appendChild(stage);

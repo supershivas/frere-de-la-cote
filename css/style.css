@@ -727,6 +727,13 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .ship-stage .ship-canvas { position: relative; z-index: 2; display: block; }
 .wake { display: none; } /* foam removed */
 
+/* Fixed-size, clipped window the (unclipped, full-hull) canvas bobs behind —
+   its bottom edge IS the waterline, and it never moves on screen even though
+   the ship (and the row of its own pixels currently at that edge) does. This
+   is what makes "more/less hull visible" as the ship bobs, while the cut
+   itself stays flat and fixed in place, instead of tilting/moving with it. */
+.ship-waterline-clip { position: relative; overflow: hidden; margin: 0 auto; }
+
 /* Ships bob gently on the swell — vertical only, no rotation, so the
    waterline (baked into the sprite's own pixels) always reads as flat. */
 .ship-stage.in-combat .ship-canvas { animation: bob-combat 2.8s ease-in-out infinite; }

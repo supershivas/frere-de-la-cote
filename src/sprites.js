@@ -498,7 +498,9 @@ export function generatedShipPalette(spec = {}) {
   const flagSym = flag.sym || '#e6d9bd';
   const flagAccent = flag.accent || tone(flagSym, 0.35);
   return {
-    h: hull, k: tone(hull, -0.45), p: '#120b06',
+    // k (deck/keel line) traces the whole hull outline — at -0.45 it read as a
+    // dark frame boxing the ship rather than a trim line, so it's softened.
+    h: hull, k: tone(hull, -0.22), p: '#120b06',
     m: tone(hull, -0.58), y: tone(hull, -0.62), b: tone(hull, -0.55),
     s: sail, S: tone(sail, -0.16), j: tone(sail, -0.07),
     f: flagBg, g: flagSym, V: flagAccent,

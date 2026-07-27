@@ -1,7 +1,7 @@
 // Turn-based naval combat engine. Readable, deterministic damage; enemy
 // intentions shown before the player acts (Into the Breach style).
 import { el, mount, shipCard, bar, effectChips } from './ui.js';
-import { shipThumb, HULL_CLASSES } from './sprites.js';
+import { shipThumb, HULL_CLASSES, getGeneratedShip } from './sprites.js';
 import { t, locName, locField } from './i18n.js';
 import { register, go } from './nav.js';
 import { DB } from './data.js';
@@ -633,10 +633,27 @@ function sizeForFleet(n) {
   return s;
 }
 
+// A single shared px-per-grid-cell for every generated ship in the battle,
+// fit to the largest hull class actually present. Every ship then renders at
+// gen.W/gen.H * this SAME scale, so a small sloop is proportionally smaller
+// than a big galleon — instead of each ship independently maximizing its own
+// fit within its box (which made small hulls look just as big, or bigger).
+function battleShipScale(ships, box) {
+  let maxW = 1, maxH = 1;
+  for (const s of ships) {
+    if (!s.spriteSpec) continue;
+    const gen = getGeneratedShip(s.spriteSpec);
+    if (gen.W > maxW) maxW = gen.W;
+    if (gen.H > maxH) maxH = gen.H;
+  }
+  return Math.max(1, Math.floor(Math.min(box / maxW, box / maxH)));
+}
+
 // ---- Rendering ----
 function render() {
   const allySize = sizeForFleet(C.allies.length);
   const enemySize = sizeForFleet(C.enemies.length);
+  const shipScale = battleShipScale([...C.allies, ...C.enemies], Math.min(allySize, enemySize));
 
   // Allied fleet — always on the LEFT, facing right. During the player phase the
   // player clicks directly on any un-acted ship's sprite (in any order) to act.
@@ -649,6 +666,7 @@ function render() {
       isEnemy: false,
       combat: true,
       size: allySize,
+      scale: shipScale,
       selectable: targetable,
       onClick: targetable
         ? (ship) => onTargetPicked(ship)
@@ -675,6 +693,7 @@ function render() {
       isEnemy: true,
       combat: true,
       size: enemySize,
+      scale: shipScale,
       showIntent: intentNode,
       selectable: targetable,
       onClick: targetable ? (ship) => onTargetPicked(ship) : null,
