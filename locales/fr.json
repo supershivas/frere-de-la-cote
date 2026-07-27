@@ -108,6 +108,7 @@
   "toast_gold_loss": "-{n} pièces d'or",
   "toast_new_ship": "Nouveau bateau recruté",
   "toast_relic": "Relique obtenue : {name}",
+  "relic_obtained": "Relique obtenue",
   "toast_curse": "Malédiction détectée",
   "toast_fire": "Incendie à bord",
   "toast_hull": "Coque endommagée",

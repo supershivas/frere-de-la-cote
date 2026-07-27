@@ -100,22 +100,26 @@ export function statBlockHtml(ship, { isEnemy = false } = {}) {
 }
 
 // A ship card used in combat/fleet: canvas sprite + name + hp/shield bars + effects.
-// size: canvas width in px (height follows the same 110:90 aspect ratio). Combat
-// scales this down automatically when a fleet has 3+ ships, to keep a fixed-
-// height arena without ever scrolling.
+// size: square box (px) the sprite is fit into — generated hulls are taller
+// than wide, so a square box (not the old 110:90 landscape one) is what lets
+// drawShip's fit-to-box scale actually pick a comfortable size. Combat scales
+// this down automatically when a fleet has 3+ ships, to keep a fixed-height
+// arena without ever scrolling.
 export function shipCard(ship, { isEnemy = false, onClick = null, showIntent = null, selectable = false, combat = false, size = 150 } = {}) {
   // Bars render from the "shown" values, which lag real HP until a shot lands.
   const shownHp = ship.shownHp ?? ship.hp;
   const shownShield = ship.shownShield ?? ship.shield;
   const damaged = 1 - Math.max(0, shownHp) / ship.maxHp;
+  // A sinking (destroyed) ship keeps smoking/burning rather than cutting out
+  // the moment its HP hits 0.
   const card = el('div', {
-    class: `ship-card ${isEnemy ? 'enemy' : 'ally'} ${ship.flagship ? 'flagship' : ''} ${selectable ? 'selectable' : ''} ${damaged > 0.6 && shownHp > 0 ? 'smoking' : ''}`,
+    class: `ship-card ${isEnemy ? 'enemy' : 'ally'} ${ship.flagship ? 'flagship' : ''} ${selectable ? 'selectable' : ''} ${damaged > 0.6 ? 'smoking' : ''}`,
     attrs: { 'data-iid': ship.iid },
     style: `width:${size + 20}px`,
   });
   if (shownHp <= 0) card.classList.add('dead');
 
-  const w = size, h = Math.round(size * 90 / 110);
+  const w = size, h = size;
   const canvas = el('canvas', { class: 'ship-canvas' });
   canvas.width = w; canvas.height = h;
   drawShip(canvas, {
@@ -172,9 +176,12 @@ export function modal(contentNode, { closable = true, cls = '' } = {}) {
 // Colour-coded result modal for events / treasure / rewards.
 // tone: 'positive' (green), 'negative' (red), 'reward' (gold), 'curse' (purple),
 // 'neutral' (blue). lines are HTML strings.
-export function outcomeModal({ tone = 'neutral', icon = '', title = '', lines = [], onClose } = {}) {
+// eyebrow: small label shown above the title (e.g. "Relic obtained") so the
+// title itself can just be the reward's own name, kept as the clear h2.
+export function outcomeModal({ tone = 'neutral', icon = '', eyebrow = '', title = '', lines = [], onClose } = {}) {
   const box = el('div', { class: `result-box outcome tone-${tone}` }, [
     icon ? el('div', { class: 'outcome-icon', text: icon }) : null,
+    eyebrow ? el('div', { class: 'outcome-eyebrow', text: eyebrow }) : null,
     el('h2', { class: 'result-title', text: title }),
     ...lines.filter(Boolean).map((l) => el('div', { class: 'outcome-line', html: l })),
     el('button', { class: 'btn-level-1', text: t('continue_btn'), on: { click: () => { close(); if (onClose) onClose(); } } }),

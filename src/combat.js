@@ -624,10 +624,11 @@ function tryFlee() {
   go('map');
 }
 
-// Ship sprite size for a fleet column: shrinks once a fleet grows past 2 ships
-// so the whole arena stays inside a fixed-height frame with no scrollbar.
+// Ship sprite box size (square — generated hulls are taller than wide, so a
+// landscape box starved the fit-to-box scale) for a fleet column: shrinks
+// once a fleet grows past 2 ships so the arena stays fixed-height, no scroll.
 function sizeForFleet(n) {
-  let s = n <= 2 ? 150 : n === 3 ? 122 : 100;
+  let s = n <= 2 ? 260 : n === 3 ? 210 : 175;
   if (window.innerWidth < 640) s = Math.round(s * 0.7); // stacked mobile layout
   return s;
 }

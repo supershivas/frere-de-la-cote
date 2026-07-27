@@ -64,8 +64,8 @@ function openCursed() {
       addRelic(id);
       const rel = DB.relics[id];
       outcomeModal({
-        tone: 'reward', icon: rel.icon || '⭐', title: t('toast_relic', { name: locName(rel) }),
-        lines: [`<span class="tt-desc">${locField(rel, 'desc')}</span>`], onClose: done,
+        tone: 'reward', icon: rel.icon || '⭐', eyebrow: t('relic_obtained'), title: locName(rel),
+        lines: [`<span class="outcome-desc">${locField(rel, 'desc')}</span>`], onClose: done,
       });
     } else {
       const gold = Math.round((90 + Math.floor(Math.random() * 60)) * mods.goldMult);

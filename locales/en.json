@@ -108,6 +108,7 @@
   "toast_gold_loss": "-{n} gold",
   "toast_new_ship": "New ship recruited",
   "toast_relic": "Relic obtained: {name}",
+  "relic_obtained": "Relic obtained",
   "toast_curse": "Curse detected",
   "toast_fire": "Fire aboard",
   "toast_hull": "Hull damaged",
