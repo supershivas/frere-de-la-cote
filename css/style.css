@@ -430,9 +430,11 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
   display: flex; align-items: center; justify-content: center; padding: 20px;
   animation: fade 0.25s ease;
 }
-/* Wrapper only — the styled panel is .result-box (parchment). Neutralise the
-   design-system .modal panel look here so it doesn't double-frame. */
-.modal { max-width: 92vw; background: none; border: none; box-shadow: none; overflow: visible; margin: auto; }
+/* Wrapper only — the styled panel is .result-box (parchment). display:contents
+   removes .modal's own box so its child (width:100% up to its own max-width)
+   becomes a direct flex item of .overlay and is reliably centered by it,
+   instead of being sized/positioned against an ambiguous auto-width wrapper. */
+.modal { display: contents; }
 /* Entrance flourish for the end-of-battle panel: fade + a light scale-in. */
 .result-box { animation: result-pop-in 0.4s cubic-bezier(.2,.8,.3,1.2) both; }
 @keyframes result-pop-in { from { opacity: 0; transform: scale(0.88) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
