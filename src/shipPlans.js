@@ -30,6 +30,13 @@
 
 export const SPECIALTIES = ['canonnage', 'manoeuvre', 'reparation', 'soins', 'melee'];
 
+// Moving between decks means a ladder, and a ladder is slower than walking the
+// length of a deck. Costs are in the same unit as a step, and routing is
+// cheapest-path, so a man will walk around rather than climb when that is
+// quicker — the ship's internal logistics, which is the point of §5.3.
+export const STEP_COST = 1;
+export const LADDER_COST = 2;
+
 // ---------------------------------------------------------------------------
 // Systems (brief §5.4). Deliberately named apart from every room key.
 // `atZero` is the consequence stated in plain language — the interface shows
@@ -61,8 +68,8 @@ const PLANS = {
     minCrew: 12,
     maxCrew: 45,
     rooms: {
-      barre:    { name: 'room_barre',    x: 5,  y: 26, w: 18, h: 26, hp: 2, system: 'gouvernail' },
-      mat:      { name: 'room_mat',      x: 25, y: 22, w: 28, h: 30, hp: 3, system: 'voiles' },
+      barre:    { name: 'room_barre',    x: 5,  y: 26, w: 18, h: 26, hp: 2, system: 'gouvernail', open: true },
+      mat:      { name: 'room_mat',      x: 25, y: 22, w: 28, h: 30, hp: 3, system: 'voiles', open: true },
       batterie: { name: 'room_batterie', x: 20, y: 56, w: 58, h: 20, hp: 3, system: 'canons' },
       soute:    { name: 'room_soute',    x: 10, y: 78, w: 26, h: 16, hp: 2, system: 'munitions' },
     },
@@ -82,9 +89,9 @@ const PLANS = {
     minCrew: 30,
     maxCrew: 80,
     rooms: {
-      barre:     { name: 'room_barre',     x: 6,  y: 30, w: 17, h: 22, hp: 2, system: 'gouvernail' },
-      mat:       { name: 'room_mat',       x: 25, y: 26, w: 26, h: 26, hp: 3, system: 'voiles' },
-      proue:     { name: 'room_proue',     x: 53, y: 30, w: 24, h: 22, hp: 3, system: 'coque' },
+      barre:     { name: 'room_barre',     x: 6,  y: 30, w: 17, h: 22, hp: 2, system: 'gouvernail', open: true },
+      mat:       { name: 'room_mat',       x: 25, y: 26, w: 26, h: 26, hp: 3, system: 'voiles', open: true },
+      proue:     { name: 'room_proue',     x: 53, y: 30, w: 24, h: 22, hp: 3, system: 'coque', open: true },
       batterie:  { name: 'room_batterie',  x: 20, y: 54, w: 57, h: 20, hp: 3, system: 'canons' },
       poudriere: { name: 'room_poudriere', x: 12, y: 76, w: 19, h: 17, hp: 2, system: 'munitions' },
       cale:      { name: 'room_cale',      x: 33, y: 76, w: 30, h: 17, hp: 3, system: 'pompes' },
@@ -108,9 +115,9 @@ const PLANS = {
     minCrew: 45,
     maxCrew: 150,
     rooms: {
-      barre:         { name: 'room_barre',         x: 5,  y: 24, w: 15, h: 19, hp: 2, system: 'gouvernail' },
-      mat:           { name: 'room_mat',           x: 22, y: 20, w: 24, h: 23, hp: 3, system: 'voiles' },
-      proue:         { name: 'room_proue',         x: 48, y: 24, w: 22, h: 19, hp: 3, system: 'coque' },
+      barre:         { name: 'room_barre',         x: 5,  y: 24, w: 15, h: 19, hp: 2, system: 'gouvernail', open: true },
+      mat:           { name: 'room_mat',           x: 22, y: 20, w: 24, h: 23, hp: 3, system: 'voiles', open: true },
+      proue:         { name: 'room_proue',         x: 48, y: 24, w: 22, h: 19, hp: 3, system: 'coque', open: true },
       gaillard:      { name: 'room_gaillard',      x: 5,  y: 45, w: 15, h: 18, hp: 2, system: 'commandement' },
       batterieHaute: { name: 'room_batterie_haute', x: 22, y: 45, w: 48, h: 17, hp: 3, system: 'canons' },
       infirmerie:    { name: 'room_infirmerie',    x: 72, y: 45, w: 16, h: 17, hp: 2, system: 'chirurgie' },
@@ -163,28 +170,58 @@ export function adjacent(plan, key) {
   return out;
 }
 
-// Shortest room-by-room route, or null when none exists. Breadth-first, and
-// neighbours are visited in plan order, so the same query always returns the
-// same route — the crew must not wander differently between two identical
-// turns (brief §4.1, §14.6).
+// Two rooms are on different decks when their vertical bands do not overlap:
+// getting between them means a ladder, not a walk along the deck.
+export function isLadder(plan, a, b) {
+  const A = plan.rooms[a];
+  const B = plan.rooms[b];
+  if (!A || !B) throw new Error(`unknown room in passage "${a}"↔"${b}"`);
+  return !(A.y < B.y + B.h && B.y < A.y + A.h);
+}
+
+export function stepCost(plan, a, b) {
+  return isLadder(plan, a, b) ? LADDER_COST : STEP_COST;
+}
+
+// Cheapest route between two rooms, or null when none exists.
+//
+// Not breadth-first: ladders cost more than walking a deck, so the cheapest
+// route is not always the one through fewest rooms — a man will walk the length
+// of a deck rather than climb twice. Ties are broken by insertion order and the
+// frontier is scanned in that order, so the same query always returns the same
+// route; the crew must not wander differently between two identical turns
+// (brief §4.1, §14.6).
 export function route(plan, from, to) {
   if (!plan.rooms[from]) throw new Error(`unknown room "${from}"`);
   if (!plan.rooms[to]) throw new Error(`unknown room "${to}"`);
   if (from === to) return [from];
 
-  const queue = [[from]];
-  const seen = new Set([from]);
-  while (queue.length) {
-    const path = queue.shift();
-    for (const next of adjacent(plan, path[path.length - 1])) {
-      if (seen.has(next)) continue;
-      const extended = path.concat(next);
-      if (next === to) return extended;
-      seen.add(next);
-      queue.push(extended);
+  const best = { [from]: { cost: 0, path: [from] } };
+  const settled = new Set();
+  for (;;) {
+    let cur = null;
+    for (const key of Object.keys(best)) {
+      if (settled.has(key)) continue;
+      if (cur === null || best[key].cost < best[cur].cost) cur = key;
+    }
+    if (cur === null) return null;
+    if (cur === to) return best[to].path;
+    settled.add(cur);
+    for (const next of adjacent(plan, cur)) {
+      if (settled.has(next)) continue;
+      const cost = best[cur].cost + stepCost(plan, cur, next);
+      if (!best[next] || cost < best[next].cost) {
+        best[next] = { cost, path: best[cur].path.concat(next) };
+      }
     }
   }
-  return null;
+}
+
+// What a route costs in turns, ladders included.
+export function routeCost(plan, path) {
+  let total = 0;
+  for (let i = 1; i < path.length; i++) total += stepCost(plan, path[i - 1], path[i]);
+  return total;
 }
 
 // Rooms whose system is out of action, given a map of room key → structure.

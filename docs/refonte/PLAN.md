@@ -57,8 +57,10 @@ exploité) reste juste sur le fond, mais le code sous-jacent a bougé :
 | 1 | ✅ **Fait** — structures de données | `src/shipPlans.js` + `test/shipPlans.test.js`. Voir ci-dessous. |
 | 2 | ✅ **Fait** — rendu profil | `src/deckView.js` + `css/deck.css`. Voir ci-dessous. |
 | 3 | ✅ **Fait** — déplacement d'équipage | `src/deckView.js` (`walk`, `reachFrom`) + écran d'essai `src/screens/pont.js`. Voir ci-dessous. |
-| 4 | Combat 1 v 1 | Bandes de distance, dégâts localisés par salle, feu déterministe et télégraphié, 5 munitions différenciées, abordage. Porte visible = batterie engagée. **Gate de validation du brief : 5 combats joués, sensation « je tente la prise ou je coule ? » avant de continuer.** |
-| 5 | Boucle de partie | Archétypes de recrutement (3 préconçus + 3 points libres), chasse-partie (contrat voté, style `role-equipage-mockup.html`), **carte des Caraïbes réelle, départ fixe**, 3 actes, coût visible par nœud. |
+| 4 | ✅ **Fait** — combat 1 v 1 | `src/battle.js` (règles) + `src/screens/bataille.js` (écran) + `test/battle.test.js`. Voir ci-dessous. |
+| ~~4~~ | ~~ancien libellé~~ | Bandes de distance, dégâts localisés par salle, feu déterministe et télégraphié, 5 munitions différenciées, abordage. Porte visible = batterie engagée. **Gate de validation du brief : 5 combats joués, sensation « je tente la prise ou je coule ? » avant de continuer.** |
+| 5 | ✅ **Fait** — boucle de partie | `src/run.js`, `src/caribbean.js`, `src/screens/traversee.js`. Voir ci-dessous. |
+| ~~5~~ | ~~ancien libellé~~ | Archétypes de recrutement (3 préconçus + 3 points libres), chasse-partie (contrat voté, style `role-equipage-mockup.html`), **carte des Caraïbes réelle, départ fixe**, 3 actes, coût visible par nœud. |
 | 6 | Méta-progression | Officiers persistants, registre des prises (galerie des navires capturés via le générateur existant), port d'attache, `reputation` → `legitimacy` (§8.6), calendrier 1640–1697 (§8.7). |
 | 7 | Interface | Différé — polish une fois le combat et la boucle figés. |
 | 8 | Contenu | Différé — élargissement de contenu en dernier. |
@@ -187,6 +189,112 @@ passe d'interface — rien de cet habillage n'est censé survivre.
 
 Le panneau de détail est fixe, jamais une infobulle flottante : le survol seul
 a été essayé et écarté parce qu'il ne fonctionne pas au doigt (§9).
+
+### Passe de corrections sur retour visuel
+
+Six défauts relevés sur capture d'écran, tous corrigés :
+
+1. **Le navire doit se voir en entier.** Le recadrage sur la bande de coque
+   était une erreur : il fallait montrer tout le navire, gréement compris. Les
+   deux navires sont désormais dimensionnés par la largeur **et** par la
+   hauteur — un mât qui sort de l'écran n'est pas lisible. Les panneaux du bas
+   ont été resserrés : le navire est l'écran.
+2. **Les espaces extérieurs ne sont pas des salles.** Barre, grand mât et proue
+   sont du pont découvert : plus de rectangle, seulement le nom et la ligne de
+   pont sous les hommes qui s'y tiennent (`open: true` dans le plan).
+3. **Le flash à chaque clic** venait de `.screen { animation: fade }` rejouée à
+   chaque reconstruction de l'écran — `.combat-screen` la neutralisait déjà
+   pour cette raison exacte. Neutralisée aussi ici.
+4. **Le ciel** : l'écran passe sur le fond marin animé déjà existant plutôt que
+   sur le motif de bois.
+5. **Une seule mer.** Chaque navire est décalé vers le bas de la part de sa
+   coque située sous sa propre ligne de flottaison, si bien que les deux
+   flottaisons tombent sur la même ligne quelles que soient les deux échelles.
+   L'ennemi est plus petit, proportions FTL, pour laisser la place au joueur.
+6. **Le déplacement s'anime vraiment.** Il ne s'animait pas parce que chaque pas
+   reconstruisait le DOM, ce qui tuait la transition CSS : le jeton est
+   maintenant déplacé, pas recréé.
+
+**Et une conséquence mécanique, pas seulement visuelle.** « Changer de niveau
+est plus long qu'un déplacement horizontal » n'est pas un réglage d'animation :
+une échelle coûte **deux tours** contre un pour un déplacement sur le même
+pont. Le routage est donc devenu un plus-court-chemin pondéré et non plus un
+parcours en largeur — un homme fera le tour d'un pont plutôt que de grimper
+deux fois si c'est plus rapide. C'est exactement la « contrainte de logistique
+interne » du §5.3, et trois tests la verrouillent, dont un qui compare la route
+retenue à **tous** les chemins simples possibles pour vérifier qu'aucun moins
+cher n'existait.
+
+## Étape 4 — le combat
+
+Les règles vivent dans `src/battle.js` : des fonctions pures sur un objet
+d'état, sans DOM ni minuteur. L'écran affiche ce qu'elles renvoient.
+
+**Le §14.6 est enfin écrit.** Le brief le réclamait nommément — « deux
+résolutions du même tour avec le même état donnent un résultat identique » — et
+il était impossible avant l'étape 4 faute de résolveur. Un second test interdit
+toute source d'entropie dans le moteur (`Math.random`, `Date.now`, `crypto`),
+parce qu'un résolveur qui lirait l'horloge passerait le premier test tout en
+restant non déterministe d'une session à l'autre.
+
+**Deux vrais défauts de conception trouvés par la simulation**, tous deux
+opposés à la tension du §3 :
+
+1. **Couler était impossible.** Une brèche ajoutait 1 à la voie d'eau et un seul
+   charpentier aux pompes en retirait 1 : l'équilibre exact, indéfiniment. Une
+   brèche noie désormais à 2 et chaque paire de bras aux pompes retient 1, si
+   bien qu'un charpentier seul ralentit un naufrage sans l'empêcher — sauver un
+   navire troué demande d'arracher un second homme à son poste.
+2. **Un navire vidé de son équipage ne concluait rien** : on pouvait saigner
+   indéfiniment sur un abordage perdu d'avance. Un navire sans bras amène son
+   pavillon.
+
+**La tension du §3 est mesurable**, brigantin contre brigantin :
+
+| Stratégie | Issue | Tours | Butin | Pertes |
+|---|---|---|---|---|
+| Couler (boulet dans la proue) | coulé | 7 | 27 | aucune |
+| Prendre (chaîne, approcher, aborder) | **prise** | 5 | **180 + le navire** | 22 hommes |
+| Aborder trop tôt | on est pris | 7 | 0 | tout l'équipage |
+| Attendre trop longtemps bord à bord | on est pris | 7 | 0 | 40 hommes |
+
+Le dernier cas est le plus parlant : se coller pour prendre, c'est s'exposer à
+être abordé soi-même. La décision du §3 existe à chaque tour.
+
+**Le gate du §12 n'est pas franchi par moi.** Le brief demande de jouer cinq
+combats et de vérifier qu'on ressent « je tente la prise ou je la coule ? ».
+J'ai vérifié que le choix existe mécaniquement et qu'il est chiffré ; le
+ressenti reste à valider par un humain.
+
+## Étape 5 — la boucle de partie
+
+Trois écrans avant le premier combat, le plafond fixé au §10.2 — et mesuré à
+**18 secondes** de l'écran d'équipage au premier tour de combat, là où le brief
+demandait moins de deux minutes.
+
+**Recrutement (§10.1)** : trois équipages préconçus lisibles, jamais une
+répartition de points sur écran vide — cette dernière a été essayée et écartée
+(§9) parce qu'on demande au joueur de choisir avant qu'il sache ce que vaut
+« réparation 8 ».
+
+**Chasse-partie (§8.2)** : six clauses, chacune un avantage payé par une
+contrainte, et **l'équipage vote**. Le capitaine propose, il n'impose pas : une
+clause impopulaire est refusée et n'entre pas au contrat.
+
+**La carte est la vraie Caraïbe.** Dix-sept lieux où ces hommes sont réellement
+allés, placés à leur longitude et latitude réelles, avec les côtes de Cuba,
+d'Hispaniola, de la Jamaïque, du Yucatán, de l'Amérique centrale et de la
+Terre-Ferme tracées par-dessus. **Le départ est toujours le même** : l'Île de
+la Tortue, le refuge où les boucaniers se sont repliés quand les Espagnols les
+ont chassés d'Hispaniola. Partir toujours du même coin est ce qui rend ces eaux
+apprenables. L'accessibilité est géographique — une distance en degrés — et non
+un index de ligne.
+
+Chaque escale annonce son coût avant qu'on y aille (§10.3), et le moral tombe à
+chaque nœud traversé sans prise (§8.3, « pas de prise, pas de paye ») : éviter
+les combats cesse d'être une stratégie sans qu'aucun mur artificiel soit posé.
+À moral nul, le conseil dépose le capitaine (§8.5) — une fin de partie qui
+n'est pas une mort : il est débarqué.
 
 ## Ce qui reste à faire
 

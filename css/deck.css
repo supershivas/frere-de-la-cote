@@ -5,16 +5,11 @@
   position: relative;
   margin: 0 auto;
   line-height: 0;
-  /* Clipping frame: the sprite is drawn whole and slid up, so only the hull
-     band shows. The rigging is most of the sprite and none of the gameplay. */
-  overflow: hidden;
   max-width: 100%;
 }
 
 .deck-hull {
   display: block;
-  position: absolute;
-  left: 0;
   image-rendering: pixelated;
 }
 
@@ -46,8 +41,8 @@
   pointer-events: none;
   border: 0;
 }
-.deck-door.hatchway { border-top: 2px dotted rgba(240, 226, 190, .5); }
-.deck-door.ladder { border-left: 2px dotted rgba(240, 226, 190, .5); }
+.deck-door.hatchway { border-top: 2px dotted rgba(240, 226, 190, .45); }
+.deck-door.ladder { border-left: 3px dashed rgba(240, 226, 190, .6); }
 
 .deck-room {
   position: absolute;
@@ -60,6 +55,21 @@
   transition: background .15s, border-color .15s, box-shadow .15s;
 }
 .deck-room:hover { border-color: var(--gold, #c9a24b); }
+
+/* Weather deck: open air, not a compartment. No box — just the deck it stands
+   on, so the eye reads "space" rather than "room". */
+.deck-room.open {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid rgba(60, 42, 28, .5);
+}
+.deck-room.open .deck-room-name { color: rgba(238, 228, 200, .9); text-shadow: 0 1px 2px rgba(0,0,0,.85); }
+.deck-room.open .deck-pips i { box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+.deck-room.open:hover { border-bottom-color: var(--gold, #c9a24b); }
+.deck-room.open.reachable,
+.deck-room.open.here { box-shadow: none; }
+.deck-room.open.reachable { border-bottom-color: rgba(110, 190, 150, .95); }
+.deck-room.open.here { border-bottom-color: rgba(201, 162, 75, .95); }
 .deck-room.damaged { background: rgba(205, 186, 146, .85); }
 .deck-room.wrecked {
   background: repeating-linear-gradient(45deg,
@@ -142,19 +152,45 @@
   box-shadow: 0 0 0 3px rgba(60, 90, 80, .35);
 }
 .deck-man.enemy { background: rgba(200, 170, 160, .9); border-color: #8d2b21; cursor: default; }
+.deck-man.hurt { border-color: #e08a5a; }
+/* A ladder is slower than a deck: the token leans into the climb. */
+.deck-man.climbing { transition-timing-function: cubic-bezier(.6, 0, .8, .3); }
 
 /* --- demo screen scaffolding (step 2/3 harness, not final combat UI) --- */
 
-.pont-screen { padding: 12px clamp(8px, 2vw, 24px) 28px; }
-.pont-duo {
+.pont-screen {
+  /* No fade: the screen re-renders on every interaction, and replaying the
+     entry animation each time reads as a flash. */
+  animation: none;
   display: flex;
-  gap: clamp(8px, 1.5vw, 22px);
-  align-items: flex-start;
-  justify-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  height: 100%;
+  padding: 6px clamp(8px, 2vw, 20px) 10px;
 }
-.pont-ship { flex: 1 1 480px; min-width: 300px; max-width: min(50vw, 780px); }
-.pont-ship .deck { width: 100% !important; }
+
+/* The sea both ships float on. They are aligned on this line, not on their
+   own boxes, so the two hulls sit in the same water however they are scaled. */
+.pont-sea {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(6px, 2vw, 34px);
+}
+.pont-sea::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: var(--sea-line, 22%);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(150, 200, 215, .5) 8%, rgba(150, 200, 215, .5) 92%, transparent);
+  pointer-events: none;
+}
+
+.pont-ship { position: relative; display: flex; flex-direction: column; justify-content: flex-end; }
+.pont-ship .deck { width: 100% !important; height: auto; }
 .pont-cap {
   font-family: "Courier Prime", monospace;
   font-size: 10px;
@@ -167,49 +203,333 @@
   line-height: 1.4;
 }
 .pont-panel {
-  margin: 14px auto 0;
-  max-width: 820px;
+  margin: 6px auto 0;
+  max-width: 980px;
   border: 1px solid rgba(201, 162, 75, .45);
   background: rgba(20, 15, 11, .55);
   padding: 10px 12px;
   color: var(--parchment, #e6dcc3);
   font-family: "Courier Prime", monospace;
-  font-size: 11.5px;
-  line-height: 1.75;
-  min-height: 64px;
+  font-size: 11px;
+  line-height: 1.55;
 }
 .pont-panel h4 {
   font-family: "IM Fell English", Georgia, serif;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 400;
   margin-bottom: 2px;
 }
 .pont-panel .warn { color: #e08a5a; }
 .pont-crew {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 6px;
-  max-width: 820px;
-  margin: 10px auto 0;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 4px;
+  max-width: 980px;
+  margin: 5px auto 0;
 }
 .pont-card {
   border: 1px solid rgba(201, 162, 75, .35);
-  background: rgba(28, 21, 15, .6);
-  padding: 6px 8px;
+  background: rgba(28, 21, 15, .72);
+  padding: 3px 7px;
   cursor: pointer;
   color: var(--parchment, #e6dcc3);
 }
 .pont-card:hover { border-color: rgba(201, 162, 75, .8); }
 .pont-card.selected { border-color: #6fae92; background: rgba(60, 90, 80, .3); }
-.pont-card b { font-family: "IM Fell English", Georgia, serif; font-size: 15px; font-weight: 400; }
+.pont-card b { font-family: "IM Fell English", Georgia, serif; font-size: 13.5px; font-weight: 400; }
 .pont-card .role,
 .pont-card .loc {
   display: block;
   font-family: "Courier Prime", monospace;
-  font-size: 9.5px;
-  letter-spacing: .06em;
+  font-size: 9px;
+  letter-spacing: .04em;
   opacity: .7;
 }
 .pont-card .loc { opacity: .95; }
 .pont-card .hurt { color: #e08a5a; }
-.pont-controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 12px 0 4px; }
+.pont-controls { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 6px 0 0; }
+.pont-controls .btn-level-4 { padding: 3px 10px; font-size: 12px; }
+.pont-cap { padding-bottom: 2px; font-size: 9.5px; }
+
+/* --- the fight (step 4) ---------------------------------------------------- */
+
+.bat-screen {
+  animation: none;               /* no fade: the screen re-renders every action */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 4px clamp(8px, 2vw, 20px) 8px;
+  gap: 2px;
+}
+
+/* The four bands, always on screen: distance is the whole positional game. */
+.bat-range {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: "Courier Prime", monospace;
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(230, 220, 195, .5);
+  padding: 2px 0 4px;
+}
+.bat-range-step.now {
+  color: var(--parchment, #e6dcc3);
+  border-bottom: 1px solid var(--gold, #c9a24b);
+  padding-bottom: 1px;
+}
+.bat-turn { margin-left: auto; color: rgba(230, 220, 195, .75); }
+
+.bat-sea { flex: 1 1 auto; min-height: 0; }
+
+.bat-intent {
+  font-family: "Courier Prime", monospace;
+  font-size: 11px;
+  color: var(--parchment, #e6dcc3);
+  background: rgba(20, 15, 11, .6);
+  border-left: 3px solid #8d2b21;
+  padding: 4px 9px;
+  margin: 2px auto 0;
+  max-width: 1100px;
+  width: 100%;
+  min-height: 24px;
+}
+.bat-intent .warn { color: #e08a5a; }
+.bat-intent .bat-note { opacity: .75; }
+
+.bat-actions { max-width: 1100px; width: 100%; margin: 4px auto 0; }
+.bat-ammo { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+.bat-ammo-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(201, 162, 75, .35);
+  background: rgba(28, 21, 15, .72);
+  color: var(--parchment, #e6dcc3);
+  font-family: "Courier Prime", monospace;
+  font-size: 11px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.bat-ammo-btn:hover { border-color: rgba(201, 162, 75, .8); }
+.bat-ammo-btn.on { border-color: var(--gold, #c9a24b); background: rgba(201, 162, 75, .18); }
+.bat-ammo-btn.far { opacity: .4; }
+.bat-ammo-btn .ico { font-size: 13px; }
+
+/* The consequence in plain language, always under the choice (§4.6). */
+.bat-ammo-hint {
+  text-align: center;
+  font-size: 12px;
+  font-style: italic;
+  color: rgba(230, 220, 195, .8);
+  padding: 3px 0 5px;
+  min-height: 20px;
+}
+
+.bat-buttons { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.bat-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgba(201, 162, 75, .45);
+  background: rgba(28, 21, 15, .8);
+  color: var(--parchment, #e6dcc3);
+  font-family: "Courier Prime", monospace;
+  font-size: 12px;
+  padding: 4px 14px;
+  cursor: pointer;
+  line-height: 1.3;
+}
+.bat-btn:hover:not(.off) { border-color: var(--gold, #c9a24b); }
+.bat-btn.primary { border-color: var(--gold, #c9a24b); background: rgba(201, 162, 75, .2); }
+.bat-btn.aiming { border-color: #6fae92; background: rgba(60, 140, 110, .3); }
+.bat-btn.board { border-color: #8d2b21; }
+.bat-btn.off { opacity: .38; cursor: not-allowed; }
+/* Say WHY an action is unavailable rather than merely greying it out. */
+.bat-btn .why { font-size: 8.5px; letter-spacing: .04em; opacity: .8; text-transform: uppercase; }
+
+.bat-aiming { text-align: center; font-size: 12px; color: #8fd4b4; padding-top: 3px; }
+.bat-rules {
+  text-align: center;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(230, 220, 195, .55);
+  padding: 4px 0 0;
+}
+
+.bat-outcome {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(440px, 90vw);
+  height: fit-content;
+  background: rgba(24, 18, 13, .97);
+  border: 2px solid var(--gold, #c9a24b);
+  padding: 20px 24px;
+  text-align: center;
+  color: var(--parchment, #e6dcc3);
+  z-index: 50;
+}
+.bat-outcome h2 { font-family: "IM Fell English SC", Georgia, serif; font-size: 28px; font-weight: 400; }
+.bat-outcome p { font-family: "Courier Prime", monospace; font-size: 12px; padding-top: 8px; }
+.bat-outcome .warn { color: #e08a5a; font-style: italic; }
+.bat-outcome.lost { border-color: #8d2b21; }
+.bat-outcome-btns { display: flex; gap: 8px; justify-content: center; padding-top: 16px; }
+
+/* --- the run: recruitment, charter, chart (step 5) -------------------------- */
+
+.run-screen {
+  animation: none;
+  padding: 14px clamp(10px, 3vw, 32px) 20px;
+  color: var(--parchment, #e6dcc3);
+  overflow-y: auto;
+  height: 100%;
+}
+.run-screen h1 {
+  font-family: "IM Fell English SC", Georgia, serif;
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 400;
+  text-align: center;
+}
+.run-sub {
+  text-align: center;
+  font-style: italic;
+  font-size: 14px;
+  opacity: .8;
+  max-width: 720px;
+  margin: 4px auto 14px;
+}
+
+.run-bar {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-family: "Courier Prime", monospace;
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  opacity: .85;
+  padding-bottom: 8px;
+}
+.run-bar .low { color: #e08a5a; }
+
+.run-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+  max-width: 940px;
+  margin: 0 auto;
+}
+.run-card {
+  border: 1px solid rgba(201, 162, 75, .4);
+  background: rgba(24, 18, 13, .72);
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.run-card:hover { border-color: var(--gold, #c9a24b); }
+.run-card.on { border-color: var(--gold, #c9a24b); background: rgba(201, 162, 75, .16); }
+.run-card h3 { font-family: "IM Fell English", Georgia, serif; font-size: 19px; font-weight: 400; }
+.run-card .style { font-style: italic; font-size: 13px; opacity: .8; padding: 2px 0 6px; }
+.run-card ul { list-style: none; font-family: "Courier Prime", monospace; font-size: 11px; line-height: 1.7; opacity: .85; }
+
+.run-nav { display: flex; gap: 10px; justify-content: center; padding-top: 18px; flex-wrap: wrap; }
+
+/* The charter reads as a signed document, not a settings menu (§8.2). */
+.charte-clauses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+  max-width: 940px;
+  margin: 0 auto;
+}
+.charte-clause {
+  border: 1px solid rgba(201, 162, 75, .3);
+  border-left: 3px solid rgba(201, 162, 75, .5);
+  background: rgba(24, 18, 13, .6);
+  padding: 9px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.charte-clause:hover { border-color: var(--gold, #c9a24b); }
+.charte-clause.on { background: rgba(201, 162, 75, .16); border-left-color: var(--gold, #c9a24b); }
+.charte-clause.refused { border-left-color: #8d2b21; opacity: .8; }
+.clause-text { font-family: "IM Fell English", Georgia, serif; font-size: 17px; }
+.clause-good { color: #8fd4b4; font-family: "Courier Prime", monospace; font-size: 11px; }
+.clause-bad { color: #e08a5a; font-family: "Courier Prime", monospace; font-size: 11px; }
+.clause-vote { font-family: "Courier Prime", monospace; font-size: 10px; opacity: .8; padding-top: 3px; }
+.clause-vote.no { color: #e08a5a; }
+.charte-warn { text-align: center; font-style: italic; color: #e08a5a; padding-top: 10px; font-size: 13px; }
+
+/* The chart: a real sea, entered from the same corner every run. */
+.carte-screen { display: flex; flex-direction: column; height: 100%; }
+.carte-board {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 340px;
+  margin: 0 auto;
+  width: min(100%, 1180px);
+  border: 1px solid rgba(201, 162, 75, .25);
+  background: rgba(10, 22, 34, .35);
+}
+.carte-lanes { position: absolute; inset: 0; width: 100%; height: 100%; }
+.carte-lane { stroke: rgba(201, 162, 75, .55); stroke-width: .35; stroke-dasharray: 1.5 1.5; }
+
+.carte-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: none;
+  border: 0;
+  color: var(--parchment, #e6dcc3);
+  font-family: "Courier Prime", monospace;
+  cursor: default;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: .45;
+}
+.carte-pin.open, .carte-pin.here { opacity: 1; }
+.carte-pin.open { cursor: pointer; }
+.pin-dot { width: 9px; height: 9px; border: 1.5px solid currentColor; border-radius: 50%; }
+.carte-pin.port .pin-dot { background: #8fd4b4; }
+.carte-pin.chasse .pin-dot { background: #e08a5a; }
+.carte-pin.boss .pin-dot { background: #8d2b21; width: 13px; height: 13px; }
+.carte-pin.epave .pin-dot,
+.carte-pin.evenement .pin-dot { background: rgba(230, 220, 195, .5); }
+.carte-pin.here .pin-dot { box-shadow: 0 0 0 4px rgba(201, 162, 75, .35); }
+.carte-pin.seen .pin-label { opacity: .6; }
+.pin-label { font-size: 9.5px; letter-spacing: .04em; white-space: nowrap; padding-top: 2px; text-shadow: 0 1px 3px #000; }
+.pin-cost { font-size: 8.5px; opacity: .8; white-space: nowrap; color: #e0c98a; text-shadow: 0 1px 3px #000; }
+.carte-pin.open:hover .pin-label { color: var(--gold, #c9a24b); }
+.carte-hint { text-align: center; font-style: italic; font-size: 13px; opacity: .8; padding-top: 8px; }
+
+/* Land. Drawn under the lanes and pins, in ink on the chart. */
+.carte-land { fill: none; stroke: rgba(214, 196, 152, .55); stroke-width: .4; vector-effect: non-scaling-stroke; }
+.carte-land.island { fill: rgba(120, 104, 72, .32); }
+.carte-land.shore { stroke-width: .5; }
+.carte-pin .pin-label { transition: opacity .15s; }
+.carte-pin:not(.open):not(.here):not(.seen):hover::after {
+  content: attr(title);
+  position: absolute;
+  top: 12px;
+  white-space: nowrap;
+  font-size: 9.5px;
+  color: var(--parchment, #e6dcc3);
+  text-shadow: 0 1px 3px #000;
+}
+
+/* Labels fan out from their pin, so the cluster around Hispaniola stays legible. */
+.carte-pin { position: absolute; }
+.carte-pin .pin-label,
+.carte-pin .pin-cost { position: absolute; left: 50%; transform: translateX(-50%); }
+.carte-pin .pin-label { top: 11px; }
+.carte-pin .pin-cost { top: 22px; }
+.carte-pin.lbl-n .pin-label { top: auto; bottom: 12px; }
+.carte-pin.lbl-n .pin-cost { top: auto; bottom: 2px; }
+.carte-pin.lbl-e .pin-label { left: 13px; top: -4px; transform: none; }
+.carte-pin.lbl-e .pin-cost { left: 13px; top: 7px; transform: none; }
+.carte-pin.lbl-w .pin-label { left: auto; right: 13px; top: -4px; transform: none; }
+.carte-pin.lbl-w .pin-cost { left: auto; right: 13px; top: 7px; transform: none; }

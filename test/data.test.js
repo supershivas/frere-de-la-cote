@@ -295,9 +295,14 @@ test('combat randomness is confined to the legacy engine', () => {
   const offenders = srcFiles
     .filter(([f, s]) => s.includes('Math.random') && f !== 'src/combat.js')
     .map(([f]) => f);
+  // §4.1 allows randomness in GENERATION — the chart, the enemies, the loot —
+  // and forbids it only in resolution. Each file below generates; the combat
+  // engine (src/battle.js) and its screen appear nowhere here, and a separate
+  // test in battle.test.js proves the engine reaches for no entropy at all.
   const expected = ['src/map.js', 'src/ocean.js', 'src/fx.js', 'src/sprites.js',
     'src/screens/event.js', 'src/screens/port.js', 'src/screens/treasure.js',
-    'src/screens/editor.js', 'src/screens/shipyard.js', 'src/state.js', 'src/debug.js'];
+    'src/screens/editor.js', 'src/screens/shipyard.js', 'src/state.js', 'src/debug.js',
+    'src/run.js'];
   const unexpected = offenders.filter((f) => !expected.includes(f));
   empty(unexpected, 'new sources of randomness outside generation');
 });
