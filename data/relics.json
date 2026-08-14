@@ -65,15 +65,15 @@
     "effects": { "goldMult": 1.3, "dangerUp": true },
     "icon": "🧭"
   },
-  "kraken_relic": {
-    "id": "kraken_relic",
-    "name_fr": "Relique du Kraken",
-    "name_en": "Kraken Relic",
+  "canon_almirante": {
+    "id": "canon_almirante",
+    "name_fr": "Le Canon de l'Almirante",
+    "name_en": "The Almirante's Gun",
     "category": "offensive",
     "rarity": "legendary",
-    "desc_fr": "Une fois par combat, votre navire principal peut déchaîner un tir dévastateur (200% dégâts).",
-    "desc_en": "Once per battle, your flagship can unleash a devastating shot (200% damage).",
-    "effects": { "flagshipKrakenShot": true },
-    "icon": "🐙"
+    "desc_fr": "Pièce de trente-six prise sur le vaisseau amiral. Une fois par combat, votre navire principal peut lâcher un tir dévastateur (200% dégâts).",
+    "desc_en": "A thirty-six pounder taken off the flagship. Once per battle, your flagship can loose a devastating shot (200% damage).",
+    "effects": { "flagshipHeavyShot": true },
+    "icon": "💣"
   }
 }

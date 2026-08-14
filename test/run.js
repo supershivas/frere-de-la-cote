@@ -1,0 +1,7 @@
+// Test entry point — `node test/run.js`, no install required.
+import { run } from './harness.js';
+
+import './data.test.js';
+
+console.log('\n  Frères de la Côte — data & integrity checks');
+await run();

@@ -199,27 +199,27 @@
       }
     ]
   },
-  "omen_of_the_kraken": {
-    "id": "omen_of_the_kraken",
-    "title_fr": "Présage du Kraken",
-    "title_en": "Omen of the Kraken",
-    "text_fr": "Des tentacules géantes, gravées dans une amulette échouée, semblent bouger sous vos doigts.",
-    "text_en": "Giant tentacles, carved into a washed-up amulet, seem to shift under your fingers.",
+  "omen_of_the_drowned": {
+    "id": "omen_of_the_drowned",
+    "title_fr": "Le présage",
+    "title_en": "The Omen",
+    "text_fr": "Un corps de noyé dérive contre la coque, retourné sur le dos. Les hommes se signent : pour eux, le navire est marqué. Le quartier-maître attend vos ordres.",
+    "text_en": "A drowned man drifts against the hull, face to the sky. The men cross themselves: to them, the ship is marked. The quartermaster waits on your orders.",
     "require": { "act": 2 },
     "choices": [
       {
-        "label_fr": "Garder l'amulette",
-        "label_en": "Keep the amulet",
+        "label_fr": "Le hisser à bord et le dépouiller",
+        "label_en": "Haul him aboard and strip him",
         "outcomes": [
-          { "weight": 50, "type": "relic_random", "toast_fr": "L'amulette révèle un pouvoir caché.", "toast_en": "The amulet reveals a hidden power." },
-          { "weight": 50, "type": "damage_flagship", "value": 20, "toast_fr": "L'amulette se referme sur votre main !", "toast_en": "The amulet snaps shut on your hand!" }
+          { "weight": 50, "type": "relic_random", "toast_fr": "Une bague cousue dans sa manche. L'équipage se tait.", "toast_en": "A ring sewn into his sleeve. The crew says nothing." },
+          { "weight": 50, "type": "damage_flagship", "value": 20, "toast_fr": "Personne ne veut le toucher. La manœuvre s'en ressent.", "toast_en": "No one will touch him. The working of the ship suffers for it." }
         ]
       },
       {
-        "label_fr": "La rejeter à la mer",
-        "label_en": "Cast it back into the sea",
+        "label_fr": "L'écarter à la gaffe et faire silence",
+        "label_en": "Push him off with a boat hook and keep silence",
         "outcomes": [
-          { "weight": 100, "type": "reputation", "value": 3, "toast_fr": "Votre prudence inspire l'équipage.", "toast_en": "Your caution inspires the crew." }
+          { "weight": 100, "type": "reputation", "value": 3, "toast_fr": "Votre sang-froid rassure l'équipage.", "toast_en": "Your composure steadies the crew." }
         ]
       }
     ]

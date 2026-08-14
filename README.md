@@ -4,7 +4,13 @@
 
 A turn-based **naval roguelite** in pixel art. You play a forgotten pirate captain
 rebuilding a legendary fleet across procedurally-generated seas — fighting
-corsairs, monsters and the **Mechanical Kraken** in readable, tactical combat.
+corsairs and the Spanish Indies fleet in readable, tactical combat.
+
+> **⚠️ Refonte in progress.** The game is being rebuilt around a new hook —
+> *you do not sink ships, you take them*. Read `docs/refonte/brief.md` and
+> `docs/refonte/PLAN.md` before touching combat, the chart or the crew; the
+> sections below describe the V1 prototype, which is being replaced step by
+> step (`brief.md` §12).
 
 This repository is the **Version 1 playable prototype** described in the game
 design document, built as a dependency-free browser game (vanilla JS + ES
@@ -47,7 +53,8 @@ No build step, no `npm install`, no external assets — everything is procedural
      or **Flee** (not vs bosses).
 4. Win to earn **gold**, **XP** (ships level up → pick 1 of 3 upgrades), and
    relics. Visit **ports**, **shipyards**, **treasure** and **mysterious isles**
-   between fights. Beat the **Mechanical Kraken** boss to complete the run.
+   between fights. Beat **the Almirante**, flagship of the Indies fleet, to
+   complete the run.
 
 ### Keyboard
 
@@ -65,6 +72,27 @@ Toggle with **`Ctrl + Shift + D`**. Opens a console + FPS overlay.
   `level ship 10`, `spawn enemy pirate_sloop`, `spawn boss kraken`.
 - Shortcuts: `F1` menu · `F2` +gold · `F3` heal · `F4` level up · `F5` win ·
   `F6` spawn enemy · `F7` spawn boss · `F8` ship editor.
+  (`F6`/`F7` add a foe to a fight already under way.)
+
+## ✅ Tests
+
+```bash
+node test/run.js     # data + integrity checks, no install required
+```
+
+Zero dependencies — plain `node`. The suite validates **data**, not code
+paths: ids that disagree with their key, dangling cross-references, effect
+flags no system reads, locale keys present in one language and missing from
+the other. That is the bug class a syntax check cannot catch, and the one
+that broke the previous prototype.
+
+For runtime regressions the data tests cannot see:
+
+```bash
+python3 -m http.server 8000 &
+npm i playwright-core        # dev-only; the game itself still ships no deps
+node tools/playtest.mjs 4    # plays full combats, fails on any console error
+```
 
 ### Sprite Editor (game-design tool)
 
@@ -90,7 +118,7 @@ css/style.css         Pixel-art pirate UI (deep ocean / wood / gold palette)
 data/                 All game content (externalized JSON)
   ships.json          Player ship classes (Sloop, Frigate, Galleon)
   enemies.json        5 base enemies
-  bosses.json         Mechanical Kraken (multi-phase)
+  bosses.json         The Almirante — Spanish flagship (multi-phase)
   ammo.json           Cannonball / ammunition types
   upgrades.json       Ship level-up upgrades
   relics.json         Run-modifying relics & synergies
@@ -98,6 +126,10 @@ data/                 All game content (externalized JSON)
 
 locales/              Internationalization — no text hardcoded in logic
   fr.json  en.json
+
+docs/refonte/         Refonte brief, plan and visual mockups — read first
+test/                 Zero-dependency data & integrity suite (node test/run.js)
+tools/                Dev tooling (headless playtest driver)
 
 src/
   main.js             Bootstrap: load data + locales, wire input, start
@@ -144,7 +176,7 @@ src/
       from damaged hulls and floating damage numbers — no full-screen flash
 - [x] 3 allied ship classes (Sloop, Frigate, Galleon) with unique abilities
 - [x] 5 base enemies + AI behaviours
-- [x] Mechanical Kraken boss (multi-phase, enrage)
+- [x] Act boss: the Almirante, Spanish flagship (multi-phase, enrage)
 - [x] 5 ammo types, status effects (fire, slow, immobilize, brace)
 - [x] Gold economy, ship XP & upgrade choices, relics & synergies
 - [x] Ports, shipyards, treasure chests, narrative events

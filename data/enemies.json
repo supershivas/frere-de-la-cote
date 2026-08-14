@@ -7,7 +7,7 @@
     "faction": "free_pirates",
     "desc_fr": "Rapide et fragile, elle attaque en meute.",
     "desc_en": "Fast and fragile, it attacks in packs.",
-    "weakness": "damage",
+    "weakness": "explosive",
     "stats": {
       "hp": 55,
       "armor": 0,
@@ -76,7 +76,7 @@
     "faction": "black_indies",
     "desc_fr": "Faible attaque mais butin généreux.",
     "desc_en": "Weak attack but generous loot.",
-    "weakness": "damage",
+    "weakness": "classic",
     "stats": {
       "hp": 120,
       "armor": 8,

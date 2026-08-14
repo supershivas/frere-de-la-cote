@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rôle d'équipage — La Trompeuse, 1662</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#e6dcc3;
+  --paper-band:#dfd4b8;
+  --edge:#c6b58d;
+  --ink:#29201a;
+  --ink-faded:#6d5c46;
+  --rubric:#8d2b21;
+  --verdigris:#3c5a50;
+
+  --display:"IM Fell English", Georgia, serif;
+  --smallcaps:"IM Fell English SC", Georgia, serif;
+  --data:"Courier Prime", "Courier New", monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  background:#221a14;
+  padding:clamp(12px,3vw,48px);
+  font-family:var(--display);
+  color:var(--ink);
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- la feuille ---------- */
+.sheet{
+  max-width:940px;
+  margin:0 auto;
+  padding:clamp(20px,4vw,60px) clamp(16px,4vw,56px) clamp(28px,4vw,48px);
+  background:
+    /* taches d'usure */
+    radial-gradient(ellipse 180px 120px at 88% 6%, rgba(140,110,60,.13), transparent 70%),
+    radial-gradient(ellipse 140px 200px at 3% 62%, rgba(120,95,55,.10), transparent 72%),
+    radial-gradient(circle 60px at 22% 94%, rgba(110,80,45,.12), transparent 70%),
+    /* vergeures du papier */
+    repeating-linear-gradient(90deg, rgba(120,100,65,.055) 0 1px, transparent 1px 26px),
+    var(--paper);
+  box-shadow:0 2px 0 var(--edge), 0 26px 60px -18px rgba(0,0,0,.75);
+}
+
+/* ---------- en-tête ---------- */
+.head{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px 24px;
+  padding-bottom:14px;
+  border-bottom:2px solid var(--ink);
+}
+.head h1{
+  font-family:var(--smallcaps);
+  font-size:clamp(28px,5.5vw,46px);
+  font-weight:400;
+  letter-spacing:.02em;
+  line-height:1;
+}
+.head .vessel{
+  font-size:clamp(15px,2.2vw,19px);
+  font-style:italic;
+  color:var(--ink-faded);
+  margin-top:6px;
+}
+.head .place{
+  font-family:var(--data);
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--ink-faded);
+  text-align:right;
+  line-height:1.9;
+}
+
+/* ---------- bandeau d'effectif ---------- */
+.tally{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(128px,1fr));
+  border-bottom:1px solid var(--edge);
+}
+.tally div{
+  padding:14px 16px 14px 0;
+  border-right:1px solid var(--edge);
+}
+.tally div:last-child{border-right:none}
+.tally dt{
+  font-family:var(--data);
+  font-size:9.5px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--ink-faded);
+}
+.tally dd{
+  font-family:var(--data);
+  font-size:26px;
+  line-height:1.25;
+}
+.tally dd small{font-size:12px;color:var(--ink-faded)}
+.tally .due dd{color:var(--rubric)}
+
+/* ---------- chasse-partie ---------- */
+.charter{
+  padding:18px 0 22px;
+  border-bottom:2px solid var(--ink);
+  display:grid;
+  grid-template-columns:minmax(0,auto) minmax(0,1fr);
+  gap:6px 22px;
+  align-items:baseline;
+}
+.charter h2{
+  font-family:var(--smallcaps);
+  font-size:17px;
+  font-weight:400;
+  white-space:nowrap;
+}
+.charter p{font-size:16px;font-style:italic;color:var(--ink-faded)}
+.charter p b{font-style:normal;font-weight:400;color:var(--ink)}
+
+/* ---------- le rôle ---------- */
+.roll{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr);
+  margin-top:6px;
+}
+.section-label{
+  grid-column:1/-1;
+  font-family:var(--data);
+  font-size:9.5px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:var(--ink-faded);
+  padding:22px 0 7px;
+  border-bottom:1px solid var(--ink);
+}
+.section-label span{float:right;letter-spacing:.1em;text-transform:none}
+
+.entry{
+  grid-column:2;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 96px 40px 132px 54px;
+  gap:2px 14px;
+  align-items:baseline;
+  padding:10px 0 9px;
+  border-bottom:1px solid var(--edge);
+}
+.entry:nth-of-type(even){background:linear-gradient(90deg,transparent,rgba(160,135,85,.055) 6%,rgba(160,135,85,.055) 96%,transparent)}
+
+.nm{font-size:19px;line-height:1.25}
+.nm i{font-style:italic;color:var(--ink-faded)}
+.nm small{
+  display:block;
+  font-family:var(--data);
+  font-size:10.5px;
+  color:var(--ink-faded);
+  letter-spacing:.02em;
+  margin-top:2px;
+}
+.po{font-family:var(--smallcaps);font-size:14px}
+.pt{font-family:var(--data);font-size:15px;text-align:center}
+.ap{font-family:var(--data);font-size:11.5px;color:var(--ink-faded);letter-spacing:.01em}
+.an{font-family:var(--data);font-size:14px;text-align:right}
+.an small{font-size:9px;letter-spacing:.1em;color:var(--ink-faded);display:block}
+
+/* états */
+.st{grid-column:1/-1;font-family:var(--data);font-size:11px;letter-spacing:.03em;margin-top:3px}
+.st.hurt{color:var(--ink-faded)}
+.st.maim{color:var(--rubric)}
+.st.vacant{color:var(--rubric);font-style:normal}
+.entry.vacant .nm{color:var(--rubric);font-style:italic}
+.entry.dead{opacity:.62}
+.entry.dead .nm{text-decoration:line-through;text-decoration-thickness:1px}
+
+/* traits */
+.tr{
+  grid-column:1/-1;
+  font-size:14.5px;
+  font-style:italic;
+  color:var(--ink-faded);
+  margin-top:2px;
+}
+
+/* ---------- la marge : seconde encre ---------- */
+.mark{
+  grid-column:1;
+  align-self:center;
+  font-family:var(--data);
+  font-size:11px;
+  color:var(--verdigris);
+  text-align:center;
+  transform:rotate(-4deg);
+}
+.mark.up{color:var(--rubric);font-size:15px;transform:rotate(2deg)}
+.mark.cross{color:var(--ink-faded);font-size:13px}
+
+/* accolade d'amatelotage : occupe 2 lignes de la grille */
+.brace{
+  grid-column:1;
+  grid-row:span 2;
+  justify-self:end;
+  width:11px;
+  margin:14px 7px 14px 0;
+  border:1.5px solid var(--verdigris);
+  border-right:none;
+  border-radius:9px 0 0 9px;
+  position:relative;
+}
+.brace::after{
+  content:attr(data-pair);
+  position:absolute;
+  left:-9px;top:50%;
+  transform:translateY(-50%) rotate(-90deg);
+  font-family:var(--data);
+  font-size:8.5px;
+  color:var(--verdigris);
+  background:var(--paper);
+  padding:1px 0;
+}
+.brace.severed{border-bottom-style:dashed;border-left-style:dashed;opacity:.7}
+
+.ink{opacity:0;animation:settle .9s ease-out .5s forwards}
+@keyframes settle{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.ink{animation:none;opacity:1}}
+
+/* ---------- pied ---------- */
+.rest{
+  grid-column:1/-1;
+  padding:16px 0 0;
+  border-top:2px solid var(--ink);
+  font-size:17px;
+  font-style:italic;
+  color:var(--ink-faded);
+}
+.foot{
+  display:flex;
+  flex-wrap:wrap;
+  gap:26px;
+  justify-content:space-between;
+  align-items:flex-end;
+  margin-top:34px;
+}
+.key{font-family:var(--data);font-size:10px;color:var(--ink-faded);line-height:2.1;max-width:400px}
+.key b{color:var(--verdigris);font-weight:400}
+.key i{color:var(--rubric);font-style:normal}
+.sign{text-align:right;font-size:16px;font-style:italic;color:var(--ink-faded)}
+.sign span{
+  display:block;
+  font-family:var(--smallcaps);
+  font-style:normal;
+  font-size:23px;
+  color:var(--ink);
+  border-bottom:1px solid var(--ink);
+  padding-bottom:3px;
+  margin-bottom:5px;
+}
+
+/* ---------- mobile ---------- */
+@media (max-width:720px){
+  .entry{grid-template-columns:minmax(0,1fr) auto;gap:2px 12px}
+  .po{grid-column:1;font-size:13px;color:var(--ink-faded)}
+  .pt{grid-column:2;grid-row:2;text-align:right;font-size:13px}
+  .ap{grid-column:1/-1}
+  .an{grid-column:1/-1;text-align:left;font-size:12px}
+  .an small{display:inline;margin-left:5px}
+  .roll{grid-template-columns:24px minmax(0,1fr)}
+  .head .place{text-align:left}
+}
+</style>
+</head>
+<body>
+
+<div class="sheet">
+
+  <header class="head">
+    <div>
+      <h1>Rôle d'équipage</h1>
+      <p class="vessel"><i>La Trompeuse</i> — brigantin, deux mâts, coque de classe 3</p>
+    </div>
+    <p class="place">
+      Isle de la Tortue<br>
+      mars 1662 · troisième traversée<br>
+      commission du gouverneur — valide
+    </p>
+  </header>
+
+  <dl class="tally">
+    <div><dt>Inscrits</dt><dd>64 <small>/ 80</small></dd></div>
+    <div><dt>Manœuvre mini</dt><dd>30</dd></div>
+    <div><dt>Bâbordais</dt><dd>32</dd></div>
+    <div><dt>Tribordais</dt><dd>32</dd></div>
+    <div class="due"><dt>Indemnités dues</dt><dd>600 <small>piastres</small></dd></div>
+  </dl>
+
+  <section class="charter">
+    <h2>Chasse-partie</h2>
+    <p>votée à la Tortue, <b>quarante-et-une voix contre neuf</b></p>
+    <h2>Clauses</h2>
+    <p><b>Indemnités généreuses</b> — <b>Espagnols seuls</b> — <b>quartier accordé aux rendus</b></p>
+  </section>
+
+  <div class="roll">
+
+    <p class="section-label">Officiers <span>4 postes · 3 tenus</span></p>
+
+    <div class="mark ink" title="amateloté avec un matelot du rôle">a</div>
+    <div class="entry">
+      <p class="nm">Ollivier Etcheverry <i>dit le Basque</i><small>basque de Saint-Jean-de-Luz</small></p>
+      <p class="po">Canonnier</p>
+      <p class="pt">1½</p>
+      <p class="ap">art 8 · man 3 · mêl 5 · aut 4</p>
+      <p class="an">11<small>traversées</small></p>
+      <p class="st maim">mutilé — bras gauche · 500 piastres dues · sert la bordée à demi</p>
+      <p class="tr">Œil de plomb · Rancunier · Ne monte pas à bord un vendredi</p>
+    </div>
+
+    <div class="mark ink">b</div>
+    <div class="entry">
+      <p class="nm">Jehan Coudray <i>dit Bras-Court</i><small>de Honfleur · ancien engagé</small></p>
+      <p class="po">Maître d'équipage</p>
+      <p class="pt">1½</p>
+      <p class="ap">art 2 · man 7 · mêl 4 · aut 5</p>
+      <p class="an">6<small>traversées</small></p>
+      <p class="tr">Nez du vent · Lit le ciel · Superstitieux</p>
+    </div>
+
+    <div class="mark ink cross" title="sans matelot">—</div>
+    <div class="entry">
+      <p class="nm">Cornelis van Aalst <i>dit le Flamand</i><small>de Vlissingen · sans matelot</small></p>
+      <p class="po">Quartier-maître</p>
+      <p class="pt">2</p>
+      <p class="ap">art 3 · man 4 · mêl 6 · aut 7</p>
+      <p class="an">9<small>traversées</small></p>
+      <p class="st hurt">blessé — deux côtes · rétabli en deux escales</p>
+      <p class="tr">Compte juste · Intraitable · Tient le rôle de sa main</p>
+    </div>
+
+    <div class="mark"></div>
+    <div class="entry vacant">
+      <p class="nm">Poste à pourvoir<small>à recruter au port — le charpentier tient la coque</small></p>
+      <p class="po">Charpentier</p>
+      <p class="pt">fixe</p>
+      <p class="ap">—</p>
+      <p class="an">—</p>
+      <p class="st vacant">vacant — aucune voie d'eau réparable en mer</p>
+    </div>
+
+    <p class="section-label">Matelots inscrits nommément <span>13 · dont 2 promouvables</span></p>
+
+    <div class="mark up ink" title="promouvable">↑</div>
+    <div class="entry">
+      <p class="nm">Mathurin Gohier <i>dit Boucan</i><small>matelot d'Etcheverry — marque a</small></p>
+      <p class="po">Bâbordais</p>
+      <p class="pt">1</p>
+      <p class="ap">canonnage 6</p>
+      <p class="an">7<small>traversées</small></p>
+      <p class="st">peut être élevé maître canonnier — l'équipage y consent</p>
+    </div>
+
+    <div class="mark ink">b</div>
+    <div class="entry">
+      <p class="nm">Abel Trégoat <i>dit le Malouin</i><small>matelot de Coudray</small></p>
+      <p class="po">Tribordais</p>
+      <p class="pt">1</p>
+      <p class="ap">manœuvre 5</p>
+      <p class="an">4<small>traversées</small></p>
+    </div>
+
+    <div class="brace ink" data-pair="c"></div>
+    <div class="entry">
+      <p class="nm">Toussaint <i>dit Fer-de-Lance</i><small>marron d'Hispaniola · inscrit libre au rôle</small></p>
+      <p class="po">Bâbordais</p>
+      <p class="pt">1</p>
+      <p class="ap">mêlée 7</p>
+      <p class="an">5<small>traversées</small></p>
+      <p class="st">peut être élevé quartier-maître — van Aalst s'y oppose</p>
+    </div>
+    <div class="entry">
+      <p class="nm">Samuel Kirke <i>dit l'Anglois</i><small>de Bristol</small></p>
+      <p class="po">Tribordais</p>
+      <p class="pt">1</p>
+      <p class="ap">canonnage 4</p>
+      <p class="an">3<small>traversées</small></p>
+      <p class="st hurt">blessé — main gauche</p>
+    </div>
+
+    <div class="brace ink" data-pair="d"></div>
+    <div class="entry">
+      <p class="nm">Piet Hoorn</p>
+      <p class="po">Bâbordais</p>
+      <p class="pt">1</p>
+      <p class="ap">manœuvre 4</p>
+      <p class="an">2<small>traversées</small></p>
+    </div>
+    <div class="entry">
+      <p class="nm">Baptiste Nolet <i>dit la Soif</i></p>
+      <p class="po">Bâbordais</p>
+      <p class="pt">1</p>
+      <p class="ap">mêlée 4</p>
+      <p class="an">1<small>traversée</small></p>
+    </div>
+
+    <div class="brace ink" data-pair="e"></div>
+    <div class="entry">
+      <p class="nm">Marin Quéméner</p>
+      <p class="po">Tribordais</p>
+      <p class="pt">1</p>
+      <p class="ap">manœuvre 3</p>
+      <p class="an">2<small>traversées</small></p>
+    </div>
+    <div class="entry">
+      <p class="nm">Guillaume Lestrade</p>
+      <p class="po">Bâbordais</p>
+      <p class="pt">1</p>
+      <p class="ap">canonnage 3</p>
+      <p class="an">2<small>traversées</small></p>
+    </div>
+
+    <div class="brace severed ink" data-pair="f"></div>
+    <div class="entry">
+      <p class="nm">Jacques Ozanne <i>dit Œil-de-Verre</i><small>matelot survivant</small></p>
+      <p class="po">Tribordais</p>
+      <p class="pt">1</p>
+      <p class="ap">mêlée 3</p>
+      <p class="an">8<small>traversées</small></p>
+      <p class="st maim">mutilé — œil droit · 100 piastres dues</p>
+      <p class="tr">Hérite du coutelas de Ferrand · <span style="color:var(--rubric)">Endeuillé</span></p>
+    </div>
+    <div class="entry dead">
+      <p class="nm">Thomas Ferrand <i>dit Ferrandeau</i><small>† à l'assaut du Sancta Barbara, février</small></p>
+      <p class="po">Tribordais</p>
+      <p class="pt">—</p>
+      <p class="ap">mêlée 6</p>
+      <p class="an">8<small>traversées</small></p>
+    </div>
+
+    <div class="mark ink cross">—</div>
+    <div class="entry">
+      <p class="nm">Estienne Ravel <i>dit Ravel-le-Jeune</i><small>mousse · sans matelot</small></p>
+      <p class="po">Tribordais</p>
+      <p class="pt">½</p>
+      <p class="ap">mêlée 2</p>
+      <p class="an">1<small>traversée</small></p>
+    </div>
+
+    <p class="rest">Et cinquante-et-un hommes sans distinction, inscrits au rôle sous une part chacun.</p>
+  </div>
+
+  <div class="foot">
+    <p class="key">
+      <b>a b c</b> &nbsp;amatelotage — deux hommes, un hamac, un héritage<br>
+      <b>⌐ accolade</b> &nbsp;paire servant ensemble &nbsp;·&nbsp; <b>trait rompu</b> paire brisée<br>
+      <i>↑</i> &nbsp;matelot promouvable &nbsp;·&nbsp; <b>—</b> &nbsp;sans matelot<br>
+      <i>encre rouge</i> &nbsp;mutilation, dette, deuil
+    </p>
+    <p class="sign">
+      <span>Cornelis van Aalst</span>
+      quartier-maître, tenant le rôle
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>

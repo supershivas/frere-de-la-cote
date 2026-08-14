@@ -260,7 +260,7 @@ function routeToNode(node) {
       break;
     case 'boss':
       toastInfo(t('toast_boss'), '👑');
-      go('combat', { kind: 'boss', bossId: 'mechanical_kraken' });
+      go('combat', { kind: 'boss', bossId: 'el_almirante' });
       break;
     case 'port':
       go('port');

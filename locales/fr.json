@@ -96,7 +96,7 @@
   "continue_btn": "Continuer",
   "back_to_map": "Retour à la carte",
   "run_complete": "Traversée accomplie !",
-  "run_complete_text": "Vous avez vaincu le Kraken Mécanique et gravé votre nom dans la légende des Frères de la Côte.",
+  "run_complete_text": "Vous avez pris l'Almirante et gravé votre nom dans la légende des Frères de la Côte.",
   "return_title": "Retour au menu",
 
   "gold": "Or",
@@ -252,6 +252,6 @@
   "ability_broadside_desc": "Tir de tous les canons : 150% de dégâts.",
   "ability_reinforce": "Se Retrancher",
   "ability_reinforce_desc": "Regagne tout son bouclier et +20 armure ce tour.",
-  "ability_kraken_shot": "Tir du Kraken",
-  "ability_kraken_shot_desc": "Une fois par combat : 200% de dégâts."
+  "ability_heavy_shot": "Tir de trente-six",
+  "ability_heavy_shot_desc": "Une fois par combat : 200% de dégâts."
 }

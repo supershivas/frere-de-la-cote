@@ -138,7 +138,7 @@ function applyRelicPassive(id) {
 // Aggregate relic multipliers used across systems.
 export function relicMods() {
   const m = { fleetDamageMult: 1, repairCostMult: 1, repairMult: 1, goldMult: 1,
-    classicAppliesFire: false, revealMap: false, dangerUp: false, flagshipKrakenShot: false };
+    classicAppliesFire: false, revealMap: false, dangerUp: false, flagshipHeavyShot: false };
   for (const id of state.relics) {
     const fx = (DB.relics[id] || {}).effects || {};
     if (fx.fleetDamageMult) m.fleetDamageMult *= fx.fleetDamageMult;
@@ -148,7 +148,7 @@ export function relicMods() {
     if (fx.classicAppliesFire) m.classicAppliesFire = true;
     if (fx.revealMap) m.revealMap = true;
     if (fx.dangerUp) m.dangerUp = true;
-    if (fx.flagshipKrakenShot) m.flagshipKrakenShot = true;
+    if (fx.flagshipHeavyShot) m.flagshipHeavyShot = true;
   }
   return m;
 }
