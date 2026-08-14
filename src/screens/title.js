@@ -31,6 +31,7 @@ function render() {
   // Work in progress (refonte steps 2-3): profile deck plan + crew movement.
   buttons.appendChild(bigBtn('Plan de pont', '⚓', () => go('pont')));
   buttons.appendChild(bigBtn('Combat (refonte)', '⚔️', () => go('bataille', { fresh: true })));
+  buttons.appendChild(bigBtn('Nouvelle traversée (refonte)', '🧭', () => go('recrutement')));
 
   const langToggle = el('div', { class: 'lang-toggle' }, [
     langBtn('fr', 'FR'),

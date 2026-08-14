@@ -15,6 +15,7 @@ import { state, buildSpriteSpec } from '../state.js';
 import { planFor, SYSTEMS } from '../shipPlans.js';
 import { renderDeck, walk } from '../deckView.js';
 import { getGeneratedShip } from '../sprites.js';
+import { battleResolved } from './traversee.js';
 import {
   AMMO, RANGES, BOARD, MUSKET, CANNON, FAR,
   makeShip, newBattle, broadside, manoeuvre, endTurn, board, canBoard,
@@ -37,7 +38,10 @@ const CREW = [
   { id: 5, name: 'Gohier', role: 'matelot', specialty: 'melee', at: 'barre' },
 ];
 
+let fromRun = false;
+
 function startBattle(opts = {}) {
+  fromRun = !!opts.fromRun;
   const hullTheirs = opts.enemyHull || 3;
   const mine = makeShip({
     name: state.shipName || 'La Trompeuse',
@@ -303,6 +307,10 @@ function showOutcome() {
   if (document.querySelector('.bat-outcome')) return;
   const won = B.outcome === 'prize' || B.outcome === 'sunk';
   const gain = spoils(B);
+  if (fromRun && !B.reported) {
+    B.reported = true;
+    battleResolved(B.outcome, gain, B.ships.theirs);
+  }
   const title = { prize: t('bat_prize'), sunk: t('bat_sunk'), lost: t('bat_lost'), captured: t('bat_captured') }[B.outcome];
   const box = el('div', { class: `bat-outcome ${won ? 'won' : 'lost'}` }, [
     el('h2', { text: title }),
@@ -310,10 +318,12 @@ function showOutcome() {
     B.outcome === 'sunk'
       ? el('p', { class: 'warn', text: 'Une carcasse ne rapporte presque rien. Une prise vaut cinq fois plus.' })
       : null,
-    el('div', { class: 'bat-outcome-btns' }, [
-      el('button', { class: 'btn-level-1', text: '↺ Rejouer', on: { click: () => { startBattle(); document.querySelector('.bat-outcome')?.remove(); render(); } } }),
-      el('button', { class: 'btn-level-4', text: '← Menu', on: { click: () => { B = null; go('title'); } } }),
-    ]),
+    el('div', { class: 'bat-outcome-btns' }, fromRun
+      ? [el('button', { class: 'btn-level-1', text: 'Reprendre la mer →', on: { click: () => { B = null; document.querySelector('.bat-outcome')?.remove(); go('carte'); } } })]
+      : [
+        el('button', { class: 'btn-level-1', text: '↺ Rejouer', on: { click: () => { startBattle(); document.querySelector('.bat-outcome')?.remove(); render(); } } }),
+        el('button', { class: 'btn-level-4', text: '← Menu', on: { click: () => { B = null; go('title'); } } }),
+      ]),
   ]);
   document.body.appendChild(box);
 }
