@@ -43,7 +43,7 @@ export function mount(node) {
   root.appendChild(node);
   // The sea scene shows on the title, combat and the deck view; everything
   // else is on parchment. The deck view needs sky and water behind the ships.
-  const sea = state.screen === 'combat' || state.screen === 'title' || state.screen === 'pont';
+  const sea = state.screen === 'combat' || state.screen === 'title' || state.screen === 'pont' || state.screen === 'bataille';
   document.body.dataset.bg = sea ? 'sea' : 'parchment';
 }
 

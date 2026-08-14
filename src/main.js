@@ -19,6 +19,7 @@ import './screens/treasure.js';
 import './screens/event.js';
 import './screens/editor.js';
 import './screens/pont.js';
+import './screens/bataille.js';
 
 async function boot() {
   const loading = document.getElementById('loading');
