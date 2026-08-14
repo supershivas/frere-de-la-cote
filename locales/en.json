@@ -253,5 +253,32 @@
   "ability_reinforce": "Brace",
   "ability_reinforce_desc": "Restore full shield and +20 armor this turn.",
   "ability_heavy_shot": "Thirty-Six Pounder",
-  "ability_heavy_shot_desc": "Once per battle: 200% damage."
+  "ability_heavy_shot_desc": "Once per battle: 200% damage.",
+
+  "room_barre": "Helm",
+  "room_mat": "Mainmast",
+  "room_proue": "Bow",
+  "room_batterie": "Gun Deck",
+  "room_batterie_haute": "Upper Gun Deck",
+  "room_batterie_basse": "Lower Gun Deck",
+  "room_cale": "Hold",
+  "room_poudriere": "Magazine",
+  "room_soute": "Hold and Magazine",
+  "room_infirmerie": "Sickbay",
+  "room_gaillard": "Quarterdeck",
+
+  "room_out_gouvernail": "The helm is jammed.",
+  "room_out_voiles": "The ship can no longer change range.",
+  "room_out_coque": "Hull breached: the hold is filling.",
+  "room_out_canons": "The guns on this side no longer fire.",
+  "room_out_pompes": "The water rises unchecked.",
+  "room_out_munitions": "No powder left: not one more shot.",
+  "room_out_chirurgie": "The wounded no longer heal.",
+  "room_out_commandement": "Orders no longer carry.",
+
+  "spec_canonnage": "Gunnery",
+  "spec_manoeuvre": "Sailing",
+  "spec_reparation": "Repair",
+  "spec_soins": "Surgery",
+  "spec_melee": "Melee"
 }

@@ -253,5 +253,32 @@
   "ability_reinforce": "Se Retrancher",
   "ability_reinforce_desc": "Regagne tout son bouclier et +20 armure ce tour.",
   "ability_heavy_shot": "Tir de trente-six",
-  "ability_heavy_shot_desc": "Une fois par combat : 200% de dégâts."
+  "ability_heavy_shot_desc": "Une fois par combat : 200% de dégâts.",
+
+  "room_barre": "Barre",
+  "room_mat": "Grand mât",
+  "room_proue": "Proue",
+  "room_batterie": "Batterie",
+  "room_batterie_haute": "Batterie haute",
+  "room_batterie_basse": "Batterie basse",
+  "room_cale": "Cale",
+  "room_poudriere": "Poudrière",
+  "room_soute": "Soute",
+  "room_infirmerie": "Infirmerie",
+  "room_gaillard": "Gaillard",
+
+  "room_out_gouvernail": "Le cap est bloqué.",
+  "room_out_voiles": "Le navire ne peut plus changer de distance.",
+  "room_out_coque": "Voie d'eau : la cale s'emplit.",
+  "room_out_canons": "Les canons de ce bord ne tirent plus.",
+  "room_out_pompes": "L'eau monte sans frein.",
+  "room_out_munitions": "Plus de poudre : plus un seul tir.",
+  "room_out_chirurgie": "Les blessés ne guérissent plus.",
+  "room_out_commandement": "Les ordres ne passent plus.",
+
+  "spec_canonnage": "Canonnage",
+  "spec_manoeuvre": "Manœuvre",
+  "spec_reparation": "Réparation",
+  "spec_soins": "Soins",
+  "spec_melee": "Mêlée"
 }

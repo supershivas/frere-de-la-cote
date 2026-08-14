@@ -473,6 +473,11 @@ export function generateShipGrid(spec = {}) {
   return {
     grid: g.map((row) => row.join('')),
     W, H, waterY,
+    // Bounding box of the hull body, in grid cells. The deck-plan view overlays
+    // rooms onto this box, so the drawn hull literally frames the plan of the
+    // decks (brief §5.1) instead of the two being laid out independently.
+    // yDeck is the main deck line amidships; yBot the lowest point of the keel.
+    hull: { x0: xS, x1: xB, yDeck: deckMid, yBot: deckMid + hh },
     derived: { masts: c.masts, ports: c.rows * c.ports, sailsPerMast: n, jibs: nJib, hullClass: cls },
   };
 }
