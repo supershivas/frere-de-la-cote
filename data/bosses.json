@@ -1,14 +1,15 @@
 {
-  "mechanical_kraken": {
-    "id": "mechanical_kraken",
-    "name_fr": "Le Kraken Mécanique",
-    "name_en": "The Mechanical Kraken",
-    "type": "naval_monster",
-    "faction": "cursed_pirates",
+  "el_almirante": {
+    "id": "el_almirante",
+    "name_fr": "L'Almirante",
+    "name_en": "The Almirante",
+    "type": "ship",
+    "hullClass": 1,
+    "faction": "espagnole",
     "isBoss": true,
-    "desc_fr": "Une abomination d'acier et de tentacules. Il frappe fort, mais le feu ronge ses rouages.",
-    "desc_en": "An abomination of steel and tentacles. It hits hard, but fire eats away at its gears.",
-    "weakness": "incendiary",
+    "desc_fr": "Le vaisseau amiral de la flotte des Indes. Trois ponts, soixante pièces, un équipage qui ne se rend pas. Le couler ne rapporte rien : c'est une prise, pas une carcasse.",
+    "desc_en": "Flagship of the Indies fleet. Three decks, sixty guns, a crew that does not surrender. Sinking her earns nothing: she is a prize, not a wreck.",
+    "weakness": "chain",
     "stats": {
       "hp": 520,
       "armor": 20,
@@ -23,21 +24,21 @@
     "phases": [
       {
         "at": 1.0,
-        "name_fr": "Éveil des tentacules",
-        "name_en": "Tentacle Awakening",
-        "intent_fr": "Le Kraken déploie ses tentacules mécaniques.",
-        "intent_en": "The Kraken deploys its mechanical tentacles."
+        "name_fr": "Branle-bas de combat",
+        "name_en": "Beat to Quarters",
+        "intent_fr": "Les sabords s'ouvrent sur toute la longueur du bord.",
+        "intent_en": "Gunports open the whole length of her side."
       },
       {
         "at": 0.5,
-        "name_fr": "Broyeur d'acier",
-        "name_en": "Steel Crusher",
-        "intent_fr": "Enragé, il frappe désormais deux fois par tour.",
-        "intent_en": "Enraged, it now strikes twice per turn.",
+        "name_fr": "Bordée de désespoir",
+        "name_en": "Desperate Broadside",
+        "intent_fr": "Démâté et gîtant, il vide ses deux batteries à bout portant.",
+        "intent_en": "Dismasted and heeling, she empties both batteries at point-blank range.",
         "onEnter": { "multiAttack": 2, "damageMult": 1.15 }
       }
     ],
-    "reward": { "gold": 250, "xp": 120, "relic": "kraken_relic", "rareMaterials": 2 },
-    "color": "#3fae86"
+    "reward": { "gold": 250, "xp": 120, "relic": "canon_almirante", "rareMaterials": 2 },
+    "color": "#a8791f"
   }
 }

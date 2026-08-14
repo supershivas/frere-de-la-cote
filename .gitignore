@@ -6,6 +6,7 @@ Thumbs.db
 .vscode/
 
 # Node (not required to run, but ignore if a dev adds tooling)
+node_modules
 node_modules/
 npm-debug.log*
 

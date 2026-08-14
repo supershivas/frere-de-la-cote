@@ -21,11 +21,14 @@ let C = null; // active combat controller
 // ---- Enemy instance ----
 let enemyIid = 1;
 
-// Random-but-plausible hull for an enemy's tier — small ships get a single
-// mast (class 5-6), medium ships get two (class 3-4). Bosses/monsters never
-// go through here (they keep their hand-drawn 'monster' template).
+// Random-but-plausible hull for a foe. Hull class 1-2 = galleon / ship of the
+// line, 3-4 = brigantine / frigate, 5-6 = sloop / longboat. A def may pin its
+// own class — the act boss does, being a three-decker — otherwise it is derived
+// from the tier: medium ships get two masts, small ones a single mast.
+// Only true sea monsters skip this and keep the hand-drawn 'monster' template.
 function enemyHullSpec(def) {
-  const hullClass = def.tier === 'medium' ? 3 + Math.floor(Math.random() * 2) : 5 + Math.floor(Math.random() * 2);
+  const hullClass = def.hullClass
+    || (def.tier === 'medium' ? 3 + Math.floor(Math.random() * 2) : 5 + Math.floor(Math.random() * 2));
   const c = HULL_CLASSES[hullClass];
   return {
     hullClass,
@@ -76,7 +79,10 @@ function makeEnemy(defId, { isBoss = false, scale = 1 } = {}) {
     damageMult: 1,
     isEnemy: true,
   };
-  if (!isBoss && def.type !== 'naval_monster') {
+  // Anything that is a ship gets a generated sprite — bosses included, now that
+  // the act boss is a vessel to be taken rather than a monster to be killed.
+  // Only true sea monsters fall back to the legacy blob renderer.
+  if (def.type !== 'naval_monster' && def.type !== 'monster') {
     const seed = (Math.random() * 1e9) | 0;
     inst.spriteSpec = buildSpriteSpec(enemyHullSpec(def), enemyFactionId(def), seed);
   }
@@ -295,7 +301,7 @@ function initCombat(opts) {
     s.abilityCd = 0;
     s.speed = s.baseSpeed;
     s._dead = false;
-    s.krakenUsed = false;
+    s.heavyShotUsed = false;
   });
   const enemies = buildEnemies(opts);
   enemies.forEach((e) => { e._dead = false; });
@@ -563,9 +569,9 @@ function playerAbility(target) {
       C.log(`${ship.name || locName(ship.def)}: ${t('ability_reinforce')}`);
       fxBrace(ship.iid);
       break;
-    case 'kraken_shot':
+    case 'heavy_shot':
       attack(ship, target, 'classic', { damageMult: 2.0 });
-      ship.krakenUsed = true;
+      ship.heavyShotUsed = true;
       break;
     default:
       break;
@@ -580,7 +586,7 @@ function getActiveAbilityId(ship) {
 }
 
 function abilityNeedsTarget(abId) {
-  return abId === 'swift_strike' || abId === 'broadside' || abId === 'kraken_shot';
+  return abId === 'swift_strike' || abId === 'broadside' || abId === 'heavy_shot';
 }
 
 function playerRepair() {
@@ -883,10 +889,10 @@ function renderActionPopover() {
     }
   }
 
-  // Kraken relic grants the flagship a once-per-battle ability — a special CTA too.
-  if (ship.flagship && hasRelic('kraken_relic') && !ship.krakenUsed) {
-    const kb = getAbility('kraken_shot');
-    const b = actionBtn(kb.icon, t(kb.nameKey), () => useAbility('kraken_shot'), { level: 2 });
+  // The Almirante's gun grants the flagship a once-per-battle shot — a special CTA too.
+  if (ship.flagship && hasRelic('canon_almirante') && !ship.heavyShotUsed) {
+    const kb = getAbility('heavy_shot');
+    const b = actionBtn(kb.icon, t(kb.nameKey), () => useAbility('heavy_shot'), { level: 2 });
     attachTooltip(b, () => `<b>${t(kb.nameKey)}</b><br>${t(kb.descKey)}`);
     primary.appendChild(b);
   }

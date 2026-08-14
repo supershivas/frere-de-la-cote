@@ -96,7 +96,7 @@
   "continue_btn": "Continue",
   "back_to_map": "Back to map",
   "run_complete": "Voyage complete!",
-  "run_complete_text": "You defeated the Mechanical Kraken and carved your name into the legend of the Brothers of the Coast.",
+  "run_complete_text": "You took the Almirante and carved your name into the legend of the Brothers of the Coast.",
   "return_title": "Return to menu",
 
   "gold": "Gold",
@@ -252,6 +252,6 @@
   "ability_broadside_desc": "Fire every cannon: 150% damage.",
   "ability_reinforce": "Brace",
   "ability_reinforce_desc": "Restore full shield and +20 armor this turn.",
-  "ability_kraken_shot": "Kraken Shot",
-  "ability_kraken_shot_desc": "Once per battle: 200% damage."
+  "ability_heavy_shot": "Thirty-Six Pounder",
+  "ability_heavy_shot_desc": "Once per battle: 200% damage."
 }

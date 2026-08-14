@@ -106,7 +106,7 @@ function applyOutcome(o) {
       state.fleet.forEach((s) => { s.hp = Math.min(s.maxHp, s.hp + (o.value || 0)); });
       return show('positive', '💤', [`❤️ <b>+${o.value || 0}</b> ${t('stat_hp')} · ${t('your_fleet')}`]);
     case 'relic_random': {
-      const pool = Object.keys(DB.relics).filter((id) => !state.relics.includes(id) && id !== 'kraken_relic');
+      const pool = Object.keys(DB.relics).filter((id) => !state.relics.includes(id) && id !== 'canon_almirante');
       if (pool.length) {
         const id = pool[Math.floor(Math.random() * pool.length)];
         addRelic(id);

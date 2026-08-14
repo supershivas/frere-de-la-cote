@@ -136,7 +136,7 @@ export function swatchColor(ch, color = '#c9a24b', flag = '#b23b3b', isMonster =
 }
 
 export function templateFor(type) {
-  if (type === 'monster' || type === 'naval_monster' || type === 'kraken') return 'monster';
+  if (type === 'monster' || type === 'naval_monster') return 'monster';
   if (TEMPLATES[type]) return type;
   if (type === 'brigantine' || type === 'longboat' || type === 'merchant') return 'frigate';
   return 'frigate';

@@ -36,7 +36,7 @@ function onKey(e) {
     case 'F4': e.preventDefault(); cmdLevelFleet(); break;
     case 'F5': e.preventDefault(); cmdWin(); break;
     case 'F6': e.preventDefault(); debugSpawn(randomEnemyId()); log('spawn enemy'); break;
-    case 'F7': e.preventDefault(); debugSpawn('mechanical_kraken', true); log('spawn boss kraken'); break;
+    case 'F7': e.preventDefault(); debugSpawn('el_almirante', true); log('spawn boss almirante'); break;
     case 'F8': e.preventDefault(); go('editor'); break;
   }
 }
@@ -62,7 +62,7 @@ function showPanel() {
     el('div', { class: 'debug-title', text: `🛠️ ${t('debug_title')}` }),
     el('div', { class: 'debug-help', text: t('debug_hint') }),
   ]);
-  const input = el('input', { id: 'debug-input', class: 'debug-input', attrs: { placeholder: 'gold 1000 · heal fleet · win combat · unlock all · level ship 10 · spawn enemy pirate_sloop · spawn boss kraken' } });
+  const input = el('input', { id: 'debug-input', class: 'debug-input', attrs: { placeholder: 'gold 1000 · heal fleet · win combat · unlock all · level ship 10 · spawn enemy pirate_sloop · spawn boss almirante' } });
   input.addEventListener('keydown', (ev) => {
     ev.stopPropagation();
     if (ev.key === 'Enter') { runCommand(input.value); input.value = ''; }
@@ -155,10 +155,10 @@ function resolveEnemy(name) {
   return match || randomEnemyId();
 }
 function resolveBoss(name) {
-  if (!name) return 'mechanical_kraken';
+  if (!name) return 'el_almirante';
   if (DB.bosses[name]) return name;
   const match = Object.keys(DB.bosses).find((id) => id.includes(name));
-  return match || 'mechanical_kraken';
+  return match || 'el_almirante';
 }
 
 // ---- FPS overlay ----

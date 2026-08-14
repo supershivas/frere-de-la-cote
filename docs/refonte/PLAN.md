@@ -53,7 +53,7 @@ exploité) reste juste sur le fond, mais le code sous-jacent a bougé :
 
 | # | Étape (brief §12) | Traduction dépôt |
 |---|---|---|
-| 0 | Repartir propre sur le combat | Nouveau module `src/combat/` (ship-plan, rooms, boarding, crew) en remplacement de `src/combat.js`. Pas de patch du bug §13 : le fichier est remplacé. |
+| 0 | ✅ **Fait** — repartir propre | Le bug §13 n'existait pas ici (autre prototype) : quatre combats complets pilotés au navigateur passent sans une seule erreur, condition de sortie remplie d'emblée. La substance de l'étape est donc la *leçon* du §13 — valider les données — plus la sortie du Kraken. Voir ci-dessous. |
 | 1 | Structures de données | `src/shipPlans.js` : plans de pont par classe de coque (salles, passages, structure, système), dérivés des classes de coque déjà définies dans `sprites.js`/`ships.json`. Tests en scripts Node autonomes (pas de framework de test dans le projet) validant §14 : cohérence des clés, connexité du graphe, non-chevauchement géométrique, effectifs min < max, déterminisme. |
 | 2 | Rendu profil | Le sprite de l'éditeur (`sprites.js`) sert de cadre ; salles positionnées en overlay (divs/SVG) par-dessus, sur le modèle de `docs/refonte/mockups/profil.html`. Ligne de flottaison animée légère. Navires bien plus grands qu'aujourd'hui (toutes les salles visibles). |
 | 3 | Déplacement d'équipage | Pathfinding sur le graphe de passages (BFS, comme la maquette), déplacement animé salle par salle, coût en tours, traversée du feu = blessure. |
@@ -63,9 +63,56 @@ exploité) reste juste sur le fond, mais le code sous-jacent a bougé :
 | 7 | Interface | Différé — polish une fois le combat et la boucle figés. |
 | 8 | Contenu | Différé — élargissement de contenu en dernier. |
 
-## Ce qui ne bouge pas tout de suite
+## Étape 0 — ce qui a été fait
 
-Rien n'est supprimé ou codé dans cette session : c'est un plan de cadrage.
-Les suppressions actées (3 factions inexistantes à formaliser en
-`legitimacy`, Kraken) s'exécutent au fil des étapes ci-dessus, pas d'un
-coup en étape 0.
+**Le bug §13 n'existait pas dans ce dépôt.** Quatre combats complets joués
+au navigateur, de bout en bout, sans une seule erreur console : la condition
+de sortie du brief était déjà remplie. Le §13 décrit un autre prototype.
+
+Ce qui restait de l'étape 0 était donc sa *leçon* — « il faut valider les
+données, pas seulement le code » — et la sortie du contenu abandonné.
+
+**Harnais de tests (`test/`, `node test/run.js`).** Zéro dépendance, tourne
+sur `node` nu. Dix-sept vérifications qui sont toutes des détecteurs de clé
+erronée : identité clé/`id`, résolution des références croisées (faction,
+munition, relique, capacité), drapeaux d'effet qu'aucun système ne lit,
+types de dénouement d'événement non gérés, types de nœuds sans route,
+divergence de clés entre `fr.json` et `en.json`, `t('…')` absent des
+locales. Deux gardes de refonte : le Kraken ne peut pas revenir par
+copier-coller, et aucune nouvelle source d'aléatoire ne peut apparaître
+hors génération (§4.1).
+
+**Trois vrais défauts trouvés, invisibles à la lecture :**
+
+1. `pirate_longboat` et `armed_merchant` déclaraient `weakness: "damage"` —
+   une statistique, pas une munition. L'infobulle conseillait donc
+   « Exploitez sa faiblesse : Puissance canon », conseil inactionnable.
+   Corrigé en `explosive` et `classic` : les cinq munitions sont désormais
+   toutes représentées dans le bestiaire, ce qui amorce le §5.6.
+2. Le boss s'affichait en **silhouette de monstre** : `makeEnemy` refusait
+   un sprite à tout boss (`!isBoss && …`), ce qui était juste tant que le
+   seul boss était un Kraken. Le test branche désormais sur le *type*, pas
+   sur `isBoss`.
+3. `enemyHullSpec` ignorait toute classe de coque déclarée et la dérivait du
+   `tier`, que les boss n'ont pas — l'amiral serait sorti en coque de sloop.
+
+**Pilote de playtest (`tools/playtest.mjs`).** Joue des combats entiers dans
+Chromium et échoue à la moindre erreur d'exécution. C'est le filet de
+sécurité des étapes 1 à 6, qui éventrent le moteur de combat : un plantage
+qui n'apparaît qu'au troisième tour échappe par construction aux tests
+unitaires. Dépendance de développement uniquement (`npm i playwright-core`),
+le jeu lui-même reste sans dépendance.
+
+**Sortie du Kraken (brief §2).** `mechanical_kraken` devient `el_almirante`,
+vaisseau amiral espagnol à trois ponts — un boss qu'on peut vouloir prendre
+plutôt que couler, ce qui pointe vers le §3. La relique `kraken_relic`
+devient `canon_almirante`, la capacité `kraken_shot` devient `heavy_shot`,
+et l'événement « Présage du Kraken » est réécrit en superstition d'équipage
+conforme au §8.8 : un noyé qui dérive contre la coque, un équipage qui
+croit le navire marqué, aucun surnaturel affirmé par le jeu.
+
+## Ce qui reste à faire
+
+Les suppressions restantes (`reputation` → `legitimacy`, §8.6) s'exécutent à
+l'étape 6, quand la mécanique qui les porte existe — renommer une jauge sans
+le système derrière ne serait que du churn.

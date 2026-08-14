@@ -58,7 +58,7 @@ function openCursed() {
       lines: [`❤️ <b>-25</b> ${t('stat_hp')} · ${t('your_fleet')}`, `💰 <b>+${gold}</b> ${t('gold')}`], onClose: done,
     });
   } else {
-    const pool = Object.keys(DB.relics).filter((id) => !state.relics.includes(id) && id !== 'kraken_relic');
+    const pool = Object.keys(DB.relics).filter((id) => !state.relics.includes(id) && id !== 'canon_almirante');
     if (pool.length && Math.random() < 0.6) {
       const id = pool[Math.floor(Math.random() * pool.length)];
       addRelic(id);

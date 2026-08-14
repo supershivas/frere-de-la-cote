@@ -36,6 +36,28 @@ la précédente — c'est le seul garde-fou contre des semaines de travail sur
 une boucle qui ne mord pas. `PLAN.md` détaille le mapping fichiers par
 étape.
 
+## Tests
+
+```bash
+node test/run.js          # données + intégrité, zéro dépendance
+```
+
+À lancer après toute modification de `data/`, `locales/` ou des clés
+référencées dans `src/`. La suite ne teste pas des chemins de code : ce sont
+des détecteurs de clé erronée, parce que c'est la classe de bug qui a coulé
+le prototype précédent (brief §13) et qu'aucune vérification de syntaxe ne
+l'attrape. Étape 1 y ajoutera `test/shipPlans.test.js` pour les invariants
+de plan de pont du §14.
+
+Pour les régressions d'exécution que les tests de données ne peuvent pas
+voir (plantage au troisième tour d'un combat) :
+
+```bash
+python3 -m http.server 8000 &
+npm i playwright-core                 # dev uniquement, le jeu reste sans dépendance
+node tools/playtest.mjs 4
+```
+
 ## Contraintes techniques inchangées
 
 Vanilla JS, ES modules, aucun bundler, aucune dépendance npm. Polices IM

@@ -58,7 +58,7 @@ function leavePort() {
 function rollOffers() {
   const recruitable = ['sloop', 'galleon', 'frigate'];
   const shipId = recruitable[Math.floor(Math.random() * recruitable.length)];
-  const relicIds = Object.keys(DB.relics).filter((id) => !state.relics.includes(id) && id !== 'kraken_relic');
+  const relicIds = Object.keys(DB.relics).filter((id) => !state.relics.includes(id) && id !== 'canon_almirante');
   const relicId = relicIds[Math.floor(Math.random() * relicIds.length)] || null;
   const shipCosts = { sloop: 110, frigate: 150, galleon: 190 };
   const relicCosts = { rare: 175, uncommon: 125, cursed: 115, legendary: 300 };
