@@ -18,6 +18,7 @@ import './screens/shipyard.js';
 import './screens/treasure.js';
 import './screens/event.js';
 import './screens/editor.js';
+import './screens/pont.js';
 
 async function boot() {
   const loading = document.getElementById('loading');
@@ -50,7 +51,12 @@ async function boot() {
   bindGlobalKeys();
 
   if (loading) loading.remove();
-  go('title');
+
+  // Deep link, so a work-in-progress screen can be opened (and shared) directly
+  // without clicking through the menu: index.html#pont
+  const deepLink = (location.hash || '').replace('#', '');
+  if (deepLink && deepLink !== 'title') go(deepLink);
+  else go('title');
 }
 
 function typingInField() {

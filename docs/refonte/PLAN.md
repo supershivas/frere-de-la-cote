@@ -55,8 +55,8 @@ exploité) reste juste sur le fond, mais le code sous-jacent a bougé :
 |---|---|---|
 | 0 | ✅ **Fait** — repartir propre | Le bug §13 n'existait pas ici (autre prototype) : quatre combats complets pilotés au navigateur passent sans une seule erreur, condition de sortie remplie d'emblée. La substance de l'étape est donc la *leçon* du §13 — valider les données — plus la sortie du Kraken. Voir ci-dessous. |
 | 1 | ✅ **Fait** — structures de données | `src/shipPlans.js` + `test/shipPlans.test.js`. Voir ci-dessous. |
-| 2 | Rendu profil | Le sprite de l'éditeur (`sprites.js`) sert de cadre ; salles positionnées en overlay (divs/SVG) par-dessus, sur le modèle de `docs/refonte/mockups/profil.html`. Ligne de flottaison animée légère. Navires bien plus grands qu'aujourd'hui (toutes les salles visibles). |
-| 3 | Déplacement d'équipage | Pathfinding sur le graphe de passages (BFS, comme la maquette), déplacement animé salle par salle, coût en tours, traversée du feu = blessure. |
+| 2 | ✅ **Fait** — rendu profil | `src/deckView.js` + `css/deck.css`. Voir ci-dessous. |
+| 3 | ✅ **Fait** — déplacement d'équipage | `src/deckView.js` (`walk`, `reachFrom`) + écran d'essai `src/screens/pont.js`. Voir ci-dessous. |
 | 4 | Combat 1 v 1 | Bandes de distance, dégâts localisés par salle, feu déterministe et télégraphié, 5 munitions différenciées, abordage. Porte visible = batterie engagée. **Gate de validation du brief : 5 combats joués, sensation « je tente la prise ou je coule ? » avant de continuer.** |
 | 5 | Boucle de partie | Archétypes de recrutement (3 préconçus + 3 points libres), chasse-partie (contrat voté, style `role-equipage-mockup.html`), **carte des Caraïbes réelle, départ fixe**, 3 actes, coût visible par nœud. |
 | 6 | Méta-progression | Officiers persistants, registre des prises (galerie des navires capturés via le générateur existant), port d'attache, `reputation` → `legitimacy` (§8.6), calendrier 1640–1697 (§8.7). |
@@ -150,6 +150,43 @@ Le §14.6 (déterminisme de la résolution d'un tour) ne peut pas encore être
 maintenant, c'est ce sur quoi il reposera : un même trajet demandé deux fois
 rend le même trajet, un trajet est une vraie marche par des passages
 existants, et lire un plan ne le mute jamais.
+
+## Étapes 2 et 3 — ce qui a été fait
+
+**Le sprite est devenu le cadre du plan de pont (§5.1).** `generateShipGrid`
+expose désormais les bornes de la coque (`hull: {x0, x1, yDeck, yBot}`), et
+`deckView.js` y projette les salles. Le navire est dessiné **en écorché** —
+quille comprise — et la vue est recadrée sur la bande de coque : le gréement
+occupe l'essentiel du sprite et rien du gameplay. La ligne de flottaison
+traverse l'écorché avec une légère respiration.
+
+**Un bug que seule une capture d'écran pouvait montrer.** Le navire ennemi est
+dessiné retourné (`facing: -1`), ce qui inverse toute la grille — mais le plan
+ne l'était pas. La barre était donc peinte sur la proue : la coque et le plan
+se contredisaient sur l'emplacement de la poupe. La projection applique
+maintenant le miroir.
+
+**Tout est proportionnel, pas en pixels.** Coque, salles et hommes partagent le
+même repère en pourcentages, si bien que le CSS peut réduire l'ensemble pour
+tenir dans une colonne ou sur un téléphone sans rien désaligner.
+
+**Le déplacement (§6.3) est mécaniquement réel, pas cosmétique.** Un homme
+sélectionné éclaire ses salles atteignables ; cliquer une destination le fait
+traverser les salles intermédiaires une par une, en suivant les passages.
+Vérifié en pilotant le navigateur :
+
+- Ozanne, chirurgien en Proue → Poudrière : `Proue → Batterie → Cale →
+  Poudrière`, trois salles traversées, **trois tours consommés**.
+- Gohier, de la Barre à la Cale en passant par une batterie en feu : il arrive
+  **blessé** — « brûlé en passant par Batterie ». Traverser le feu coûte.
+
+**Écran d'essai `#pont`.** `src/screens/pont.js` est un harnais, pas l'écran de
+combat : il existe pour que les conditions de sortie des étapes 2 et 3 soient
+jugeables. L'étape 4 construira le combat sur `deckView.js`, l'étape 7 fera la
+passe d'interface — rien de cet habillage n'est censé survivre.
+
+Le panneau de détail est fixe, jamais une infobulle flottante : le survol seul
+a été essayé et écarté parce qu'il ne fonctionne pas au doigt (§9).
 
 ## Ce qui reste à faire
 
