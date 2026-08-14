@@ -54,7 +54,7 @@ exploité) reste juste sur le fond, mais le code sous-jacent a bougé :
 | # | Étape (brief §12) | Traduction dépôt |
 |---|---|---|
 | 0 | ✅ **Fait** — repartir propre | Le bug §13 n'existait pas ici (autre prototype) : quatre combats complets pilotés au navigateur passent sans une seule erreur, condition de sortie remplie d'emblée. La substance de l'étape est donc la *leçon* du §13 — valider les données — plus la sortie du Kraken. Voir ci-dessous. |
-| 1 | Structures de données | `src/shipPlans.js` : plans de pont par classe de coque (salles, passages, structure, système), dérivés des classes de coque déjà définies dans `sprites.js`/`ships.json`. Tests en scripts Node autonomes (pas de framework de test dans le projet) validant §14 : cohérence des clés, connexité du graphe, non-chevauchement géométrique, effectifs min < max, déterminisme. |
+| 1 | ✅ **Fait** — structures de données | `src/shipPlans.js` + `test/shipPlans.test.js`. Voir ci-dessous. |
 | 2 | Rendu profil | Le sprite de l'éditeur (`sprites.js`) sert de cadre ; salles positionnées en overlay (divs/SVG) par-dessus, sur le modèle de `docs/refonte/mockups/profil.html`. Ligne de flottaison animée légère. Navires bien plus grands qu'aujourd'hui (toutes les salles visibles). |
 | 3 | Déplacement d'équipage | Pathfinding sur le graphe de passages (BFS, comme la maquette), déplacement animé salle par salle, coût en tours, traversée du feu = blessure. |
 | 4 | Combat 1 v 1 | Bandes de distance, dégâts localisés par salle, feu déterministe et télégraphié, 5 munitions différenciées, abordage. Porte visible = batterie engagée. **Gate de validation du brief : 5 combats joués, sensation « je tente la prise ou je coule ? » avant de continuer.** |
@@ -110,6 +110,46 @@ devient `canon_almirante`, la capacité `kraken_shot` devient `heavy_shot`,
 et l'événement « Présage du Kraken » est réécrit en superstition d'équipage
 conforme au §8.8 : un noyé qui dérive contre la coque, un équipage qui
 croit le navire marqué, aucun surnaturel affirmé par le jeu.
+
+## Étape 1 — ce qui a été fait
+
+**`src/shipPlans.js`.** Trois plans de pont, branchés sur les classes de coque
+1–6 que l'éditeur de sprites utilise déjà — aucune nouvelle taxonomie à
+maintenir :
+
+| Plan | Classes | Salles | Effectif |
+|---|---|---|---|
+| petit (barque, sloop) | 5–6 | 4 | 12 / 45 |
+| moyen (brigantin, frégate) | 3–4 | 6 | 30 / 80 |
+| grand (galion, vaisseau) | 1–2 | 9 | 45 / 150 |
+
+Les distances sortent conformes au brief sans les avoir forcées : sur le
+galion, de l'infirmerie à la sainte-barbe il y a quatre pas — les « trois
+tours de marche » du §5.3 ; sur le sloop, trois pas d'un bout à l'autre —
+« tout est à trois pas ».
+
+**Le piège du §13 est fermé par construction.** Les clés de salle et les noms
+de système forment deux vocabulaires disjoints (`proue` la salle contre
+`coque` le système, `poudriere` contre `munitions`), et un test échoue si les
+deux se recroisent jamais.
+
+**`test/shipPlans.test.js` — 21 tests, condition de sortie de l'étape.** Les
+six invariants du §14 sont couverts, plus trois ajouts : le magasin à poudre
+est toujours la salle la plus profonde et la plus à l'arrière, aucune salle
+ne sort de la coque, et les libellés de salle sont traduits dans les deux
+langues (ils sont stockés comme chaînes, donc invisibles au grep `t()` de la
+suite de données).
+
+**Les tests ont été vérifiés par injection de fautes**, parce qu'une suite qui
+passe du premier coup ne prouve rien. Chevauchement géométrique, clé de salle
+portant un nom de système, passage vers une salle inexistante, salle isolée,
+effectif minimal supérieur à l'effectif complet : les cinq sont bien détectés.
+
+Le §14.6 (déterminisme de la résolution d'un tour) ne peut pas encore être
+écrit — il n'y a pas de résolveur avant l'étape 4. Ce qui est verrouillé dès
+maintenant, c'est ce sur quoi il reposera : un même trajet demandé deux fois
+rend le même trajet, un trajet est une vraie marche par des passages
+existants, et lire un plan ne le mute jamais.
 
 ## Ce qui reste à faire
 
