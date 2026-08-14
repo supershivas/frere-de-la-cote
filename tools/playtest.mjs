@@ -23,17 +23,41 @@ page.on('pageerror', (e) => errs.push('PAGEERROR: ' + e.message + '\n' + (e.stac
 const scr = () => page.evaluate(() => window.__state && window.__state.screen);
 const wait = (ms) => page.waitForTimeout(ms);
 
+// Title → new voyage → faction picker → chart. Also used to restart whenever a
+// run ends (defeat or victory drop the player back on the title screen).
+async function startRun() {
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll('button')].find((x) => /Nouvelle Travers|New Voyage/i.test(x.textContent || ''));
+    if (b) b.click();
+  });
+  await wait(700);
+  const picked = await page.evaluate(() => {
+    const c = document.querySelector('.faction-card');
+    if (c) { c.click(); return true; }
+    return false;
+  });
+  if (!picked) throw new Error('faction picker never appeared — cannot start a run');
+  await wait(1300);
+}
+
 await page.goto('http://localhost:8000/index.html');
 await wait(1200);
-await page.getByRole('button', { name: /Nouvelle Traversée/ }).click();
-await wait(600);
-await page.evaluate(() => document.querySelector('.faction-card').click());
-await wait(1200);
+await startRun();
 
 let fought = 0;
-for (let step = 0; step < 60 && fought < N; step++) {
+let runs = 1;
+for (let step = 0; step < 80 && fought < N; step++) {
   if (errs.length) break;
   const s = await scr();
+
+  // Back on the title screen means the run ended — start another one, so a
+  // short run does not silently stop the playtest before N combats.
+  if (s === 'title') {
+    runs++;
+    console.log(`run ended, starting run #${runs}`);
+    await startRun();
+    continue;
+  }
 
   if (s === 'map') {
     const ok = await page.evaluate(() => {
@@ -118,8 +142,10 @@ async function playCombat() {
   return 'timeout (still in combat)';
 }
 
-console.log('\ncombats played:', fought);
+console.log(`\ncombats played: ${fought}/${N} across ${runs} run(s)`);
 console.log('=== ERRORS ===');
 console.log(errs.length ? errs.join('\n---\n') : 'none');
 await browser.close();
-process.exit(errs.length ? 1 : 0);
+// Failing when fewer combats were played than asked keeps a driver that quietly
+// stops making progress from passing as a green run.
+process.exit(errs.length || fought < N ? 1 : 0);
