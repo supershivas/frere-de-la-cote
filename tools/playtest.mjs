@@ -46,6 +46,8 @@ await startRun();
 
 let fought = 0;
 let runs = 1;
+let lastScreen = null;
+let visits = 0;
 for (let step = 0; step < 80 && fought < N; step++) {
   if (errs.length) break;
   const s = await scr();
@@ -77,19 +79,25 @@ for (let step = 0; step < 80 && fought < N; step++) {
     continue;
   }
 
-  // Any other screen (port / shipyard / treasure / event): take the first
-  // enabled button until we are back on the chart. Result modals live in an
-  // overlay appended to <body>, so they sit *after* the screen in DOM order —
-  // dismiss them first, or we would keep re-clicking the card underneath.
-  const clicked = await page.evaluate(() => {
+  // Any other screen (port / shipyard / treasure / event). Result modals live
+  // in an overlay appended to <body>, so they sit *after* the screen in DOM
+  // order — dismiss them first, or we would keep re-clicking the card
+  // underneath. Ports and shipyards do not leave on their own either: their
+  // first button is a purchase that re-renders the same screen, so exercise the
+  // screen a couple of times and then take the explicit exit.
+  visits = s === lastScreen ? visits + 1 : 0;
+  lastScreen = s;
+  const clicked = await page.evaluate((tired) => {
     const overlayBtn = document.querySelector('.overlay .modal button:not([disabled])');
     if (overlayBtn) { overlayBtn.click(); return 'modal: ' + (overlayBtn.textContent || '').trim().slice(0, 24); }
+    const leave = document.querySelector('.leave-btn:not([disabled])');
+    if (leave && tired) { leave.click(); return 'leave'; }
     const bs = [...document.querySelectorAll('button:not([disabled]), .choice, .event-choice')]
-      .filter((b) => !b.classList.contains('hud-pause'));
-    if (!bs.length) return null;
+      .filter((b) => !b.classList.contains('hud-pause') && !b.classList.contains('leave-btn'));
+    if (!bs.length) { if (leave) { leave.click(); return 'leave'; } return null; }
     bs[0].click();
     return (bs[0].textContent || '').trim().slice(0, 30);
-  });
+  }, visits >= 2);
   console.log(`screen ${s}: clicked ${clicked}`);
   await wait(1100);
 }
