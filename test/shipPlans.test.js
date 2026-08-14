@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { suite, test, assert, equal, empty } from './harness.js';
 import {
   SPECIALTIES, SYSTEMS, planFor, allPlans,
-  adjacent, route, fullStructure, disabledSystems,
+  adjacent, route, routeCost, isLadder, stepCost, fullStructure, disabledSystems,
 } from '../src/shipPlans.js';
 
 const PLANS = allPlans();
@@ -329,6 +329,63 @@ test('route length is the walking cost between two rooms', () => {
   const petit = planFor(6);
   const short = route(petit, 'barre', 'soute');
   assert(short.length - 1 <= 3, `a sloop should be small: ${short.join('→')}`);
+});
+
+// ---------------------------------------------------------------------------
+
+suite('deck plans — ladders cost more than decks');
+
+test('a passage between decks is a ladder, one along a deck is not', () => {
+  const grand = planFor(1);
+  equal(isLadder(grand, 'batterieHaute', 'batterieBasse'), true, 'between decks should be a ladder');
+  equal(isLadder(grand, 'batterieHaute', 'infirmerie'), false, 'same deck should not be a ladder');
+  equal(stepCost(grand, 'batterieHaute', 'batterieBasse') > stepCost(grand, 'batterieHaute', 'infirmerie'),
+    true, 'a ladder must cost more than a walk');
+});
+
+test('a route costs the sum of its steps', () => {
+  const bad = [];
+  for (const plan of PLANS) {
+    const keys = Object.keys(plan.rooms);
+    for (const from of keys) {
+      for (const to of keys) {
+        const path = route(plan, from, to);
+        let sum = 0;
+        for (let i = 1; i < path.length; i++) sum += stepCost(plan, path[i - 1], path[i]);
+        if (routeCost(plan, path) !== sum) {
+          bad.push(`${plan.id}: ${from}→${to} cost ${routeCost(plan, path)} but steps sum to ${sum}`);
+        }
+      }
+    }
+  }
+  empty(bad, 'routes whose cost disagrees with their steps');
+});
+
+// The routing is cheapest-path, not fewest-rooms: with ladders priced higher,
+// walking the length of a deck can beat climbing. Brute-forced against every
+// simple path, which these graphs are small enough to enumerate.
+test('no cheaper route exists than the one returned', () => {
+  const allPaths = (plan, from, to, seen = [from]) => {
+    if (from === to) return [seen];
+    const out = [];
+    for (const next of adjacent(plan, from)) {
+      if (seen.includes(next)) continue;
+      out.push(...allPaths(plan, next, to, seen.concat(next)));
+    }
+    return out;
+  };
+  const bad = [];
+  for (const plan of PLANS) {
+    const keys = Object.keys(plan.rooms);
+    for (const from of keys) {
+      for (const to of keys) {
+        const chosen = routeCost(plan, route(plan, from, to));
+        const best = Math.min(...allPaths(plan, from, to).map((p) => routeCost(plan, p)));
+        if (chosen > best) bad.push(`${plan.id}: ${from}→${to} costs ${chosen}, but ${best} was possible`);
+      }
+    }
+  }
+  empty(bad, 'routes that are not the cheapest available');
 });
 
 test('unknown rooms are rejected rather than silently ignored', () => {

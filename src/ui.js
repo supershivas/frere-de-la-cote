@@ -41,8 +41,9 @@ export function mount(node) {
   hideTooltip();
   clear(root);
   root.appendChild(node);
-  // The sea scene shows on the title & combat; everything else is on parchment.
-  const sea = state.screen === 'combat' || state.screen === 'title';
+  // The sea scene shows on the title, combat and the deck view; everything
+  // else is on parchment. The deck view needs sky and water behind the ships.
+  const sea = state.screen === 'combat' || state.screen === 'title' || state.screen === 'pont';
   document.body.dataset.bg = sea ? 'sea' : 'parchment';
 }
 

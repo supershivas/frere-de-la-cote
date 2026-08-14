@@ -5,16 +5,11 @@
   position: relative;
   margin: 0 auto;
   line-height: 0;
-  /* Clipping frame: the sprite is drawn whole and slid up, so only the hull
-     band shows. The rigging is most of the sprite and none of the gameplay. */
-  overflow: hidden;
   max-width: 100%;
 }
 
 .deck-hull {
   display: block;
-  position: absolute;
-  left: 0;
   image-rendering: pixelated;
 }
 
@@ -46,8 +41,8 @@
   pointer-events: none;
   border: 0;
 }
-.deck-door.hatchway { border-top: 2px dotted rgba(240, 226, 190, .5); }
-.deck-door.ladder { border-left: 2px dotted rgba(240, 226, 190, .5); }
+.deck-door.hatchway { border-top: 2px dotted rgba(240, 226, 190, .45); }
+.deck-door.ladder { border-left: 3px dashed rgba(240, 226, 190, .6); }
 
 .deck-room {
   position: absolute;
@@ -60,6 +55,21 @@
   transition: background .15s, border-color .15s, box-shadow .15s;
 }
 .deck-room:hover { border-color: var(--gold, #c9a24b); }
+
+/* Weather deck: open air, not a compartment. No box — just the deck it stands
+   on, so the eye reads "space" rather than "room". */
+.deck-room.open {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid rgba(60, 42, 28, .5);
+}
+.deck-room.open .deck-room-name { color: rgba(238, 228, 200, .9); text-shadow: 0 1px 2px rgba(0,0,0,.85); }
+.deck-room.open .deck-pips i { box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+.deck-room.open:hover { border-bottom-color: var(--gold, #c9a24b); }
+.deck-room.open.reachable,
+.deck-room.open.here { box-shadow: none; }
+.deck-room.open.reachable { border-bottom-color: rgba(110, 190, 150, .95); }
+.deck-room.open.here { border-bottom-color: rgba(201, 162, 75, .95); }
 .deck-room.damaged { background: rgba(205, 186, 146, .85); }
 .deck-room.wrecked {
   background: repeating-linear-gradient(45deg,
@@ -142,19 +152,45 @@
   box-shadow: 0 0 0 3px rgba(60, 90, 80, .35);
 }
 .deck-man.enemy { background: rgba(200, 170, 160, .9); border-color: #8d2b21; cursor: default; }
+.deck-man.hurt { border-color: #e08a5a; }
+/* A ladder is slower than a deck: the token leans into the climb. */
+.deck-man.climbing { transition-timing-function: cubic-bezier(.6, 0, .8, .3); }
 
 /* --- demo screen scaffolding (step 2/3 harness, not final combat UI) --- */
 
-.pont-screen { padding: 12px clamp(8px, 2vw, 24px) 28px; }
-.pont-duo {
+.pont-screen {
+  /* No fade: the screen re-renders on every interaction, and replaying the
+     entry animation each time reads as a flash. */
+  animation: none;
   display: flex;
-  gap: clamp(8px, 1.5vw, 22px);
-  align-items: flex-start;
-  justify-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  height: 100%;
+  padding: 6px clamp(8px, 2vw, 20px) 10px;
 }
-.pont-ship { flex: 1 1 480px; min-width: 300px; max-width: min(50vw, 780px); }
-.pont-ship .deck { width: 100% !important; }
+
+/* The sea both ships float on. They are aligned on this line, not on their
+   own boxes, so the two hulls sit in the same water however they are scaled. */
+.pont-sea {
+  flex: 1 1 auto;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(6px, 2vw, 34px);
+}
+.pont-sea::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: var(--sea-line, 22%);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(150, 200, 215, .5) 8%, rgba(150, 200, 215, .5) 92%, transparent);
+  pointer-events: none;
+}
+
+.pont-ship { position: relative; display: flex; flex-direction: column; justify-content: flex-end; }
+.pont-ship .deck { width: 100% !important; height: auto; }
 .pont-cap {
   font-family: "Courier Prime", monospace;
   font-size: 10px;
@@ -167,49 +203,50 @@
   line-height: 1.4;
 }
 .pont-panel {
-  margin: 14px auto 0;
-  max-width: 820px;
+  margin: 6px auto 0;
+  max-width: 980px;
   border: 1px solid rgba(201, 162, 75, .45);
   background: rgba(20, 15, 11, .55);
   padding: 10px 12px;
   color: var(--parchment, #e6dcc3);
   font-family: "Courier Prime", monospace;
-  font-size: 11.5px;
-  line-height: 1.75;
-  min-height: 64px;
+  font-size: 11px;
+  line-height: 1.55;
 }
 .pont-panel h4 {
   font-family: "IM Fell English", Georgia, serif;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 400;
   margin-bottom: 2px;
 }
 .pont-panel .warn { color: #e08a5a; }
 .pont-crew {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 6px;
-  max-width: 820px;
-  margin: 10px auto 0;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 4px;
+  max-width: 980px;
+  margin: 5px auto 0;
 }
 .pont-card {
   border: 1px solid rgba(201, 162, 75, .35);
-  background: rgba(28, 21, 15, .6);
-  padding: 6px 8px;
+  background: rgba(28, 21, 15, .72);
+  padding: 3px 7px;
   cursor: pointer;
   color: var(--parchment, #e6dcc3);
 }
 .pont-card:hover { border-color: rgba(201, 162, 75, .8); }
 .pont-card.selected { border-color: #6fae92; background: rgba(60, 90, 80, .3); }
-.pont-card b { font-family: "IM Fell English", Georgia, serif; font-size: 15px; font-weight: 400; }
+.pont-card b { font-family: "IM Fell English", Georgia, serif; font-size: 13.5px; font-weight: 400; }
 .pont-card .role,
 .pont-card .loc {
   display: block;
   font-family: "Courier Prime", monospace;
-  font-size: 9.5px;
-  letter-spacing: .06em;
+  font-size: 9px;
+  letter-spacing: .04em;
   opacity: .7;
 }
 .pont-card .loc { opacity: .95; }
 .pont-card .hurt { color: #e08a5a; }
-.pont-controls { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 12px 0 4px; }
+.pont-controls { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 6px 0 0; }
+.pont-controls .btn-level-4 { padding: 3px 10px; font-size: 12px; }
+.pont-cap { padding-bottom: 2px; font-size: 9.5px; }

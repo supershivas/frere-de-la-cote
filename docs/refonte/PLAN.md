@@ -188,6 +188,41 @@ passe d'interface — rien de cet habillage n'est censé survivre.
 Le panneau de détail est fixe, jamais une infobulle flottante : le survol seul
 a été essayé et écarté parce qu'il ne fonctionne pas au doigt (§9).
 
+### Passe de corrections sur retour visuel
+
+Six défauts relevés sur capture d'écran, tous corrigés :
+
+1. **Le navire doit se voir en entier.** Le recadrage sur la bande de coque
+   était une erreur : il fallait montrer tout le navire, gréement compris. Les
+   deux navires sont désormais dimensionnés par la largeur **et** par la
+   hauteur — un mât qui sort de l'écran n'est pas lisible. Les panneaux du bas
+   ont été resserrés : le navire est l'écran.
+2. **Les espaces extérieurs ne sont pas des salles.** Barre, grand mât et proue
+   sont du pont découvert : plus de rectangle, seulement le nom et la ligne de
+   pont sous les hommes qui s'y tiennent (`open: true` dans le plan).
+3. **Le flash à chaque clic** venait de `.screen { animation: fade }` rejouée à
+   chaque reconstruction de l'écran — `.combat-screen` la neutralisait déjà
+   pour cette raison exacte. Neutralisée aussi ici.
+4. **Le ciel** : l'écran passe sur le fond marin animé déjà existant plutôt que
+   sur le motif de bois.
+5. **Une seule mer.** Chaque navire est décalé vers le bas de la part de sa
+   coque située sous sa propre ligne de flottaison, si bien que les deux
+   flottaisons tombent sur la même ligne quelles que soient les deux échelles.
+   L'ennemi est plus petit, proportions FTL, pour laisser la place au joueur.
+6. **Le déplacement s'anime vraiment.** Il ne s'animait pas parce que chaque pas
+   reconstruisait le DOM, ce qui tuait la transition CSS : le jeton est
+   maintenant déplacé, pas recréé.
+
+**Et une conséquence mécanique, pas seulement visuelle.** « Changer de niveau
+est plus long qu'un déplacement horizontal » n'est pas un réglage d'animation :
+une échelle coûte **deux tours** contre un pour un déplacement sur le même
+pont. Le routage est donc devenu un plus-court-chemin pondéré et non plus un
+parcours en largeur — un homme fera le tour d'un pont plutôt que de grimper
+deux fois si c'est plus rapide. C'est exactement la « contrainte de logistique
+interne » du §5.3, et trois tests la verrouillent, dont un qui compare la route
+retenue à **tous** les chemins simples possibles pour vérifier qu'aucun moins
+cher n'existait.
+
 ## Ce qui reste à faire
 
 Les suppressions restantes (`reputation` → `legitimacy`, §8.6) s'exécutent à
