@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Vue de profil — maquette</title>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#e6dcc3;--band:#dcd0b2;--edge:#c6b58d;--ink:#29201a;--faint:#6d5c46;
+--red:#8d2b21;--verd:#3c5a50;--gold:#a8791f;
+--disp:"IM Fell English",Georgia,serif;--sc:"IM Fell English SC",Georgia,serif;--mono:"Courier Prime",monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1d1712;font-family:var(--disp);color:var(--ink);padding:clamp(6px,1.6vw,18px);line-height:1.35}
+.wrap{max-width:1000px;margin:0 auto;background:var(--paper);
+  box-shadow:0 2px 0 var(--edge),0 20px 44px -16px rgba(0,0,0,.7);padding:clamp(10px,2vw,20px)}
+h1{font-family:var(--sc);font-size:clamp(18px,3.2vw,25px);font-weight:400;line-height:1}
+.note{font-size:13px;font-style:italic;color:var(--faint);margin-top:2px}
+.hr{border-bottom:2px solid var(--ink);padding-bottom:8px;margin-bottom:10px}
+.lbl{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+
+/* -------- la scène : deux navires de profil -------- */
+.scene{background:linear-gradient(#cfd6cf 0%,#b9c4bd 62%,#9fb0a8 100%);
+  border:1px solid var(--edge);padding:8px;position:relative;overflow:hidden}
+.dist{display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--mono);
+  font-size:9.5px;letter-spacing:.1em;color:var(--faint);padding:3px 0 6px}
+.dist b{color:var(--ink);font-weight:400;border-bottom:1px solid var(--ink)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:clamp(6px,2vw,22px);align-items:center}
+@media(max-width:720px){.duo{grid-template-columns:1fr;gap:14px}}
+
+.shipbox{position:relative;width:100%}
+.shipbox .cap{font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--faint);
+  text-align:center;padding-bottom:3px}
+.shipbox .cap b{color:var(--ink);font-weight:400;font-family:var(--sc);font-size:12.5px;letter-spacing:0}
+.hullwrap{position:relative;width:100%;aspect-ratio:1.62}
+.hullwrap svg.hull{position:absolute;inset:0;width:100%;height:100%}
+.rm{position:absolute;border:1.4px solid rgba(41,32,26,.82);cursor:pointer;
+  background:rgba(242,235,216,.9);transition:background .18s,border-color .18s}
+.rm:hover{border-color:var(--verd)}
+.rm.reach{background:rgba(60,90,80,.26);border-color:var(--verd);border-width:2px}
+.rm.hurt{background:rgba(207,192,160,.92)}
+.rm.dead{background:repeating-linear-gradient(45deg,rgba(141,43,33,.2) 0 4px,rgba(226,216,192,.9) 4px 8px);border-style:dashed}
+.rm.fire{background:rgba(196,90,52,.75);border-color:var(--red)}
+.rm .nm{position:absolute;left:3px;top:2px;font-family:var(--mono);font-size:7.5px;
+  letter-spacing:.03em;text-transform:uppercase;color:var(--faint);pointer-events:none;line-height:1.1}
+.rm .pips{position:absolute;right:3px;top:3px;display:flex;gap:1.5px;pointer-events:none}
+.rm .pips i{width:4px;height:4px;background:var(--verd);display:block}
+.rm .pips i.x{background:#c3b494}
+.door{position:absolute;background:var(--faint);opacity:.5}
+
+/* équipage */
+.man{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;
+  border:1.6px solid var(--ink);background:var(--band);cursor:pointer;z-index:6;
+  transition:left .34s ease-in-out,top .34s ease-in-out;
+  font-family:var(--mono);font-size:8px;display:flex;align-items:center;justify-content:center;line-height:1}
+.man.sel{background:var(--verd);color:var(--paper);border-color:var(--verd);
+  box-shadow:0 0 0 3px rgba(60,90,80,.28)}
+.man.hurt{border-color:var(--gold)}
+.man.busy{border-style:dashed}
+.man.en{background:rgba(220,201,188,.9);border-color:var(--red);cursor:default}
+
+/* -------- panneau équipage -------- */
+.crewbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:7px;margin-top:11px}
+.cc{border:1px solid var(--edge);background:var(--band);padding:7px 8px;cursor:pointer;position:relative}
+.cc:hover{border-color:var(--ink)}
+.cc.sel{border-color:var(--verd);border-width:2px;background:rgba(60,90,80,.14)}
+.cc h4{font-family:var(--sc);font-size:14.5px;font-weight:400;line-height:1.1}
+.cc .role{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.cc .sp{font-family:var(--mono);font-size:9.5px;margin-top:4px;line-height:1.65;color:var(--faint)}
+.cc .sp b{color:var(--ink);font-weight:400}
+.cc .sp .best{color:var(--verd)}
+.cc .where{font-family:var(--mono);font-size:8.5px;color:var(--ink);margin-top:3px;
+  border-top:1px solid var(--edge);padding-top:3px}
+.cc .where em{font-style:normal;color:var(--red)}
+
+.tipbox{border:1px solid var(--ink);background:var(--band);padding:8px 10px;margin-top:10px;min-height:56px}
+.tipbox h4{font-family:var(--sc);font-size:15px;font-weight:400}
+.tipbox p{font-family:var(--mono);font-size:10px;color:var(--faint);line-height:1.7}
+.tipbox p b{color:var(--ink);font-weight:400}
+.tipbox p .f{color:var(--red)}
+.hintline{font-size:13px;font-style:italic;color:var(--faint);margin-top:8px;
+  border-top:1px solid var(--edge);padding-top:7px}
+.legend{font-family:var(--mono);font-size:9px;color:var(--faint);line-height:1.8;margin-top:7px}
+.legend b{color:var(--ink);font-weight:400}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hr">
+    <h1>Vue de profil — le sprite est le plan de pont</h1>
+    <p class="note">Maquette d'exploration. Cliquez un homme, puis une salle atteignable : il s'y rend en passant par les salles reliées.</p>
+  </div>
+
+  <div class="scene">
+    <p class="dist">BORD À BORD &nbsp;·&nbsp; <b>À PORTÉE DE MOUSQUET</b> &nbsp;·&nbsp; PORTÉE DE CANON &nbsp;·&nbsp; AU LOIN</p>
+    <div class="duo">
+      <div class="shipbox">
+        <p class="cap"><b>La Trompeuse</b> &nbsp;brigantin · 2 ponts · 6 salles</p>
+        <div class="hullwrap" id="hullUs"></div>
+      </div>
+      <div class="shipbox">
+        <p class="cap"><b>Sancta Ana</b> &nbsp;galion · 3 ponts · 9 salles</p>
+        <div class="hullwrap" id="hullThem"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="legend" id="legend"></p>
+
+  <p class="lbl" style="margin-top:12px">Équipage — cinq hommes, chacun sa spécialité</p>
+  <div class="crewbar" id="crewbar"></div>
+
+  <div class="tipbox" id="tip"><h4>Survolez une salle</h4><p>Son rôle, son état et qui s'y trouve s'afficheront ici.</p></div>
+  <p class="hintline" id="hint"></p>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   PLANS DE PONT PAR CLASSE DE COQUE
+   Logique commune : l'axe horizontal va de la poupe (gauche)
+   à la proue (droite). L'axe vertical descend du pont supérieur
+   vers la cale. Plus la coque est grosse, plus il y a de ponts.
+   Coordonnées en % de la boîte du navire.
+   ============================================================ */
+const PLANS={
+  brigantin:{
+    rooms:{
+      barre:  {n:"Barre",      x:6, y:30,w:17,h:22,hp:2,sys:"gouvernail",
+               d:"Le cap. Sans homme ici, le navire garde sa route."},
+      mat:    {n:"Grand mât",  x:25,y:26,w:26,h:26,hp:3,sys:"voiles",
+               d:"La vitesse. Deux hommes valent mieux qu'un."},
+      proue:  {n:"Proue",      x:53,y:30,w:24,h:22,hp:3,sys:"coque",
+               d:"L'étrave. Percée, la cale s'emplit."},
+      batterie:{n:"Batterie",  x:20,y:54,w:57,h:20,hp:3,sys:"canons",
+               d:"Les canons du bord visible. C'est ce bord qui tire."},
+      cale:   {n:"Cale",       x:33,y:76,w:30,h:17,hp:3,sys:"pompes",
+               d:"Les pompes. Elles seules retiennent l'eau."},
+      poudre: {n:"Poudrière",  x:12,y:76,w:19,h:17,hp:2,sys:"poudre",
+               d:"La poudre. Le feu ici met fin à tout."}
+    },
+    doors:[["barre","mat"],["mat","proue"],["mat","batterie"],["batterie","cale"],
+           ["cale","poudre"],["batterie","proue"]]
+  },
+  galion:{
+    rooms:{
+      barre:  {n:"Barre",       x:5, y:24,w:15,h:19,hp:2,sys:"gouvernail",d:"Le cap."},
+      chateau:{n:"Gaillard",    x:5, y:45,w:15,h:18,hp:2,sys:"commandement",d:"L'état-major."},
+      mat:    {n:"Grand mât",   x:22,y:20,w:24,h:23,hp:3,sys:"voiles",d:"La vitesse."},
+      proue:  {n:"Proue",       x:48,y:24,w:22,h:19,hp:3,sys:"coque",d:"L'étrave."},
+      bat1:   {n:"Batterie haute",x:22,y:45,w:48,h:17,hp:3,sys:"canons",d:"Canons du pont supérieur."},
+      bat2:   {n:"Batterie basse",x:22,y:64,w:48,h:17,hp:4,sys:"canons",d:"Canons du second pont."},
+      infirm: {n:"Infirmerie",  x:72,y:45,w:16,h:17,hp:2,sys:"soins",d:"Les blessés."},
+      cale:   {n:"Cale",        x:30,y:83,w:32,h:14,hp:3,sys:"pompes",d:"Les pompes."},
+      poudre: {n:"Sainte-Barbe",x:10,y:83,w:18,h:14,hp:2,sys:"poudre",d:"La poudre."}
+    },
+    doors:[["barre","mat"],["barre","chateau"],["chateau","bat1"],["mat","proue"],
+           ["mat","bat1"],["bat1","bat2"],["bat1","infirm"],["bat2","cale"],["cale","poudre"]]
+  }
+};
+
+/* ============================================================
+   ÉQUIPAGE — cinq hommes, aucune figure du joueur.
+   Le joueur commande, il n'est pas à bord (comme FTL).
+   ============================================================ */
+const CREW=[
+ {id:1,n:"Etcheverry",r:"canonnier",at:"batterie",st:0,
+  sp:{canon:8,voile:2,repar:3,soin:1,melee:5},note:"bras gauche perdu"},
+ {id:2,n:"Coudray",r:"maître d'équipage",at:"mat",st:0,
+  sp:{canon:2,voile:8,repar:4,soin:1,melee:4}},
+ {id:3,n:"Toussaint",r:"charpentier",at:"cale",st:0,
+  sp:{canon:3,voile:3,repar:8,soin:2,melee:7}},
+ {id:4,n:"Ozanne",r:"chirurgien",at:"poudre",st:1,
+  sp:{canon:2,voile:2,repar:2,soin:7,melee:2}},
+ {id:5,n:"Gohier",r:"matelot",at:"proue",st:0,
+  sp:{canon:5,voile:5,repar:5,soin:3,melee:5},note:"polyvalent, promouvable"}
+];
+const ENEMY=[{at:"bat2"},{at:"bat2"},{at:"mat"},{at:"barre"},{at:"cale"},{at:"proue"},{at:"bat1"}];
+
+/* état des salles : quelques dégâts pour la démonstration */
+const STATE={batterie:{hp:3},mat:{hp:2},proue:{hp:3},barre:{hp:2},cale:{hp:3},poudre:{hp:2}};
+const STATE_E={bat1:{hp:1},bat2:{hp:3},mat:{hp:0},proue:{hp:2},barre:{hp:2},
+  chateau:{hp:2},infirm:{hp:2},cale:{hp:3},poudre:{hp:2,fire:2}};
+
+const SPN={canon:"canonnage",voile:"manœuvre",repar:"réparation",soin:"soins",melee:"mêlée"};
+const STN=["indemne","blessé","mutilé"];
+let sel=null;
+
+/* ---- graphe de salles ---- */
+function adj(plan,k){const o=[];
+  for(const[a,b]of plan.doors){if(a===k)o.push(b);if(b===k)o.push(a)}return o}
+function path(plan,from,to){
+  if(from===to)return[from];
+  const q=[[from]],seen=new Set([from]);
+  while(q.length){const p=q.shift();
+    for(const nx of adj(plan,p[p.length-1])){
+      if(seen.has(nx))continue;
+      const np=p.concat(nx);
+      if(nx===to)return np;
+      seen.add(nx);q.push(np)}}
+  return null}
+
+/* ---- coque de profil (sera remplacée par le sprite de l'éditeur) ---- */
+function hullSVG(kind){
+  const masts=kind==="galion"
+    ? '<line x1="34" y1="4" x2="34" y2="22" stroke="#6b5334" stroke-width="2.2"/>'+
+      '<line x1="58" y1="7" x2="58" y2="22" stroke="#6b5334" stroke-width="2"/>'+
+      '<line x1="14" y1="10" x2="14" y2="24" stroke="#6b5334" stroke-width="1.8"/>'+
+      '<path d="M34 6 L48 20 L34 20 Z" fill="#e8e0c8" opacity=".55"/>'+
+      '<path d="M58 9 L68 21 L58 21 Z" fill="#e8e0c8" opacity=".55"/>'
+    : '<line x1="37" y1="5" x2="37" y2="26" stroke="#6b5334" stroke-width="2.2"/>'+
+      '<line x1="62" y1="10" x2="62" y2="28" stroke="#6b5334" stroke-width="1.9"/>'+
+      '<path d="M37 7 L52 24 L37 24 Z" fill="#e8e0c8" opacity=".55"/>';
+  const hull=kind==="galion"
+    ? 'M3 22 L3 82 Q6 97 22 97 L70 97 Q86 96 90 80 L92 44 L86 44 L84 22 Z'
+    : 'M4 26 L4 76 Q7 94 24 94 L66 94 Q82 93 86 76 L88 40 L82 40 L80 26 Z';
+  return '<svg class="hull" viewBox="0 0 100 100" preserveAspectRatio="none">'+
+    '<path d="'+hull+'" fill="#c9b territoire" />'.replace('c9b territoire','#cdb894')+
+    '<path d="'+hull+'" fill="none" stroke="#6b5334" stroke-width="1.6"/>'+
+    masts+'</svg>'}
+
+/* ---- rendu d'un navire ---- */
+function renderShip(el,planKey,state,crew,mine){
+  const plan=PLANS[planKey];
+  el.innerHTML=hullSVG(planKey);
+  // portes
+  for(const[a,b]of plan.doors){
+    const A=plan.rooms[a],B=plan.rooms[b];
+    const ax=A.x+A.w/2,ay=A.y+A.h/2,bx=B.x+B.w/2,by=B.y+B.h/2;
+    const d=document.createElement("div");d.className="door";
+    if(Math.abs(ay-by)<Math.max(A.h,B.h)/2){ // même pont : porte verticale
+      const x=(ax<bx)?Math.max(A.x+A.w,B.x)-1:Math.max(B.x+B.w,A.x)-1;
+      d.style.left=Math.min(ax,bx)===ax?(A.x+A.w-1)+"%":(B.x+B.w-1)+"%";
+      d.style.top=(Math.max(A.y,B.y)+3)+"%";d.style.width="2.2%";d.style.height="9%";
+    }else{ // échelle entre ponts
+      d.style.left=(Math.max(A.x,B.x)+3)+"%";
+      d.style.top=(Math.min(A.y+A.h,B.y+B.h)-1)+"%";
+      d.style.width="8%";d.style.height="2.2%";
+    }
+    el.appendChild(d);
+  }
+  // salles
+  const reach=sel&&mine?adj(plan,sel.at).concat([sel.at]):[];
+  for(const k in plan.rooms){
+    const R=plan.rooms[k],S=state[k]||{hp:R.hp};
+    const div=document.createElement("div");
+    const cls=["rm"];
+    if(S.fire)cls.push("fire");
+    else if(S.hp<=0)cls.push("dead");
+    else if(S.hp<R.hp)cls.push("hurt");
+    if(mine&&sel&&path(plan,sel.at,k))cls.push("reach");
+    div.className=cls.join(" ");
+    div.style.left=R.x+"%";div.style.top=R.y+"%";
+    div.style.width=R.w+"%";div.style.height=R.h+"%";
+    div.dataset.k=k;div.dataset.mine=mine?1:0;
+    let pips='';for(let i=0;i<R.hp;i++)pips+='<i class="'+(i<S.hp?"":"x")+'"></i>';
+    div.innerHTML='<span class="nm">'+R.n+'</span><span class="pips">'+pips+'</span>';
+    div.onmouseenter=()=>showTip(planKey,k,state,crew,mine);
+    div.onclick=()=>{
+      if(mine&&sel){moveMan(el,planKey,sel,k);return}
+      showTip(planKey,k,state,crew,mine)};
+    el.appendChild(div);
+  }
+  // hommes
+  crew.forEach((c,i)=>{
+    const R=plan.rooms[c.at];if(!R)return;
+    const same=crew.filter(x=>x.at===c.at);
+    const idx=same.indexOf(c),n=same.length;
+    const m=document.createElement("div");
+    const cls=["man"];
+    if(!mine)cls.push("en");
+    else{if(sel&&sel.id===c.id)cls.push("sel");
+      if(c.st>0)cls.push("hurt");
+      if((state[c.at]||{}).fire)cls.push("busy")}
+    m.className=cls.join(" ");
+    m.style.left=(R.x+R.w/2+(idx-(n-1)/2)*7.5)+"%";
+    m.style.top=(R.y+R.h/2+4)+"%";
+    m.textContent=mine?c.n[0]:"";
+    if(mine){m.title=c.n+" — "+c.r;
+      m.onclick=e=>{e.stopPropagation();sel=(sel&&sel.id===c.id)?null:c;drawAll()}}
+    el.appendChild(m);
+  });
+}
+
+/* ---- déplacement animé de salle en salle ---- */
+function moveMan(el,planKey,man,to){
+  const plan=PLANS[planKey];
+  const p=path(plan,man.at,to);
+  if(!p){flash("Aucun passage ne relie "+plan.rooms[man.at].n+" à "+plan.rooms[to].n+".");return}
+  if(p.length===1){sel=null;drawAll();return}
+  const token=[...el.querySelectorAll(".man")].find(m=>m.textContent===man.n[0]);
+  sel=null;
+  let i=1;
+  const walk=()=>{
+    if(i>=p.length){man.at=to;drawAll();
+      flash(man.n+" est à "+plan.rooms[to].n+(p.length>2?" (passé par "+p.slice(1,-1).map(k=>plan.rooms[k].n).join(", ")+")":""));
+      return}
+    const R=plan.rooms[p[i]];
+    if(token){token.style.left=(R.x+R.w/2)+"%";token.style.top=(R.y+R.h/2+4)+"%"}
+    man.at=p[i];i++;setTimeout(walk,360)};
+  walk();
+}
+
+function showTip(planKey,k,state,crew,mine){
+  const plan=PLANS[planKey],R=plan.rooms[k],S=state[k]||{hp:R.hp};
+  const men=crew.filter(c=>c.at===k);
+  let h='<h4>'+R.n+(mine?"":" (galion)")+'</h4><p>';
+  h+='structure <b>'+S.hp+'/'+R.hp+'</b>';
+  if(S.fire)h+=' \u00b7 <span class="f">EN FEU, intensité '+S.fire+'</span>';
+  if(S.hp<=0)h+=' \u00b7 <span class="f">hors service</span>';
+  h+='<br>'+(R.d||"")+'<br>';
+  h+='relié à : '+adj(plan,k).map(a=>plan.rooms[a].n.toLowerCase()).join(", ");
+  if(mine){h+='<br>présents : '+(men.length?men.map(c=>
+    '<b>'+c.n+'</b> ('+c.r+(c.st?", "+STN[c.st]:"")+')').join(", "):"personne")}
+  else h+='<br>'+men.length+' homme'+(men.length>1?"s":"")+' à l\'intérieur';
+  h+='</p>';
+  document.getElementById("tip").innerHTML=h;
+}
+function flash(t){document.getElementById("hint").textContent=t}
+
+function drawCrew(){
+  const B=document.getElementById("crewbar");
+  B.innerHTML=CREW.map(c=>{
+    const best=Object.entries(c.sp).sort((a,b)=>b[1]-a[1])[0][0];
+    const sp=Object.entries(c.sp).map(([k,v])=>
+      '<span class="'+(k===best?"best":"")+'">'+SPN[k]+' <b>'+v+'</b></span>').join(" \u00b7 ");
+    const burning=(STATE[c.at]||{}).fire;
+    return '<div class="cc'+(sel&&sel.id===c.id?" sel":"")+'" data-c="'+c.id+'">'+
+      '<h4>'+c.n+'</h4><p class="role">'+c.r+(c.st?" \u2014 "+STN[c.st]:"")+'</p>'+
+      '<p class="sp">'+sp+'</p>'+
+      '<p class="where">'+(PLANS.brigantin.rooms[c.at]||{n:"?"}).n+
+      (burning?' <em>— au feu</em>':'')+(c.note?'<br>'+c.note:'')+'</p></div>'}).join("");
+  B.querySelectorAll("[data-c]").forEach(n=>n.onclick=()=>{
+    const c=CREW.find(x=>x.id==n.dataset.c);sel=(sel&&sel.id===c.id)?null:c;drawAll()});
+}
+function drawAll(){
+  renderShip(document.getElementById("hullUs"),"brigantin",STATE,CREW,true);
+  renderShip(document.getElementById("hullThem"),"galion",STATE_E,ENEMY,false);
+  drawCrew();
+  document.getElementById("legend").innerHTML=
+    '<b>Salles claires</b> saines &nbsp;·&nbsp; <b>beiges</b> abîmées &nbsp;·&nbsp; '+
+    '<b>hachurées</b> hors service &nbsp;·&nbsp; <b>rouges</b> en feu &nbsp;·&nbsp; '+
+    'les traits gris sont les <b>passages</b> : toutes les salles ne communiquent pas.<br>'+
+    'Le grand mât du galion est déjà brisé, sa sainte-barbe brûle : deux tours avant l\'explosion.';
+  if(!sel)flash("Cliquez un homme ci-dessous ou à bord. Les salles qu'il peut atteindre s'éclaireront.");
+  else flash(sel.n+" sélectionné — cliquez une salle de La Trompeuse. Il empruntera les passages existants.");
+}
+drawAll();
+</script>
+</body>
+</html>
