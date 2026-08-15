@@ -155,6 +155,16 @@
   </ol>
 </div>
 
+<div class="rule-box">
+  <strong>État du document.</strong> Les sections 1 à 6 et 8 à 14 datent de la
+  V1 et restent valables : palette, typographie, grille, animations, icônes,
+  accessibilité, assets. Les sections <strong>7</strong> (layouts),
+  <strong>10.3</strong> (munitions), <strong>15</strong> (contrastes) et
+  <strong>16</strong> (composants) ont été refaites pour la refonte. Un
+  composant décrit ici et absent du §16 appartient à l'ancien combat de flotte,
+  encore présent dans le jeu mais destiné à disparaître.
+</div>
+
 <h2 id="s1">1. Philosophie de Design</h2>
 <h3>Vision</h3>
 <p>L'interface de <em>Frères de la Côte</em> doit évoquer :</p>
@@ -364,27 +374,48 @@
 }</code></pre>
 
 <h2 id="s7">7. Layouts par Écran</h2>
-<h3>7.1 Écran de Combat (Principal)</h3>
-<pre><code>.combat-screen {
-  display: grid;
-  grid-template-rows: 50px 1fr 120px 220px;
-  grid-template-columns: 280px 1fr 280px;
-  grid-template-areas:
-    "topbar topbar topbar"
-    "allies center enemies"
-    "log log log"
-    "actions actions actions";
-  height: 100vh;
-  width: 100vw;
-}</code></pre>
-<p><strong>Règles de placement :</strong></p>
-<ul>
-  <li>Alliés : colonne gauche (0-25%)</li>
-  <li>Ennemis : colonne droite (75-100%)</li>
-  <li>Centre : zone de combat, VS, trajectoires</li>
-  <li>Log : bandeau milieu-bas</li>
-  <li>Actions : bandeau inférieur, contextuel au bateau sélectionné</li>
-</ul>
+<h3>7.1 Écran de combat — refonte</h3>
+<p>Un navire contre un navire (§7 du brief), vus de profil sur une même mer.
+Il n'y a pas de grille : la position est une bande de distance.</p>
+<pre><code>┌──────────────────────────────────────────────────────────┐
+│  bord à bord · mousquet · [PORTÉE DE CANON] · au loin   │ ← bande de distance, toujours visible
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│      ▄▄▄ votre navire ▄▄▄        ▄▄ ennemi ▄▄            │ ← les deux flottaisons
+│   ═══════════════════════════════════════════════        │   sur une seule ligne de mer
+│                                                          │
+├──────────────────────────────────────────────────────────┤
+│ ⚠ Intention ennemie : Bordée sur Batterie — ● Boulet     │ ← annoncée un tour à l'avance
+├──────────────────────────────────────────────────────────┤
+│   ● Boulet  ⛓ Chaîne  ✳ Mitraille  💥 Explosif  🔥       │ ← munitions
+│   « Brise la structure de la salle visée. »              │ ← conséquence en clair
+│   [● Tirer] [→ S'approcher] [← Rompre] [⚔] [⏭]          │ ← actions, raison si bloquée
+│   Déplacez vos hommes, puis UNE manœuvre et UNE bordée.  │ ← structure du tour, permanente
+└──────────────────────────────────────────────────────────┘</code></pre>
+
+<table>
+  <tr><th>Zone</th><th>Rôle</th><th>Règle</th></tr>
+  <tr><td>Bande de distance</td><td>Les quatre portées, la courante marquée</td><td>Toujours visible : c'est tout le jeu de position</td></tr>
+  <tr><td>Scène</td><td>Les deux navires en écorché</td><td>Flottaisons alignées ; l'ennemi est plus petit, proportions FTL</td></tr>
+  <tr><td>Intention</td><td>Ce que l'ennemi fera</td><td>Un tour à l'avance, propagation du feu comprise</td></tr>
+  <tr><td>Munitions</td><td>Le choix de bordée</td><td>Conséquence en clair sous le choix, jamais le seul terme d'époque</td></tr>
+  <tr><td>Actions</td><td>Manœuvre, bordée, abordage, fin de tour</td><td>Une action bloquée affiche <em>pourquoi</em></td></tr>
+  <tr><td>Règle du tour</td><td>La structure du tour, en toutes lettres</td><td>Ne pas l'énoncer était la première cause d'incompréhension du prototype</td></tr>
+</table>
+
+<h3>7.2 Écrans de préparation — documents</h3>
+<p>Recrutement et chasse-partie sont des <strong>documents sur parchemin</strong>,
+écrits à l'encre sombre (§15.3). Trois écrans au plus avant le premier combat.</p>
+
+<h3>7.3 Carte des Caraïbes</h3>
+<p>Géographie réelle, côtes tracées, départ toujours à l'Île de la Tortue.
+Chaque escale annonce son coût avant qu'on y aille ; seules les escales
+atteignables, l'escale courante et celles déjà visitées portent un libellé.</p>
+
+<h3>7.4 Ancien écran de combat de flotte <em>(V1, à retirer)</em></h3>
+<p>Alliés en colonne gauche, ennemis à droite, log au centre-bas, barre
+d'actions contextuelle. Toujours dans le jeu sous « Nouvelle Traversée », mais
+remplacé par le §7.1 — ne rien construire de neuf dessus.</p>
 
 <h2 id="s8">8. Animations & Transitions</h2>
 <h3>8.1 Durées standard</h3>
@@ -465,14 +496,22 @@
 </table>
 
 <h3>10.3 Munitions</h3>
+<p>Cinq munitions, cinq métiers distincts — elles ne sont plus des modificateurs
+de dégâts interchangeables. Le harpon de la V1 a été retiré.</p>
 <table>
-  <tr><th>Icône</th><th>Type</th><th>Effet</th></tr>
-  <tr><td>⚫</td><td>Standard</td><td>Dégâts normaux</td></tr>
-  <tr><td>💥</td><td>Explosif</td><td>Dégâts de zone</td></tr>
-  <tr><td>🔥</td><td>Feu</td><td>Brûlure sur plusieurs tours</td></tr>
-  <tr><td>⛓️</td><td>Chaînes</td><td>Ralentissement</td></tr>
-  <tr><td>⚓</td><td>Harpon</td><td>Immobilisation</td></tr>
+  <tr><th>Icône</th><th>Nom</th><th>Métier</th><th>Portée max</th></tr>
+  <tr><td>●</td><td>Boulet</td><td>Structure de la salle visée. La voie de la destruction.</td><td>Canon</td></tr>
+  <tr><td>⛓</td><td>Chaîne</td><td>Gréement seul. La munition de la prise : elle ne peut pas couler l'ennemi.</td><td>Canon</td></tr>
+  <tr><td>✳</td><td>Mitraille</td><td>Blesse les hommes, épargne la coque. Prépare l'abordage.</td><td>Mousquet</td></tr>
+  <tr><td>💥</td><td>Explosif</td><td>Frappe aussi la salle voisine. C'est ainsi qu'on coule une prise par accident.</td><td>Canon</td></tr>
+  <tr><td>🔥</td><td>Carcasse</td><td>Seule source de feu du jeu. Détruit souvent la prise.</td><td>Canon</td></tr>
 </table>
+<div class="rule-box">
+  <strong>Glyphes texte, pas émojis, pour les deux premières.</strong> Un émoji
+  ne prend pas la couleur du texte : <code>⚫</code> mesurait 1,59:1 sur un
+  bouton sombre. <code>●</code> et <code>✳</code> héritent de la couleur du
+  composant et restent lisibles sur tous les terrains (§15.5).
+</div>
 
 <h2 id="s11">11. États des Composants</h2>
 <h3>11.1 Boutons</h3>
