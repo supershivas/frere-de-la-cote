@@ -28,6 +28,43 @@ de toucher au combat, à la carte, à l'équipage ou aux navires, lire :
   procédurale abstraite actuelle de `src/map.js`, à traiter à l'étape 5
   (boucle de partie), pas avant.
 
+## Où vit quoi (après les étapes 0 à 5)
+
+Le code de la refonte et celui de la V1 coexistent. Ne rien construire de neuf
+sur le second.
+
+| Module | Rôle |
+|---|---|
+| `src/shipPlans.js` | Plans de pont par classe de coque : salles, passages, spécialités, coûts de trajet |
+| `src/deckView.js` | Rendu en profil : le sprite généré sert de cadre au plan ; déplacement animé |
+| `src/battle.js` | **Règles de combat pures** — aucun DOM, aucun minuteur, **aucun aléatoire** |
+| `src/run.js` | État de partie : archétypes, clauses de chasse-partie, moral, légitimité |
+| `src/caribbean.js` | La Caraïbe réelle : lieux, côtes, distances |
+| `src/screens/pont.js` | Harnais de plan de pont (étapes 2-3), pas l'écran de combat |
+| `src/screens/bataille.js` | L'écran de combat (étape 4) |
+| `src/screens/traversee.js` | Recrutement, chasse-partie, carte (étape 5) |
+| `css/deck.css` | Tout le CSS de la refonte, à côté de l'existant |
+| **V1, à remplacer** | `src/combat.js`, `src/map.js`, `src/abilities.js`, les anciens `src/screens/*` |
+
+`src/battle.js` ne doit jamais acquérir de source d'entropie : un test échoue si
+`Math.random`, `Date.now` ou `crypto` y apparaissent. L'aléatoire reste permis
+dans la *génération* (carte, ennemis, butin), jamais dans la *résolution* (§4.1).
+
+## Documentation
+
+| Fichier | Contenu |
+|---|---|
+| `docs/refonte/brief.md` | Le brief, fait foi |
+| `docs/refonte/PLAN.md` | Avancement par étape et décisions prises |
+| `design-system.html` | Interface : palette, composants, contrastes mesurés |
+| `histoire.html` | Le monde : contexte 1640-1697, figures historiques |
+| `README.md` | Vue d'ensemble, comment lancer, arborescence |
+
+Les démonstrations de composants du `design-system.html` §16 chargent
+`css/deck.css`, la feuille réelle du jeu : modifier un composant met la
+documentation à jour toute seule, mais **ajouter** un composant demande de
+l'ajouter au §16.
+
 ## Ordre de chantier — ne pas sauter d'étape
 
 Le brief impose un ordre de chantier en 8 étapes avec conditions de sortie

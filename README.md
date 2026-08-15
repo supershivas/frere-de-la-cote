@@ -40,21 +40,44 @@ No build step, no `npm install`, no external assets — everything is procedural
 
 ---
 
-## 🎮 How to play
+## 🎮 How to play — the refonte
 
-1. **New Voyage** — start a run with your flagship Frigate + a Sloop.
-2. **Sea chart** — a branching map (Slay the Spire / FTL style). Hover a node to
-   see its danger and rewards, then click a reachable node to sail there.
-3. **Combat** — turn-based. Enemy **intentions** are shown above each ship
-   before you act. Each of your ships takes one action per turn:
-   - **Attack** with a chosen ammo type (classic / explosive / incendiary /
-     chain / harpoon — each with different tactical effects).
-   - **Ability** (unique per ship class), **Repair**, **Defend**, **End turn**,
-     or **Flee** (not vs bosses).
-4. Win to earn **gold**, **XP** (ships level up → pick 1 of 3 upgrades), and
-   relics. Visit **ports**, **shipyards**, **treasure** and **mysterious isles**
-   between fights. Beat **the Almirante**, flagship of the Indies fleet, to
-   complete the run.
+**You do not sink ships, you take them.** Sinking is quick and safe and pays
+almost nothing; taking a ship means dismasting her precisely, thinning her crew,
+closing alongside — and exposing yourself to be boarded in turn.
+
+| Screen | URL | What it is |
+|---|---|---|
+| Full run | `index.html#recrutement` | Crew → charter → chart → fights |
+| One fight | `index.html#bataille` | A single 1-v-1 battle |
+| Deck plan | `index.html#pont` | Deck plans and crew movement, standalone |
+
+1. **Crew** — three readable archetypes (Artilleurs, Écumeurs, Prudents). Never
+   points on a blank screen: you cannot yet know what "réparation 8" buys.
+2. **Chasse-partie** — the real contract these crews wrote and voted. Each
+   clause is an advantage paid for by a constraint, and **the crew votes**: the
+   captain proposes, he does not impose.
+3. **Chart** — the real Caribbean, seventeen places at their true coordinates,
+   always entered from l'Île de la Tortue. Every stop states its cost first.
+4. **Combat** — one ship against one ship, in profile, on a shared waterline.
+   Each turn: **move your men as much as you like, then ONE manoeuvre and ONE
+   broadside, in any order — both optional.** Nothing is rolled: enemy intent is
+   announced a full turn ahead, so a turn resolves like a puzzle, not a gamble.
+   - **Damage is localized per room.** A wrecked mast means she can no longer
+     change range; a wrecked magazine means not one more shot.
+   - **Five munitions, five jobs.** Chain bites rigging only and cannot sink
+     your prize; grape wounds men and spares the hull; the fire carcass is the
+     only source of fire in the game, and usually destroys what you wanted.
+   - **Men who fight a fire stop working.** Putting out the battery fire means
+     not firing this turn.
+   - A ladder costs two turns, a walk along a deck one: on a galleon, sending
+     the surgeon to the magazine is a real journey.
+
+### Legacy V1 (still shipped)
+
+"Nouvelle Traversée" still runs the original fleet combat and its procedural
+grid map. It is being replaced step by step and nothing new should be built on
+it — see `docs/refonte/PLAN.md`.
 
 ### Keyboard
 
@@ -91,8 +114,15 @@ For runtime regressions the data tests cannot see:
 ```bash
 python3 -m http.server 8000 &
 npm i playwright-core        # dev-only; the game itself still ships no deps
-node tools/playtest.mjs 4    # plays full combats, fails on any console error
+node tools/playtest.mjs 4       # plays full combats, fails on any console error
+node tools/contrast-audit.mjs   # WCAG ratios, measured on rendered pixels
 ```
+
+The contrast audit samples the **screenshot**, not computed styles: the
+backgrounds are painted by a canvas and by a fixed layer behind the app, so a
+DOM-walking audit sees none of them and reports "0 failures" on an unreadable
+screen. That is not hypothetical — it is how a real bug hid. See
+`design-system.html` §15.
 
 ### Sprite Editor (game-design tool)
 
@@ -127,30 +157,40 @@ data/                 All game content (externalized JSON)
 locales/              Internationalization — no text hardcoded in logic
   fr.json  en.json
 
+design-system.html    Interface reference: palette, components, contrast checks
+histoire.html         The world: 1640-1697 context and historical figures
 docs/refonte/         Refonte brief, plan and visual mockups — read first
-test/                 Zero-dependency data & integrity suite (node test/run.js)
-tools/                Dev tooling (headless playtest driver)
+test/                 Zero-dependency suite (node test/run.js) — 68 checks
+tools/                Dev tooling: headless playtest driver, contrast audit
 
 src/
-  main.js             Bootstrap: load data + locales, wire input, start
+  === refonte ===
+  shipPlans.js        Deck plans per hull class: rooms, passages, specialties
+  deckView.js         Profile rendering: the sprite frames the deck plan
+  battle.js           Combat rules — pure, deterministic, no DOM, no randomness
+  run.js              Run state: archetypes, charter clauses, morale, legitimacy
+  caribbean.js        The real Caribbean: places, coastlines, sea legs
+  screens/pont.js         Deck-plan harness (steps 2-3)
+  screens/bataille.js     The fight (step 4)
+  screens/traversee.js    Crew, charter and chart (step 5)
+
+  === shared ===
+  main.js             Bootstrap: load data + locales, deep links, start
   data.js             JSON loader
   i18n.js             Translation (t / locName / locField), live language switch
-  state.js            Game state, fleet instances, relics, XP, save/load, meta
+  state.js            Game state, save/load, sprite spec building
   nav.js              Minimal screen router
-  ui.js               DOM helpers + reusable components (ship cards, tooltips)
-  hud.js              Shared resource/act/relics/pause header
-  sprites.js          Procedural pixel-art ship renderer (no image assets)
-  ocean.js            Animated pixel ocean background
-  fx.js               Combat FX: cannonballs, explosions, shake, damage numbers
-  toast.js            Stackable toast notifications (success / danger / info)
-  tooltip.js          Cursor-following hover tooltips
-  abilities.js        Ability metadata (ids → i18n keys + cooldowns)
-  combat.js           Turn-based combat engine (AI intentions, ammo, phases)
-  map.js              Procedural branching sea chart
-  pause.js            Pause menu (fleet / captain / inventory / encyclopedia…)
+  ui.js               DOM helpers, modal, background selection per screen
+  sprites.js          Procedural ship renderer + hull metadata (no image assets)
+  ocean.js            Animated sky and ocean background
+  toast.js  tooltip.js  hud.js  fx.js
   debug.js            Developer mode (console + F-keys + FPS overlay)
-  screens/
-    title.js  port.js  shipyard.js  treasure.js  event.js  editor.js
+
+  === legacy V1, being replaced ===
+  combat.js           Fleet combat engine
+  map.js              Procedural branching sea chart
+  abilities.js  pause.js
+  screens/            title.js port.js shipyard.js treasure.js event.js editor.js
 ```
 
 ### Adding content
@@ -162,36 +202,35 @@ src/
 
 ---
 
-## ✅ Version 1 scope (implemented)
+## 📐 Refonte progress
 
-- [x] Title screen + language toggle
-- [x] Procedurally generated branching map
-- [x] Turn-based naval combat with a clear battlefield: allies always LEFT,
-      enemies always RIGHT, enemy intentions on their inner edge
-- [x] Contextual per-ship action menu — the active ship's portrait, name, HP,
-      shield and active effects are shown, and its available actions depend on
-      its type, capabilities and upgrades (e.g. the Galleon can Protect an ally)
-- [x] Localized combat visuals: ships floating on animated water, flying
-      cannonballs, impact explosions, ship recoil and struck-ship jolts, smoke
-      from damaged hulls and floating damage numbers — no full-screen flash
-- [x] 3 allied ship classes (Sloop, Frigate, Galleon) with unique abilities
-- [x] 5 base enemies + AI behaviours
-- [x] Act boss: the Almirante, Spanish flagship (multi-phase, enrage)
-- [x] 5 ammo types, status effects (fire, slow, immobilize, brace)
-- [x] Gold economy, ship XP & upgrade choices, relics & synergies
-- [x] Ports, shipyards, treasure chests, narrative events
-- [x] Toast notifications, hover tooltips, pause menu, encyclopedia
-- [x] Developer/debug mode (console + shortcuts)
-- [x] FR/EN internationalization (JSON)
-- [x] Externalized game data (JSON)
-- [x] Internal pixel-art sprite editor (shape library + grid painting + export)
+The rebuild follows the eight gated steps of `docs/refonte/brief.md` §12. No
+step starts before the previous one's exit condition is met.
 
-### Roadmap (V2+)
+| # | Step | State |
+|---|---|---|
+| 0 | Clean slate: data validation, drop the Kraken | ✅ |
+| 1 | Deck plans, rooms, passages, specialties | ✅ |
+| 2 | Profile rendering — the sprite frames the plan | ✅ |
+| 3 | Crew movement — real routes, turn cost, fire | ✅ |
+| 4 | Combat 1-v-1 — range, localized damage, fire, boarding | ✅ *(design gate unjudged, see below)* |
+| 5 | Run loop — archetypes, charter, Caribbean chart | ✅ |
+| 6 | Meta-progression — officers, prize register, calendar | — |
+| 7 | Interface pass — only once the mechanics are frozen | — |
+| 8 | Content — last | — |
 
-Full 5-ship fleet, more bosses, permanent meta-progression HQ, unlockable
-captains, sound/music, and additional acts. See the design document for details.
+**The step-4 gate is not cleared by the author.** The brief asks for five
+combats played and the feeling "do I take her or sink her?" to be confirmed by a
+human. What is verified is that the choice exists and is priced:
+
+| Strategy | Outcome | Turns | Gold | Losses |
+|---|---|---|---|---|
+| Sink | wreck | 7 | 27 | none |
+| Take | **prize** | 5 | **180 + the ship** | 22 men |
+| Board too early | *you* are taken | 7 | 0 | the whole crew |
+| Linger alongside | *you* are taken | 7 | 0 | 40 men |
 
 ---
 
-*Prototype built for the **Frères de la Côte** GDD — priority: prove the core
-gameplay loop.*
+*Rebuilt against the refonte brief. Priority: make the core loop bite before
+adding anything to it.*
