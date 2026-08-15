@@ -27,15 +27,15 @@ export const FAR = 3;
 // opposite strategies.
 export const AMMO = {
   boulet: {
-    id: 'boulet', icon: '⚫', maxRange: CANNON,
+    id: 'boulet', icon: '●', maxRange: CANNON,
     label: 'ammo_boulet', hint: 'ammo_boulet_hint',
   },
   chaine: {
-    id: 'chaine', icon: '⛓️', maxRange: CANNON,
+    id: 'chaine', icon: '⛓', maxRange: CANNON,
     label: 'ammo_chaine', hint: 'ammo_chaine_hint',
   },
   mitraille: {
-    id: 'mitraille', icon: '✳️', maxRange: MUSKET,
+    id: 'mitraille', icon: '✳', maxRange: MUSKET,
     label: 'ammo_mitraille', hint: 'ammo_mitraille_hint',
   },
   explosif: {

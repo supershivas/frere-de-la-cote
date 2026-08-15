@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UI Bible — Frères de la Côte</title>
+<title>Design System — Frères de la Côte</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
@@ -103,10 +103,30 @@
     table, pre, .rule-box { page-break-inside: avoid; }
   }
 </style>
+<link rel="stylesheet" href="css/deck.css">
+<style>
+  /* Staging for the live demos only — never shipped to the game. */
+  .ds-stage {
+    background: linear-gradient(#16283a, #0f1d2b);
+    border: 1px solid #c9b79c; padding: 18px; margin: 1em 0; border-radius: 4px;
+  }
+  .ds-stage-parch {
+    background: radial-gradient(circle at 50% 45%, #ecdcb4 0%, #e0cd9e 55%, #cbb277 90%);
+    border: 1px solid #c9b79c; padding: 18px; margin: 1em 0; border-radius: 4px;
+  }
+  .ds-caption { font-size: .85em; font-style: italic; color: #6b4f3a; margin: -.4em 0 1em; }
+  .ds-deck { position: relative; height: 190px; background: rgba(90,61,37,.35); border: 1px solid #6b5334; }
+  .ds-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .ds-swatch { display: inline-flex; align-items: center; gap: 8px; font-family: 'Courier Prime', monospace; font-size: .8em; }
+  .ds-chip { width: 26px; height: 26px; border: 1px solid rgba(0,0,0,.35); border-radius: 3px; display: inline-block; }
+  .pass { color: #1c6b45; font-weight: bold; }
+  .fail { color: #a5241b; font-weight: bold; }
+  td.num { font-family: 'Courier Prime', monospace; text-align: right; }
+</style>
 </head>
 <body>
 
-<h1>UI Bible — Frères de la Côte</h1>
+<h1>Design System — Frères de la Côte</h1>
 <div class="meta">
   <strong>Brothers of the Coast — Design System & Interface Guidelines</strong><br>
   Version 1.1 (Corrigée & Harmonisée) · Date : 2026-07-24<br>
@@ -130,7 +150,8 @@
     <li><a href="#s12">Accessibilité</a></li>
     <li><a href="#s13">Responsive & Échelles</a></li>
     <li><a href="#s14">Fichiers Source & Assets</a></li>
-    <li><a href="#s15">Figures historiques (1640–1697)</a></li>
+    <li><a href="#s15">Contrôles de contraste</a></li>
+    <li><a href="#s16">Composants de la refonte</a></li>
   </ol>
 </div>
 
@@ -595,216 +616,351 @@
 </ul>
 
 
-<h2 id="s15">15. Figures historiques (1640–1697)</h2>
 
-<p><em>Section documentaire. Elle ne prescrit aucune mécanique : elle fournit la
-matière historique dans laquelle puiser des officiers, des événements et des
-fins de campagne, et le « pourquoi » des systèmes existants.</em></p>
+<h2 id="s15">15. Contrôles de contraste</h2>
 
-<h3>15.1 Le contexte, sans cours d'histoire</h3>
+<p>Les ratios ci-dessous sont <strong>mesurés sur les pixels réellement rendus</strong>,
+pas calculés depuis les feuilles de style. La distinction n'est pas théorique :
+elle a décidé de la découverte du bug ci-dessous.</p>
 
-<p><strong>Quatre puissances, une seule mer.</strong> Au XVII<sup>e</sup> siècle,
-l'Espagne considère les Caraïbes comme sa propriété exclusive : c'est elle qui a
-« découvert » les Indes, et le pape a partagé le monde entre elle et le Portugal.
-La France, l'Angleterre et les Provinces-Unies ne l'acceptent pas, mais aucune
-n'a les moyens d'une guerre navale permanente à six mille kilomètres de chez
-elle. Toutes trois adoptent donc la même solution : laisser des particuliers
-faire la guerre à leur place, à leurs frais, contre une part du butin.</p>
+<h3>15.1 Étude de cas — la chasse-partie illisible</h3>
 
-<p><strong>La lettre de marque, ou commission.</strong> C'est le document qui
-sépare le corsaire du pirate. Un gouverneur — celui de la Tortue, celui de la
-Jamaïque — délivre l'autorisation d'attaquer les navires d'une nation nommée.
-Avec elle, le butin se revend légalement au port, le navire se radoube, l'équipage
-se recrute au grand jour. Sans elle, ou en attaquant un pavillon qu'elle ne
-couvre pas, on est un hors-la-loi que toutes les marines peuvent pendre. La
-valeur juridique de ces commissions est souvent douteuse — certaines sont
-périmées, achetées, ou délivrées par un gouverneur qui outrepasse ses pouvoirs —
-mais elle suffit en pratique tant que la métropole ferme les yeux.</p>
-
-<p><strong>Un statut délibérément flou.</strong> Les flibustiers ne sont ni une
-marine ni des bandits : ils sont l'outil que l'on utilise en temps de guerre et
-que l'on désavoue en temps de paix. La même expédition peut être un service rendu
-à l'État un mois et un crime le mois suivant, selon un traité signé en Europe
-dont la nouvelle mettra trois mois à traverser l'Atlantique. Henry Morgan pille
-Panamá en 1671 alors que l'Angleterre vient de faire la paix avec l'Espagne : il
-est arrêté, envoyé à Londres — puis anobli et renvoyé aux Antilles comme
-lieutenant-gouverneur.</p>
-
-<p><strong>La fermeture, après 1697.</strong> Le traité de Ryswick met fin à la
-guerre de la Ligue d'Augsbourg et reconnaît la souveraineté française sur la
-partie occidentale de Saint-Domingue. Les puissances n'ont plus besoin
-d'auxiliaires officieux : elles ont désormais des colonies à protéger, des
-plantations à faire tourner et des marines de guerre permanentes. Le flibustier
-cesse d'être utile et devient une nuisance. Ceux qui ne se reconvertissent pas —
-en planteurs, en officiers du roi, en colons — basculent dans la piraterie pure,
-celle de l'âge d'or anglais, et seront traqués.</p>
+<p>Les écrans de recrutement et de chasse-partie s'affichaient sur le fond
+<em>parchemin clair</em> alors que leur feuille de style écrivait en
+<em>parchemin clair</em> également : le titre, les sous-titres et surtout la carte
+d'équipage <strong>sélectionnée</strong> devenaient invisibles. Sélectionner un
+choix le rendait illisible — l'état actif était le pire état de lisibilité.</p>
 
 <div class="rule-box">
-  <strong>Ce que ce contexte explique dans le jeu.</strong>
-  <ul>
-    <li><strong>La légitimité</strong> n'est pas une jauge de moralité : c'est
-      l'état de votre commission. Elle décide si un port vous radoube ou vous
-      canonne, si votre prise se vend au prix fort ou à vil prix au receleur.</li>
-    <li><strong>La chasse-partie</strong> n'est pas un menu d'options : c'est le
-      contrat réel que ces équipages rédigeaient et votaient avant chaque
-      expédition, parce que personne ne leur versait de solde.</li>
-    <li><strong>« Pas de prise, pas de paye »</strong> n'est pas une contrainte
-      de game design : c'est le principe économique fondateur de la flibuste.
-      Aucun butin, aucun salaire — pour personne, capitaine compris.</li>
-    <li><strong>Le calendrier qui court vers 1697</strong> n'est pas une horloge
-      arbitraire : c'est la fenêtre historique réelle pendant laquelle ce métier
-      a été possible.</li>
-  </ul>
+  <strong>Pourquoi un premier audit ne l'a pas vu.</strong> Un audit qui remonte
+  le DOM en composant les <code>background-color</code> ne trouve rien : le
+  parchemin est peint par un calque <code>#parchment</code> en
+  <code>position: fixed</code> derrière l'application, et l'océan par un
+  <code>&lt;canvas&gt;</code>. Aucun ancêtre du texte ne porte de fond. L'audit
+  concluait « 0 échec » sur un écran effectivement illisible.
+  <br><br>
+  <strong>Règle retenue :</strong> tout contrôle de contraste se fait par
+  échantillonnage de la capture d'écran — luminance minimale et maximale dans la
+  boîte du texte — jamais depuis les styles calculés.
 </div>
 
-<h3>15.2 Précautions de lecture</h3>
+<h3>15.2 Décision de conception, pas seulement correction de couleur</h3>
 
-<p><strong>Une source domine tout.</strong> L'essentiel de ce que l'on sait des
-flibustiers vient d'un seul livre : celui d'Alexandre Exquemelin (1678). Il y
-était, mais il écrit pour être lu, arrondit les chiffres et noircit volontiers
-les Français. Les récits les plus spectaculaires — les tortures de L'Olonnais,
-l'exploit de Pierre Le Grand — reposent sur lui seul et ne sont corroborés par
-rien. Les fiches ci-dessous signalent ce qui est documenté et ce qui est
-probablement de la légende.</p>
-
-<p><strong>Sur l'esclavage.</strong> Ces hommes vivaient dans une économie
-esclavagiste, en profitaient, et plusieurs y ont directement participé — Du Casse
-a fait carrière dans la traite avant de devenir gouverneur. Le mythe d'une utopie
-libertaire est partiellement vrai (le contrat, le vote, les indemnités) et
-partiellement faux. Conformément au parti pris du projet : ne pas l'effacer, ne
-pas en faire un système à optimiser.</p>
-
-<h3>15.3 Inspiration directe — officiers, événements, fins de campagne</h3>
-
-<p>Ces neuf figures portent chacune une mécanique déjà présente dans le jeu, ou
-une décision que le joueur doit prendre. Elles peuvent servir de modèle à un
-officier nommé, de trame à un événement de partie, ou de fin de campagne.</p>
+<p>Le correctif n'a pas été d'assombrir le fond. La chasse-partie doit se lire
+comme <strong>un document signé, pas comme un menu</strong> : le parchemin est le
+bon fond, c'est le texte qui devait passer à l'encre. Deux terrains coexistent
+donc, et chaque composant appartient à l'un ou à l'autre.</p>
 
 <table>
-  <tr><th style="width:16%">Figure</th><th style="width:44%">Contexte et fait marquant</th><th style="width:12%">Destin</th><th style="width:28%">Usage possible</th></tr>
+  <tr><th>Terrain</th><th>Écrans</th><th>Texte</th></tr>
+  <tr><td>Parchemin (document)</td><td>Recrutement, chasse-partie</td><td>Encres sombres</td></tr>
+  <tr><td>Mer (en action)</td><td>Titre, carte, plan de pont, combat</td><td>Parchemin clair sur fonds sombres</td></tr>
+</table>
 
+<h3>15.3 Encres sur parchemin</h3>
+
+<p>Valeurs choisies contre le ton médian du dégradé de parchemin
+(<code>#e0cd9e</code>). Elles sont définies dans <code>css/deck.css</code>.</p>
+
+<div class="ds-stage-parch">
+  <div class="ds-row">
+    <span class="ds-swatch"><span class="ds-chip" style="background:#241608"></span> --ink-strong #241608</span>
+    <span class="ds-swatch"><span class="ds-chip" style="background:#4a3116"></span> --ink #4a3116</span>
+    <span class="ds-swatch"><span class="ds-chip" style="background:#6b4a26"></span> --ink-soft #6b4a26</span>
+    <span class="ds-swatch"><span class="ds-chip" style="background:#7d2118"></span> --ink-rubric #7d2118</span>
+    <span class="ds-swatch"><span class="ds-chip" style="background:#2b5741"></span> --ink-accept #2b5741</span>
+  </div>
+</div>
+
+<table>
+  <tr><th>Jeton</th><th>Usage</th><th class="num">Ratio sur #e0cd9e</th><th>AA corps</th></tr>
+  <tr><td><code>--ink-strong</code></td><td>Titres, corps de texte, noms</td><td class="num">11,1:1</td><td class="pass">✓</td></tr>
+  <tr><td><code>--ink</code></td><td>Texte secondaire, rôles, effectifs</td><td class="num">7,3:1</td><td class="pass">✓</td></tr>
+  <tr><td><code>--ink-soft</code></td><td>Tertiaire, mentions</td><td class="num">4,7:1</td><td class="pass">✓</td></tr>
+  <tr><td><code>--ink-rubric</code></td><td>Seconde encre : dette, deuil, refus</td><td class="num">5,9:1</td><td class="pass">✓</td></tr>
+  <tr><td><code>--ink-accept</code></td><td>Clause votée, avantage</td><td class="num">5,4:1</td><td class="pass">✓</td></tr>
+</table>
+
+<h3>15.4 Résultat de l'audit</h3>
+
+<p>Six états d'écran, tous les textes visibles à l'écran mesurés. Seuils WCAG AA :
+4,5:1 en corps de texte, 3:1 au-delà de 24 px.</p>
+
+<table>
+  <tr><th>Écran</th><th class="num">Textes mesurés</th><th class="num">Sous le seuil</th></tr>
+  <tr><td>Recrutement</td><td class="num">25</td><td class="num pass">0</td></tr>
+  <tr><td>Recrutement — équipage sélectionné</td><td class="num">25</td><td class="num pass">0</td></tr>
+  <tr><td>Chasse-partie</td><td class="num">22</td><td class="num pass">0</td></tr>
+  <tr><td>Chasse-partie — clauses cochées</td><td class="num">24</td><td class="num pass">0</td></tr>
+  <tr><td>Carte des Caraïbes</td><td class="num">16</td><td class="num pass">0</td></tr>
+  <tr><td>Combat</td><td class="num">16</td><td class="num pass">0</td></tr>
+</table>
+
+<p>Un second défaut est sorti de cet audit : la barre d'état de la carte passait
+devant le dégradé de ciel, clair en haut, et tombait à <strong>3,77:1</strong>.
+Corrigé en lui donnant son propre fond plutôt qu'en éclaircissant le texte —
+un texte posé sur un fond variable doit porter son propre terrain.</p>
+
+<h3>15.5 Défauts trouvés en auditant cette page même</h3>
+
+<p>La section 16 réunit tous les états de tous les composants. L'auditer revient
+donc à auditer le système entier — ce qui a immédiatement sorti cinq défauts que
+les écrans de jeu ne montraient pas, parce qu'ils n'exposaient pas ces états
+simultanément.</p>
+
+<table>
+  <tr><th>Composant</th><th class="num">Avant</th><th class="num">Après</th><th>Correction</th></tr>
   <tr>
-    <td><strong>Henry Morgan</strong><br><em>c. 1635–1688</em><br>gallois</td>
-    <td>Chef des flibustiers de Port Royal sous commission anglaise. Prend Porto Bello (1668), Maracaïbo (1669), puis traverse l'isthme et pille Panamá (1671) — alors que Londres vient de signer la paix avec Madrid.</td>
-    <td>Ambigu</td>
-    <td>L'illustration parfaite de la <strong>légitimité</strong> : arrêté puis anobli, il finit lieutenant-gouverneur de la Jamaïque et fait pendre ses anciens compagnons. Modèle de fin de campagne « passer du côté de l'ordre ».</td>
+    <td>Nom de salle sur salle en feu</td>
+    <td class="num fail">2,57:1</td><td class="num pass">≥ 4,5:1</td>
+    <td>Encre presque noire + halo pâle : le même libellé doit tenir sur beige clair, sur hachures et sur orange.</td>
   </tr>
-
   <tr>
-    <td><strong>Nikolaas van Hoorn</strong><br><em>c. 1635–1683</em><br>hollandais</td>
-    <td>Rejoint de Graaf et Grammont pour la prise de Vera Cruz (1683), l'un des plus gros coups de la période. Le partage tourne mal : il se querelle avec de Graaf sur les parts, les deux hommes se battent en duel.</td>
-    <td>Tragique</td>
-    <td>Blessé au poignet, il meurt de gangrène quinze jours plus tard. <strong>Événement de chasse-partie</strong> par excellence : le contrat mal rédigé qui tue son homme. À utiliser pour un litige de partage après une grosse prise.</td>
+    <td>Munition hors de portée <code>.far</code></td>
+    <td class="num fail">3,18:1</td><td class="num pass">≥ 4,5:1</td>
+    <td>L'état est porté par une bordure tiretée et un texte barré, plus par un fondu qui rendait le nom illisible.</td>
   </tr>
-
   <tr>
-    <td><strong>Alexandre Exquemelin</strong><br><em>c. 1645–ap. 1707</em><br>français ou flamand</td>
-    <td>Arrivé à la Tortue comme engagé, vendu, puis affranchi ; devient chirurgien parmi les flibustiers. Publie en 1678 <em>Histoire des aventuriers flibustiers</em>, source primaire de presque tout ce que l'on sait d'eux. Repart pour Carthagène en 1697.</td>
-    <td>Légendaire</td>
-    <td>Modèle direct de l'<strong>officier chirurgien</strong> (le poste d'Ozanne). Aussi : le narrateur possible de l'encyclopédie, ou un officier qui « tient le journal » et dont la survie conditionne le récit de fin de partie.</td>
+    <td>Action indisponible <code>.bat-btn.off</code></td>
+    <td class="num fail">3,05:1</td><td class="num pass">≥ 4,5:1</td>
+    <td>Opacité supprimée : ce bouton porte la <em>raison</em> du blocage, la griser vidait le composant de sa fonction.</td>
   </tr>
-
   <tr>
-    <td><strong>Laurens de Graaf</strong><br><em>c. 1653–c. 1704</em><br>hollandais</td>
-    <td>Ancien captif des Espagnols — canonnier sur leurs galères — devenu leur adversaire le plus redouté sous le nom de <em>Lorencillo</em>. Vera Cruz (1683), Campêche (1685). Passe ensuite au service de la France.</td>
-    <td>Ambigu</td>
-    <td>Modèle d'<strong>officier canonnier</strong> de haut niveau, et de trajectoire : le prisonnier devenu maître. Sa fin obscure en Louisiane fournit une fin de campagne « partir ailleurs » plutôt que se ranger ou mourir.</td>
+    <td>Raison du blocage <code>.why</code></td>
+    <td class="num fail">2,17:1</td><td class="num pass">≥ 4,5:1</td>
+    <td>Couleur propre au lieu d'une opacité héritée.</td>
   </tr>
-
   <tr>
-    <td><strong>Michel de Grammont</strong><br><em>c. 1645–1686</em><br>français</td>
-    <td>Gentilhomme passé à la flibuste. Maracaïbo (1678), Vera Cruz (1683), Campêche (1685). Nommé lieutenant du roi pour les côtes de Saint-Domingue — la reconnaissance officielle qu'il cherchait.</td>
-    <td>Ambigu</td>
-    <td>Appareille avant de prendre son poste et <strong>disparaît en mer</strong>, sans trace. Fin de campagne où la reconnaissance arrive trop tard ; ou événement : la commission qu'on obtient enfin et qu'on n'aura jamais le temps d'exercer.</td>
+    <td>Bandes de distance inactives</td>
+    <td class="num fail">3,98:1</td><td class="num pass">≥ 4,5:1</td>
+    <td>Non-courant ne veut pas dire illisible : les quatre bandes doivent se lire d'un coup d'œil.</td>
   </tr>
-
   <tr>
-    <td><strong>Jean-Baptiste Du Casse</strong><br><em>1646–1715</em><br>français</td>
-    <td>Négrier de la Compagnie du Sénégal, puis gouverneur de Saint-Domingue (1691–1703). Mène les flibustiers à Carthagène en 1697 aux côtés de l'escadre du roi ; l'amiral de Pointis les floue sur le partage, ils retournent piller la ville pour se payer.</td>
-    <td>Légendaire</td>
-    <td>Finit lieutenant-général des armées navales et chevalier de la Toison d'or. <strong>Fin de campagne « entrer dans la marine du roi »</strong>, et rappel que cette respectabilité s'est bâtie sur la traite : à présenter pour ce que c'est.</td>
-  </tr>
-
-  <tr>
-    <td><strong>Edward Mansvelt</strong><br><em>† c. 1667</em><br>hollandais</td>
-    <td>Prédécesseur de Morgan à la tête des flibustiers de Port Royal. Tente vers 1666 d'établir sur l'île de la Providence une base <strong>indépendante</strong> des couronnes anglaise et espagnole — une colonie de flibustiers qui ne dépendrait de personne.</td>
-    <td>Tragique</td>
-    <td>Le projet meurt avec lui, capturé par les Espagnols. <strong>Fin de campagne alternative</strong> : refuser à la fois le pardon et la piraterie, et tenter la république de flibuste. L'Histoire dit qu'elle échoue — le jeu n'est pas obligé de le dire d'avance.</td>
-  </tr>
-
-  <tr>
-    <td><strong>Raveneau de Lussan</strong><br><em>né en 1663</em><br>français</td>
-    <td>Engagé devenu flibustier en 1684, il fait la campagne du Pacifique et revient par voie de terre à travers le Nicaragua. Publie son journal en 1689. Homme dévot, il explique s'être fait flibustier pour éteindre ses dettes.</td>
-    <td>Ambigu</td>
-    <td>Rentre en France avec sa part et s'arrête. <strong>Fin de campagne « se retirer à temps »</strong> — la seule qui ne soit ni une mort ni une trahison. Aussi : modèle de matelot promouvable qui tient les comptes.</td>
-  </tr>
-
-  <tr>
-    <td><strong>François l'Olonnais</strong><br><em>c. 1630–c. 1668</em><br>français</td>
-    <td>Engagé aux Antilles, puis boucanier et flibustier de la Tortue. Sac de Maracaïbo et Gibraltar (1667). Sa réputation de cruauté est largement bâtie par Exquemelin, seule source des épisodes les plus atroces.</td>
-    <td>Tragique</td>
-    <td>Naufragé au Darién, il y est tué par les Kunas. Illustration de la clause <strong>« pas de quartier »</strong> : le bonus d'abordage payé par une réputation qui ne laisse plus aucune reddition possible — y compris la sienne.</td>
+    <td>Icône de boulet <code>⚫</code></td>
+    <td class="num fail">1,59:1</td><td class="num pass">hérite</td>
+    <td>Un émoji noir sur un bouton sombre est invisible et ne se colore pas. Remplacé par un glyphe texte <code>●</code>, qui hérite de la couleur du bouton.</td>
   </tr>
 </table>
 
-<h3>15.4 Couleur d'ambiance — encyclopédie, rumeurs, noms de navires</h3>
+<div class="rule-box">
+  <strong>Troisième règle, tirée de ces corrections.</strong> Un état
+  <em>secondaire</em> (hors de portée, indisponible, non courant) se signale par
+  la forme — bordure, tiret, barré, glyphe — jamais en baissant l'opacité sous le
+  seuil de lisibilité. Le fondu est une correction paresseuse qui transforme
+  « pas maintenant » en « pas lisible ».
+  <br><br>
+  <strong>Et une note de méthode :</strong> l'émoji ne se colore pas. Tout
+  pictogramme devant s'adapter au terrain doit être un glyphe texte ou un SVG,
+  pas un émoji.
+</div>
 
-<p>Ces quatre figures sont trop mal documentées, trop légendaires ou d'une autre
-génération pour porter un officier ou une fin de partie. Elles servent de
-matière : entrées d'encyclopédie, récits de taverne, noms de navires ou de
-prises, rumeurs entendues au port.</p>
+<h3>15.6 Reproduire l'audit</h3>
 
+<p>L'outil échantillonne la capture d'écran et compare la luminance minimale et
+maximale dans la boîte de chaque texte visible. Deux précautions apprises à ses
+dépens :</p>
+<ul>
+  <li>Échantillonner <strong>toute</strong> la boîte, pas une bande médiane :
+    sur un texte replié sur deux lignes, la bande du milieu tombe entre les
+    lignes et compare le fond à lui-même — ce qui produisait de faux échecs
+    à 1,0:1.</li>
+  <li>Ignorer les boîtes sans variance de luminance : aucun glyphe n'y a été
+    échantillonné, ce n'est pas un défaut de contraste.</li>
+</ul>
+
+<div class="rule-box">
+  <strong>Deux règles issues de ces deux bugs.</strong>
+  <ol>
+    <li>Aucun texte ne repose sur un fond qu'il ne contrôle pas. Un ciel animé,
+      un océan en canvas et un dégradé de parchemin changent de luminance :
+      le texte porte son propre fond, ou il est écrit dans l'encre du terrain.</li>
+    <li>L'état sélectionné ne doit jamais dégrader la lisibilité. Un composant
+      actif est celui qu'on regarde ; c'est le pire endroit où perdre du contraste.</li>
+  </ol>
+</div>
+
+<h2 id="s16">16. Composants de la refonte</h2>
+
+<p>Tous les blocs ci-dessous utilisent <strong>la feuille de style réelle du
+jeu</strong> (<code>css/deck.css</code>), chargée par cette page. Ce ne sont pas
+des reproductions : si un composant change dans le jeu, il change ici. Ce
+document ne peut donc pas mentir sur son apparence.</p>
+
+<h3>16.1 Plan de pont — salles</h3>
+<p class="ds-caption">Le sprite généré sert de cadre au plan. Les salles du pont
+découvert (barre, grand mât, proue) ne sont pas des compartiments : pas de
+rectangle, seulement le nom et la ligne de pont.</p>
+<div class="ds-stage">
+  <div class="ds-deck">
+    <div class="deck-room open" style="left:3%;top:6%;width:26%;height:26%"><div class="deck-room-name">Barre</div><div class="deck-pips"><i></i><i class="out"></i></div></div>
+    <div class="deck-room open" style="left:33%;top:6%;width:30%;height:26%"><div class="deck-room-name">Grand mât</div><div class="deck-pips"><i></i><i></i><i></i></div></div>
+    <div class="deck-room" style="left:5%;top:38%;width:44%;height:26%"><div class="deck-room-name">Batterie</div><div class="deck-pips"><i></i><i></i><i></i></div></div>
+    <div class="deck-room damaged" style="left:52%;top:38%;width:30%;height:26%"><div class="deck-room-name">Cale</div><div class="deck-pips"><i></i><i></i><i class="out"></i></div></div>
+    <div class="deck-room wrecked" style="left:5%;top:70%;width:32%;height:26%"><div class="deck-room-name">Proue</div><div class="deck-pips"><i class="out"></i><i class="out"></i><i class="out"></i></div></div>
+    <div class="deck-room burning" style="left:40%;top:70%;width:32%;height:26%"><div class="deck-room-name">Poudrière</div><div class="deck-pips"><i></i><i class="out"></i></div><div class="deck-flame">🔥</div></div>
+    <div class="deck-room reachable" style="left:75%;top:70%;width:22%;height:26%"><div class="deck-room-name">Infirmerie</div><div class="deck-pips"><i></i><i></i></div></div>
+  </div>
+</div>
 <table>
-  <tr><th style="width:16%">Figure</th><th style="width:44%">Contexte et fait marquant</th><th style="width:12%">Destin</th><th style="width:28%">Usage possible</th></tr>
-
-  <tr>
-    <td><strong>Pierre Le Grand</strong><br><em>date inconnue</em><br>dieppois</td>
-    <td>Avec vingt-huit hommes dans une simple barque, il aborde de nuit le vice-amiral de la flotte espagnole au large du cap Tiburon, et fait saborder son propre bateau pour interdire toute retraite à son équipage.</td>
-    <td>Légendaire</td>
-    <td>Récit d'ouverture d'Exquemelin, <strong>invérifiable et probablement embelli</strong>. Parfait en légende de taverne ou en accroche d'encyclopédie — d'autant que le cap Tiburon est déjà sur la carte.</td>
-  </tr>
-
-  <tr>
-    <td><strong>Bartolomeo el Portugués</strong><br><em>fl. 1660–1670</em><br>portugais</td>
-    <td>Prend une riche prise au large de Cuba, se la fait reprendre, s'évade en flottant sur deux jarres à vin — il ne savait pas nager — et marche dix jours jusqu'au Golfo Triste. Reprend la mer, perd tout à nouveau.</td>
-    <td>Tragique</td>
-    <td>Meurt pauvre. L'anti-légende utile : celui pour qui <strong>rien ne réussit jamais deux fois</strong>. Bon matériau d'événement de malchance ou d'entrée d'encyclopédie sur le prix réel du métier.</td>
-  </tr>
-
-  <tr>
-    <td><strong>Roc Brasiliano</strong><br><em>fl. 1654–1671</em><br>hollandais du Brésil</td>
-    <td>Chassé du Brésil hollandais par la reconquête portugaise, il écume depuis la Jamaïque. Capturé par les Espagnols, il obtient sa libération en leur faisant parvenir une lettre annonçant les représailles d'une flotte qui n'existait pas.</td>
-    <td>Ambigu</td>
-    <td>Disparaît des archives vers 1671, sans qu'on sache comment. Sa violence d'ivrogne est rapportée par Exquemelin seul. <strong>Couleur d'ambiance</strong> : le bluff qui marche, la rumeur au port, un nom de navire ennemi.</td>
-  </tr>
-
-  <tr>
-    <td><strong>Cornelis Jol</strong><br><em>c. 1597–1641</em><br>hollandais</td>
-    <td>Dit <em>Houtebeen</em>, « Jambe-de-bois ». Amiral de la Compagnie hollandaise des Indes occidentales, il traque sans succès les flottes de l'argent, puis enlève Luanda et São Tomé en 1641.</td>
-    <td>Tragique</td>
-    <td>Meurt de fièvre à São Tomé la même année. <strong>Génération précédente</strong> : il appartient à la guerre de course d'État, pas à la flibuste de la Tortue. Utile en prologue, ou en figure que les vieux matelots citent.</td>
-  </tr>
+  <tr><th>État</th><th>Classe</th><th>Signification</th></tr>
+  <tr><td>Saine</td><td><code>.deck-room</code></td><td>Structure intacte</td></tr>
+  <tr><td>Pont découvert</td><td><code>.open</code></td><td>Espace, pas compartiment : aucun cadre</td></tr>
+  <tr><td>Abîmée</td><td><code>.damaged</code></td><td>Structure entamée, système encore actif</td></tr>
+  <tr><td>Hors service</td><td><code>.wrecked</code></td><td>Structure à zéro, conséquence annoncée en clair</td></tr>
+  <tr><td>En feu</td><td><code>.burning</code></td><td>Seule la carcasse incendiaire en produit</td></tr>
+  <tr><td>Atteignable</td><td><code>.reachable</code></td><td>Destination possible pour l'homme sélectionné</td></tr>
 </table>
 
-<h3>15.5 Récapitulatif</h3>
-
+<h3>16.2 Équipage — jetons</h3>
+<p class="ds-caption">Le jeton est déplacé, jamais recréé : c'est ce qui permet
+à la transition CSS de jouer et au trajet d'être visible.</p>
+<div class="ds-stage">
+  <div class="ds-deck" style="height:70px">
+    <div class="deck-man" style="left:10%;top:50%">E</div>
+    <div class="deck-man selected" style="left:25%;top:50%">C</div>
+    <div class="deck-man hurt" style="left:40%;top:50%">T</div>
+    <div class="deck-man enemy" style="left:55%;top:50%"></div>
+  </div>
+</div>
 <table>
-  <tr><th>Usage</th><th>Figures</th></tr>
-  <tr><td>Officier nommé</td><td>Exquemelin (chirurgien), de Graaf (canonnier), Raveneau de Lussan (matelot promouvable)</td></tr>
-  <tr><td>Événement de partie</td><td>van Hoorn (litige de partage), Grammont (commission tardive), Bartolomeo (malchance)</td></tr>
-  <tr><td>Chasse-partie thématique</td><td>L'Olonnais (pas de quartier), van Hoorn (indemnités et parts), Du Casse (cible imposée)</td></tr>
-  <tr><td>Fin de campagne</td><td>Morgan (passer à l'ordre), Du Casse (marine du roi), Mansvelt (république de flibuste), Raveneau (se retirer), de Graaf (partir ailleurs)</td></tr>
-  <tr><td>Couleur d'ambiance</td><td>Pierre Le Grand, Bartolomeo el Portugués, Roc Brasiliano, Cornelis Jol</td></tr>
+  <tr><th>Jeton</th><th>Classe</th><th>Lecture</th></tr>
+  <tr><td>Au poste</td><td><code>.deck-man</code></td><td>Initiale du nom, à son poste</td></tr>
+  <tr><td>Sélectionné</td><td><code>.selected</code></td><td>Ses salles atteignables s'éclairent</td></tr>
+  <tr><td>Blessé</td><td><code>.hurt</code></td><td>Rendement réduit ; mutilé, il ne travaille plus</td></tr>
+  <tr><td>Ennemi</td><td><code>.enemy</code></td><td>Anonyme, non cliquable</td></tr>
 </table>
 
-<blockquote>
-  Règle de filtrage inchangée : on ne retient un élément historique que s'il est
-  déjà une mécanique. Ces fiches donnent de la matière — elles ne décident
-  d'aucune règle.
-</blockquote>
+<h3>16.3 Combat — bande de distance</h3>
+<p class="ds-caption">Toujours à l'écran : la distance est tout le jeu de position,
+il n'y a pas de grille.</p>
+<div class="ds-stage">
+  <div class="bat-range">
+    <span class="bat-range-step">Bord à bord</span>
+    <span class="bat-range-step">Portée de mousquet</span>
+    <span class="bat-range-step now">Portée de canon</span>
+    <span class="bat-range-step">Au loin</span>
+    <span class="bat-turn">Tour 4</span>
+  </div>
+</div>
+
+<h3>16.4 Combat — munitions</h3>
+<p class="ds-caption">Cinq munitions, cinq métiers. La conséquence est écrite en
+clair sous le choix — le terme d'époque n'est jamais le porteur principal de
+l'information.</p>
+<div class="ds-stage">
+  <div class="bat-ammo">
+    <button class="bat-ammo-btn on"><span class="ico">●</span><span class="lbl">Boulet</span></button>
+    <button class="bat-ammo-btn"><span class="ico">⛓</span><span class="lbl">Chaîne</span></button>
+    <button class="bat-ammo-btn far"><span class="ico">✳</span><span class="lbl">Mitraille</span></button>
+    <button class="bat-ammo-btn"><span class="ico">💥</span><span class="lbl">Explosif</span></button>
+    <button class="bat-ammo-btn"><span class="ico">🔥</span><span class="lbl">Carcasse</span></button>
+  </div>
+  <div class="bat-ammo-hint">Brise la structure de la salle visée. La voie de la destruction.</div>
+</div>
+<p><code>.far</code> marque une munition hors de portée à la distance courante :
+elle reste visible et lisible, jamais masquée.</p>
+
+<h3>16.5 Combat — actions et raisons de blocage</h3>
+<p class="ds-caption">Une action indisponible dit <strong>pourquoi</strong>. Griser
+sans expliquer laisse le joueur deviner la règle.</p>
+<div class="ds-stage">
+  <div class="bat-buttons">
+    <button class="bat-btn primary"><span>● Tirer</span></button>
+    <button class="bat-btn"><span>→ S'approcher</span></button>
+    <button class="bat-btn off"><span>← Rompre</span><span class="why">Démâté</span></button>
+    <button class="bat-btn board off"><span>⚔ Aborder</span><span class="why">Bord à bord</span></button>
+    <button class="bat-btn end"><span>⏭ Fin de tour</span></button>
+  </div>
+</div>
+
+<h3>16.6 Combat — intention ennemie</h3>
+<p class="ds-caption">Annoncée un tour à l'avance, propagation du feu comprise :
+le tour doit se résoudre comme un puzzle, pas comme un pari.</p>
+<div class="ds-stage">
+  <div class="bat-intent">
+    <b>⚠ Intention ennemie : </b><span>Bordée sur Batterie — ● Boulet</span><span class="warn"> · 🔥 Le feu gagnera Poudrière (Sancta Ana)</span>
+  </div>
+</div>
+
+<h3>16.7 Chasse-partie — clauses (encre sur parchemin)</h3>
+<p class="ds-caption">Un contrat, pas un menu. Chaque clause est un avantage payé
+par une contrainte, et l'équipage vote.</p>
+<div class="ds-stage-parch">
+  <div class="charte-clauses">
+    <div class="charte-clause">
+      <div class="clause-text">Grande part au capitaine</div>
+      <div class="clause-good">+ Plus d'or capitalisé entre les parties</div>
+      <div class="clause-bad">− Le moral s'effrite</div>
+    </div>
+    <div class="charte-clause on">
+      <div class="clause-text">Indemnités généreuses</div>
+      <div class="clause-good">+ Les hommes se battent sans se ménager</div>
+      <div class="clause-bad">− Chaque blessé coûte cher</div>
+      <div class="clause-vote">voté — 73 voix pour</div>
+    </div>
+    <div class="charte-clause on refused">
+      <div class="clause-text">Pas de quartier</div>
+      <div class="clause-good">+ Bonus d'abordage</div>
+      <div class="clause-bad">− Réputation effondrée</div>
+      <div class="clause-vote no">refusé par l'équipage — 41 voix</div>
+    </div>
+  </div>
+</div>
+
+<h3>16.8 Recrutement — cartes d'équipage</h3>
+<p class="ds-caption">L'état sélectionné épaissit la bordure et éclaircit le fond :
+il n'inverse jamais le texte. C'est la correction directe du bug du §15.1.</p>
+<div class="ds-stage-parch">
+  <div class="run-cards">
+    <div class="run-card">
+      <h3>Les Artilleurs</h3>
+      <p class="style">Tenir la distance et démâter.</p>
+      <ul><li>Etcheverry — canonnier</li><li>Toussaint — charpentier</li></ul>
+    </div>
+    <div class="run-card on">
+      <h3>Les Écumeurs</h3>
+      <p class="style">Foncer et aborder.</p>
+      <ul><li>Fer-de-Lance — chef d'abordage</li><li>Coudray — maître d'équipage</li></ul>
+    </div>
+  </div>
+</div>
+
+<h3>16.9 Carte — épingles et barre d'état</h3>
+<p class="ds-caption">Chaque escale annonce son coût avant qu'on y aille. Les
+libellés s'éventent par lieu pour que la grappe autour d'Hispaniola reste lisible.</p>
+<div class="ds-stage">
+  <div class="carte-screen"><div class="run-bar" style="position:static">
+    <span>1662</span><span>Acte 1</span><span>💰 120</span>
+    <span>Moral 55</span><span class="low">Légitimité 12 — hors-la-loi</span><span>Prises 2</span>
+  </div></div>
+  <div style="position:relative;height:120px;margin-top:14px">
+    <div class="carte-pin port open lbl-s" style="left:14%;top:35%"><span class="pin-dot"></span><span class="pin-label">Île de la Tortue</span><span class="pin-cost">Radoub et recrutement</span></div>
+    <div class="carte-pin chasse open lbl-s" style="left:42%;top:35%"><span class="pin-dot"></span><span class="pin-label">Port-Margot</span><span class="pin-cost">Escorte probable</span></div>
+    <div class="carte-pin boss open lbl-s" style="left:70%;top:35%"><span class="pin-dot"></span><span class="pin-label">Carthagène</span><span class="pin-cost">L'Almirante</span></div>
+    <div class="carte-pin epave lbl-s" style="left:90%;top:35%"><span class="pin-dot"></span></div>
+  </div>
+</div>
+<table>
+  <tr><th>Épingle</th><th>Classe</th><th>Sens</th></tr>
+  <tr><td>Port</td><td><code>.port</code></td><td>Radoub, recrutement, revente — selon la légitimité</td></tr>
+  <tr><td>Chasse</td><td><code>.chasse</code></td><td>Un combat, donc une prise possible</td></tr>
+  <tr><td>Boss</td><td><code>.boss</code></td><td>Fin d'acte</td></tr>
+  <tr><td>Épave / événement</td><td><code>.epave</code> <code>.evenement</code></td><td>Issue incertaine</td></tr>
+  <tr><td>Hors d'atteinte</td><td>sans <code>.open</code></td><td>Nommé au survol seulement, pour ne pas saturer la carte</td></tr>
+</table>
+
+<div class="rule-box">
+  <strong>Interdictions maintenues (rappel du §9).</strong> Pas de flash à
+  l'écran : <code>.screen { animation: fade }</code> rejouée à chaque
+  reconstruction se lisait comme un clignotement à chaque clic — les écrans de
+  la refonte la neutralisent explicitement. Pas d'interface reposant uniquement
+  sur le survol : le panneau de détail est fixe, parce que le survol n'existe pas
+  au doigt.
+</div>
 
 <div style="text-align:center; margin-top:3em; padding:1em; border-top:2px solid #d4a017; color:#5a3d25; font-style:italic;">
-  UI Bible — Frères de la Côte · Document de référence pour toute l'interface du jeu.
+  Design System — Frères de la Côte · Document de référence pour toute l'interface du jeu.<br>
+  La matière historique (contexte 1640-1697, figures) vit dans <a href="histoire.html">histoire.html</a>.
 </div>
 
 </body>

@@ -9,7 +9,7 @@ de toucher au combat, à la carte, à l'équipage ou aux navires, lire :
   déjà testées et rejetées.
 - `docs/refonte/PLAN.md` — mapping du brief vers les fichiers réels du
   dépôt (les noms de fichiers du brief, ex. `game.html`/`architecture.html`,
-  sont obsolètes ; le dépôt utilise `index.html`/`bible.html`/`src/*.js`).
+  sont obsolètes ; le dépôt utilise `index.html`/`design-system.html`/`histoire.html`/`src/*.js`).
 - `docs/refonte/mockups/` — maquettes visuelles jetables (vue de profil des
   navires, rôle d'équipage). Références de présentation, pas du code à
   porter tel quel.
@@ -56,7 +56,13 @@ voir (plantage au troisième tour d'un combat) :
 python3 -m http.server 8000 &
 npm i playwright-core                 # dev uniquement, le jeu reste sans dépendance
 node tools/playtest.mjs 4
+node tools/contrast-audit.mjs         # contrastes mesurés sur pixels rendus
 ```
+
+L'audit de contraste échantillonne la **capture d'écran**, pas les styles
+calculés : les fonds du jeu sont peints par un canvas et par un calque fixe
+derrière l'application, si bien qu'un audit qui remonte le DOM ne les voit pas
+et déclare « 0 échec » sur un écran illisible. Voir `design-system.html` §15.
 
 ## Contraintes techniques inchangées
 
