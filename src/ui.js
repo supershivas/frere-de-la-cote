@@ -41,9 +41,12 @@ export function mount(node) {
   hideTooltip();
   clear(root);
   root.appendChild(node);
-  // The sea scene shows on the title, combat and the deck view; everything
-  // else is on parchment. The deck view needs sky and water behind the ships.
-  const sea = state.screen === 'combat' || state.screen === 'title' || state.screen === 'pont' || state.screen === 'bataille' || state.screen === 'carte';
+  // Sea for anything happening AT SEA — the title, the fights, the deck view,
+  // the chart. Parchment for the setup screens, which are documents: the
+  // chasse-partie was a real contract, written and voted (§8.2), and it is
+  // meant to read as a signed sheet rather than a menu.
+  const sea = state.screen === 'combat' || state.screen === 'title'
+    || state.screen === 'pont' || state.screen === 'bataille' || state.screen === 'carte';
   document.body.dataset.bg = sea ? 'sea' : 'parchment';
 }
 

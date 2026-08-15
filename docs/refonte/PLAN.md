@@ -8,7 +8,8 @@ des références visuelles jetables, pas du code à porter tel quel.
 
 Le brief décrit `game.html` / `architecture.html` / `assets.html`. Ces
 fichiers n'existent plus : le dépôt actuel utilise `index.html` +
-`bible.html` (charte graphique) + `src/*.js` en modules ES. Le diagnostic du
+`design-system.html` (interface) + `histoire.html` (contexte et
+figures) + `src/*.js` en modules ES. Le diagnostic du
 brief (combat plat, munitions interchangeables, éditeur de navires sous-
 exploité) reste juste sur le fond, mais le code sous-jacent a bougé :
 
@@ -58,9 +59,7 @@ exploité) reste juste sur le fond, mais le code sous-jacent a bougé :
 | 2 | ✅ **Fait** — rendu profil | `src/deckView.js` + `css/deck.css`. Voir ci-dessous. |
 | 3 | ✅ **Fait** — déplacement d'équipage | `src/deckView.js` (`walk`, `reachFrom`) + écran d'essai `src/screens/pont.js`. Voir ci-dessous. |
 | 4 | ✅ **Fait** — combat 1 v 1 | `src/battle.js` (règles) + `src/screens/bataille.js` (écran) + `test/battle.test.js`. Voir ci-dessous. |
-| ~~4~~ | ~~ancien libellé~~ | Bandes de distance, dégâts localisés par salle, feu déterministe et télégraphié, 5 munitions différenciées, abordage. Porte visible = batterie engagée. **Gate de validation du brief : 5 combats joués, sensation « je tente la prise ou je coule ? » avant de continuer.** |
 | 5 | ✅ **Fait** — boucle de partie | `src/run.js`, `src/caribbean.js`, `src/screens/traversee.js`. Voir ci-dessous. |
-| ~~5~~ | ~~ancien libellé~~ | Archétypes de recrutement (3 préconçus + 3 points libres), chasse-partie (contrat voté, style `role-equipage-mockup.html`), **carte des Caraïbes réelle, départ fixe**, 3 actes, coût visible par nœud. |
 | 6 | Méta-progression | Officiers persistants, registre des prises (galerie des navires capturés via le générateur existant), port d'attache, `reputation` → `legitimacy` (§8.6), calendrier 1640–1697 (§8.7). |
 | 7 | Interface | Différé — polish une fois le combat et la boucle figés. |
 | 8 | Contenu | Différé — élargissement de contenu en dernier. |
