@@ -1,0 +1,1316 @@
+{
+  "_doc": "Répliques d'équipage, trois par combat : ouverture, bascule, dénouement. La sélection filtre sur `quand` (étiquettes du tirage de rencontre), écarte ce qui a déjà été vu — mémoire persistante entre les parties — et préfère la réplique la plus spécifique. Une réplique sans `quand` est un filet : elle ne sort que si rien de plus précis n'est disponible.",
+  "voix": {
+    "etcheverry": {
+      "nom": "Etcheverry",
+      "role": "canonnier",
+      "voit": "la portée, la poudre, le vent sur les gueules de canon"
+    },
+    "coudray": {
+      "nom": "Coudray",
+      "role": "maître d'équipage",
+      "voit": "le ciel, la mer, les présages"
+    },
+    "toussaint": {
+      "nom": "Toussaint",
+      "role": "charpentier",
+      "voit": "la coque, l'eau dans la cale"
+    },
+    "ozanne": {
+      "nom": "Ozanne",
+      "role": "chirurgien",
+      "voit": "les hommes, et ce qu'un abordage coûte"
+    },
+    "gohier": {
+      "nom": "Gohier",
+      "role": "matelot",
+      "voit": "ce qu'elle porte et ce que ça vaut"
+    }
+  },
+  "repliques": [
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "argent_perou"
+      ],
+      "texte": "Elle porte de l'argent. Un boulet dans sa coque et c'est notre part qui coule."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "argent_perou"
+      ],
+      "texte": "De l'argent. Alors on vise le gréement, et rien d'autre."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "argent_perou"
+      ],
+      "texte": "Une cargaison pareille, les hommes voudront monter à bord. Ils oublieront de compter."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "argent_perou"
+      ],
+      "texte": "L'argent du Pérou. On en parle dans les ports pendant dix ans, ou on ne parle plus de nous."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "sur_lest"
+      ],
+      "texte": "Elle est haute sur l'eau. Il n'y a rien dedans."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "sur_lest"
+      ],
+      "texte": "Sur lest. La prendre nous coûtera plus qu'elle ne rapporte."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "sur_lest"
+      ],
+      "texte": "Vide. Autant économiser la poudre."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "tabac"
+      ],
+      "texte": "Du tabac. Ça se vend partout et ça ne pourrit pas."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "sucre"
+      ],
+      "texte": "Du sucre. Lourd, mais les Hollandais paient comptant."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "bois_cuirs"
+      ],
+      "texte": "Bois et cuirs. De quoi radouber, au moins."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "vivres"
+      ],
+      "texte": "Des vivres. Ce n'est pas de l'or, mais les hommes mangeront."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "nuit"
+      ],
+      "texte": "Il fait noir comme dans un four. On saura ce qu'elle vaut quand on sera dessus."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "nuit"
+      ],
+      "texte": "De nuit, on tire au bruit. Approchons."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "nuit"
+      ],
+      "texte": "On ne voit pas ses cales d'ici. On achète sans regarder."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "aube"
+      ],
+      "texte": "Le jour se lève sur elle avant qu'elle nous voie. C'est une faveur."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "crepuscule"
+      ],
+      "texte": "Encore une heure de jour. Après, elle nous glissera entre les doigts."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "grosse_mer"
+      ],
+      "texte": "Par cette mer, le canon ne vaut rien de loin. Il faudra se coller."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "grosse_mer"
+      ],
+      "texte": "Cette houle travaille les bordages. Gardez un homme aux pompes."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "calme_plat"
+      ],
+      "texte": "Pas un souffle. Personne n'ira nulle part aujourd'hui."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "calme_plat"
+      ],
+      "texte": "Mer d'huile. Les boulets porteront droit."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "vent_a_elle"
+      ],
+      "texte": "Elle a le vent. Tant qu'elle a sa mâture, c'est elle qui décide de la distance."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "vent_a_nous"
+      ],
+      "texte": "Le vent est pour nous. Elle ne nous échappera qu'en nous coulant."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "vent_tombe"
+      ],
+      "texte": "Le vent est tombé. Aucun des deux ne rompra : ça se réglera ici."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "cote_au_vent"
+      ],
+      "texte": "La terre est sous notre vent. Reculer, c'est s'échouer."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "hauts_fonds"
+      ],
+      "texte": "Il y a du fond qui remonte. S'approcher nous coûtera des bordages."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "sous_ile"
+      ],
+      "texte": "Sous l'île, le vent fait ce qu'il veut. Méfiance."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "eq_garde"
+      ],
+      "texte": "Ce sont les gens de la flotte. On ne monte pas là-dessus."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "eq_garde"
+      ],
+      "texte": "Si vous ordonnez l'abordage, préparez-moi de la place. Beaucoup de place."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "eq_soldats"
+      ],
+      "texte": "Des soldats sur le pont. Il faudra les faucher avant d'y penser."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "eq_marchands"
+      ],
+      "texte": "Des marchands. Ils amèneront avant qu'on ait chargé deux fois."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "eq_aguerri"
+      ],
+      "texte": "Ils savent servir une pièce. Ce ne sera pas une promenade."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "cap_jamais"
+      ],
+      "texte": "Celui-là n'amènera pas. Je le vois à sa façon de tenir sa route."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "cap_amene_tot"
+      ],
+      "texte": "Il a déjà peur. Deux bordées et il baisse pavillon."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "cap_ruse"
+      ],
+      "texte": "Ce capitaine-là change d'avis comme le vent. Ne vous fiez à rien."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "et_surchargee"
+      ],
+      "texte": "Basse sur l'eau. Elle ne fuira pas — mais elle coulera d'un rien."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "et_avariee"
+      ],
+      "texte": "Elle sort d'un combat. Quelqu'un l'a déjà entamée pour nous."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "et_neuve"
+      ],
+      "texte": "Coque neuve. Elle encaissera."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "post_fuit"
+      ],
+      "texte": "Elle met toute sa toile. Deux hommes à la manœuvre, ou on la regarde partir."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "post_fuit"
+      ],
+      "texte": "Elle court. C'est qu'elle a quelque chose à perdre."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "post_vient"
+      ],
+      "texte": "Elle vient sur nous. Gardez les hommes aux pièces."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "post_attendait"
+      ],
+      "texte": "Ses sabords sont déjà ouverts. Elle nous attendait."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "pav_aucun"
+      ],
+      "texte": "Pas de pavillon. Personne ne saura ce qu'on lui a fait."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "pav_aucun"
+      ],
+      "texte": "Elle ne montre rien. Nous non plus, après tout."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "pav_francais"
+      ],
+      "texte": "Pavillon français. Toucher à celle-là, et il n'y a plus un port pour nous."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "pav_hollandais"
+      ],
+      "texte": "Hollandaise. Notre commission ne couvre pas ça — mais ses cales, si."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "pav_anglais"
+      ],
+      "texte": "Anglaise. Le gouverneur nous le fera payer."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "pav_faux"
+      ],
+      "texte": "Ce pavillon ne lui va pas. Il est trop neuf pour cette coque."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "nous_decimes"
+      ],
+      "texte": "Nous sommes trois à tenir cinq postes. Choisissez lesquels vous abandonnez."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "nous_entames"
+      ],
+      "texte": "Notre coque a déjà bu. Un boulet bas et on rentre à la nage."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "nous_charges"
+      ],
+      "texte": "Nos cales sont pleines. On manœuvre comme une barrique."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "hum_fatigues"
+      ],
+      "texte": "Les hommes n'ont pas dormi. Ils tiendront, mais mal."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "hum_sang"
+      ],
+      "texte": "Personne ici n'acceptera de rompre. Autant le savoir tout de suite."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "hum_rancuniers"
+      ],
+      "texte": "L'équipage rumine. Une prise et ça passe ; deux nœuds sans rien et ça tourne mal."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "croient_marquee"
+      ],
+      "texte": "Les hommes ont vu quelque chose sur cette coque. Ils n'y monteront pas. Coulez-la."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "voile_horizon"
+      ],
+      "texte": "Une voile là-bas. Ce qu'on fait, on le fait vite."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "poudre_comptee"
+      ],
+      "texte": "Trois bordées dans la soute. Pas une de plus. Visez juste."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "connait_ce_navire"
+      ],
+      "texte": "J'ai calfaté cette coque. Sa hanche bâbord est faible, je sais où."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "surprise"
+      ],
+      "texte": "Ils ne nous ont pas vus. Deux tours d'avance : ne les gaspillez pas."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "brume"
+      ],
+      "texte": "On l'entend plus qu'on ne la voit. Tout ce qu'on sait d'elle est faux."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "navire_fantome"
+      ],
+      "texte": "Personne à sa barre. Personne. Et elle tient sa route."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "elle_porte_la_peste"
+      ],
+      "texte": "Regardez son pont. Ce ne sont pas des blessés. N'y montez pas."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "traine_prise"
+      ],
+      "texte": "Elle remorque une prise. Deux butins d'un coup, si on est rapides."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "vous_etes_la_proie"
+      ],
+      "texte": "Ce n'est pas nous qui chassons. C'est elle."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "entre_deux_feux"
+      ],
+      "texte": "Deux voiles, deux bords. Il faudra en laisser une nous tirer dessus."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "navire_nomme"
+      ],
+      "texte": "Celui-là, on en parle jusqu'à la Tortue. Et pas en bien."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [],
+      "texte": "Pièces chargées. Dites-nous où."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [],
+      "texte": "Elle est là. À vous de dire ce qu'on en fait."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [],
+      "texte": "Alors ? On la prend ou on la coule ?"
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [],
+      "texte": "La coque tient. Pour l'instant."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [],
+      "texte": "J'ai préparé la table. J'aimerais ne pas m'en servir."
+    },
+    {
+      "moment": "bascule",
+      "voix": "etcheverry",
+      "quand": [
+        "ennemi_demate"
+      ],
+      "texte": "Son gréement est à l'eau. Elle ne va plus nulle part."
+    },
+    {
+      "moment": "bascule",
+      "voix": "coudray",
+      "quand": [
+        "ennemi_demate"
+      ],
+      "texte": "La voilà épinglée. Maintenant c'est nous qui décidons."
+    },
+    {
+      "moment": "bascule",
+      "voix": "gohier",
+      "quand": [
+        "ennemi_demate"
+      ],
+      "texte": "Elle est à nous. Reste à monter dessus."
+    },
+    {
+      "moment": "bascule",
+      "voix": "ozanne",
+      "quand": [
+        "ennemi_equipage_bas"
+      ],
+      "texte": "Son pont se vide. Encore une bordée de mitraille et ils ne tiendront plus."
+    },
+    {
+      "moment": "bascule",
+      "voix": "gohier",
+      "quand": [
+        "ennemi_equipage_bas"
+      ],
+      "texte": "Ils ne sont plus assez pour nous repousser. C'est le moment."
+    },
+    {
+      "moment": "bascule",
+      "voix": "toussaint",
+      "quand": [
+        "ennemi_coque_basse"
+      ],
+      "texte": "Elle prend l'eau. Encore un boulet là-dedans et il n'y aura plus rien à vendre."
+    },
+    {
+      "moment": "bascule",
+      "voix": "gohier",
+      "quand": [
+        "ennemi_coque_basse"
+      ],
+      "texte": "Arrêtez de viser la coque, bon sang ! C'est notre or qui coule."
+    },
+    {
+      "moment": "bascule",
+      "voix": "toussaint",
+      "quand": [
+        "notre_coque_basse"
+      ],
+      "texte": "L'eau monte dans la cale. Il me faut des bras, tout de suite."
+    },
+    {
+      "moment": "bascule",
+      "voix": "toussaint",
+      "quand": [
+        "notre_voie_deau"
+      ],
+      "texte": "Nous sommes ouverts sous la flottaison. Les pompes ou le fond, choisissez."
+    },
+    {
+      "moment": "bascule",
+      "voix": "ozanne",
+      "quand": [
+        "notre_equipage_bas"
+      ],
+      "texte": "Il ne me reste plus grand monde debout. Ne comptez pas sur un abordage."
+    },
+    {
+      "moment": "bascule",
+      "voix": "etcheverry",
+      "quand": [
+        "notre_demate"
+      ],
+      "texte": "Plus de mâture. On ne s'approche plus, on ne fuit plus. On tire."
+    },
+    {
+      "moment": "bascule",
+      "voix": "ozanne",
+      "quand": [
+        "bord_a_bord"
+      ],
+      "texte": "Les grappins vont mordre. Après ça, je ne peux plus rien pour personne."
+    },
+    {
+      "moment": "bascule",
+      "voix": "gohier",
+      "quand": [
+        "bord_a_bord"
+      ],
+      "texte": "Bord à bord ! Les haches !"
+    },
+    {
+      "moment": "bascule",
+      "voix": "coudray",
+      "quand": [
+        "bord_a_bord"
+      ],
+      "texte": "Collés. Maintenant c'est elle ou nous, il n'y a plus de troisième issue."
+    },
+    {
+      "moment": "bascule",
+      "voix": "coudray",
+      "quand": [
+        "elle_amene"
+      ],
+      "texte": "Elle amène son pavillon. Ou elle fait semblant."
+    },
+    {
+      "moment": "bascule",
+      "voix": "gohier",
+      "quand": [
+        "elle_amene"
+      ],
+      "texte": "Ils baissent le pavillon ! Ne tirez plus, bon sang, ne tirez plus !"
+    },
+    {
+      "moment": "bascule",
+      "voix": "etcheverry",
+      "quand": [
+        "feinte_reddition"
+      ],
+      "texte": "Leurs sabords sont restés ouverts. Ce pavillon baissé est un mensonge."
+    },
+    {
+      "moment": "bascule",
+      "voix": "coudray",
+      "quand": [
+        "elle_fuit_encore"
+      ],
+      "texte": "Elle nous distance. Encore un tour et on la perd."
+    },
+    {
+      "moment": "bascule",
+      "voix": "etcheverry",
+      "quand": [
+        "poudre_epuisee"
+      ],
+      "texte": "Plus de poudre. Ce qu'on n'a pas fait, on ne le fera plus."
+    },
+    {
+      "moment": "bascule",
+      "voix": "coudray",
+      "quand": [
+        "voile_horizon"
+      ],
+      "texte": "L'autre voile grossit. Il faut en finir maintenant."
+    },
+    {
+      "moment": "bascule",
+      "voix": "coudray",
+      "quand": [
+        "grain_violent"
+      ],
+      "texte": "Le grain nous tombe dessus. Personne ne tire pendant ce temps-là."
+    },
+    {
+      "moment": "bascule",
+      "voix": "toussaint",
+      "quand": [
+        "ouragan"
+      ],
+      "texte": "Laissez-la ! Ce n'est plus elle l'ennemi, c'est la mer !"
+    },
+    {
+      "moment": "bascule",
+      "voix": "ozanne",
+      "quand": [
+        "mutinerie_larvee"
+      ],
+      "texte": "Deux hommes ont quitté leur poste. Ils disent qu'on ne les paie pas pour mourir."
+    },
+    {
+      "moment": "bascule",
+      "voix": "gohier",
+      "quand": [
+        "croient_marquee"
+      ],
+      "texte": "Personne ne veut sauter. Ils regardent sa coque et ils reculent."
+    },
+    {
+      "moment": "bascule",
+      "voix": "etcheverry",
+      "quand": [],
+      "texte": "Rechargé. Dites où."
+    },
+    {
+      "moment": "bascule",
+      "voix": "coudray",
+      "quand": [],
+      "texte": "Ça se décide maintenant, capitaine."
+    },
+    {
+      "moment": "bascule",
+      "voix": "gohier",
+      "quand": [],
+      "texte": "On y va, ou on regarde ?"
+    },
+    {
+      "moment": "bascule",
+      "voix": "toussaint",
+      "quand": [],
+      "texte": "La coque tient encore. Encore."
+    },
+    {
+      "moment": "bascule",
+      "voix": "ozanne",
+      "quand": [],
+      "texte": "Trois blessés. Ça reste raisonnable."
+    },
+    {
+      "moment": "denouement",
+      "voix": "gohier",
+      "quand": [
+        "prise"
+      ],
+      "texte": "Elle est à nous ! Ouvrez les cales, que je voie ce qu'on a gagné !"
+    },
+    {
+      "moment": "denouement",
+      "voix": "coudray",
+      "quand": [
+        "prise"
+      ],
+      "texte": "Belle prise. On l'a eue sans la casser — c'est le plus dur."
+    },
+    {
+      "moment": "denouement",
+      "voix": "ozanne",
+      "quand": [
+        "prise"
+      ],
+      "texte": "Elle est prise. Il me manque quatre hommes pour le dire tout à fait joyeusement."
+    },
+    {
+      "moment": "denouement",
+      "voix": "toussaint",
+      "quand": [
+        "prise"
+      ],
+      "texte": "Sa coque est saine. Elle vaudra son prix au port."
+    },
+    {
+      "moment": "denouement",
+      "voix": "etcheverry",
+      "quand": [
+        "prise"
+      ],
+      "texte": "Prise. Rangez les pièces."
+    },
+    {
+      "moment": "denouement",
+      "voix": "gohier",
+      "quand": [
+        "prise",
+        "argent_perou"
+      ],
+      "texte": "De l'argent. De l'argent partout. On ne travaillera plus de l'année."
+    },
+    {
+      "moment": "denouement",
+      "voix": "gohier",
+      "quand": [
+        "coulee"
+      ],
+      "texte": "Elle coule. Et tout ce qu'elle portait avec elle."
+    },
+    {
+      "moment": "denouement",
+      "voix": "toussaint",
+      "quand": [
+        "coulee"
+      ],
+      "texte": "Du bois flotté, voilà notre part. On a bien travaillé pour rien."
+    },
+    {
+      "moment": "denouement",
+      "voix": "coudray",
+      "quand": [
+        "coulee"
+      ],
+      "texte": "Elle s'en va par l'avant. C'était rapide, au moins."
+    },
+    {
+      "moment": "denouement",
+      "voix": "ozanne",
+      "quand": [
+        "coulee"
+      ],
+      "texte": "Personne à repêcher. Ils sont partis avec elle."
+    },
+    {
+      "moment": "denouement",
+      "voix": "etcheverry",
+      "quand": [
+        "coulee"
+      ],
+      "texte": "Coulée. La poudre n'était pas perdue, elle n'a juste rien rapporté."
+    },
+    {
+      "moment": "denouement",
+      "voix": "gohier",
+      "quand": [
+        "coulee",
+        "argent_perou"
+      ],
+      "texte": "L'argent du Pérou. Au fond. J'aurai ça devant les yeux jusqu'à ma mort."
+    },
+    {
+      "moment": "denouement",
+      "voix": "coudray",
+      "quand": [
+        "elle_echappe"
+      ],
+      "texte": "Elle nous a semé. Le vent était pour elle depuis le début."
+    },
+    {
+      "moment": "denouement",
+      "voix": "gohier",
+      "quand": [
+        "elle_echappe"
+      ],
+      "texte": "Partie. Et les hommes n'ont rien à se mettre dans la poche."
+    },
+    {
+      "moment": "denouement",
+      "voix": "etcheverry",
+      "quand": [
+        "elle_echappe"
+      ],
+      "texte": "Hors de portée. On a brûlé de la poudre pour la regarder."
+    },
+    {
+      "moment": "denouement",
+      "voix": "ozanne",
+      "quand": [
+        "elle_echappe"
+      ],
+      "texte": "Au moins je n'ai personne à recoudre."
+    },
+    {
+      "moment": "denouement",
+      "voix": "coudray",
+      "quand": [
+        "nous_rompons"
+      ],
+      "texte": "On rompt. Les hommes s'en souviendront, et pas en bien."
+    },
+    {
+      "moment": "denouement",
+      "voix": "gohier",
+      "quand": [
+        "nous_rompons"
+      ],
+      "texte": "On s'en va ? On s'en va. Mais pas de prise, pas de paye."
+    },
+    {
+      "moment": "denouement",
+      "voix": "ozanne",
+      "quand": [
+        "nous_rompons"
+      ],
+      "texte": "Sage. J'aime mieux des hommes vivants et grognons."
+    },
+    {
+      "moment": "denouement",
+      "voix": "ozanne",
+      "quand": [
+        "nous_pris"
+      ],
+      "texte": "Ils sont sur le pont. Baissez vos armes, il n'y a plus rien à défendre."
+    },
+    {
+      "moment": "denouement",
+      "voix": "coudray",
+      "quand": [
+        "nous_pris"
+      ],
+      "texte": "Notre pont est à eux. C'est fini."
+    },
+    {
+      "moment": "denouement",
+      "voix": "gohier",
+      "quand": [
+        "nous_pris"
+      ],
+      "texte": "On s'est collés trop tôt. Je l'ai dit."
+    },
+    {
+      "moment": "denouement",
+      "voix": "toussaint",
+      "quand": [
+        "nous_sombrons"
+      ],
+      "texte": "L'eau est au-dessus des barriques. On ne pompera plus."
+    },
+    {
+      "moment": "denouement",
+      "voix": "coudray",
+      "quand": [
+        "nous_sombrons"
+      ],
+      "texte": "La mer a eu le dernier mot. Elle l'a toujours."
+    },
+    {
+      "moment": "denouement",
+      "voix": "ozanne",
+      "quand": [
+        "nous_sombrons"
+      ],
+      "texte": "Aux embarcations. Ceux qui peuvent marcher, d'abord ceux qui ne peuvent pas."
+    },
+    {
+      "moment": "denouement",
+      "voix": "coudray",
+      "quand": [
+        "il_se_saborde"
+      ],
+      "texte": "Il a mis le feu à sa propre soute. Il a préféré la mer à nous."
+    },
+    {
+      "moment": "denouement",
+      "voix": "gohier",
+      "quand": [
+        "il_se_saborde"
+      ],
+      "texte": "Il l'a sabordée sous nos pieds. Toute cette peine pour de la fumée."
+    },
+    {
+      "moment": "denouement",
+      "voix": "coudray",
+      "quand": [],
+      "texte": "C'est fini. Comptez les nôtres."
+    },
+    {
+      "moment": "denouement",
+      "voix": "etcheverry",
+      "quand": [],
+      "texte": "Fini. J'écouvillonne."
+    },
+    {
+      "moment": "denouement",
+      "voix": "gohier",
+      "quand": [],
+      "texte": "Bon. Et maintenant ?"
+    },
+    {
+      "moment": "denouement",
+      "voix": "toussaint",
+      "quand": [],
+      "texte": "Je vais voir ce qu'il reste de la coque."
+    },
+    {
+      "moment": "denouement",
+      "voix": "ozanne",
+      "quand": [],
+      "texte": "Amenez-moi les blessés. Les autres peuvent boire."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "tabac"
+      ],
+      "texte": "Du tabac des Indes. Les Anglais en boivent la fumée comme du vin."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "sucre"
+      ],
+      "texte": "Du sucre. C'est lourd, et ça fait pourrir les fonds. Prenons-le vite."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "bois_cuirs"
+      ],
+      "texte": "Des cuirs. Ça pue, ça se vend, ça ne coule pas. On a vu pire."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "vivres"
+      ],
+      "texte": "Des barriques et du biscuit. On ne s'enrichit pas, on dure."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "aube"
+      ],
+      "texte": "Le soleil sera derrière nous une heure encore. Servons-nous-en."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "crepuscule"
+      ],
+      "texte": "La nuit tombe dans une heure. Après, c'est fini pour aujourd'hui."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "vent_a_elle"
+      ],
+      "texte": "Elle est au vent. On tirera de plus loin qu'on voudrait."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "vent_a_nous"
+      ],
+      "texte": "Le vent nous pousse dessus. Elle est à nous si on ne la casse pas."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "vent_tombe"
+      ],
+      "texte": "Pas un souffle. Personne ne s'en va : ça durera jusqu'à ce qu'un des deux cède."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "cote_au_vent"
+      ],
+      "texte": "Des brisants derrière nous. Reculer, c'est finir sur les cailloux."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "hauts_fonds"
+      ],
+      "texte": "L'eau change de couleur devant. Il y a du fond qui monte."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "sous_ile"
+      ],
+      "texte": "Sous la côte, le vent saute. Ne comptez pas sur la manœuvre."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "eq_soldats"
+      ],
+      "texte": "Je vois des mousquets sur le gaillard. Ce ne sont pas des marins."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "eq_marchands"
+      ],
+      "texte": "Ils ne savent pas se battre et ils le savent. Ça se voit à leur manœuvre."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "eq_aguerri"
+      ],
+      "texte": "Ces gens-là ont déjà été abordés, et ils sont encore là. Réfléchissez."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "cap_jamais"
+      ],
+      "texte": "Celui-ci ira au fond avec son navire. Préparez-vous à le suivre ou à le couler."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "cap_amene_tot"
+      ],
+      "texte": "Il tire déjà mal. Deux bordées bien placées et c'est réglé."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "cap_ruse"
+      ],
+      "texte": "Ne croyez rien de ce qu'il montre. Celui-là joue."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "et_surchargee"
+      ],
+      "texte": "Elle est chargée à ras. Elle ne fuira pas — mais visez haut, ou tout coule."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "et_avariee"
+      ],
+      "texte": "Quelqu'un l'a déjà travaillée. Son équipage doit être en morceaux."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "et_neuve"
+      ],
+      "texte": "Bordages neufs. Il faudra frapper deux fois au même endroit."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "gohier",
+      "quand": [
+        "post_vient"
+      ],
+      "texte": "Elle vient droit sur nous. Soit elle est sûre d'elle, soit elle est folle."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "post_attendait"
+      ],
+      "texte": "Ses pièces sont sorties depuis un moment. On nous attendait."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "pav_francais"
+      ],
+      "texte": "Des Français. Il y a peut-être des cousins à nous là-dedans."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "pav_hollandais"
+      ],
+      "texte": "Hollandaise. Ceux-là nous achètent nos prises — les fâcher a un prix."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "pav_anglais"
+      ],
+      "texte": "Anglaise. La Jamaïque s'en souviendra la prochaine fois qu'on y relâche."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "etcheverry",
+      "quand": [
+        "pav_faux"
+      ],
+      "texte": "Ce pavillon flotte mal. Il n'est pas à elle."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "nous_decimes"
+      ],
+      "texte": "On ne peut pas tout tenir. Dites-nous ce qu'on lâche."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "nous_entames"
+      ],
+      "texte": "Notre coque a déjà donné. Ne la mettez pas sous ses gueules de canon."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "toussaint",
+      "quand": [
+        "nous_charges"
+      ],
+      "texte": "Chargés comme nous sommes, on vire comme une église."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "hum_fatigues"
+      ],
+      "texte": "Ils sont debout depuis deux jours. Un abordage les casserait."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "coudray",
+      "quand": [
+        "hum_sang"
+      ],
+      "texte": "Ils ont soif. Proposez de rompre et vous perdrez plus que ce combat."
+    },
+    {
+      "moment": "ouverture",
+      "voix": "ozanne",
+      "quand": [
+        "hum_rancuniers"
+      ],
+      "texte": "Ils comptent les nœuds sans prise. Moi aussi, à vrai dire."
+    }
+  ]
+}

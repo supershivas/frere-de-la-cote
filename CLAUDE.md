@@ -38,6 +38,7 @@ sur le second.
 | `src/shipPlans.js` | Plans de pont par classe de coque : salles, passages, spécialités, coûts de trajet |
 | `src/deckView.js` | Rendu en profil : le sprite généré sert de cadre au plan ; déplacement animé |
 | `src/battle.js` | **Règles de combat pures** — aucun DOM, aucun minuteur, **aucun aléatoire** |
+| `src/rencontre.js` | Tirage d'ouverture de combat + choix des phylactères. L'entropie entre ici, jamais dans la résolution |
 | `src/run.js` | État de partie : archétypes, clauses de chasse-partie, moral, légitimité |
 | `src/caribbean.js` | La Caraïbe réelle : lieux, côtes, distances |
 | `src/screens/pont.js` | Harnais de plan de pont (étapes 2-3), pas l'écran de combat |
@@ -80,7 +81,11 @@ node test/run.js          # données + intégrité, zéro dépendance
 ```
 
 À lancer après toute modification de `data/`, `locales/` ou des clés
-référencées dans `src/`. La suite ne teste pas des chemins de code : ce sont
+référencées dans `src/`. `test/rencontre.test.js` va plus loin que l'intégrité :
+il **mesure** ce que le tirage produit (nombre d'éléments affichés, fréquence
+des raretés, taille de l'espace des ouvertures, parties avant répétition d'une
+réplique). Un seuil qui casse est presque toujours une décision de conception à
+prendre, pas un test à assouplir. La suite ne teste pas des chemins de code : ce sont
 des détecteurs de clé erronée, parce que c'est la classe de bug qui a coulé
 le prototype précédent (brief §13) et qu'aucune vérification de syntaxe ne
 l'attrape. Étape 1 y ajoutera `test/shipPlans.test.js` pour les invariants
