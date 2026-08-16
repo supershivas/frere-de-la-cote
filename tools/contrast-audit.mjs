@@ -24,6 +24,12 @@ const AUDIT = async (dataUrl) => {
     const cs=getComputedStyle(n); if(cs.display==='none'||cs.visibility==='hidden') continue;
     const r=n.getBoundingClientRect();
     if(r.width<6||r.height<6||r.top<0||r.bottom>innerHeight||r.left<0||r.right>innerWidth) continue;
+    // Un élément recouvert par un calque (carte d'ouverture, overlay de fin)
+    // n'est pas illisible : il n'est pas là. Sans ce test, l'audit lit les
+    // pixels du calque et invente un échec sur du texte que personne ne voit.
+    const c=n.getBoundingClientRect();
+    const top=document.elementFromPoint(c.left+c.width/2, c.top+c.height/2);
+    if(top && top!==n && !n.contains(top) && !top.contains(n)) continue;
     const size=parseFloat(cs.fontSize), bold=parseInt(cs.fontWeight)>=700;
     const need=(size>=24||(size>=18.66&&bold))?3:4.5;
     // Sample the WHOLE box, every other row: a mid-height strip can fall between
@@ -64,4 +70,11 @@ await audit('chasse-partie — clauses cochées', async()=>{ await p.evaluate(()
   await p.evaluate(()=>document.querySelectorAll('.charte-clause')[4].click()); await p.waitForTimeout(350); });
 await audit('carte', async()=>{ await p.evaluate(()=>[...document.querySelectorAll('.btn-level-1')].find(x=>/Signer/i.test(x.textContent)).click()); await p.waitForTimeout(1000); });
 await audit('combat', goto('#bataille'));
+
+// La maquette B2 : c'est elle qu'on regarde en ce moment, et sa carte
+// d'ouverture empile des petits textes sur fond sombre — exactement la classe
+// de bug qui a rendu la lettre de marque illisible.
+const B2 = 'http://localhost:8000/docs/refonte/mockups/b2-combat.html';
+await audit('B2 — carte d\'ouverture', async()=>{ await p.goto(B2); await p.waitForSelector('.carte'); await p.waitForTimeout(600); });
+await audit('B2 — combat engagé', async()=>{ await p.click('.carte .go'); await p.waitForTimeout(500); });
 await b.close();

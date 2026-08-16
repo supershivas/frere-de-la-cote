@@ -1,0 +1,258 @@
+{
+  "_doc": "Tirage d'ouverture de combat. Le socle est tiré EN ENTIER à chaque rencontre et sert de matière au dialogue ; les épices sont rares et servent à l'interface et au souvenir. Tout est tiré avant le premier tour : la résolution, elle, reste sans aléatoire (brief §4.1).",
+
+  "_doc_frequence": "Probabilité qu'un axe du socle s'écarte de son réglage ordinaire. Quatorze axes à 0.18, plus les épices, donnent quatre choses notables par rencontre : assez pour que deux combats ne se ressemblent pas, assez peu pour que la carte d'ouverture reste lisible. Monter ce nombre rend chaque combat exceptionnel, donc aucun. Mesuré par test/rencontre.test.js.",
+  "frequence_depart": 0.18,
+
+  "socle": {
+    "heure": {
+      "categorie": "environnement",
+      "label": "Heure",
+      "reglages": [
+        { "id": "aube", "label": "Aube", "court": "à l'aube" },
+        { "id": "matin", "label": "Matin", "court": "au matin" },
+        { "id": "plein_jour", "label": "Plein jour", "court": "en plein jour", "ordinaire": true },
+        { "id": "crepuscule", "label": "Crépuscule", "court": "au crépuscule" },
+        { "id": "nuit", "label": "Nuit", "court": "de nuit", "effet": "Sa cargaison et son équipage restent inconnus jusqu'à portée de mousquet. Ses intentions, elles, restent toujours annoncées." }
+      ]
+    },
+    "mer": {
+      "categorie": "environnement",
+      "label": "État de la mer",
+      "reglages": [
+        { "id": "calme_plat", "label": "Calme plat", "court": "sur une mer d'huile", "effet": "La manœuvre coûte un homme de plus." },
+        { "id": "clapot", "label": "Clapot", "court": "dans le clapot", "ordinaire": true },
+        { "id": "houle", "label": "Houle courte", "court": "dans la houle" },
+        { "id": "grosse_mer", "label": "Grosse mer", "court": "par grosse mer", "effet": "Le canon porte mal de loin ; les pompes réclament un homme." }
+      ]
+    },
+    "vent": {
+      "categorie": "environnement",
+      "label": "Vent",
+      "reglages": [
+        { "id": "vent_a_nous", "label": "Vous l'avez", "court": "le vent pour vous" },
+        { "id": "vent_partage", "label": "Partagé", "court": "vent de travers", "ordinaire": true },
+        { "id": "vent_a_elle", "label": "Elle l'a", "court": "le vent pour elle", "effet": "Elle choisit la distance tant qu'elle a son gréement." },
+        { "id": "vent_tombe", "label": "Tombé", "court": "vent tombé", "effet": "Personne ne rompt le combat." }
+      ]
+    },
+    "fond": {
+      "categorie": "environnement",
+      "label": "Fond et côte",
+      "reglages": [
+        { "id": "haute_mer", "label": "Haute mer", "court": "au large", "ordinaire": true },
+        { "id": "sous_ile", "label": "Sous une île", "court": "sous une île" },
+        { "id": "hauts_fonds", "label": "Hauts-fonds", "court": "sur les hauts-fonds", "effet": "S'approcher coûte une avarie de coque." },
+        { "id": "cote_au_vent", "label": "Côte au vent", "court": "une côte sous le vent", "effet": "Rompre le combat est impossible : la terre est derrière." }
+      ]
+    },
+    "courant": {
+      "categorie": "environnement",
+      "label": "Courant",
+      "reglages": [
+        { "id": "courant_nul", "label": "Nul", "court": "sans courant", "ordinaire": true },
+        { "id": "courant_portant", "label": "Portant", "court": "courant portant" },
+        { "id": "courant_contraire", "label": "Contraire", "court": "à contre-courant" }
+      ]
+    },
+
+    "pavillon": {
+      "categorie": "ennemi",
+      "label": "Pavillon",
+      "reglages": [
+        { "id": "pav_espagnol", "label": "Espagnol", "court": "sous pavillon espagnol", "ordinaire": true },
+        { "id": "pav_hollandais", "label": "Hollandais", "court": "sous pavillon hollandais", "effet": "Hors commission : la prendre coûte votre légitimité." },
+        { "id": "pav_anglais", "label": "Anglais", "court": "sous pavillon anglais", "effet": "Hors commission : la prendre coûte votre légitimité." },
+        { "id": "pav_francais", "label": "Français", "court": "sous pavillon français", "effet": "Un des vôtres. La prendre vous met tout le monde à dos." },
+        { "id": "pav_aucun", "label": "Aucun pavillon", "court": "sans pavillon", "effet": "Personne ne saura. Personne ne l'achètera au prix fort non plus." },
+        { "id": "pav_faux", "label": "Faux pavillon", "court": "sous un pavillon qui ment", "effet": "Ce qu'elle montre n'est pas ce qu'elle est." }
+      ]
+    },
+    "cargaison": {
+      "categorie": "ennemi",
+      "label": "Cargaison",
+      "reglages": [
+        { "id": "sur_lest", "label": "Sur lest", "court": "sur lest", "valeur": 0.2, "effet": "Vide. La couler est le choix raisonnable." },
+        { "id": "vivres", "label": "Vivres", "court": "chargée de vivres", "valeur": 0.5 },
+        { "id": "bois_cuirs", "label": "Bois et cuirs", "court": "chargée de bois et de cuirs", "valeur": 0.8, "ordinaire": true },
+        { "id": "sucre", "label": "Sucre", "court": "chargée de sucre", "valeur": 1.1 },
+        { "id": "tabac", "label": "Tabac", "court": "chargée de tabac", "valeur": 1.3 },
+        { "id": "argent_perou", "label": "L'argent du Pérou", "court": "chargée d'argent", "valeur": 2.5, "effet": "Le coup d'une partie. Un boulet dans sa coque et tout est au fond." }
+      ]
+    },
+    "equipage_ennemi": {
+      "categorie": "ennemi",
+      "label": "Son équipage",
+      "reglages": [
+        { "id": "eq_marchands", "label": "Marchands", "court": "des marchands", "force": 0.55, "effet": "Ils ne se battront pas longtemps." },
+        { "id": "eq_mixte", "label": "Mixte", "court": "un équipage mêlé", "force": 0.8, "ordinaire": true },
+        { "id": "eq_aguerri", "label": "Aguerri", "court": "des marins aguerris", "force": 1.0 },
+        { "id": "eq_soldats", "label": "Soldats embarqués", "court": "des soldats à bord", "force": 1.35, "effet": "L'abordage n'est pensable qu'après plusieurs bordées de mitraille." },
+        { "id": "eq_garde", "label": "Garde de la flotte", "court": "la garde de la flotte", "force": 1.7, "effet": "Ne l'abordez pas. Démâtez-la ou fuyez." }
+      ]
+    },
+    "etat_ennemi": {
+      "categorie": "ennemi",
+      "label": "Son état",
+      "reglages": [
+        { "id": "et_neuve", "label": "Neuve", "court": "coque neuve", "coque": 1.2 },
+        { "id": "et_radoubee", "label": "Radoubée", "court": "fraîchement radoubée", "coque": 1.05, "ordinaire": true },
+        { "id": "et_usee", "label": "Usée", "court": "une coque fatiguée", "coque": 0.9 },
+        { "id": "et_avariee", "label": "Déjà avariée", "court": "déjà éprouvée", "coque": 0.7, "effet": "Elle sort d'un combat. Facile à prendre, moins riche à revendre." },
+        { "id": "et_surchargee", "label": "Surchargée", "court": "basse sur l'eau", "coque": 0.85, "effet": "Elle ne peut pas fuir, mais elle coule vite." }
+      ]
+    },
+    "capitaine_ennemi": {
+      "categorie": "ennemi",
+      "label": "Son capitaine",
+      "reglages": [
+        { "id": "cap_amene_tot", "label": "Il amène tôt", "court": "un capitaine prudent", "seuil": 0.55 },
+        { "id": "cap_tenace", "label": "Il tient jusqu'à 30 %", "court": "un capitaine tenace", "seuil": 0.3, "ordinaire": true },
+        { "id": "cap_jamais", "label": "Il ne se rend jamais", "court": "un capitaine qui n'amènera pas", "seuil": 0.0, "effet": "Aucune reddition. Il faudra la prendre ou la couler." },
+        { "id": "cap_ruse", "label": "Rusé", "court": "un capitaine retors", "seuil": 0.35, "effet": "Il changera d'avis en cours de combat." }
+      ]
+    },
+
+    "notre_etat": {
+      "categorie": "vous",
+      "label": "Votre état",
+      "reglages": [
+        { "id": "nous_frais", "label": "Frais", "court": "au complet", "postes": 5, "ordinaire": true },
+        { "id": "nous_entames", "label": "Coque entamée", "court": "la coque déjà entamée", "postes": 5, "coque": 0.75 },
+        { "id": "nous_charges", "label": "Cales pleines", "court": "les cales pleines", "postes": 5, "effet": "Lourds : la manœuvre coûte un homme de plus." },
+        { "id": "nous_decimes", "label": "Décimés", "court": "à court de bras", "postes": 3, "effet": "Trois postes seulement. Tenir les pompes et les canons devient impossible." }
+      ]
+    },
+    "humeur": {
+      "categorie": "vous",
+      "label": "Humeur de l'équipage",
+      "reglages": [
+        { "id": "hum_confiants", "label": "Confiants", "court": "l'équipage confiant", "ordinaire": true },
+        { "id": "hum_fatigues", "label": "Fatigués", "court": "l'équipage fourbu" },
+        { "id": "hum_rancuniers", "label": "Rancuniers", "court": "l'équipage rancunier" },
+        { "id": "hum_sang", "label": "Ils veulent du sang", "court": "l'équipage qui veut du sang", "effet": "Rompre le combat est refusé." }
+      ]
+    },
+
+    "distance_initiale": {
+      "categorie": "rencontre",
+      "label": "Distance",
+      "reglages": [
+        { "id": "dist_loin", "label": "Au loin", "court": "signalée au loin", "distance": 3 },
+        { "id": "dist_canon", "label": "Portée de canon", "court": "à portée de canon", "distance": 2, "ordinaire": true },
+        { "id": "dist_mousquet", "label": "Portée de mousquet", "court": "déjà à portée de mousquet", "distance": 1, "effet": "Pas de phase d'approche. On y est." }
+      ]
+    },
+    "posture": {
+      "categorie": "rencontre",
+      "label": "Sa posture",
+      "reglages": [
+        { "id": "post_fuit", "label": "Elle fuit", "court": "elle met toute sa toile", "effet": "Deux hommes à la manœuvre immédiatement, ou elle s'échappe." },
+        { "id": "post_route", "label": "Elle tient sa route", "court": "elle tient sa route", "ordinaire": true },
+        { "id": "post_vient", "label": "Elle vient à vous", "court": "elle vient sur vous" },
+        { "id": "post_attendait", "label": "Elle vous attendait", "court": "elle vous attendait", "effet": "Ses postes sont tenus. Elle tire la première." }
+      ]
+    }
+  },
+
+  "epices": {
+    "grain_passager": { "categorie": "environnement", "degre": "frequent", "cout": 1, "label": "Un grain passe", "effet": "Un tour où personne ne tire." },
+    "nuit_sans_lune": { "categorie": "environnement", "degre": "frequent", "cout": 1, "label": "Nuit sans lune", "requiert": ["nuit"], "effet": "Vous ne saurez rien d'elle avant d'être bord à bord." },
+    "recifs_signales": { "categorie": "environnement", "degre": "frequent", "cout": 1, "label": "Récifs signalés", "effet": "S'approcher coûte une avarie." },
+    "maree_tourne": { "categorie": "environnement", "degre": "frequent", "cout": 1, "label": "La marée tourne", "effet": "Le courant s'inverse au tour 4." },
+    "epave_flottante": { "categorie": "environnement", "degre": "frequent", "cout": 1, "label": "Une épave dérive entre vous", "effet": "Un tour de retard pour qui veut s'approcher." },
+
+    "traine_prise": { "categorie": "ennemi", "degre": "frequent", "cout": 1, "label": "Elle traîne une prise", "effet": "Elle est lente. Deux butins au lieu d'un." },
+    "canons_depareilles": { "categorie": "ennemi", "degre": "frequent", "cout": 1, "label": "Ses canons sont dépareillés", "effet": "Elle ne touche qu'à portée de mousquet." },
+    "passager_de_marque": { "categorie": "ennemi", "degre": "frequent", "cout": 1, "label": "Un passager de marque à bord", "effet": "Rançon si vous la prenez. Elle se battra plus fort." },
+    "deja_en_fuite": { "categorie": "ennemi", "degre": "frequent", "cout": 1, "label": "Elle fuit depuis deux jours", "effet": "Son équipage est épuisé." },
+    "voiles_rapiecees": { "categorie": "ennemi", "degre": "frequent", "cout": 1, "label": "Voiles rapiécées", "effet": "Son gréement tombe plus vite." },
+
+    "surprise": { "categorie": "vous", "degre": "frequent", "cout": 1, "label": "Vous la surprenez", "effet": "Deux tours avant qu'elle tienne ses postes." },
+    "homme_malade": { "categorie": "vous", "degre": "frequent", "cout": 1, "label": "Un homme est malade", "effet": "Un poste de moins." },
+    "poudre_humide": { "categorie": "vous", "degre": "frequent", "cout": 1, "label": "Poudre humide", "effet": "La première bordée porte à moitié." },
+    "connait_ce_navire": { "categorie": "vous", "degre": "frequent", "cout": 1, "label": "Un officier a servi à son bord", "effet": "Vous savez où sa coque est faible." },
+    "sous_faux_pavillon": { "categorie": "rencontre", "degre": "frequent", "cout": 1, "label": "Vous naviguez sous faux pavillon", "effet": "Elle vous laisse approcher sans méfiance." },
+    "prise_pour_ami": { "categorie": "rencontre", "degre": "frequent", "cout": 1, "label": "Elle vous prend pour un ami", "effet": "Un tour gratuit à portée de canon." },
+    "au_mouillage": { "categorie": "rencontre", "degre": "frequent", "cout": 1, "label": "Rencontre au mouillage", "effet": "Personne ne manœuvre au premier tour." },
+
+    "brume": { "categorie": "environnement", "degre": "rare", "cout": 2, "label": "Brume", "effet": "Ni pavillon ni cargaison avant la portée de mousquet." },
+    "grain_violent": { "categorie": "environnement", "degre": "rare", "cout": 2, "label": "Grain violent", "effet": "Deux tours sans tir. Le temps de redistribuer, ou de fuir." },
+    "barre_de_recifs": { "categorie": "environnement", "degre": "rare", "cout": 2, "label": "Une barre de récifs vous sépare", "effet": "Impossible de s'approcher avant le tour 3." },
+
+    "feinte_reddition": { "categorie": "ennemi", "degre": "rare", "cout": 2, "label": "Feinte de reddition", "effet": "Elle amène son pavillon. Elle ment." },
+    "elle_chasse_aussi": { "categorie": "ennemi", "degre": "rare", "cout": 2, "label": "Elle chasse aussi", "effet": "Un flibustier comme vous, avec les mêmes options." },
+    "mutinerie_chez_elle": { "categorie": "ennemi", "degre": "rare", "cout": 2, "label": "Mutinerie à son bord", "effet": "Son équipage baisse d'un cran chaque tour." },
+    "elle_porte_la_peste": { "categorie": "ennemi", "degre": "rare", "cout": 2, "label": "Elle porte la peste", "effet": "L'aborder condamne des hommes après le combat." },
+    "consort_cache": { "categorie": "ennemi", "degre": "rare", "cout": 2, "label": "Un consort caché sous la côte", "effet": "Il paraîtra au tour 5." },
+
+    "croient_marquee": { "categorie": "vous", "degre": "rare", "cout": 2, "label": "Ils la croient marquée", "effet": "L'équipage refuse l'abordage. Vous ne pouvez que la couler." },
+    "officier_manque": { "categorie": "vous", "degre": "rare", "cout": 2, "label": "Un officier manque à l'appel", "effet": "Son poste rend moitié moins." },
+    "poudre_comptee": { "categorie": "vous", "degre": "rare", "cout": 2, "label": "Votre poudre est comptée", "effet": "Trois bordées, pas une de plus." },
+    "reconnait_son_navire": { "categorie": "vous", "degre": "rare", "cout": 2, "label": "Un homme reconnaît son ancien navire", "effet": "Il se battra deux fois mieux, ou pas du tout." },
+
+    "voile_horizon": { "categorie": "rencontre", "degre": "rare", "cout": 2, "label": "Une voile à l'horizon", "effet": "Prenez-la avant qu'elle arrive.", "variantes": ["6 tours", "4 tours", "3 tours"] },
+    "vous_etes_la_proie": { "categorie": "rencontre", "degre": "rare", "cout": 2, "label": "Vous êtes la proie", "effet": "C'est elle qui chasse. Vous êtes plus lent." },
+    "elle_bat_votre_pavillon": { "categorie": "rencontre", "degre": "rare", "cout": 2, "label": "Elle bat votre pavillon", "effet": "Tirer dessus se saura." },
+
+    "ouragan": { "categorie": "environnement", "degre": "exceptionnel", "cout": 2, "label": "Ouragan", "effet": "Le combat s'arrête. Tout aux pompes, ou vous coulez tous les deux." },
+    "il_se_saborde": { "categorie": "ennemi", "degre": "exceptionnel", "cout": 2, "label": "Il se saborde plutôt que d'être pris", "effet": "La prise parfaite, perdue au dernier tour." },
+    "entre_deux_feux": { "categorie": "rencontre", "degre": "exceptionnel", "cout": 2, "label": "Pris entre deux feux", "effet": "Deux adversaires. Choisissez-en un." },
+    "navire_nomme": { "categorie": "ennemi", "degre": "exceptionnel", "cout": 2, "label": "Un navire nommé", "effet": "Celui dont on parle dans les ports." },
+    "mutinerie_larvee": { "categorie": "vous", "degre": "exceptionnel", "cout": 2, "label": "Mutinerie larvée", "effet": "Chaque tour sans prise, un homme quitte son poste." },
+    "navire_fantome": { "categorie": "ennemi", "degre": "exceptionnel", "cout": 2, "label": "Le navire fantôme", "effet": "Personne à la barre, cales pleines. L'équipage ne veut pas y monter." },
+    "piege_garde_cote": { "categorie": "rencontre", "degre": "exceptionnel", "cout": 2, "label": "C'était un appât", "effet": "La commission était un piège de la garde-côte." },
+    "un_frere_a_bord": { "categorie": "vous", "degre": "exceptionnel", "cout": 2, "label": "Un des vôtres y a un frère", "effet": "Il refuse de servir contre elle." }
+  },
+
+  "exclusions": [
+    ["nous_decimes", "voile_horizon"],
+    ["nous_decimes", "entre_deux_feux"],
+    ["nous_decimes", "vous_etes_la_proie"],
+    ["ouragan", "entre_deux_feux"],
+    ["ouragan", "grain_violent"],
+    ["ouragan", "brume"],
+    ["ouragan", "au_mouillage"],
+    ["brume", "nuit_sans_lune"],
+    ["grain_passager", "grain_violent"],
+    ["grain_passager", "calme_plat"],
+    ["grain_violent", "calme_plat"],
+    ["recifs_signales", "barre_de_recifs"],
+    ["feinte_reddition", "cap_jamais"],
+    ["feinte_reddition", "navire_fantome"],
+    ["navire_fantome", "eq_garde"],
+    ["navire_fantome", "eq_soldats"],
+    ["navire_fantome", "mutinerie_chez_elle"],
+    ["navire_fantome", "post_vient"],
+    ["navire_fantome", "post_attendait"],
+    ["il_se_saborde", "cap_amene_tot"],
+    ["croient_marquee", "hum_sang"],
+    ["elle_chasse_aussi", "eq_marchands"],
+    ["elle_chasse_aussi", "sur_lest"],
+    ["nuit_sans_lune", "plein_jour"],
+    ["nuit_sans_lune", "matin"],
+    ["nuit_sans_lune", "aube"],
+    ["nuit_sans_lune", "crepuscule"],
+    ["poudre_comptee", "poudre_humide"],
+    ["vent_tombe", "cote_au_vent"],
+    ["au_mouillage", "post_fuit"],
+    ["au_mouillage", "dist_loin"],
+    ["prise_pour_ami", "post_fuit"],
+    ["prise_pour_ami", "post_attendait"],
+    ["surprise", "post_attendait"],
+    ["surprise", "vous_etes_la_proie"],
+    ["piege_garde_cote", "eq_marchands"],
+    ["sur_lest", "et_surchargee"],
+    ["sur_lest", "navire_fantome"],
+    ["et_surchargee", "post_fuit"],
+    ["navire_fantome", "cap_ruse"],
+    ["navire_fantome", "cap_amene_tot"],
+    ["navire_fantome", "passager_de_marque"],
+    ["au_mouillage", "vous_etes_la_proie"],
+    ["deja_en_fuite", "post_attendait"],
+    ["vent_tombe", "post_fuit"],
+    ["vent_tombe", "grain_violent"],
+    ["vent_tombe", "grain_passager"],
+    ["dist_mousquet", "barre_de_recifs"]
+  ]
+}

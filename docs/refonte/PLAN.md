@@ -300,3 +300,54 @@ n'est pas une mort : il est débarqué.
 Les suppressions restantes (`reputation` → `legitimacy`, §8.6) s'exécutent à
 l'étape 6, quand la mécanique qui les porte existe — renommer une jauge sans
 le système derrière ne serait que du churn.
+
+## Refonte B2 — la rencontre : cinq combats, cinq situations
+
+La maquette B2 posait la question du tour (« répartir cinq hommes est-il une
+décision ? ») mais tous les combats commençaient pareil. Le tirage de rencontre
+répond à la seconde moitié de la question.
+
+**Deux couches, deux usages.** Le *socle* — quatorze axes en quatre catégories
+(environnement, elle, nous, la rencontre) — est tiré en entier à chaque combat
+et sert de matière au dialogue. Les *épices* — quarante traits rares, tirés
+contre un budget de deux points — servent à l'interface et au souvenir.
+L'entropie entre au tirage et nulle part ailleurs : la résolution reste sans
+aléatoire (§4.1).
+
+**Le réglage qui compte est `frequence_depart`.** Tiré uniformément, un axe à
+six réglages s'écarte de l'ordinaire cinq fois sur six ; quatorze axes ainsi et
+chaque combat est un monstre où plus rien ne se remarque. Le réglage ordinaire
+pèse donc autant que tous ses rivaux réunis, calibré pour qu'un axe s'écarte
+**une fois sur cinq et demie** (0.18). Mesuré : **4,1 éléments notables par
+rencontre**, jamais plus de six affichés, ~4 400 ouvertures distinctes — soit
+0,2 % de risque de rejouer la même ouverture dans une partie de cinq combats.
+
+**Le plafond d'affichage est un garde-fou, pas une habitude.** `notableOf()`
+classe par saillance (épice exceptionnelle > rare > fréquente > réglage qui
+change les règles > couleur pure) et coupe à six. Il ne mord que dans 9 % des
+tirages, et un test vérifie qu'il ne coupe jamais une épice : ce qui change le
+jeu atteint toujours l'écran.
+
+**Les phylactères.** 164 répliques, cinq voix, trois moments (ouverture,
+bascule, dénouement), sélectionnées par spécificité décroissante et filtrées
+par une mémoire `localStorage` des répliques déjà vues — environ **onze parties
+avant qu'une réplique revienne**. Une répétition étant pire qu'une banalité, le
+sélecteur redescend d'un cran de spécificité plutôt que de se répéter.
+
+**Ce que la maquette applique vraiment.** Une cinquantaine de tags sont câblés
+sur des modificateurs réels (postes disponibles, hommes exigés à la manœuvre,
+rupture interdite, avarie à l'approche, portée de ses canons, tours de silence,
+butin). Les autres colorent la rencontre et nourrissent le dialogue sans
+toucher aux règles — et la maquette le dit : **les traits encadrés d'or
+agissent, les autres non.**
+
+L'audit de contraste couvre maintenant la maquette B2 elle-même, et il a
+attrapé quatre vraies fautes : boutons désactivés à l'opacité 0,3 (1,93:1),
+effet de trait à 3,55:1, ligne de graine à 2,79:1, règle de bas de page à
+4,25:1. L'audit lui-même avait un défaut symétrique — il lisait les pixels
+d'un calque posé par-dessus et inventait des échecs sur du texte que personne
+ne voit ; il teste désormais l'occultation avant d'échantillonner.
+
+**Le gate reste le même et il n'est pas franchi par moi** : cinq combats joués
+par un humain, et trois réponses — avez-vous touché aux postes plus d'une fois
+par combat ? avez-vous hésité entre couler et prendre ? était-ce lisible ?
