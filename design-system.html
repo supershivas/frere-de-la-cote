@@ -1089,6 +1089,50 @@ développeur veut vérifier.</p>
   </div>
 </div>
 
+<h3>16.15 La rade — bandes de profondeur (proposition C)</h3>
+<p class="ds-caption">Trois canaux, trois informations, et jamais deux fois la
+même : <strong>la taille dit la distance</strong>, le pavillon dit la
+nationalité, la couleur du libellé dit le rôle. Le premier essai faisait porter
+la taille par la classe de coque — les caraques du fond de rade sortaient plus
+grosses que les vaisseaux du milieu, et la profondeur ne se lisait plus.</p>
+<div class="ds-stage">
+  <div class="fl-rade" style="padding-top:0">
+    <div class="fl-bande">
+      <span class="nom">Sous la côte</span>
+      <div class="fl-escadre transport"><div class="fl-coques"></div><div class="et"><b>Les galions</b> · 5</div></div>
+      <div class="fl-escadre batterie"><div class="fl-coques"></div><div class="et"><b>La batterie du fort</b> · 1</div></div>
+    </div>
+    <div class="fl-bande ici">
+      <span class="nom">La ligne</span>
+      <div class="fl-escadre escorte visee"><div class="fl-coques"></div><div class="et"><b>Le gros de la ligne</b> · 4</div></div>
+      <div class="fl-nous">
+        <div class="fl-navire"><div class="fl-pv"><i></i><i></i><i></i><i></i></div></div>
+        <div class="fl-navire"><div class="fl-pv"><i></i><i></i><i class="out"></i><i class="out"></i></div></div>
+        <div class="fl-navire coule"><div class="fl-pv"><i class="out"></i><i class="out"></i><i class="out"></i><i class="out"></i></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="fl-apercu">Une bordée coule <b>2</b> coque(s) — il en resterait 2.</div>
+</div>
+<table>
+  <tr><th>Élément</th><th>Classe</th><th>Lecture</th></tr>
+  <tr><td>Bande</td><td><code>.fl-bande</code></td><td>Une profondeur. <code>.ici</code> marque celle où l'on est</td></tr>
+  <tr><td>Escadre</td><td><code>.fl-escadre</code></td><td>Une grappe de coques, son nom, son compte</td></tr>
+  <tr><td>Visée</td><td><code>.visee</code></td><td>La cible du prochain ordre</td></tr>
+  <tr><td>Hors de portée</td><td><code>.hors</code></td><td>Non cliquable, mais toujours lisible</td></tr>
+  <tr><td>Nos coques</td><td><code>.fl-navire</code></td><td>Quatre points, pas de jauge. <code>.coule</code> = hors de combat</td></tr>
+  <tr><td>Aperçu</td><td><code>.fl-apercu</code></td><td>Ce que l'ordre fera, écrit avant le clic (§4.2)</td></tr>
+</table>
+
+<div class="rule-box">
+  <strong>Pas de flash au tir (rappel du §9).</strong> Un coup au but est de la
+  <em>fumée</em> et du bois arraché. L'anneau lumineux et les étincelles orange
+  de <code>fxExplosion</code> se lisaient comme un flash à chaque bordée : ils
+  ont été remplacés par une bouffée de poudre et des éclats couleur de coque, et
+  la fabrique <code>flash()</code> a été supprimée de <code>src/fx.js</code> —
+  une fabrique qui traîne finit par resservir.
+</div>
+
 <div class="rule-box">
   <strong>Interdictions maintenues (rappel du §9).</strong> Pas de flash à
   l'écran : <code>.screen { animation: fade }</code> rejouée à chaque

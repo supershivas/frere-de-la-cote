@@ -40,6 +40,7 @@ sur le second.
 | `src/shipPlans.js` | Plans de pont par classe de coque : salles, passages, spécialités, coûts de trajet |
 | `src/deckView.js` | Rendu en profil : le sprite généré sert de cadre au plan ; déplacement animé |
 | `src/battle.js` | **Règles de combat pures** — aucun DOM, aucun minuteur, **aucun aléatoire** |
+| `src/flotte.js` | Règles de la rade (proposition C) : une escadre, trois bandes, un ordre par tour. Mêmes contraintes de pureté |
 | `src/rencontre.js` | Tirage d'ouverture de combat + choix des phylactères. L'entropie entre ici, jamais dans la résolution |
 | `src/run.js` | État de partie : archétypes, clauses de chasse-partie, moral, légitimité |
 | `src/caribbean.js` | La Caraïbe réelle : lieux, côtes, distances |
@@ -114,6 +115,13 @@ Vanilla JS, ES modules, aucun bundler, aucune dépendance npm. Polices IM
 Fell English + Courier Prime. CSS existant (`css/variables.css`,
 `css/animations.css`, `css/components.css`, `css/patterns.css`, importés
 dans `css/style.css`) : ne pas écraser, ajouter à côté.
+
+Un écran de la refonte qui neutralise le fondu d'entrée doit s'écrire
+`.screen.mon-ecran { animation: none }` et **jamais** `.mon-ecran` : `deck.css`
+est `@importée` en tête de `style.css`, donc à spécificité égale le
+`.screen { animation: fade }` qui vient plus bas gagne. Écrites sans le
+`.screen`, ces règles n'avaient jamais pris effet et le flash à chaque clic —
+proscrit au §9 — était toujours là.
 
 Les composants **partagés** (jauges `.bar`, boutons, badges, modales) vivent
 dans `css/components.css` ; `css/style.css` ne garde que ce qui appartient à

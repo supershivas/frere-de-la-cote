@@ -568,8 +568,13 @@ export function drawGrid(canvas, grid, { color = '#c9a24b', flag = '#b23b3b', fa
   }
 
   if (damaged > 0) {
+    // Assombrir le NAVIRE, pas sa boîte. Un fillRect sur toute la toile peignait
+    // un rectangle gris translucide sur la mer : le « cadre » qu'on voyait
+    // apparaître autour des coques abîmées, et seulement autour de celles-là.
+    ctx.globalCompositeOperation = 'source-atop';
     ctx.fillStyle = `rgba(20,20,20,${0.12 * damaged})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = 'source-over';
   }
   ctx.restore();
 }

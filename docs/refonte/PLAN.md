@@ -415,3 +415,68 @@ L'audit de contraste couvre les trois états de la maquette et a trouvé six
 fautes de plus, dont deux dans des classes du **jeu** et non de la maquette :
 sur la mer animée, claire en plein jour, `.bat-turn` mesurait 3,80:1 et
 `.bat-range-step` 4,24:1. Corrigées pour les deux. Tout passe.
+
+## Deux bugs de fond, et une proposition C
+
+### Le flash à chaque tir n'avait jamais été corrigé
+
+Le §9 proscrit les flashs depuis le premier prototype, et `css/deck.css`
+portait bien `\.bat-screen { animation: none }`. **Cette règle n'a jamais pris
+effet.** `deck.css` est `@importée` en tête de `style.css` ; le
+`.screen { animation: fade 0.35s }` qui vient plus bas, à spécificité égale,
+gagnait. Chaque reconstruction d'écran — c'est-à-dire chaque clic — rejouait
+donc un fondu de tout l'écran.
+
+C'est l'audit de contraste qui l'a prouvé, par accident : sa capture de la
+maquette C sortait délavée et il annonçait 21 échecs sur 22 textes. L'écran
+était parfaitement lisible ; c'était le fondu, saisi en vol. Les quatre écrans
+concernés (`bat`, `pont`, `run`, `fl`) sont passés en `.screen.X`, et le §9
+tient enfin.
+
+Le reste du flash venait de `src/fx.js` : `fxExplosion` peignait un anneau
+lumineux et douze étincelles orange à chaque coup au but. Un coup au but est de
+la **fumée** et du bois arraché — c'est ce que montre la peinture de référence.
+Ne restent qu'une bouffée de poudre et des éclats couleur de coque, la
+gueule du canon fume au lieu d'étinceler, et la fabrique `flash()` a été
+supprimée : une fabrique qui traîne finit par resservir.
+
+### Le cadre transparent autour des coques
+
+`drawGrid` assombrissait les navires abîmés avec un `fillRect` sur **toute la
+toile**, pas sur les pixels du navire. Sur une mer transparente, cela peignait
+un rectangle gris translucide — le « cadre » qu'on voyait apparaître autour des
+coques touchées, et seulement autour de celles-là. Un
+`globalCompositeOperation = 'source-atop'` suffit.
+
+### Proposition C — la rade
+
+Direction demandée : l'échelle d'une peinture de bataille navale — beaucoup de
+coques, bien plus petites, un jeu plus nerveux.
+
+`src/flotte.js` (règles pures, testées) : on ne commande plus **un navire**
+mais **une escadre de cinq**, et un tour est **un ordre**, pas un formulaire.
+Trois bandes de profondeur, une vingtaine de coques ennemies en cinq escadres.
+Le butin est au fond de la rade, sous la batterie de côte, et **il ne compte que
+ramené au large** — c'est ce qui fait du dernier tour une décision.
+
+Trois canaux de lisibilité, sans recouvrement : **la taille dit la distance**,
+le pavillon dit la nationalité, la couleur du libellé dit le rôle. Le premier
+essai faisait porter la taille par la classe de coque et les caraques du fond
+sortaient plus grosses que les vaisseaux du milieu.
+
+Le réglage a été **mesuré, pas deviné** : trois politiques jouées sur 300 rades
+chacune. Le prudent sort dans 77 % des cas avec ~800 or en 9,4 ordres ; l'avide
+en 6,2 ordres mais ne sort que 44 % du temps. Deux façons de piller, deux
+profils de risque, six à dix ordres par rade. Les tests mesurent cette forme et
+pas seulement les invariants : désarmer la batterie fait passer l'avide à 97 %
+de survie, et un test échoue en disant que le fond de la rade n'est plus un
+pari.
+
+Une sonde a aussi révélé un trou de règle : une escadre qui avait vidé la rade
+ne pouvait plus rentrer sans deux tours vides. `Sortir` se donne désormais
+depuis n'importe quelle bande, et chaque bande franchie coûte un dernier coup
+au but — sortir de sous une batterie intacte peut tuer.
+
+Les libellés de la rade se posent à même la mer et le ciel. Un `text-shadow` n'y
+suffit pas (mesuré 1,46:1 sur l'horizon éclairé) : ils portent une plaque
+opaque, comme la bande de distance de B2, corrigée pour la même raison.

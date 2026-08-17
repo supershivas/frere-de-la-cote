@@ -162,9 +162,13 @@
 
 /* --- demo screen scaffolding (step 2/3 harness, not final combat UI) --- */
 
-.pont-screen {
-  /* No fade: the screen re-renders on every interaction, and replaying the
-     entry animation each time reads as a flash. */
+.screen.pont-screen {
+  /* Pas de fondu : l'écran se reconstruit à chaque interaction, et rejouer
+     l'animation d'entrée à chaque fois se lit comme un flash.
+     LE SÉLECTEUR DOIT ÊTRE .screen.X, PAS .X : cette feuille est @importée EN
+     TÊTE de style.css, donc un simple .pont-screen perd contre le
+     `.screen { animation: fade }` qui vient après. Écrite ainsi, la règle
+     n'avait jamais pris effet, et le flash proscrit au §9 était toujours là. */
   animation: none;
   display: flex;
   flex-direction: column;
@@ -257,8 +261,8 @@
 
 /* --- the fight (step 4) ---------------------------------------------------- */
 
-.bat-screen {
-  animation: none;               /* no fade: the screen re-renders every action */
+.screen.bat-screen {
+  animation: none;               /* voir .screen.pont-screen : .screen.X, jamais .X */
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -279,8 +283,14 @@
   /* Les bandes non courantes se lisent sur la mer animée, claire de jour :
      à .78 « Au loin » mesurait 4,24:1. */
   color: #dcd3ba;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, .85);
-  padding: 2px 0 4px;
+  /* Une plaque, pas une ombre portée : cette bande se lit sur la mer animée,
+     qui va du bleu nuit au bleu de midi. Le text-shadow tenait à 3,37:1 sur le
+     ciel clair — la même leçon que les libellés de la rade. */
+  background: rgba(16, 12, 8, .82);
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 3px 10px 4px;
 }
 .bat-range-step.now {
   color: var(--parchment, #e6dcc3);
@@ -420,8 +430,8 @@
   --ink-accept: #2b5741;   /* the green of an accepted clause */
 }
 
-.run-screen {
-  animation: none;
+.screen.run-screen {
+  animation: none;               /* voir .screen.pont-screen : .screen.X, jamais .X */
   padding: 14px clamp(10px, 3vw, 32px) 20px;
   color: var(--ink-strong);
   overflow-y: auto;
@@ -855,3 +865,142 @@
 .rc-carte .rc-bandeau { padding-top: 10px; }
 .rc-carte .rien { text-align: center; font-style: italic; font-size: 12.5px; color: rgba(230, 220, 195, .78); padding: 12px 0; }
 .rc-carte .rc-actions { display: flex; gap: 8px; justify-content: center; padding-top: 14px; }
+
+/* --- la rade (proposition C) ---------------------------------------------- */
+/* Beaucoup de coques, petites, sur trois bandes de profondeur. Rien à lire
+   dans une jauge : le nombre de coques EST la jauge. Démo : design-system §16.15. */
+
+.screen.fl-screen {
+  animation: none;               /* voir .screen.pont-screen : .screen.X, jamais .X */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 4px clamp(8px, 2vw, 20px) 8px;
+  gap: 3px;
+}
+
+/* Les trois bandes, de la plus lointaine (en haut, la côte) à la plus proche. */
+.fl-rade {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* Les trois bandes se répartissent la hauteur : entassées en bas, la rade
+     n'a plus de profondeur, ce qui est tout ce que cet écran raconte. Le haut
+     est réservé au ciel — une bande posée au-dessus de l'horizon peint par le
+     canvas se lit comme une flotte en vol. */
+  justify-content: space-around;
+  padding-top: 13vh;
+}
+.fl-bande {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* Serré : une escadre est une grappe, pas une rangée d'icônes espacées. */
+  gap: clamp(10px, 3vw, 46px);
+  flex-wrap: wrap;
+  padding: 4px 0 6px;
+  min-height: 62px;
+  border-bottom: 1px solid rgba(150, 200, 215, .22);
+  transition: background .2s;
+}
+.fl-bande.ici { background: linear-gradient(180deg, transparent, rgba(201, 162, 75, .1)); border-bottom-color: rgba(201, 162, 75, .55); }
+.fl-bande > .nom {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  font-family: "Courier Prime", monospace;
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  /* Une plaque, pas une ombre portée. Ces libellés se posent sur la mer animée
+     ET sur le ciel selon la bande : mesurés à 1,46:1 sur l'horizon éclairé, où
+     un text-shadow ne peut rien. */
+  color: #ded5bd;
+  background: rgba(16, 12, 8, .82);
+  padding: 1px 6px;
+}
+.fl-bande.ici > .nom { color: #f3daa2; background: rgba(46, 34, 16, .88); }
+
+/* Une escadre : une grappe de coques, son nom, son compte. */
+.fl-escadre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 6px 3px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.fl-escadre:hover { border-color: rgba(201, 162, 75, .55); }
+.fl-escadre.visee { border-color: var(--gold, #c9a24b); background: rgba(201, 162, 75, .12); }
+.fl-escadre.hors { cursor: default; opacity: .72; }
+.fl-escadre.hors:hover { border-color: transparent; }
+.fl-coques { display: flex; align-items: flex-end; gap: 1px; min-height: 26px; }
+.fl-coques canvas { image-rendering: pixelated; display: block; }
+.fl-escadre > .et {
+  font-family: "Courier Prime", monospace;
+  font-size: 10px;
+  letter-spacing: .06em;
+  color: #ded5bd;
+  background: rgba(16, 12, 8, .84);
+  padding: 1px 7px;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+.fl-escadre.transport > .et { color: #f0d69a; }
+.fl-escadre.batterie > .et { color: #f0907e; }
+.fl-escadre > .et b { font-weight: 400; font-family: "IM Fell English", Georgia, serif; font-size: 12.5px; }
+
+/* Notre escadre : les mêmes coques, mais on voit leur état. */
+.fl-nous { display: flex; align-items: flex-end; gap: 3px; }
+.fl-navire { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.fl-navire.coule { opacity: .3; filter: grayscale(1); }
+.fl-pv { display: flex; gap: 2px; }
+.fl-pv i { width: 5px; height: 5px; background: #6fae92; display: block; }
+.fl-pv i.out { background: rgba(240, 232, 210, .22); }
+
+/* Le bandeau d'ordre : une ligne, un clic. */
+.fl-ordres { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; padding-top: 4px; }
+.fl-apercu {
+  text-align: center;
+  font-size: 13px;
+  font-style: italic;
+  color: #e2d9c1;
+  background: rgba(16, 12, 8, .82);
+  min-height: 21px;
+  padding: 3px 10px;
+  margin: 3px auto 0;
+  max-width: 1100px;
+}
+.fl-apercu b { font-style: normal; color: #f3daa2; font-weight: 400; }
+
+.fl-etat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: center;
+  font-family: "Courier Prime", monospace;
+  font-size: 11px;
+  color: #ded5bd;
+  background: rgba(16, 12, 8, .82);
+  padding: 3px 10px;
+  margin: 0 auto;
+  max-width: 1100px;
+  flex-wrap: wrap;
+}
+.fl-etat b { color: #f3daa2; font-weight: 400; }
+.fl-etat .danger { color: #f0907e; }
+
+.fl-journal {
+  font-family: "Courier Prime", monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  text-align: center;
+  color: #d8cfb6;
+  background: rgba(16, 12, 8, .78);
+  padding: 2px 8px;
+  margin: 3px auto 0;
+  max-width: 1100px;
+  min-height: 32px;
+}
