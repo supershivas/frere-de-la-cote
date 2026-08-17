@@ -5,6 +5,7 @@ import './data.test.js';
 import './shipPlans.test.js';
 import './battle.test.js';
 import './rencontre.test.js';
+import './flotte.test.js';
 
 console.log('\n  Frères de la Côte — data & integrity checks');
 await run();

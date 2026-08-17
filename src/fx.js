@@ -116,13 +116,8 @@ function ring(x, y, color, life, maxR) {
   });
 }
 
-function flash(x, y, r, color, life) {
-  particles.push({
-    x, y, r, life, max: life, color,
-    update() {},
-    draw(c) { const a = Math.max(0, this.life / this.max); c.globalAlpha = a; const g = c.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r); g.addColorStop(0, this.color); g.addColorStop(1, 'transparent'); c.fillStyle = g; c.beginPath(); c.arc(this.x, this.y, this.r, 0, 7); c.fill(); c.globalAlpha = 1; },
-  });
-}
+// (Il y avait ici une fabrique `flash` — un halo radial lumineux. Supprimée :
+//  le §9 proscrit les flashs, et une fabrique qui traîne finit par resservir.)
 
 // ---- local ship jolts (recoil / impact) via the Web Animations API ----
 function cardEl(iid) {
@@ -168,15 +163,30 @@ const AMMO_COLORS = {
 };
 
 export function fxExplosion(x, y, { scale = 1, color = '#ff9a3c' } = {}) {
-  // No bright core glow — just an expanding ring, directional sparks and smoke,
-  // so the hit reads as an impact without flashing the screen.
-  ring(x, y, color, 0.4, 44 * scale);
-  for (let i = 0; i < 12 * scale; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const sp = rand(70, 230) * scale;
-    spark(x, y, Math.cos(a) * sp, Math.sin(a) * sp, color, rand(0.3, 0.55), rand(2, 4));
+  // Un coup au but, c'est de la FUMÉE et du bois arraché — pas un feu
+  // d'artifice. L'anneau lumineux et les étincelles orange qui vivaient ici se
+  // lisaient comme un flash à chaque tir, ce que le §9 proscrit depuis le
+  // premier prototype. Ne restent qu'un bouffée de poudre et des éclats sombres.
+  for (let i = 0; i < 7 * scale; i++) {
+    smoke(x + rand(-9, 9), y + rand(-9, 9), rand(-26, 26), rand(-34, -8),
+      rand(0.7, 1.4), rand(5, 13), '186,180,166');
   }
-  for (let i = 0; i < 4 * scale; i++) smoke(x + rand(-8, 8), y + rand(-8, 8), rand(-20, 20), rand(-30, -10), rand(0.6, 1.1), rand(6, 12));
+  for (let i = 0; i < 5 * scale; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = rand(50, 150) * scale;
+    // Bois arraché : couleur de coque, jamais de braise.
+    spark(x, y, Math.cos(a) * sp, Math.sin(a) * sp, '#4a3423', rand(0.25, 0.5), rand(1, 3));
+  }
+}
+
+// Une bordée qui part : la fumée du bord, dérivant sous le vent. C'est le seul
+// signal visuel d'un tir — celui de la peinture, pas celui d'un jeu de tir.
+export function fxBroadside(x, y, dir = 1, { scale = 1 } = {}) {
+  for (let i = 0; i < 9 * scale; i++) {
+    smoke(x + rand(-14, 14) * scale, y + rand(-6, 6),
+      dir * rand(20, 90) * scale, rand(-30, -6),
+      rand(0.9, 1.8), rand(5, 12) * scale, '212,206,190');
+  }
 }
 
 // Fire a cannon shot from attacker to target. Fire-and-forget visual.
@@ -198,7 +208,8 @@ export function fxCannon(fromIid, toIid, { ammo = 'classic', hit = true, damage 
 
   // Muzzle smoke + sparks (no bright flash), plus a recoil on the firing ship.
   for (let i = 0; i < 5; i++) smoke(muzzleX, muzzleY, Math.cos(dir) * rand(20, 60), Math.sin(dir) * rand(20, 60) - 10, rand(0.4, 0.8), rand(4, 8));
-  for (let i = 0; i < 6; i++) spark(muzzleX, muzzleY, Math.cos(dir + rand(-0.4, 0.4)) * rand(120, 240), Math.sin(dir + rand(-0.4, 0.4)) * rand(120, 240), color, rand(0.15, 0.3), 2);
+  // Pas d'étincelles à la gueule du canon : de la fumée, plus dense et plus basse.
+  for (let i = 0; i < 4; i++) smoke(muzzleX, muzzleY, Math.cos(dir) * rand(40, 110), Math.sin(dir) * rand(40, 110) - 14, rand(0.5, 1.0), rand(4, 9), '212,206,190');
   // Defer recoil so it runs after the combat re-render replaces the card.
   const awayX = (Math.sign(from.x - to.x) || -1) * 8;
   setTimeout(() => fxRecoil(fromIid, awayX), 0);

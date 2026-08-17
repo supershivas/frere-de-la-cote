@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<base href="../../../">
+<title>C — la rade (maquette jouable)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8F%B4%E2%80%8D%E2%98%A0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<canvas id="ocean"></canvas>
+<div id="parchment"></div>
+<main id="app"></main>
+<div id="toast-container"></div>
+
+<script type="module">
+/* ============================================================
+   C — LA RADE. L'échelle de la peinture.
+   Beaucoup de coques, petites, sur trois bandes de profondeur.
+   On ne commande plus un navire : on commande une escadre, et un
+   tour est UN ordre. Le butin est au fond, sous la batterie.
+
+   Règles pures dans src/flotte.js — aucun aléatoire dans la
+   résolution (§4.1), l'entropie compose la rade et s'arrête là.
+   Interface : les feuilles et les modules du jeu, comme B2.
+   ============================================================ */
+
+import { el, mount, modal } from './src/ui.js';
+import { loadData, DB } from './src/data.js';
+import { loadLocales } from './src/i18n.js';
+import { startOcean, randomOceanScene } from './src/ocean.js';
+import { initFx, fxBroadside, fxExplosion } from './src/fx.js';
+import { getGeneratedShip, drawGrid } from './src/sprites.js';
+import { buildSpriteSpec, state } from './src/state.js';
+import {
+  LARGE, LIGNE, TERRE, BANDES, PV_NAVIRE,
+  nouvelleRade, genererRade, ordonner, apercu, riposte, coupsRecus,
+  coutDeRetraite, aFlot, canons, vivantes, butin, aPortee, bordAbord,
+} from './src/flotte.js';
+
+await Promise.all([loadData(), loadLocales()]);
+startOcean(document.getElementById('ocean'));
+initFx();
+
+// TROIS CANAUX, TROIS INFORMATIONS. C'est la règle de lisibilité de C :
+//   la TAILLE dit la distance (et rien d'autre),
+//   le PAVILLON dit la nationalité,
+//   la COULEUR DU LIBELLÉ dit le rôle.
+// Le premier essai faisait porter la taille par la classe de coque : les
+// caraques du fond de rade sortaient plus grosses que les vaisseaux du milieu
+// et la profondeur ne se lisait plus du tout.
+// Tout est petit, comme dans la peinture : la plus grosse coque de l'écran fait
+// cinquante pixels. Un navire vu de près n'est pas un portrait, c'est une
+// silhouette de plus dans la rade.
+const CLASSE_PAR_BANDE = { [TERRE]: 6, [LIGNE]: 5, [LARGE]: 3 };
+const ECHELLE = { [TERRE]: 1, [LIGNE]: 1, [LARGE]: 1 };
+const PAVILLON = { escorte: 'espagnole', transport: 'hollandaise', batterie: 'marine_anglaise' };
+
+const specDe = (role, bande, id) => buildSpriteSpec(
+  { hullClass: CLASSE_PAR_BANDE[bande], hullShape: 'auto', sailsPerMast: 2, jibs: 1, wear: 1 },
+  PAVILLON[role], 100 + id * 37);
+// Notre escadre change de bande : sa silhouette suit, sinon nous seuls ne
+// reculerions pas dans la profondeur.
+const specNous = (bande) => buildSpriteSpec(
+  { hullClass: CLASSE_PAR_BANDE[bande], hullShape: 'auto', sailsPerMast: 2, jibs: 1, wear: 0 },
+  'free_pirates', 42);
+
+let R, visee = null, dernierJournal = 0;
+
+function neuf() {
+  const seed = (Math.random() * 0xffffffff) >>> 0;
+  let s = seed >>> 0 || 1;
+  const rng = () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  randomOceanScene(['day', 'dawn', 'sunset', 'cloudy'][seed % 4]);
+  R = nouvelleRade(genererRade(rng));
+  R.seed = seed;
+  visee = null;
+  dernierJournal = 0;
+}
+
+/* --- rendu ------------------------------------------------------------- */
+
+function coque(spec, echelle, { mort = false, face = -1 } = {}) {
+  const gen = getGeneratedShip(spec);
+  const cv = el('canvas');
+  cv.width = gen.W * echelle; cv.height = gen.H * echelle;
+  drawGrid(cv, gen.grid, { color: gen.palette, flag: '', facing: face, damaged: mort ? 1 : 0.2 });
+  return cv;
+}
+
+function escadre(e) {
+  const portee = aPortee(R, e), colle = bordAbord(R, e);
+  const box = el('div', {
+    class: `fl-escadre ${e.role}${visee === e.id ? ' visee' : ''}${portee ? '' : ' hors'}`,
+    attrs: { 'data-esc': e.id, title: portee ? '' : 'Hors de portée depuis cette bande' },
+  });
+  const grappe = el('div', { class: 'fl-coques' });
+  for (let i = 0; i < e.n; i++) grappe.appendChild(coque(specDe(e.role, e.bande, e.id + i), ECHELLE[e.bande]));
+  box.appendChild(grappe);
+  box.appendChild(el('div', { class: 'et', html: `<b>${e.nom}</b> · ${e.n}` }));
+  if (portee) box.addEventListener('click', () => { visee = visee === e.id ? null : e.id; render(); });
+  return box;
+}
+
+function notreEscadre() {
+  const wrap = el('div', { class: 'fl-nous' });
+  for (const n of R.nous) {
+    const pips = el('div', { class: 'fl-pv' });
+    for (let i = 0; i < PV_NAVIRE; i++) pips.appendChild(el('i', { class: i < n.pv ? '' : 'out' }));
+    wrap.appendChild(el('div', { class: `fl-navire${n.pv <= 0 ? ' coule' : ''}` }, [
+      coque(specNous(R.bande), ECHELLE[R.bande], { mort: n.pv <= 0, face: 1 }), pips,
+    ]));
+  }
+  return wrap;
+}
+
+function bande(b) {
+  const row = el('div', { class: `fl-bande${R.bande === b ? ' ici' : ''}`, attrs: { 'data-bande': b } });
+  row.appendChild(el('span', { class: 'nom', text: BANDES[b] }));
+  for (const e of vivantes(R).filter((x) => x.bande === b)) row.appendChild(escadre(e));
+  if (R.bande === b) row.appendChild(notreEscadre());
+  return row;
+}
+
+// Ce que l'ordre ferait, écrit avant de le donner. C'est tout le contrat de
+// lisibilité de C : un clic, une conséquence connue.
+function texteApercu() {
+  const e = R.escadres.find((x) => x.id === visee);
+  if (!e) return 'Choisissez une escadre — ou serrez, rompez, sortez.';
+  const b = apercu(R, 'bordee', e.id), a = apercu(R, 'aborder', e.id);
+  const bits = [];
+  if (b) bits.push(b.coules > 0
+    ? `Une bordée coule <b>${b.coules}</b> coque(s) — il en resterait ${b.restera}.`
+    : `Une bordée l'entame sans rien couler (${b.degats} coups sur ${e.pvRestants}).`);
+  if (a) bits.push(a.prises > 0
+    ? `L'aborder prend <b>${a.prises}</b> navire(s) pour <b>${a.valeur}</b> 💰, et coûte ${a.blesses} coque(s) entamée(s).`
+    : `Trop peu de monde pour l'aborder.`);
+  else if (e.role === 'batterie') bits.push('On n\'aborde pas une batterie de côte.');
+  else if (!bordAbord(R, e)) bits.push('Il faudrait être sur sa bande pour l\'aborder.');
+  return bits.join(' ');
+}
+
+function ordres() {
+  const box = el('div', { class: 'fl-ordres' });
+  const mk = (label, why, fn, cls = '') => {
+    const b = el('button', { class: `bat-btn ${cls}${why ? ' off' : ''}` }, [
+      el('span', { text: label }), why ? el('span', { class: 'why', text: why }) : null,
+    ]);
+    if (why) b.disabled = true; else b.addEventListener('click', fn);
+    box.appendChild(b);
+  };
+  const cible = R.escadres.find((x) => x.id === visee);
+  const peutBorder = cible && aPortee(R, cible);
+  const peutAborder = cible && apercu(R, 'aborder', cible.id)?.prises > 0;
+
+  mk('⚔ Bordée', peutBorder ? null : (cible ? 'Hors de portée' : 'Visez une escadre'),
+    () => jouer('bordee', visee), 'primary');
+  mk('🪝 Aborder', peutAborder ? null : (cible ? 'Pas sur cette bande' : 'Visez une escadre'),
+    () => jouer('aborder', visee), 'board');
+  mk('↑ Serrer', R.bande < TERRE ? null : 'Au fond de la rade', () => jouer('serrer'));
+  mk('↓ Rompre', R.bande > LARGE ? null : 'Déjà au large', () => jouer('rompre'));
+  const cout = coutDeRetraite(R);
+  mk('⚓ Sortir', null, () => jouer('retirer'));
+  if (cout) box.lastChild.appendChild(el('span', { class: 'why', text: `${cout} coup(s) en sortant` }));
+  return box;
+}
+
+function render() {
+  state.screen = 'bataille';
+  const rip = riposte(R);
+  mount(el('div', { class: 'screen fl-screen' }, [
+    el('div', { class: 'fl-etat' }, [
+      el('span', { html: `Tour <b>${R.tour}</b>` }),
+      el('span', { html: `${aFlot(R).length} coque(s) à flot · <b>${canons(R)}</b> canons` }),
+      el('span', { html: `Butin embarqué <b>${butin(R)}</b> 💰` }),
+      rip.length
+        ? el('span', { class: 'danger', text: `⚠ ${rip.map((r) => r.nom).join(', ')} — ${coupsRecus(R)} coup(s) au prochain tour` })
+        : el('span', { text: 'Rien ne nous tire dessus ici.' }),
+    ]),
+    el('div', { class: 'fl-rade' }, [bande(TERRE), bande(LIGNE), bande(LARGE)]),
+    el('div', { class: 'fl-apercu', html: texteApercu() }),
+    ordres(),
+    el('div', { class: 'fl-journal', html: R.journal.slice(-2).join('<br>') || '&nbsp;' }),
+  ]));
+  if (R.fini) fin();
+}
+
+/* --- jouer un ordre : la règle décide, l'écran montre ------------------- */
+function jouer(ordre, cibleId) {
+  const cible = R.escadres.find((x) => x.id === cibleId);
+  const avantBande = R.bande;
+  // La fumée part AVANT le rendu : elle est peinte sur la couche d'effets, qui
+  // survit à la reconstruction de l'écran.
+  if (ordre === 'bordee') fumeeSur('.fl-nous', 1);
+  if (!ordonner(R, ordre, cibleId)) return;
+  if (ordre === 'bordee' && cible) fumeeSur(`[data-esc="${cible.id}"]`, 0, true);
+  if (coupsRecus(R) || R.bande !== avantBande) fumeeSur('.fl-nous', 0, true);
+  dernierJournal = R.journal.length;
+  render();
+}
+
+// Une bordée, c'est de la fumée qui dérive — pas un éclair. Le §9 proscrit les
+// flashs, et la peinture de référence ne montre que de la fumée.
+function fumeeSur(selecteur, dir, impact = false) {
+  const n = document.querySelector(selecteur);
+  if (!n) return;
+  const r = n.getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + r.height * 0.5;
+  if (impact) fxExplosion(x, y, { scale: 1.2 });
+  else fxBroadside(x, y, dir || 1, { scale: 1.4 });
+}
+
+/* --- fins et outils ---------------------------------------------------- */
+function fin() {
+  if (document.querySelector('.bat-outcome')) return;
+  const gagne = R.fini === 'retire';
+  document.body.appendChild(el('div', { class: `bat-outcome ${gagne ? 'won' : 'lost'}` }, [
+    el('h2', { text: gagne ? 'Sortis de la rade' : 'Perdus dans la passe' }),
+    el('p', { text: gagne
+      ? `${butin(R)} 💰 · ${R.pris.length} prise(s) · ${aFlot(R).length} coque(s) ramenée(s) en ${R.tour} tours.`
+      : `${R.pris.length} prise(s) au fond avec nous. Le butin ne compte que ramené.` }),
+    !gagne && R.pris.length ? el('p', { class: 'warn', text: `${butin(R)} 💰 perdus.` }) : null,
+    el('div', { class: 'bat-outcome-btns' }, [
+      el('button', { class: 'btn-level-1', text: '↺ Une autre rade',
+        on: { click: () => { document.querySelector('.bat-outcome').remove(); neuf(); render(); } } }),
+    ]),
+  ]));
+}
+
+document.body.appendChild(el('button', {
+  class: 'rc-gear', text: '⚙', attrs: { title: 'Outils de maquette' },
+  on: { click: showDev },
+}));
+
+function showDev() {
+  const box = el('div', { class: 'rc-carte' }, [
+    el('h2', { text: 'Maquette C — la rade' }),
+    el('div', { class: 'rc-dev' }, [
+      el('p', { text: "Proposition C : on commande une escadre, pas un navire. Un tour est un ordre. Le butin est au fond de la rade, sous la batterie — et il ne compte que ramené au large." }),
+      el('h5', { text: 'Ce tirage' }),
+      el('p', { html: `graine <span class="val">${R.seed}</span> · bande <span class="val">${BANDES[R.bande]}</span> · tour <span class="val">${R.tour}</span>` }),
+      el('h5', { text: 'Escadres' }),
+      el('p', { html: R.escadres.map((e) =>
+        `${e.nom} — ${e.role}, bande ${e.bande}, ${e.n} coque(s), ${e.pvRestants} pv, ${e.valeur} 💰/prise`).join('<br>') }),
+      el('h5', { text: 'Réglages mesurés' }),
+      el('p', { text: 'Sur 400 rades jouées par trois politiques : le prudent sort dans 75 % des cas avec ~1040 or en 9,6 tours ; l\'avide en 6,2 tours mais ne sort que 44 % du temps ; celui qui fait taire la batterie d\'abord survit plus et gagne moins. Le fond de la rade est un pari, pas une étape.' }),
+    ]),
+    el('div', { class: 'rc-actions' }, [
+      el('button', { class: 'btn-level-4', text: 'Fermer', on: { click: () => close() } }),
+    ]),
+  ]);
+  const { close } = modal(box);
+}
+
+neuf();
+render();
+</script>
+</body>
+</html>
