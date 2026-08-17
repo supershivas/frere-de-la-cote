@@ -103,6 +103,12 @@
     table, pre, .rule-box { page-break-inside: avoid; }
   }
 </style>
+<!-- Les feuilles réelles du jeu. deck.css porte la refonte ; components.css
+     porte les composants partagés (.bar, badges, boutons) que la refonte
+     réutilise au lieu d'en refaire. Aucune ne cible d'élément générique, donc
+     aucune ne touche à la mise en page de ce document. -->
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/deck.css">
 <style>
   /* Staging for the live demos only — never shipped to the game. */
@@ -987,6 +993,101 @@ libellés s'éventent par lieu pour que la grappe autour d'Hispaniola reste lisi
   <tr><td>Épave / événement</td><td><code>.epave</code> <code>.evenement</code></td><td>Issue incertaine</td></tr>
   <tr><td>Hors d'atteinte</td><td>sans <code>.open</code></td><td>Nommé au survol seulement, pour ne pas saturer la carte</td></tr>
 </table>
+
+<h3>16.10 Rencontre — bandeau, météo et traits</h3>
+<p class="ds-caption">Chaque combat est tiré avant son premier tour. Le bandeau
+dit le temps qu'il fait (<code>data/weather.json</code>, la météo est restée en
+jeu) puis ce qui s'écarte de l'ordinaire. <strong>La bordure d'or est une
+promesse mécanique</strong> : le trait change une règle. Sans elle, il colore la
+rencontre et nourrit le dialogue. Six traits au maximum — au-delà, plus rien ne
+se remarque.</p>
+<div class="ds-stage">
+  <div class="rc-bandeau">
+    <span class="rc-meteo"><span class="ico">💨</span><span class="nom">Vent fort</span></span>
+    <div class="rc-trait actif"><span class="n">État de la mer — Grosse mer</span><span class="e">Le canon porte mal de loin ; les pompes réclament un homme.</span></div>
+    <div class="rc-trait"><span class="n">Courant — Contraire</span></div>
+    <div class="rc-trait actif rare"><span class="n">Officier manque à son bord</span><span class="e">Son poste rend moitié moins.</span></div>
+    <div class="rc-trait actif exceptionnel"><span class="n">Navire fantôme</span><span class="e">Personne à la barre, cales pleines.</span></div>
+  </div>
+</div>
+<table>
+  <tr><th>Élément</th><th>Classe</th><th>Lecture</th></tr>
+  <tr><td>Météo</td><td><code>.rc-meteo</code></td><td>Le temps du combat, avec ses modificateurs au survol</td></tr>
+  <tr><td>Trait de couleur</td><td><code>.rc-trait</code></td><td>Change la rencontre et le dialogue, pas les règles</td></tr>
+  <tr><td>Trait actif</td><td><code>.actif</code></td><td>Bordure d'or : ceci change une règle du combat</td></tr>
+  <tr><td>Rare / exceptionnel</td><td><code>.rare</code> <code>.exceptionnel</code></td><td>Degré de rareté du tirage, lu à la couleur du nom</td></tr>
+</table>
+
+<h3>16.11 Rencontre — phylactère d'équipage</h3>
+<p class="ds-caption">Trois moments par combat : ouverture, bascule, dénouement.
+La réplique la plus spécifique gagne, et une mémoire persistante empêche de
+retomber sur la même avant une dizaine de parties. Une répétition est pire
+qu'une banalité : le sélecteur redescend d'un cran plutôt que de se répéter.</p>
+<div class="ds-stage">
+  <div class="rc-bulle">
+    <div class="qui">Coudray</div>
+    <div class="dit">« La terre est sous notre vent. Reculer, c'est s'échouer. »</div>
+  </div>
+</div>
+
+<h3>16.12 Rencontre — répartition d'équipage (B2)</h3>
+<p class="ds-caption">Le choix de chaque tour dans la proposition B2 : cinq
+hommes, trois postes, et chaque poste dit en clair ce qu'il produit au nombre
+où il est. Un bouton éteint garde sa couleur mesurée — l'opacité mettait son
+libellé à 1,93:1.</p>
+<div class="ds-stage">
+  <div class="rc-postes">
+    <h4>Répartition de l'équipage <small>5 / 5 postes tenus · les hommes ne peuvent pas être à deux endroits</small></h4>
+    <div class="rc-poste-rangee">
+      <div class="rc-poste plein">
+        <div class="t">Aux canons</div><div class="v">3</div>
+        <div class="fx">Bordée ×1.00</div>
+        <div class="rc-poste-btns"><button>−</button><button disabled>+</button></div>
+      </div>
+      <div class="rc-poste">
+        <div class="t">À la manœuvre</div><div class="v">1</div>
+        <div class="fx warn">Il en faut 2 pour manœuvrer</div>
+        <div class="rc-poste-btns"><button>−</button><button disabled>+</button></div>
+      </div>
+      <div class="rc-poste plein">
+        <div class="t">Aux pompes</div><div class="v">1</div>
+        <div class="fx warn">Ralentit la voie d'eau</div>
+        <div class="rc-poste-btns"><button>−</button><button disabled>+</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>16.13 Rencontre — jauges de B2</h3>
+<p class="ds-caption">Deux jauges seulement, posées sur la <code>.bar</code>
+existante : la coque pour la couler, l'équipage pour la prendre. Voilée, la
+jauge ennemie ne ment pas — elle dit qu'on ne sait pas (nuit, brume).</p>
+<div class="ds-stage">
+  <div class="rc-jauges">
+    <div class="rc-jauge"><span class="lb">Coque</span>
+      <div class="bar bar-hp"><div class="bar-fill" style="width:62%"></div><span class="bar-label"><span class="bar-num">62</span></span></div></div>
+    <div class="rc-jauge voilee"><span class="lb">Équipage</span>
+      <div class="bar bar-shield"><div class="bar-fill"></div><span class="bar-label"><span class="bar-num">— / —</span></span></div></div>
+  </div>
+</div>
+
+<h3>16.14 Outils de maquette — la roue crantée</h3>
+<p class="ds-caption">Rien qui serve au développement ne vit dans l'écran de
+jeu : graine de tirage, liste des tags, règles effectives, tout est derrière un
+seul bouton. L'écran montre ce que le joueur doit lire, pas ce que le
+développeur veut vérifier.</p>
+<div class="ds-stage">
+  <button class="rc-gear" style="position:static">⚙</button>
+  <div class="rc-carte" style="margin-top:10px;max-width:none">
+    <h2>Maquette B2</h2>
+    <div class="rc-dev">
+      <h5>Ce tirage</h5>
+      <p>graine <span class="val">840796493</span> · météo <span class="val">vent_fort (Vent fort)</span> · pavillon montré <span class="val">hollandaise</span></p>
+      <h5>Tags tirés (16, dont 4 montrés)</h5>
+      <ul><li class="actif">grosse_mer</li><li>courant_contraire</li><li class="actif">pav_hollandais</li><li>eq_mixte</li><li class="actif">officier_manque</li></ul>
+    </div>
+  </div>
+</div>
 
 <div class="rule-box">
   <strong>Interdictions maintenues (rappel du §9).</strong> Pas de flash à

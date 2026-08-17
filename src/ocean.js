@@ -27,8 +27,12 @@ const WEATHER_HINTS = {
   calme: 'day', brise: 'day', vent_fort: 'cloudy', brume: 'cloudy', tempete: 'storm', grain: 'storm',
 };
 
+// `weatherHint` accepts either a data/weather.json id (mapped above) or one of
+// the scene keys directly, so a caller that already knows the sky it wants —
+// the encounter draw picks night, dawn or storm from the hour and the sea —
+// can ask for it instead of hoping the mechanical weather implies it.
 export function randomOceanScene(weatherHint) {
-  const hinted = weatherHint && WEATHER_HINTS[weatherHint];
+  const hinted = weatherHint && (WEATHERS[weatherHint] ? weatherHint : WEATHER_HINTS[weatherHint]);
   const weather = hinted || WEATHER_KEYS[Math.floor(Math.random() * WEATHER_KEYS.length)];
   let decor = [];
   if (Math.random() > 0.18) { // sometimes an empty seascape

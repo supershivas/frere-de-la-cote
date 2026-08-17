@@ -351,3 +351,67 @@ ne voit ; il teste désormais l'occultation avant d'échantillonner.
 **Le gate reste le même et il n'est pas franchi par moi** : cinq combats joués
 par un humain, et trois réponses — avez-vous touché aux postes plus d'une fois
 par combat ? avez-vous hésité entre couler et prendre ? était-ce lisible ?
+
+## B2 rebâtie sur l'interface du jeu
+
+Retour de test : « d'une grande laideur, illisible… pourquoi toujours le même
+pavillon ? pourquoi ne pas réutiliser les modales et autres éléments UI déjà
+utilisés avant ? ». Les trois reproches étaient fondés et se ramenaient à un
+seul : **la maquette avait réinventé une interface à côté de celle qui
+existe**, avec son propre `<style>`, ses propres boutons, sa propre mer.
+
+La maquette charge désormais `css/style.css` — donc toutes les feuilles du jeu
+— grâce à une `<base href="../../../">` qui fait résoudre `css/`, `src/`,
+`data/` et `locales/` exactement comme depuis `index.html`. Elle n'a plus une
+seule ligne de CSS à elle.
+
+| Ce qui était refait | Ce qui est réutilisé |
+|---|---|
+| Un dégradé bleu figé | `src/ocean.js` — mer animée, ciel, pluie, décor |
+| Deux `<div>` empilées | `.ship-stage.in-combat` + `.ship-waterline-clip` : les navires tanguent, la flottaison ne bouge pas |
+| Des barres maison | `.bar` de `components.css`, via `bar()` de `src/ui.js` |
+| Une `.over` en position fixe | `modal()` de `src/ui.js` et `.bat-outcome` |
+| Des boutons maison | `.bat-btn`, `.bat-ammo-btn`, `.btn-level-1/-4` |
+| Aucun effet | `src/fx.js` — impacts, éclats, nombres flottants |
+| Aucune météo | `data/weather.json`, dont les modificateurs entrent dans la règle |
+
+**La météo est branchée aux deux bouts.** `weatherFor()` traduit le tirage en
+un temps de `data/weather.json` (six temps rencontrés en test), et
+`oceanSceneFor()` en un ciel (les six existent aussi). L'heure prime sur le
+temps pour la nuit : ne pas la voir est une règle de ce combat-là, et le ciel
+est l'indice. Les `mods` du temps entrent dans la puissance de bordée — la
+météo n'est pas un décor.
+
+**Le pavillon.** L'axe existait dans les données mais le sprite ennemi était
+peint en dur aux couleurs espagnoles. `flagFor()` rend la faction montrée et la
+faction réelle, et `buildSpriteSpec()` — la fonction du jeu — peint le
+pavillon. Sous faux pavillon les deux diffèrent, et le nom sur le tableau
+arrière suit la nationalité **réelle** : c'est la seule chose à bord qu'on ne
+repeint pas en une nuit.
+
+Deux réglages de tirage ont suivi la mesure :
+
+- `pavillon` reçoit sa propre `frequence_depart` (0.55). À la fréquence commune,
+  l'espagnol sortait dans 81 % des combats — c'est précisément la plainte. Il
+  en fait 47 %, les trois marines ~15 % chacune, et la drisse nue 10 %.
+- Compter ces pavillons a révélé un bug que l'intégrité ne voyait pas :
+  `PAVILLONS[pav] ?? 'espagnole'` confondait « aucun pavillon » (`null`,
+  voulu) avec « réglage inconnu », et repeignait des couleurs espagnoles sur
+  une drisse nue. Un test l'interdit désormais.
+
+**Tout ce qui sert au développement vit derrière une roue crantée** : graine,
+tags tirés, règles effectives, quels tags sont câblés. L'écran de jeu ne montre
+plus que ce que le joueur doit lire.
+
+**Une collision de CSS réconciliée.** Documenter les nouveaux composants dans
+`design-system.html` §16.10-16.14 a demandé d'y charger `components.css`, ce
+qui a fait sortir la jauge noire et vide : la feuille portait un second
+`.bar-hp`, propre à la documentation, utilisé par rien, qui masquait celui du
+jeu. Les règles `.bar` réelles vivent maintenant dans `components.css` — c'est
+un composant partagé, pas un détail de `style.css` — et il n'en existe plus
+qu'une définition.
+
+L'audit de contraste couvre les trois états de la maquette et a trouvé six
+fautes de plus, dont deux dans des classes du **jeu** et non de la maquette :
+sur la mer animée, claire en plein jour, `.bat-turn` mesurait 3,80:1 et
+`.bat-range-step` 4,24:1. Corrigées pour les deux. Tout passe.

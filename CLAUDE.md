@@ -10,9 +10,11 @@ de toucher au combat, à la carte, à l'équipage ou aux navires, lire :
 - `docs/refonte/PLAN.md` — mapping du brief vers les fichiers réels du
   dépôt (les noms de fichiers du brief, ex. `game.html`/`architecture.html`,
   sont obsolètes ; le dépôt utilise `index.html`/`design-system.html`/`histoire.html`/`src/*.js`).
-- `docs/refonte/mockups/` — maquettes visuelles jetables (vue de profil des
-  navires, rôle d'équipage). Références de présentation, pas du code à
-  porter tel quel.
+- `docs/refonte/mockups/` — maquettes jouables. Elles portent une
+  `<base href="../../../">` et chargent `css/style.css` et `src/*.js` : une
+  maquette **utilise l'interface du jeu**, elle n'en réinvente pas une à côté.
+  Si un composant manque, l'ajouter à `css/deck.css` et au §16 du
+  `design-system.html`, jamais dans un `<style>` de maquette.
 
 ## Déviations actées par rapport au brief
 
@@ -112,3 +114,9 @@ Vanilla JS, ES modules, aucun bundler, aucune dépendance npm. Polices IM
 Fell English + Courier Prime. CSS existant (`css/variables.css`,
 `css/animations.css`, `css/components.css`, `css/patterns.css`, importés
 dans `css/style.css`) : ne pas écraser, ajouter à côté.
+
+Les composants **partagés** (jauges `.bar`, boutons, badges, modales) vivent
+dans `css/components.css` ; `css/style.css` ne garde que ce qui appartient à
+un écran. Deux définitions d'une même classe dans deux feuilles est un bug
+qui ne se voit que le jour où l'une est chargée sans l'autre — c'est ce qui
+est arrivé à `.bar-hp`.

@@ -313,19 +313,8 @@ h1, h2, h3, h4 { margin: 0 0 0.5em; letter-spacing: 0.04em; }
 .ship-name { font-size: 12px; font-weight: 700; margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ship-bars { display: flex; flex-direction: column; gap: 3px; }
 
-.bar { position: relative; height: 19px; background: #05070bcc; border-radius: 5px; overflow: hidden; border: 1px solid #000a; box-shadow: inset 0 1px 2px #000a; }
-.bar-fill { position: absolute; inset: 0; width: 0; transition: width 0.35s ease; border-radius: 5px 0 0 5px; }
-.bar-hp .bar-fill { background: linear-gradient(90deg, var(--hp-dark), var(--hp)); box-shadow: inset 0 0 8px #ff9a8a55; }
-.bar-shield .bar-fill { background: linear-gradient(90deg, var(--shield-dark), var(--shield)); box-shadow: inset 0 0 8px #9fd0ff55; }
-.bar-label {
-  position: absolute; inset: 0; z-index: 2;
-  display: flex; align-items: center; justify-content: center; gap: 4px;
-  font-size: 12px; line-height: 1; font-weight: 800;
-  color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000;
-  letter-spacing: 0.02em;
-}
-.bar-ico { font-size: 11px; filter: drop-shadow(0 1px 1px #000); }
-.bar-num { font-variant-numeric: tabular-nums; }
+/* Les jauges .bar vivent dans components.css : c'est un composant partagé
+   (combat de flotte, refonte, documentation) et non un détail de cet écran. */
 
 .effects { display: flex; gap: 3px; justify-content: center; flex-wrap: wrap; margin-top: 4px; min-height: 18px; }
 .eff { font-size: 12px; background: #0006; border-radius: 4px; padding: 0 4px; cursor: help; }

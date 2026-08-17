@@ -276,7 +276,10 @@
   font-size: 10px;
   letter-spacing: .1em;
   text-transform: uppercase;
-  color: rgba(236, 228, 206, .78);
+  /* Les bandes non courantes se lisent sur la mer animée, claire de jour :
+     à .78 « Au loin » mesurait 4,24:1. */
+  color: #dcd3ba;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .85);
   padding: 2px 0 4px;
 }
 .bat-range-step.now {
@@ -284,7 +287,7 @@
   border-bottom: 1px solid var(--gold, #c9a24b);
   padding-bottom: 1px;
 }
-.bat-turn { margin-left: auto; color: rgba(230, 220, 195, .75); }
+.bat-turn { margin-left: auto; color: #ded5bd; }
 
 .bat-sea { flex: 1 1 auto; min-height: 0; }
 
@@ -376,7 +379,9 @@
   text-align: center;
   font-size: 11px;
   font-style: italic;
-  color: rgba(230, 220, 195, .55);
+  /* Sur la mer en plein jour, .55 mesurait 3,99:1. */
+  color: #cdc3a9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .85);
   padding: 4px 0 0;
 }
 
@@ -586,3 +591,267 @@
 .carte-pin.lbl-e .pin-cost { left: 13px; top: 7px; transform: none; }
 .carte-pin.lbl-w .pin-label { left: auto; right: 13px; top: -4px; transform: none; }
 .carte-pin.lbl-w .pin-cost { left: auto; right: 13px; top: 7px; transform: none; }
+
+/* --- la rencontre (tirage d'ouverture) ------------------------------------ */
+/* Ces composants sont ceux de l'étape B2. Ils se posent SUR les composants
+   existants (.modal, .btn-level-*, .bar, .bat-*) et n'en redéfinissent aucun.
+   Démonstration : design-system.html §16. */
+
+/* Bandeau d'état de la rencontre : météo + traits, sur une seule ligne. */
+.rc-bandeau {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2px 0 4px;
+}
+
+.rc-meteo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(201, 162, 75, .45);
+  background: rgba(18, 13, 9, .92);
+  padding: 2px 10px;
+  font-family: "Courier Prime", monospace;
+  font-size: 11px;
+  color: var(--parchment, #e6dcc3);
+}
+.rc-meteo .ico { font-size: 14px; }
+.rc-meteo .nom { font-family: "IM Fell English", Georgia, serif; font-size: 13.5px; }
+
+/* Un trait tiré. La bordure d'or dit « ceci change les règles » ; sans elle,
+   le trait colore la rencontre et le dialogue. */
+.rc-trait {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 1px solid rgba(201, 162, 75, .3);
+  /* Fond quasi opaque : ces pastilles flottent sur la mer animée, qui est
+     claire en plein jour. À .6 le texte tombait à 2,88:1. */
+  background: rgba(18, 13, 9, .92);
+  padding: 2px 9px 3px;
+  text-align: left;
+  max-width: 260px;
+}
+.rc-trait .n {
+  font-family: "IM Fell English", Georgia, serif;
+  font-size: 13.5px;
+  line-height: 1.25;
+  color: var(--parchment, #e6dcc3);
+}
+/* L'effet tient sur deux lignes au plus : au-delà, le bandeau devient un mur
+   de texte et plus personne ne le lit. Le texte entier reste dans le title. */
+.rc-trait .e {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 1.3;
+  font-style: italic;
+  color: #e2d9c1;
+}
+.rc-trait.actif { border-color: var(--gold, #c9a24b); background: rgba(46, 34, 16, .94); }
+.rc-trait.actif .n { color: #f3daa2; }
+.rc-trait.rare .n { color: #f0b48a; }
+.rc-trait.exceptionnel { border-color: #a8352a; }
+.rc-trait.exceptionnel .n { color: #f0907e; }
+
+/* Phylactère d'équipage. Trois moments : ouverture, bascule, dénouement. */
+.rc-bulle {
+  position: relative;
+  max-width: 700px;
+  margin: 4px auto 0;
+  border: 1px solid rgba(201, 162, 75, .42);
+  background: rgba(20, 15, 11, .82);
+  padding: 6px 14px;
+}
+.rc-bulle::after {
+  content: '';
+  position: absolute;
+  left: 26px;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: rgba(20, 15, 11, .82);
+  border-right: 1px solid rgba(201, 162, 75, .42);
+  border-bottom: 1px solid rgba(201, 162, 75, .42);
+  transform: rotate(45deg);
+}
+.rc-bulle .qui {
+  font-family: "Courier Prime", monospace;
+  font-size: 9.5px;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--gold, #c9a24b);
+}
+.rc-bulle .dit {
+  font-family: "IM Fell English", Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--parchment, #e6dcc3);
+}
+/* La réplique s'écrit quand elle change, elle n'apparaît pas d'un coup. */
+.rc-bulle.neuve { animation: rc-bulle-in .38s var(--ease-fast, ease-out) both; }
+@keyframes rc-bulle-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Répartition d'équipage : le choix de chaque tour en B2. */
+.rc-postes {
+  border: 1px solid rgba(201, 162, 75, .38);
+  background: rgba(16, 24, 32, .62);
+  max-width: 1100px;
+  width: 100%;
+  margin: 4px auto 0;
+  padding: 6px 12px 8px;
+}
+.rc-postes h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: "IM Fell English SC", Georgia, serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--parchment, #e6dcc3);
+}
+.rc-postes h4 small {
+  font-family: "Courier Prime", monospace;
+  font-size: 10px;
+  letter-spacing: .05em;
+  color: rgba(236, 228, 206, .8);
+}
+.rc-poste-rangee { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-top: 6px; }
+.rc-poste {
+  border: 1px solid rgba(201, 162, 75, .26);
+  background: rgba(8, 16, 24, .5);
+  padding: 5px 9px;
+}
+.rc-poste.plein { border-color: rgba(201, 162, 75, .7); }
+.rc-poste .t {
+  font-family: "Courier Prime", monospace;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(236, 228, 206, .88);
+}
+.rc-poste .v { font-family: "IM Fell English SC", Georgia, serif; font-size: 23px; line-height: 1.1; color: var(--parchment, #e6dcc3); }
+.rc-poste .fx { font-size: 11.5px; font-style: italic; color: #ddd3b8; min-height: 30px; }
+.rc-poste .fx.warn { color: #e8b98a; }
+.rc-poste-btns { display: flex; gap: 5px; padding-top: 3px; }
+.rc-poste-btns button {
+  flex: 1;
+  border: 1px solid rgba(201, 162, 75, .5);
+  background: rgba(201, 162, 75, .14);
+  color: var(--parchment, #e6dcc3);
+  font-family: "Courier Prime", monospace;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.rc-poste-btns button:hover:not(:disabled) { background: rgba(201, 162, 75, .3); }
+/* Éteint mais lisible : l'opacité met ce texte sous le seuil (mesuré 1,93:1). */
+.rc-poste-btns button:disabled {
+  color: #9a8f7c;
+  border-color: rgba(201, 162, 75, .18);
+  background: rgba(201, 162, 75, .05);
+  cursor: not-allowed;
+}
+
+/* Les deux jauges de B2, posées sur .bar existante. */
+.rc-jauges { display: flex; flex-direction: column; gap: 4px; width: min(320px, 92%); margin: 6px auto 0; }
+.rc-jauge { display: flex; align-items: center; gap: 8px; }
+.rc-jauge > .lb {
+  width: 74px;
+  text-align: right;
+  font-family: "Courier Prime", monospace;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: rgba(236, 228, 206, .9);
+}
+.rc-jauge > .bar { flex: 1; }
+.rc-jauge.voilee > .bar .bar-fill { width: 0 !important; }
+
+/* Bouton roue crantée : tout ce qui est outil de développement vit derrière. */
+.rc-gear {
+  position: fixed;
+  top: 8px;
+  right: 10px;
+  z-index: 40;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(201, 162, 75, .5);
+  background: rgba(20, 15, 11, .82);
+  color: var(--parchment, #e6dcc3);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.rc-gear:hover { border-color: var(--gold, #c9a24b); }
+
+/* Contenu de la modale de développement. */
+.rc-dev { text-align: left; font-family: "Courier Prime", monospace; font-size: 11.5px; color: var(--parchment, #e6dcc3); }
+.rc-dev h5 {
+  font-family: "IM Fell English SC", Georgia, serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--gold-light, #e8c05a);
+  padding: 8px 0 3px;
+}
+.rc-dev ul { list-style: none; display: flex; flex-wrap: wrap; gap: 4px; }
+.rc-dev li { border: 1px solid rgba(201, 162, 75, .28); padding: 1px 6px; font-size: 10.5px; }
+.rc-dev li.actif { border-color: var(--gold, #c9a24b); color: #f3daa2; }
+.rc-dev .val { color: #e2d9c1; }
+.rc-dev p { line-height: 1.6; }
+
+/* Panneau sombre pour les modales EN MER (carte d'ouverture, outils de dev).
+   Les modales-documents du jeu sont en parchemin à encre sombre (§8.2) ; ici
+   on est en action, sur la même terre que .bat-outcome, et un parchemin au
+   milieu d'un combat rendrait ses propres pastilles illisibles. */
+.rc-carte {
+  background: rgba(24, 18, 13, .97);
+  border: 2px solid var(--gold, #c9a24b);
+  border-radius: 4px;
+  padding: 18px 22px 16px;
+  max-width: 640px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  color: var(--parchment, #e6dcc3);
+  box-shadow: 0 14px 44px #000c;
+  animation: result-pop-in .4s cubic-bezier(.2, .8, .3, 1.2) both;
+}
+/* Le composant pose sa propre marge et son propre filet : il est démontré dans
+   design-system.html, dont les h2 de document en portent d'autres. */
+.rc-carte h2 {
+  font-family: "IM Fell English SC", Georgia, serif;
+  font-size: 24px;
+  font-weight: 400;
+  text-align: center;
+  color: var(--parchment, #e6dcc3);
+  margin: 0 0 4px;
+  padding: 0;
+  border: 0;
+}
+.rc-carte h5 { margin: 0; }
+.rc-carte .resume {
+  font-family: "Courier Prime", monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+  color: rgba(236, 228, 206, .92);
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(201, 162, 75, .28);
+}
+.rc-carte .rc-bandeau { padding-top: 10px; }
+.rc-carte .rien { text-align: center; font-style: italic; font-size: 12.5px; color: rgba(230, 220, 195, .78); padding: 12px 0; }
+.rc-carte .rc-actions { display: flex; gap: 8px; justify-content: center; padding-top: 14px; }
