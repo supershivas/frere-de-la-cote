@@ -66,8 +66,11 @@ export function rollEncounter(data, { seed = 1, budget = 2, force = [] } = {}) {
   // sous le vent" are both ordinary settings, and together they describe a
   // fight nobody can leave or manoeuvre in. Each axis is drawn among the
   // settings still compatible with what has already been rolled.
-  const p = data.frequence_depart ?? 0.25;
   for (const [axe, def] of Object.entries(data.socle)) {
+    // Un axe peut demander à varier plus que les autres : le pavillon est la
+    // chose la plus VISIBLE du combat (il est peint sur le sprite), et le
+    // laisser à la fréquence commune donnait quatre combats espagnols sur cinq.
+    const p = def.frequence_depart ?? data.frequence_depart ?? 0.25;
     const ouverts = def.reglages.filter((x) => !conflicts(data, tags, x.id));
     const pool = ouverts.length ? ouverts : def.reglages;
     const rivals = Math.max(1, pool.filter((x) => !x.ordinaire).length);
@@ -168,6 +171,64 @@ export function summarise(data, enc) {
     shortOf('heure'), shortOf('mer'), shortOf('posture'),
   ].filter(Boolean);
   return bits.join(', ') + '.';
+}
+
+// ---------------------------------------------------------------------------
+// What the draw hands to the systems that already exist: the weather (kept in
+// play, see CLAUDE.md), the sea backdrop, and the faction flag. These are pure
+// mappings — the encounter decides, the existing systems render.
+
+// Mechanical weather, from data/weather.json. Hardest condition wins: a fight
+// in a squall is a fight in a squall whatever the swell says.
+const METEO = [
+  ['tempete', ['ouragan', 'grosse_mer']],
+  ['grain', ['grain_violent', 'grain_passager']],
+  ['brume', ['brume', 'nuit_sans_lune']],
+  ['calme', ['calme_plat', 'vent_tombe']],
+  ['vent_fort', ['houle']],
+];
+export function weatherFor(enc) {
+  for (const [id, tags] of METEO) if (tags.some((t) => enc.tags.includes(t))) return id;
+  return 'brise';
+}
+
+// Decorative sky for src/ocean.js. Night wins over weather: not seeing her is
+// a rule of this fight (`nuit` hides her gauges), and the sky is the cue.
+export function oceanSceneFor(enc) {
+  const has = (t) => enc.tags.includes(t);
+  if (has('nuit') || has('nuit_sans_lune')) return 'night';
+  const m = weatherFor(enc);
+  if (m === 'tempete' || m === 'grain') return 'storm';
+  if (m === 'brume') return 'cloudy';
+  if (has('aube')) return 'dawn';
+  if (has('crepuscule')) return 'sunset';
+  return 'day';
+}
+
+// Which colours she flies, and whose she really is. They differ under a false
+// flag — that is the whole content of `pav_faux`, and the sprite should say so
+// rather than showing the same Spanish stripes in every fight.
+const PAVILLONS = {
+  pav_espagnol: 'espagnole',
+  pav_hollandais: 'hollandaise',
+  pav_anglais: 'marine_anglaise',
+  pav_francais: 'marine_francaise',
+  pav_aucun: null,                 // bare pole: nobody will know, nobody will pay
+};
+const SOUS_FAUX = ['espagnole', 'hollandaise', 'marine_anglaise', 'marine_francaise'];
+
+export function flagFor(enc) {
+  const pav = enc.socle.pavillon;
+  if (pav === 'pav_faux' || enc.tags.includes('sous_faux_pavillon')) {
+    // Deterministic from the seed: replayable, and the two never coincide.
+    const i = enc.seed % SOUS_FAUX.length;
+    const j = (i + 1 + (enc.seed >> 8) % (SOUS_FAUX.length - 1)) % SOUS_FAUX.length;
+    return { montre: SOUS_FAUX[i], vraie: SOUS_FAUX[j], ment: true };
+  }
+  // `pav_aucun` vaut null volontairement — une drisse nue. `??` le confondrait
+  // avec « réglage inconnu » et repeindrait des couleurs espagnoles dessus.
+  const f = Object.hasOwn(PAVILLONS, pav) ? PAVILLONS[pav] : 'espagnole';
+  return { montre: f, vraie: f, ment: false };
 }
 
 // ---------------------------------------------------------------------------

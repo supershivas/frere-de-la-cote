@@ -75,6 +75,7 @@ await audit('combat', goto('#bataille'));
 // d'ouverture empile des petits textes sur fond sombre — exactement la classe
 // de bug qui a rendu la lettre de marque illisible.
 const B2 = 'http://localhost:8000/docs/refonte/mockups/b2-combat.html';
-await audit('B2 — carte d\'ouverture', async()=>{ await p.goto(B2); await p.waitForSelector('.carte'); await p.waitForTimeout(600); });
-await audit('B2 — combat engagé', async()=>{ await p.click('.carte .go'); await p.waitForTimeout(500); });
+await audit('B2 — carte d\'ouverture', async()=>{ await p.goto(B2); await p.waitForSelector('.rc-carte'); await p.waitForTimeout(900); });
+await audit('B2 — combat engagé', async()=>{ await p.click('.rc-carte .btn-level-1'); await p.waitForTimeout(700); });
+await audit('B2 — outils de maquette', async()=>{ await p.click('.rc-gear'); await p.waitForTimeout(500); });
 await b.close();

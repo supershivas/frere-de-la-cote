@@ -59,6 +59,8 @@
     "pavillon": {
       "categorie": "ennemi",
       "label": "Pavillon",
+      "_doc": "Le pavillon est peint sur le sprite : c'est la chose la plus visible du combat. À la fréquence commune, quatre combats sur cinq se jouaient contre le même drapeau espagnol. Cet axe varie donc deux fois par combat sur quatre.",
+      "frequence_depart": 0.55,
       "reglages": [
         { "id": "pav_espagnol", "label": "Espagnol", "court": "sous pavillon espagnol", "ordinaire": true },
         { "id": "pav_hollandais", "label": "Hollandais", "court": "sous pavillon hollandais", "effet": "Hors commission : la prendre coûte votre légitimité." },

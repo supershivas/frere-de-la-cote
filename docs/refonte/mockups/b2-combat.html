@@ -3,246 +3,70 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<!-- La maquette vit dans docs/, le jeu vit à la racine. Cette base fait
+     résoudre css/, src/, data/ et locales/ comme depuis index.html : la
+     maquette utilise EXACTEMENT les feuilles et les modules du jeu. -->
+<base href="../../../">
 <title>B2 — combat à deux jauges (maquette jouable)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --sea-top:#1b3550; --sea:#12283c; --sky:#2b4a63;
-  --parch:#e6dcc3; --gold:#c9a24b; --red:#c0392b; --green:#6fae92; --amber:#e08a5a;
-  --disp:"IM Fell English",Georgia,serif; --sc:"IM Fell English SC",Georgia,serif; --mono:"Courier Prime",monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  background:linear-gradient(var(--sky) 0%, var(--sea-top) 38%, var(--sea) 100%);
-  min-height:100vh;color:var(--parch);font-family:var(--disp);
-  padding:10px clamp(8px,2vw,22px) 18px;
-}
-.note{max-width:1180px;margin:0 auto 10px;font-size:12.5px;font-style:italic;opacity:.72;text-align:center}
-.wrap{max-width:1180px;margin:0 auto}
-
-/* ---- bande de distance ---- */
-.range{display:flex;gap:12px;justify-content:center;align-items:center;
-  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-  color:rgba(236,228,206,.72);padding:4px 0 10px}
-.range b{color:var(--parch);font-weight:400;border-bottom:1px solid var(--gold);padding-bottom:2px}
-.range .turn{margin-left:auto;color:rgba(236,228,206,.9)}
-
-/* ---- les deux navires ---- */
-.duel{display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,3vw,40px);align-items:end;
-  padding-bottom:8px;position:relative}
-.duel::after{content:'';position:absolute;left:0;right:0;bottom:64px;height:2px;
-  background:linear-gradient(90deg,transparent,rgba(150,200,215,.45) 10%,rgba(150,200,215,.45) 90%,transparent)}
-.ship{display:flex;flex-direction:column;align-items:center}
-.ship canvas{image-rendering:pixelated;display:block}
-.ship .nm{font-family:var(--sc);font-size:17px;padding-top:6px}
-.ship .sub{font-family:var(--mono);font-size:9.5px;opacity:.72;letter-spacing:.06em}
-
-/* ---- LES DEUX JAUGES : le coeur de B2 ---- */
-.gauges{width:100%;max-width:340px;margin-top:8px;display:flex;flex-direction:column;gap:5px}
-.g{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px}
-.g .lb{width:78px;letter-spacing:.06em;text-transform:uppercase;opacity:.85;text-align:right}
-.g .track{flex:1;height:15px;background:rgba(8,16,24,.66);border:1px solid rgba(201,162,75,.42);position:relative}
-.g .fill{position:absolute;inset:0 auto 0 0;transition:width .32s ease}
-.g.coque .fill{background:linear-gradient(90deg,#8a3a2a,#c0392b)}
-.g.crew  .fill{background:linear-gradient(90deg,#4a7f66,#6fae92)}
-.g .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-size:9.5px;color:#fff;text-shadow:0 1px 2px #000,0 0 4px #000}
-.g.aim .track{outline:2px solid var(--gold);outline-offset:1px;cursor:pointer}
-.g.aimable .track{cursor:pointer}
-.g.aimable:hover .track{border-color:var(--gold)}
-
-/* ---- répartition d'équipage : le choix de chaque tour ---- */
-.posts{border:1px solid rgba(201,162,75,.4);background:rgba(12,22,32,.62);padding:9px 12px;margin-top:10px}
-.posts h4{font-family:var(--sc);font-size:15px;font-weight:400;display:flex;align-items:baseline;gap:10px}
-.posts h4 small{font-family:var(--mono);font-size:10px;opacity:.7;letter-spacing:.05em}
-.postrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding-top:7px}
-.post{border:1px solid rgba(201,162,75,.28);background:rgba(8,16,24,.5);padding:6px 9px}
-.post .t{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.85}
-.post .v{font-family:var(--sc);font-size:24px;line-height:1.1}
-.post .fx{font-size:11.5px;font-style:italic;opacity:.8;min-height:30px}
-.post .btns{display:flex;gap:5px;padding-top:4px}
-.post button{flex:1;background:rgba(201,162,75,.14);border:1px solid rgba(201,162,75,.5);
-  color:var(--parch);font-family:var(--mono);font-size:16px;font-weight:700;cursor:pointer;padding:0}
-.post button:hover:not(:disabled){background:rgba(201,162,75,.32)}
-/* Un bouton éteint doit rester LISIBLE : à l'opacité, on préfère une couleur
-   sourde mais mesurée (le contraste faible des états désactivés est ce qui
-   avait rendu la lettre de marque illisible). */
-.post button:disabled{color:#9a8f7c;border-color:rgba(201,162,75,.18);
-  background:rgba(201,162,75,.05);cursor:not-allowed}
-
-/* ---- intention ---- */
-.intent{font-family:var(--mono);font-size:11px;background:rgba(12,20,28,.72);
-  border-left:3px solid var(--red);padding:5px 10px;margin-top:9px}
-.intent b{color:#f0b48a;font-weight:400}
-
-/* ---- munitions + actions ---- */
-.ammo{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;padding-top:9px}
-.ammo button{display:flex;align-items:center;gap:5px;background:rgba(20,15,11,.75);
-  border:1px solid rgba(201,162,75,.35);color:var(--parch);font-family:var(--mono);
-  font-size:11px;padding:3px 9px;cursor:pointer}
-.ammo button.on{border-color:var(--gold);background:rgba(201,162,75,.2)}
-.ammo button:disabled{opacity:.78;border-style:dashed;cursor:not-allowed;text-decoration:line-through}
-.hint{text-align:center;font-size:12.5px;font-style:italic;opacity:.86;padding:5px 0;min-height:20px}
-.acts{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-.acts button{display:flex;flex-direction:column;align-items:center;background:rgba(20,15,11,.82);
-  border:1px solid rgba(201,162,75,.45);color:var(--parch);font-family:var(--mono);font-size:12px;
-  padding:4px 14px;cursor:pointer;line-height:1.3}
-.acts button.cta{border-color:var(--gold);background:rgba(201,162,75,.2)}
-.acts button:disabled{opacity:1;cursor:not-allowed;border-color:rgba(201,162,75,.2);background:rgba(16,12,9,.8)}
-.acts .why{font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;color:#e8b98a}
-.log{font-family:var(--mono);font-size:11px;line-height:1.7;opacity:.85;text-align:center;
-  min-height:36px;padding-top:7px}
-.rules{text-align:center;font-size:11.5px;font-style:italic;color:#bdb49d;padding-top:6px}
-
-/* ---- la rencontre : ce qui rend ce combat-ci différent des autres ---- */
-.setup{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:0 0 8px}
-.trait{display:flex;align-items:baseline;gap:6px;border:1px solid rgba(201,162,75,.24);
-  background:rgba(12,22,32,.55);padding:2px 9px;font-size:11.5px;max-width:340px}
-.trait .n{font-family:var(--sc);font-size:13px;white-space:nowrap}
-.trait .e{font-style:italic;color:#e2d9c1;font-size:11.5px}
-.trait.actif{border-color:var(--gold);background:rgba(201,162,75,.14)}
-.trait.actif .n{color:#f0d69a}
-.trait.rare .n{color:#f0b48a}
-.trait.exceptionnel{border-color:var(--red)}
-.trait.exceptionnel .n{color:#f0907e}
-
-/* ---- phylactère ---- */
-.bulle{max-width:640px;margin:8px auto 0;border:1px solid rgba(201,162,75,.4);
-  background:rgba(20,15,11,.8);padding:8px 14px;position:relative}
-.bulle::before{content:'';position:absolute;left:26px;bottom:-7px;width:11px;height:11px;
-  background:rgba(20,15,11,.8);border-right:1px solid rgba(201,162,75,.4);
-  border-bottom:1px solid rgba(201,162,75,.4);transform:rotate(45deg)}
-.bulle .qui{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
-  color:var(--gold);opacity:.9}
-.bulle .dit{font-size:15px;font-style:italic;line-height:1.45;padding-top:2px}
-.bulle.vide{display:none}
-
-/* ---- carte d'ouverture ---- */
-.carte{position:fixed;inset:0;margin:auto;width:min(620px,94vw);height:fit-content;max-height:92vh;
-  overflow:auto;background:rgba(20,15,11,.98);border:2px solid var(--gold);padding:20px 24px 18px;z-index:10}
-.carte h2{font-family:var(--sc);font-size:24px;font-weight:400;text-align:center}
-.carte .resume{font-family:var(--mono);font-size:11.5px;text-align:center;opacity:.85;
-  padding:6px 0 12px;line-height:1.7;border-bottom:1px solid rgba(201,162,75,.25)}
-.carte .setup{padding-top:12px}
-.carte .rien{text-align:center;font-style:italic;opacity:.6;font-size:12px;padding:10px 0}
-.carte .go{display:block;margin:14px auto 0;background:rgba(201,162,75,.2);border:1px solid var(--gold);
-  color:var(--parch);font-family:var(--mono);font-size:13px;padding:6px 22px;cursor:pointer}
-.carte .seed{text-align:center;font-family:var(--mono);font-size:10.5px;color:#a99f88;padding-top:8px}
-
-.over{position:fixed;inset:0;margin:auto;width:min(430px,90vw);height:fit-content;
-  background:rgba(20,15,11,.97);border:2px solid var(--gold);padding:20px 24px;text-align:center;z-index:9}
-.over h2{font-family:var(--sc);font-size:27px;font-weight:400}
-.over p{font-family:var(--mono);font-size:12px;padding-top:8px}
-.over button{margin-top:14px;background:rgba(201,162,75,.2);border:1px solid var(--gold);
-  color:var(--parch);font-family:var(--mono);font-size:13px;padding:5px 16px;cursor:pointer}
-@media(max-width:820px){.duel{grid-template-columns:1fr}.duel::after{display:none}}
-</style>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8F%B4%E2%80%8D%E2%98%A0%EF%B8%8F%3C/text%3E%3C/svg%3E">
 </head>
 <body>
-
-<p class="note">Maquette jetable — proposition <b>B2</b> : deux jauges, répartition d'équipage, pas de salles.
-Jouez cinq combats et regardez si le tour contient une vraie décision — et si les cinq sont cinq.
-Les traits <b>encadrés d'or</b> agissent réellement sur les règles ; les autres colorent la rencontre et le dialogue.</p>
-
-<div class="wrap">
-  <div class="setup" id="setup"></div>
-  <p class="range" id="range"></p>
-  <div class="duel">
-    <div class="ship" id="mine"></div>
-    <div class="ship" id="theirs"></div>
-  </div>
-
-  <div class="bulle vide" id="bulle"></div>
-  <div class="posts" id="posts"></div>
-  <p class="intent" id="intent"></p>
-  <div class="ammo" id="ammo"></div>
-  <p class="hint" id="hint"></p>
-  <div class="acts" id="acts"></div>
-  <p class="log" id="log"></p>
-  <p class="rules">Chaque tour : répartissez vos hommes (gratuit), puis UNE manœuvre et UNE bordée. Les deux sont facultatives.</p>
-</div>
+<canvas id="ocean"></canvas>
+<div id="parchment"></div>
+<main id="app"></main>
+<div id="toast-container"></div>
 
 <script type="module">
-import { getGeneratedShip, drawShip } from '../../../src/sprites.js';
-import { rollEncounter, notableOf, summarise, speak, stateTags } from '../../../src/rencontre.js';
-
-const [DATA, LINES] = await Promise.all([
-  fetch('../../../data/rencontres.json').then((r) => r.json()),
-  fetch('../../../data/phylacteres.json').then((r) => r.json()),
-]);
-
 /* ============================================================
-   B2 — DEUX JAUGES.
+   B2 — DEUX JAUGES, sur l'interface du jeu.
    Coque = la couler (rapide, sûr, ne rapporte presque rien).
    Équipage = la prendre (lent, coûteux, rapporte tout).
    Aucune salle, aucun trajet. Le choix de chaque tour est la
    RÉPARTITION des hommes entre trois postes.
+
+   Rien n'est réinventé ici : la mer animée vient de src/ocean.js,
+   les navires et leurs pavillons de src/sprites.js, les modales
+   et les barres de src/ui.js, la météo de data/weather.json, les
+   styles de css/*.css. Le seul code propre à la maquette est la
+   résolution du combat B2.
    ============================================================ */
 
-const RANGES = ['Bord à bord','Portée de mousquet','Portée de canon','Au loin'];
-const BOARD=0, MUSKET=1, CANNON=2, FAR=3;
+import { el, mount, modal, bar } from './src/ui.js';
+import { loadData, DB } from './src/data.js';
+import { loadLocales } from './src/i18n.js';
+import { startOcean, randomOceanScene } from './src/ocean.js';
+import { initFx, fxExplosion, fxFloatText } from './src/fx.js';
+import { getGeneratedShip, drawGrid } from './src/sprites.js';
+import { buildSpriteSpec, state } from './src/state.js';
+import {
+  rollEncounter, notableOf, summarise, speak, stateTags,
+  weatherFor, oceanSceneFor, flagFor,
+} from './src/rencontre.js';
+
+await Promise.all([loadData(), loadLocales()]);
+const DATA = await fetch('data/rencontres.json').then((r) => r.json());
+const LINES = await fetch('data/phylacteres.json').then((r) => r.json());
+
+startOcean(document.getElementById('ocean'));
+initFx();
+
+const RANGES = ['Bord à bord', 'Portée de mousquet', 'Portée de canon', 'Au loin'];
+const BOARD = 0, MUSKET = 1, CANNON = 2, FAR = 3;
 
 const AMMO = {
-  boulet:      { ico:'●', nom:'Boulet',    max:CANNON, hint:'Ronge la coque. La voie rapide, et la moins payante.' },
-  chaine:      { ico:'⛓', nom:'Chaîne',    max:CANNON, hint:'Abat le gréement : elle ne peut plus rompre le combat. Ne touche pas la coque.' },
-  mitraille:   { ico:'✳', nom:'Mitraille', max:MUSKET, hint:'Fauche son équipage. C\'est ce qui rend un abordage gagnable.' },
-  explosif:    { ico:'💥', nom:'Explosif',  max:CANNON, hint:'Coque et équipage à la fois, mais moins fort sur les deux.' },
+  boulet:    { ico: '●', nom: 'Boulet',    max: CANNON, fx: 'classic',
+               hint: 'Ronge la coque. La voie rapide, et la moins payante.' },
+  chaine:    { ico: '⛓', nom: 'Chaîne',    max: CANNON, fx: 'chain',
+               hint: 'Abat le gréement : elle ne peut plus rompre le combat. Ne touche pas la coque.' },
+  mitraille: { ico: '✳', nom: 'Mitraille', max: MUSKET, fx: 'classic',
+               hint: "Fauche son équipage. C'est ce qui rend un abordage gagnable." },
+  explosif:  { ico: '💥', nom: 'Explosif',  max: CANNON, fx: 'explosive',
+               hint: 'Coque et équipage à la fois, mais moins fort sur les deux.' },
 };
-
-const LIVERY = {
-  nous: { hull:'#5a3d25', sail:'#e6d9bd', faction:'#8a1f1f',
-          flag:{motif:'Crâne',bg:'#161616',sym:'#e6d9bd',accent:'#f1c40f'}, trim:'aucun' },
-  eux:  { hull:'#6b4a2b', sail:'#efe6cf', faction:'#b5121b',
-          flag:{motif:'Bandes',bg:'#b5121b',sym:'#f1c40f',accent:'#f4f4f4'}, trim:'simple' },
-};
-const spec = (hullClass, who, seed) => ({
-  hullClass, hullShape:'auto', sailsPerMast:2, jibs:1, wear: who==='eux'?1:0, seed,
-  trim:LIVERY[who].trim, emblem:'petit', flag:{...LIVERY[who].flag},
-  colors:{ hull:LIVERY[who].hull, sail:LIVERY[who].sail, faction:LIVERY[who].faction },
-});
-
-const NOMS = ['Sancta Ana','Nuestra Señora','El Gavilán','San Cristóbal','La Concepción',
-  'Le Saint-Jean','De Zeemeeuw','The Fortune','La Providencia','El Rosario'];
-
-let S;
-function fresh() {
-  // L'entropie entre ICI et nulle part ailleurs : le tirage est fait avant le
-  // premier tour, la résolution reste sans aléatoire (brief §4.1).
-  const seed = (Math.random() * 0xffffffff) >>> 0;
-  const enc = rollEncounter(DATA, { seed });
-  const R = rulesFrom(enc.tags);
-
-  S = {
-    enc, R, seed,
-    turn:1, dist:R.startDist, ammo:'boulet', over:null, log:'',
-    usedMan:false, usedFire:false, tirs:0, basculeDite:false, engage:false,
-    notables: notableOf(DATA, enc),
-    mine: { nom:'La Trompeuse', spec:spec(3,'nous',42),
-            coque:100, crew:100, rig:100, hands:55,
-            // Les trois postes : c'est là qu'est la décision.
-            posts:{ canons:3, manoeuvre:1, pompes:1 }, leak:0 },
-    theirs:{ nom:NOMS[seed % NOMS.length], spec:spec(3,'eux', seed % 9973),
-            coque:100, crew:100, rig:100, hands:60, leak:0 },
-  };
-  // Un équipage décimé ne tient pas cinq postes : on retire d'abord des pompes.
-  for (const k of ['pompes','manoeuvre','canons']) {
-    while (used() > R.postes && S.mine.posts[k] > 0) S.mine.posts[k]--;
-  }
-  S.bulle = speak(LINES, 'ouverture', enc.tags, { seed });
-  S.intent = decide();
-}
-
-/* --- effet des postes : lisible, sans table cachée --------------------- */
-const POSTS = {
-  canons:   { t:'Aux canons',  fx:(n)=> `Bordée ×${(0.55+0.15*n).toFixed(2)}` },
-  manoeuvre:{ t:'À la manœuvre',fx:(n)=> n>=S.R.manNeed ? 'Peut changer de distance'
-                : `Il en faut ${S.R.manNeed} pour manœuvrer` },
-  pompes:   { t:'Aux pompes',  fx:(n)=> n>=S.R.pumpNeed ? 'Contient la voie d\'eau'
-                : (n>0?'Ralentit la voie d\'eau':'L\'eau monte librement') },
-};
-const used = () => S.mine.posts.canons + S.mine.posts.manoeuvre + S.mine.posts.pompes;
-const firePower = () => (0.55 + 0.15 * S.mine.posts.canons) * (S.R.premiereMoitie && S.tirs === 0 ? 0.5 : 1);
-const canMan = () => S.mine.posts.manoeuvre >= S.R.manNeed && S.mine.rig > 25;
 
 /* ============================================================
    CE QUI REND CE COMBAT-CI DIFFÉRENT.
@@ -257,66 +81,65 @@ const BASE = {
   theirPower: 0.9, theirMax: CANNON, premiereMoitie: false,
   silentJusqua: 0, gelJusqua: 0, pasAvant: 0, tirsMax: 99,
   rigFragile: 1, hullWeak: 1, saignee: 0, cache: false,
-  elleFuit: false, feinte: false, butin: 1, legit: 0,
+  elleFuit: false, butin: 1, legit: 0,
 };
 const MODS = {
   // — environnement
-  nuit:            { cache:true },
-  calme_plat:      { manNeed:3 },
-  grosse_mer:      { pumpNeed:3, loinMou:true },
-  vent_a_elle:     { elleReprend:true },
-  vent_tombe:      { noBreak:true },
-  hauts_fonds:     { approachDmg:7 },
-  cote_au_vent:    { noBreak:true },
+  nuit:            { cache: true },
+  calme_plat:      { manNeed: 3 },
+  grosse_mer:      { pumpNeed: 3 },
+  vent_a_elle:     { elleReprend: true },
+  vent_tombe:      { noBreak: true },
+  hauts_fonds:     { approachDmg: 7 },
+  cote_au_vent:    { noBreak: true },
   // — elle
-  eq_marchands:    { strikeAt:55 },
-  eq_soldats:      { defBord:1.5 },
-  eq_garde:        { defBord:2.2, neverStrike:true },
-  et_avariee:      { butin:0.6, theirPower:0.7 },
-  et_surchargee:   { noFuite:true, coulePlusVite:true },
-  cap_amene_tot:   { strikeAt:55 },
-  cap_jamais:      { neverStrike:true },
-  sur_lest:        { butin:0.15 },
-  argent_perou:    { butin:4 },
-  pav_hollandais:  { legit:-1 }, pav_anglais: { legit:-1 }, pav_francais: { legit:-2 },
-  pav_aucun:       { butin:0.7 },
+  eq_marchands:    { strikeAt: 55 },
+  eq_soldats:      { defBord: 1.5 },
+  eq_garde:        { defBord: 2.2, neverStrike: true },
+  et_avariee:      { butin: 0.6, theirPower: 0.7 },
+  et_surchargee:   { coulePlusVite: true },
+  cap_amene_tot:   { strikeAt: 55 },
+  cap_jamais:      { neverStrike: true },
+  sur_lest:        { butin: 0.15 },
+  argent_perou:    { butin: 4 },
+  pav_hollandais:  { legit: -1 }, pav_anglais: { legit: -1 }, pav_francais: { legit: -2 },
+  pav_aucun:       { butin: 0.7 },
   // — nous
-  nous_charges:    { manNeed:3 },
-  nous_decimes:    { postes:3 },
-  hum_sang:        { noBreak:true },
+  nous_charges:    { manNeed: 3 },
+  nous_decimes:    { postes: 3 },
+  hum_sang:        { noBreak: true },
   // — la rencontre
-  dist_mousquet:   { startDist:MUSKET },
-  post_fuit:       { elleFuit:true },
-  post_attendait:  { theyFireFirst:true },
+  dist_mousquet:   { startDist: MUSKET },
+  post_fuit:       { elleFuit: true },
+  post_attendait:  { theyFireFirst: true },
   // — épices
-  grain_passager:  { silentJusqua:2 },
-  grain_violent:   { silentJusqua:3 },
-  nuit_sans_lune:  { cache:true },
-  brume:           { cache:true },
-  recifs_signales: { approachDmg:7 },
-  barre_de_recifs: { pasAvant:3 },
-  epave_flottante: { pasAvant:2 },
-  au_mouillage:    { gelJusqua:1 },
-  surprise:        { gelJusqua:2 },
-  poudre_humide:   { premiereMoitie:true },
-  poudre_comptee:  { tirsMax:3 },
-  canons_depareilles: { theirMax:MUSKET },
-  officier_manque: { theirPower:0.45 },
-  voiles_rapiecees:{ rigFragile:1.6 },
-  connait_ce_navire:{ hullWeak:1.35 },
-  deja_en_fuite:   { saignee:4 },
-  mutinerie_chez_elle: { saignee:9 },
-  traine_prise:    { butin:2 },
-  passager_de_marque: { butin:1.8, defBord:1.3 },
-  homme_malade:    { postes:4 },
-  feinte_reddition:{ feinte:true },
-  vous_etes_la_proie: { elleReprend:true, theirPower:1.05 },
-  reconnait_son_navire: { theirPower:1.3, neverStrike:true },
-  navire_fantome:  { theirPower:0, neverStrike:true, butin:2.5 },
-  il_se_saborde:   { sabordage:true },
+  grain_passager:  { silentJusqua: 2 },
+  grain_violent:   { silentJusqua: 3 },
+  nuit_sans_lune:  { cache: true },
+  brume:           { cache: true },
+  recifs_signales: { approachDmg: 7 },
+  barre_de_recifs: { pasAvant: 3 },
+  epave_flottante: { pasAvant: 2 },
+  au_mouillage:    { gelJusqua: 1 },
+  surprise:        { gelJusqua: 2 },
+  poudre_humide:   { premiereMoitie: true },
+  poudre_comptee:  { tirsMax: 3 },
+  canons_depareilles: { theirMax: MUSKET },
+  officier_manque: { theirPower: 0.45 },
+  voiles_rapiecees: { rigFragile: 1.6 },
+  connait_ce_navire: { hullWeak: 1.35 },
+  deja_en_fuite:   { saignee: 4 },
+  mutinerie_chez_elle: { saignee: 9 },
+  traine_prise:    { butin: 2 },
+  passager_de_marque: { butin: 1.8, defBord: 1.3 },
+  homme_malade:    { postes: 4 },
+  vous_etes_la_proie: { elleReprend: true, theirPower: 1.05 },
+  reconnait_son_navire: { theirPower: 1.3, neverStrike: true },
+  navire_fantome:  { theirPower: 0, neverStrike: true, butin: 2.5 },
 };
-// Un tirage donne une poignée de tags ; on les empile sur la base.
-function rulesFrom(tags) {
+const ACTIFS = new Set(Object.keys(MODS));
+
+function rulesFrom(tags, meteo) {
   const R = { ...BASE };
   for (const t of tags) {
     const m = MODS[t]; if (!m) continue;
@@ -324,69 +147,159 @@ function rulesFrom(tags) {
       // Les multiplicateurs se composent, le reste écrase — la dernière
       // contrainte posée est la plus dure, jamais la plus molle.
       if (k === 'butin' || k === 'theirPower') R[k] = (R[k] ?? 1) * v;
-      else if (k === 'manNeed' || k === 'pumpNeed' || k === 'approachDmg' || k === 'saignee'
-            || k === 'silentJusqua' || k === 'gelJusqua' || k === 'pasAvant')
+      else if (['manNeed', 'pumpNeed', 'approachDmg', 'saignee', 'silentJusqua', 'gelJusqua', 'pasAvant'].includes(k))
         R[k] = Math.max(R[k] ?? 0, v);
       else if (k === 'postes' || k === 'tirsMax') R[k] = Math.min(R[k] ?? 99, v);
       else R[k] = v;
     }
   }
+  // La météo de data/weather.json n'est pas un décor : ses modificateurs
+  // entrent dans la règle au même titre que les traits tirés.
+  const mods = (DB.weather[meteo] || {}).mods || {};
+  R.meteoTir = 1 + (mods.accuracyDelta || 0) * 2;   // ±10 % de visée → ±20 % de bordée
+  R.meteoDegats = mods.damageMult || 1;
   return R;
 }
-const ACTIFS = new Set(Object.keys(MODS));
+
+/* --- état de partie ---------------------------------------------------- */
+// Le nom se lit sur le tableau arrière : il dit d'où elle vient, et il doit
+// donc suivre sa nationalité RÉELLE. Sous faux pavillon, le nom la trahit —
+// c'est la seule chose à bord qu'on ne repeint pas en une nuit.
+const NOMS = {
+  espagnole: ['Sancta Ana', 'Nuestra Señora', 'El Gavilán', 'San Cristóbal', 'La Concepción', 'El Rosario'],
+  hollandaise: ['De Zeemeeuw', 'De Gouden Leeuw', 'Het Wapen van Hoorn', 'De Vliegende Draeck'],
+  marine_anglaise: ['The Fortune', 'The Swallow', 'The Golden Hind', 'The Providence'],
+  marine_francaise: ['Le Saint-Jean', 'La Sirène', 'Le Dauphin', "L'Hirondelle"],
+  free_pirates: ['La Revanche', 'Le Sans-Quartier', 'La Mouche', 'Le Vent Debout'],
+};
+const nomPour = (faction, seed) => {
+  const l = NOMS[faction] || NOMS.free_pirates;
+  return l[seed % l.length];
+};
+
+let S;
+function fresh() {
+  // L'entropie entre ICI et nulle part ailleurs : le tirage est fait avant le
+  // premier tour, la résolution reste sans aléatoire (brief §4.1).
+  const seed = (Math.random() * 0xffffffff) >>> 0;
+  const enc = rollEncounter(DATA, { seed });
+  const meteo = weatherFor(enc);
+  const R = rulesFrom(enc.tags, meteo);
+  const pav = flagFor(enc);
+
+  // La mer d'arrière-plan prend l'heure et le temps de la rencontre.
+  randomOceanScene(oceanSceneFor(enc));
+
+  S = {
+    enc, R, seed, meteo, pav,
+    turn: 1, dist: R.startDist, ammo: 'boulet', over: null, log: '',
+    usedMan: false, usedFire: false, tirs: 0, basculeDite: false, engage: false,
+    bulleNeuve: true,
+    notables: notableOf(DATA, enc),
+    mine: {
+      nom: 'La Trompeuse', mine: true,
+      spec: buildSpriteSpec({ hullClass: 3, hullShape: 'auto', sailsPerMast: 2, jibs: 1, wear: 0 }, 'free_pirates', 42),
+      coque: 100, crew: 100, rig: 100,
+      posts: { canons: 3, manoeuvre: 1, pompes: 1 }, leak: 0,
+    },
+    theirs: {
+      nom: nomPour(pav.vraie, seed),
+      spec: buildSpriteSpec({ hullClass: 3, hullShape: 'auto', sailsPerMast: 2, jibs: 1, wear: 1 },
+        pav.montre || 'free_pirates', seed % 9973),
+      coque: 100, crew: 100, rig: 100, leak: 0,
+    },
+  };
+  // Pavillon nu : la coque garde ses couleurs, la drisse est vide.
+  if (!pav.montre) S.theirs.spec.flag = { motif: 'Uni', bg: '#1a1a1a', sym: '#1a1a1a', accent: '#1a1a1a' };
+  // Un équipage décimé ne tient pas cinq postes : on retire d'abord des pompes.
+  for (const k of ['pompes', 'manoeuvre', 'canons']) {
+    while (used() > R.postes && S.mine.posts[k] > 0) S.mine.posts[k]--;
+  }
+  S.bulle = speak(LINES, 'ouverture', enc.tags, { seed });
+  S.intent = decide();
+}
+
+const used = () => S.mine.posts.canons + S.mine.posts.manoeuvre + S.mine.posts.pompes;
+const firePower = () => (0.55 + 0.15 * S.mine.posts.canons)
+  * S.R.meteoTir * (S.R.premiereMoitie && S.tirs === 0 ? 0.5 : 1);
+const canMan = () => S.mine.posts.manoeuvre >= S.R.manNeed && S.mine.rig > 25;
+
+const POSTES = {
+  canons: { t: 'Aux canons', fx: () => `Bordée ×${firePower().toFixed(2)}` },
+  manoeuvre: {
+    t: 'À la manœuvre',
+    fx: (n) => n >= S.R.manNeed ? 'Peut changer de distance' : `Il en faut ${S.R.manNeed} pour manœuvrer`,
+  },
+  pompes: {
+    t: 'Aux pompes',
+    fx: (n) => n >= S.R.pumpNeed ? "Contient la voie d'eau"
+      : (n > 0 ? "Ralentit la voie d'eau" : "L'eau monte librement"),
+  },
+};
 
 /* --- résolution, sans aléatoire --------------------------------------- */
 function shoot(from, to, ammoId, power) {
-  const a = AMMO[ammoId]; let txt='';
+  const a = AMMO[ammoId];
   const mien = from === S.mine;
   // Ce que la rencontre a changé : on sait où frapper, ou son gréement est usé.
-  const boost = mien ? { boulet:S.R.hullWeak, chaine:S.R.rigFragile }[ammoId] || 1 : 1;
-  const dmg = (v) => Math.round(v * power * boost);
-  if (ammoId==='boulet')     { to.coque -= dmg(16); txt=`${a.ico} La coque encaisse.`; if(to.coque<55) to.leak=1; }
-  if (ammoId==='chaine')     { to.rig   -= dmg(24); txt=`${a.ico} Le gréement tombe.`; }
-  if (ammoId==='mitraille')  { to.crew  -= dmg(20); txt=`${a.ico} La mitraille balaie le pont.`; }
-  if (ammoId==='explosif')   { to.coque -= dmg(9); to.crew -= dmg(9); txt=`${a.ico} Éclats partout.`; }
-  to.coque=Math.max(0,to.coque); to.crew=Math.max(0,to.crew); to.rig=Math.max(0,to.rig);
-  return txt;
+  const boost = mien ? ({ boulet: S.R.hullWeak, chaine: S.R.rigFragile }[ammoId] || 1) : 1;
+  const dmg = (v) => Math.round(v * power * boost * S.R.meteoDegats);
+  let txt = '', perte = 0;
+  if (ammoId === 'boulet')    { perte = dmg(16); to.coque -= perte; txt = 'La coque encaisse.'; }
+  if (ammoId === 'chaine')    { perte = dmg(24); to.rig   -= perte; txt = 'Le gréement tombe.'; }
+  if (ammoId === 'mitraille') { perte = dmg(20); to.crew  -= perte; txt = 'La mitraille balaie le pont.'; }
+  if (ammoId === 'explosif')  { perte = dmg(9); to.coque -= perte; to.crew -= perte; txt = 'Éclats partout.'; }
+  if (ammoId === 'boulet' && to.coque < 55) to.leak = 1;
+  to.coque = Math.max(0, to.coque); to.crew = Math.max(0, to.crew); to.rig = Math.max(0, to.rig);
+  boum(to, perte, ammoId);
+  return `${a.ico} ${txt}`;
+}
+
+// L'impact est joué par src/fx.js, la couche d'effets du jeu.
+function boum(cible, perte, ammoId) {
+  const host = document.querySelector(`.pont-ship[data-side="${cible === S.mine ? 'mine' : 'theirs'}"] .ship-stage`);
+  if (!host) return;
+  const r = host.getBoundingClientRect();
+  const x = r.left + r.width / 2, y = r.top + r.height * 0.55;
+  fxExplosion(x, y, { scale: ammoId === 'explosif' ? 1.4 : 1 });
+  if (perte) fxFloatText(x, y - 12, `−${perte}`, 'dmg');
 }
 
 function decide() {
-  const t=S.theirs, m=S.mine, R=S.R;
-  if (S.turn <= R.gelJusqua) return {k:'rien', why:'Ses postes ne sont pas tenus'};
-  if (S.turn <= R.silentJusqua) return {k:'rien', why:'Le grain couvre tout'};
-  if (R.elleFuit && S.turn===1) return {k:'fuit'};
-  if (t.rig<=25 && S.dist<=MUSKET && t.crew>m.crew) return {k:'board'};
-  if (S.dist>CANNON) return {k:'close'};
-  if (S.dist > R.theirMax) return {k:'attend', why:'Ses canons ne portent pas si loin'};
-  // Elle vise ce qui la sauve : nos canons si on la mitraille, notre coque sinon.
-  const ammo = S.dist<=MUSKET ? 'mitraille' : 'boulet';
-  return {k:'fire', ammo};
+  const t = S.theirs, m = S.mine, R = S.R;
+  if (S.turn <= R.gelJusqua) return { k: 'rien', why: 'ses postes ne sont pas tenus' };
+  if (S.turn <= R.silentJusqua) return { k: 'rien', why: 'le grain couvre tout' };
+  if (R.elleFuit && S.turn === 1) return { k: 'fuit' };
+  if (t.rig <= 25 && S.dist <= MUSKET && t.crew > m.crew) return { k: 'board' };
+  if (S.dist > CANNON) return { k: 'close' };
+  if (S.dist > R.theirMax) return { k: 'attend', why: 'ses canons ne portent pas si loin' };
+  // Elle vise ce qui la sauve : notre équipage de près, notre coque de loin.
+  return { k: 'fire', ammo: S.dist <= MUSKET ? 'mitraille' : 'boulet' };
 }
 
 function endTurn() {
-  const t=S.theirs, m=S.mine, R=S.R;
+  const t = S.theirs, m = S.mine, R = S.R;
   // Sa réponse, annoncée au tour précédent.
-  if (S.intent.k==='close' && t.rig>25 && S.dist>BOARD) { S.dist--; S.log='Elle referme la distance.'; }
-  else if (S.intent.k==='fuit' && S.dist<FAR) { S.dist++; S.log='Elle prend le large — elle n\'attendait pas le combat.'; }
-  else if (S.intent.k==='fire') { S.log = 'Elle riposte. ' + shoot(t,m,S.intent.ammo,R.theirPower); }
-  else if (S.intent.k==='board') { boardBy(t,m); }
-  else if (S.intent.why) { S.log = S.intent.why + '.'; }
+  if (S.intent.k === 'close' && t.rig > 25 && S.dist > BOARD) { S.dist--; S.log = 'Elle referme la distance.'; }
+  else if (S.intent.k === 'fuit' && S.dist < FAR) { S.dist++; S.log = "Elle prend le large — elle n'attendait pas le combat."; }
+  else if (S.intent.k === 'fire') { S.log = 'Elle riposte. ' + shoot(t, m, S.intent.ammo, R.theirPower); }
+  else if (S.intent.k === 'board') { boardBy(t, m); }
+  else if (S.intent.why) { S.log = S.intent.why.charAt(0).toUpperCase() + S.intent.why.slice(1) + '.'; }
 
   // Elle tient la distance tant qu'elle a son gréement (vent à elle).
-  if (R.elleReprend && t.rig>25 && S.dist<R.startDist && S.intent.k!=='close') {
+  if (R.elleReprend && t.rig > 25 && S.dist < R.startDist && S.intent.k !== 'close') {
     S.dist++; S.log += ' Elle a le vent : elle reprend ses distances.';
   }
-  // Un équipage qui se défait tout seul.
   if (R.saignee) t.crew = Math.max(0, t.crew - R.saignee);
 
   // Voie d'eau : les pompes tenues la contiennent, sinon elle ronge.
-  for (const sh of [m,t]) {
+  for (const sh of [m, t]) {
     if (!sh.leak) continue;
-    const held = sh===m ? Math.min(m.posts.pompes, R.pumpNeed) : 1;
-    const monte = sh===t && R.coulePlusVite ? 11 : 6;
-    sh.coque = Math.max(0, sh.coque - Math.max(0, monte - held*3));
+    const held = sh === m ? Math.min(m.posts.pompes, R.pumpNeed) : 1;
+    const monte = sh === t && R.coulePlusVite ? 11 : 6;
+    sh.coque = Math.max(0, sh.coque - Math.max(0, monte - held * 3));
   }
-  S.turn++; S.usedMan=false; S.usedFire=false;
+  S.turn++; S.usedMan = false; S.usedFire = false;
   S.intent = decide();
   check();
 }
@@ -398,222 +311,332 @@ function boardBy(att, def) {
   const loss = Math.round(18 / Math.max(.4, ratio));
   att.crew = Math.max(0, att.crew - loss);
   def.crew = Math.max(0, def.crew - Math.round(loss * ratio));
-  if (def.crew <= 0 || att.crew > def.crew * 1.6) { def.struck = true; }
-  else S.log = 'L\'abordage est repoussé — des deux côtés il manque du monde.';
+  if (def.crew <= 0 || att.crew > def.crew * 1.6) def.struck = true;
+  else S.log = "L'abordage est repoussé — des deux côtés il manque du monde.";
 }
 
 function check() {
-  const m=S.mine, t=S.theirs, R=S.R;
-  // Elle amène son pavillon d'elle-même quand son capitaine renonce.
+  const m = S.mine, t = S.theirs, R = S.R;
   if (!t.struck && !R.neverStrike && t.crew <= R.strikeAt && !S.over) {
     t.struck = true; S.log = 'Elle amène son pavillon.';
   }
   const or = (n) => Math.round(n * R.butin);
-  if (t.coque<=0)  S.over={k:'coulee', titre:'Coulée',
-    txt:`${or(27)} pièces de bois flotté. Une carcasse ne rapporte presque rien.`};
-  else if (t.struck||t.crew<=0) S.over={k:'prise', titre:'Prise !',
-    txt:`${or(180)} d'or et le navire.` + (R.legit<0 ? ' Et une commission à expliquer au gouverneur.' : '')};
-  else if (m.coque<=0) S.over={k:'nous_sombrons', titre:'Vous sombrez', txt:'La mer a eu le dernier mot.'};
-  else if (m.struck||m.crew<=0) S.over={k:'nous_pris', titre:'Votre pont est pris', txt:'Vous vous êtes collé trop tôt.'};
-  if (S.over) S.bulle = speak(LINES, 'denouement', [...S.enc.tags, ...stateTags(battleView()), S.over.k], { seed: S.seed + 3 });
-}
-
-// stateTags() lit la forme de src/battle.js ; la maquette a la sienne.
-const battleView = () => ({ mine:S.mine, theirs:S.theirs, dist:S.dist });
-
-/* --- rendu ------------------------------------------------------------- */
-function drawShipInto(host, sh, facing, w) {
-  host.innerHTML='';
-  const gen = getGeneratedShip(sh.spec);
-  const cv = document.createElement('canvas');
-  const scale = Math.max(1, Math.floor(w / gen.W));
-  cv.width = gen.W*scale; cv.height = gen.H*scale;
-  drawShip(cv, { spriteSpec: sh.spec, facing, waterline:false });
-  // B3 donnerait ici un sprite avarié ; en B2 on se contente d'un voile.
-  cv.style.opacity = sh.coque<40 ? .82 : 1;
-  cv.style.filter = sh.rig<=25 ? 'grayscale(.35)' : 'none';
-  host.appendChild(cv);
-  host.appendChild(Object.assign(document.createElement('div'),
-    {className:'nm', textContent: sh.nom}));
-  const bits=[]; if(sh.rig<=25) bits.push('démâtée'); if(sh.leak) bits.push('voie d\'eau');
-  host.appendChild(Object.assign(document.createElement('div'),
-    {className:'sub', textContent: bits.length?bits.join(' · '):' '}));
-
-  // De nuit ou dans la brume, on ne lit pas ses jauges avant d'être dessus.
-  const voile = !sh.mineSide && S.R.cache && S.dist > MUSKET;
-  const g=document.createElement('div'); g.className='gauges';
-  g.appendChild(gauge('coque','Coque', sh.coque, !sh.mineSide, voile));
-  g.appendChild(gauge('crew','Équipage', sh.crew, !sh.mineSide, voile));
-  host.appendChild(g);
-}
-function gauge(cls, label, val, aimable, voile) {
-  const d=document.createElement('div');
-  d.className='g '+cls+(aimable?' aimable':'');
-  d.innerHTML=`<span class="lb">${label}</span><span class="track">
-    <span class="fill" style="width:${voile?0:val}%"></span>
-    <span class="num">${voile?'—':Math.round(val)}</span></span>`;
-  return d;
-}
-
-// La bande de traits : ce que le joueur doit savoir avant de décider.
-function renderSetup(host) {
-  host.innerHTML='';
-  for (const n of S.notables) {
-    const d=document.createElement('div');
-    d.className='trait ' + (n.degre||'') + (ACTIFS.has(n.id) ? ' actif' : '');
-    const nom = n.axeLabel ? `${n.axeLabel} — ${n.label}` : n.label;
-    d.innerHTML=`<span class="n">${nom}</span>`+(n.effet?`<span class="e">${n.effet}</span>`:'');
-    host.appendChild(d);
+  if (t.coque <= 0) S.over = { k: 'coulee', titre: 'Coulée', gain: `${or(27)} 💰`,
+    note: 'Une carcasse ne rapporte presque rien. Une prise vaut cinq fois plus.' };
+  else if (t.struck || t.crew <= 0) S.over = { k: 'prise', titre: 'Prise !', gain: `${or(180)} 💰 + le navire`,
+    note: R.legit < 0 ? 'Et une commission à expliquer au gouverneur.' : '' };
+  else if (m.coque <= 0) S.over = { k: 'nous_sombrons', titre: 'Vous sombrez', gain: '—',
+    note: 'La mer a eu le dernier mot.' };
+  else if (m.struck || m.crew <= 0) S.over = { k: 'nous_pris', titre: 'Votre pont est pris', gain: '—',
+    note: 'Vous vous êtes collé trop tôt.' };
+  if (S.over) {
+    S.bulle = speak(LINES, 'denouement', [...S.enc.tags, ...stateTags(vue()), S.over.k], { seed: S.seed + 3 });
+    S.bulleNeuve = true;
   }
 }
 
-function renderBulle() {
-  const B=document.getElementById('bulle');
-  if (!S.bulle) { B.className='bulle vide'; B.innerHTML=''; return; }
-  B.className='bulle';
-  B.innerHTML=`<div class="qui">${S.bulle.voix.nom||S.bulle.voix}</div>
-    <div class="dit">« ${S.bulle.texte} »</div>`;
-}
+// stateTags() lit la forme de src/battle.js ; la maquette a la sienne.
+const vue = () => ({ mine: S.mine, theirs: S.theirs, dist: S.dist });
 
 // La bascule : dite une seule fois, au moment où le combat change de nature.
 function checkBascule() {
   if (S.basculeDite || S.over) return;
-  const etat = stateTags(battleView());
+  const etat = stateTags(vue());
   if (!etat.length && S.turn < 4) return;
   S.basculeDite = true;
   const dit = speak(LINES, 'bascule', [...S.enc.tags, ...etat], { seed: S.seed + 1 });
-  if (dit) S.bulle = dit;
+  if (dit) { S.bulle = dit; S.bulleNeuve = true; }
+}
+
+/* --- rendu, sur les composants du jeu ---------------------------------- */
+function shipBlock(sh, side) {
+  const wrap = el('div', { class: 'pont-ship' });
+  wrap.dataset.side = side;
+
+  const gen = getGeneratedShip(sh.spec);
+  const scale = side === 'mine' ? 5 : 4;
+  const canvas = el('canvas', { class: 'ship-canvas' });
+  canvas.width = gen.W * scale; canvas.height = gen.H * scale;
+  drawGrid(canvas, gen.grid, {
+    color: gen.palette, flag: '', facing: side === 'mine' ? 1 : -1,
+    damaged: 1 - sh.coque / 100,
+  });
+  canvas.style.position = 'absolute';
+  canvas.style.top = '10px';
+  const waterPx = Math.round(gen.waterY * scale);
+  const clip = el('div', {
+    class: 'ship-waterline-clip',
+    style: `width:${gen.W * scale}px;height:${waterPx + 10}px`,
+  }, [canvas]);
+  const stage = el('div', {
+    class: `ship-stage in-combat${sh.coque < 40 ? ' smoking' : ''}`,
+    style: `width:${gen.W * scale}px;height:${waterPx + 10}px`,
+  }, [clip]);
+  wrap.appendChild(stage);
+
+  const bits = [];
+  if (sh.rig <= 25) bits.push('démâtée');
+  if (sh.leak) bits.push("voie d'eau");
+  wrap.appendChild(el('div', { class: 'pont-cap' }, [
+    el('b', { text: sh.nom }),
+    bits.length ? el('span', { class: 'warn', text: ' · ' + bits.join(' · ') }) : null,
+  ]));
+
+  // De nuit ou dans la brume, on ne lit pas ses jauges avant d'être dessus.
+  const voile = side === 'theirs' && S.R.cache && S.dist > MUSKET;
+  wrap.appendChild(el('div', { class: 'rc-jauges' }, [
+    jauge('Coque', sh.coque, 'hp', voile),
+    jauge('Équipage', sh.crew, 'shield', voile),
+  ]));
+  return wrap;
+}
+
+function jauge(label, val, kind, voile) {
+  const b = bar(voile ? 0 : val, 100, kind);
+  if (voile) b.querySelector('.bar-num').textContent = '— / —';
+  else b.querySelector('.bar-num').textContent = `${Math.round(val)}`;
+  return el('div', { class: `rc-jauge${voile ? ' voilee' : ''}` }, [
+    el('span', { class: 'lb', text: label }), b,
+  ]);
+}
+
+function trait(n) {
+  const nom = n.axeLabel ? `${n.axeLabel} — ${n.label}` : n.label;
+  return el('div', {
+    class: `rc-trait ${n.degre || ''}${ACTIFS.has(n.id) ? ' actif' : ''}`,
+    attrs: { title: n.effet || nom },
+  }, [
+    el('span', { class: 'n', text: nom }),
+    n.effet ? el('span', { class: 'e', text: n.effet }) : null,
+  ]);
+}
+
+function bandeau() {
+  const w = DB.weather[S.meteo];
+  const b = el('div', { class: 'rc-bandeau' }, [
+    el('span', { class: 'rc-meteo', attrs: { title: w.desc_fr } }, [
+      el('span', { class: 'ico', text: w.icon }),
+      el('span', { class: 'nom', text: w.name_fr }),
+    ]),
+  ]);
+  for (const n of S.notables) b.appendChild(trait(n));
+  return b;
+}
+
+function bulle() {
+  if (!S.bulle) return null;
+  const node = el('div', { class: `rc-bulle${S.bulleNeuve ? ' neuve' : ''}` }, [
+    el('div', { class: 'qui', text: S.bulle.voix.nom || S.bulle.voix }),
+    el('div', { class: 'dit', text: `« ${S.bulle.texte} »` }),
+  ]);
+  S.bulleNeuve = false;
+  return node;
+}
+
+function postes() {
+  const R = S.R, m = S.mine;
+  const box = el('div', { class: 'rc-postes' }, [
+    el('h4', {}, [
+      document.createTextNode("Répartition de l'équipage"),
+      el('small', { text: `${used()} / ${R.postes} postes tenus · les hommes ne peuvent pas être à deux endroits` }),
+    ]),
+  ]);
+  const row = el('div', { class: 'rc-poste-rangee' });
+  for (const k of ['canons', 'manoeuvre', 'pompes']) {
+    const n = m.posts[k];
+    const suffisant = k === 'canons' || n >= (k === 'manoeuvre' ? R.manNeed : R.pumpNeed);
+    const minus = el('button', { text: '−', on: { click: () => { m.posts[k]--; render(); } } });
+    const plus = el('button', { text: '+', on: { click: () => { m.posts[k]++; render(); } } });
+    minus.disabled = n <= 0 || !!S.over;
+    plus.disabled = used() >= R.postes || !!S.over;
+    row.appendChild(el('div', { class: `rc-poste${suffisant && n > 0 ? ' plein' : ''}` }, [
+      el('div', { class: 't', text: POSTES[k].t }),
+      el('div', { class: 'v', text: String(n) }),
+      el('div', { class: `fx${suffisant ? '' : ' warn'}`, text: POSTES[k].fx(n) }),
+      el('div', { class: 'rc-poste-btns' }, [minus, plus]),
+    ]));
+  }
+  box.appendChild(row);
+  return box;
+}
+
+const INTENT = {
+  fire: (iv) => `tirer ${AMMO[iv.ammo].ico} ${AMMO[iv.ammo].nom}`,
+  close: () => 'refermer la distance',
+  board: () => 'vous aborder',
+  fuit: () => 'prendre le large',
+  attend: (iv) => `attendre — ${iv.why}`,
+  rien: (iv) => `ne rien faire — ${iv.why}`,
+};
+
+function actions() {
+  const m = S.mine, t = S.theirs, R = S.R;
+  const ammoRow = el('div', { class: 'bat-ammo' });
+  for (const [id, a] of Object.entries(AMMO)) {
+    const far = S.dist > a.max;
+    ammoRow.appendChild(el('button', {
+      class: `bat-ammo-btn${S.ammo === id ? ' on' : ''}${far ? ' far' : ''}`,
+      attrs: { title: far ? 'Hors de portée' : a.hint },
+      on: { click: () => { S.ammo = id; render(); } },
+    }, [el('span', { class: 'ico', text: a.ico }), el('span', { class: 'lbl', text: a.nom })]));
+  }
+
+  const btns = el('div', { class: 'bat-buttons' });
+  const mk = (label, why, fn, cls = '') => {
+    const b = el('button', { class: `bat-btn ${cls}${why ? ' off' : ''}` }, [
+      el('span', { text: label }),
+      why ? el('span', { class: 'why', text: why }) : null,
+    ]);
+    if (why) b.disabled = true; else b.addEventListener('click', fn);
+    btns.appendChild(b);
+  };
+  const manque = `${R.manNeed} hommes à la manœuvre`;
+  mk(`${AMMO[S.ammo].ico} Tirer`,
+    S.over ? '—' : S.usedFire ? 'Déjà tiré' : S.dist > AMMO[S.ammo].max ? 'Hors de portée'
+      : S.turn <= R.silentJusqua ? 'Le grain couvre tout'
+      : S.tirs >= R.tirsMax ? 'Plus de poudre' : null,
+    () => { S.usedFire = true; S.tirs++; S.log = shoot(m, t, S.ammo, firePower()); checkBascule(); check(); render(); },
+    'primary');
+  mk("→ S'approcher",
+    S.over ? '—' : S.usedMan ? 'Déjà manœuvré' : !canMan() ? manque
+      : S.turn < R.pasAvant ? `Pas avant le tour ${R.pasAvant}` : S.dist === BOARD ? '—' : null,
+    () => {
+      S.usedMan = true; S.dist--;
+      if (R.approachDmg) {
+        m.coque = Math.max(0, m.coque - R.approachDmg);
+        if (m.coque < 55) m.leak = 1;
+        S.log = `Un fond dur : la coque touche. −${R.approachDmg}`;
+        boum(m, R.approachDmg, 'boulet');
+      }
+      checkBascule(); check(); render();
+    });
+  mk('← Rompre',
+    S.over ? '—' : R.noBreak ? 'Impossible ici' : S.usedMan ? 'Déjà manœuvré'
+      : !canMan() ? manque : S.dist === FAR ? '—' : null,
+    () => { S.usedMan = true; S.dist++; render(); });
+  mk('⚔ Aborder',
+    S.over ? '—' : S.dist !== BOARD ? 'Bord à bord' : null,
+    () => { boardBy(m, t); S.usedFire = S.usedMan = true; checkBascule(); check(); render(); },
+    'board');
+  mk('⏭ Fin de tour', S.over ? '—' : null, () => { endTurn(); checkBascule(); render(); });
+
+  return el('div', { class: 'bat-actions' }, [
+    ammoRow,
+    el('div', { class: 'bat-ammo-hint', text: AMMO[S.ammo].hint }),
+    btns,
+  ]);
 }
 
 function render() {
-  const m=S.mine, t=S.theirs, R=S.R;
-  m.mineSide=true; t.mineSide=false;
-
-  renderSetup(document.getElementById('setup'));
-  renderBulle();
-
-  document.getElementById('range').innerHTML =
-    RANGES.map((r,i)=> i===S.dist?`<b>${r}</b>`:r).reverse().join(' · ') +
-    `<span class="turn">Tour ${S.turn}</span>`;
-
-  drawShipInto(document.getElementById('mine'), m, 1, 210);
-  drawShipInto(document.getElementById('theirs'), t, -1, 180);
-
-  // Postes — le curseur de décision
-  const P=document.getElementById('posts');
-  P.innerHTML=`<h4>Répartition de l'équipage <small>${used()} / ${R.postes} postes tenus · les hommes ne peuvent pas être à deux endroits</small></h4>`;
-  const row=document.createElement('div'); row.className='postrow';
-  for (const k of ['canons','manoeuvre','pompes']) {
-    const n=m.posts[k];
-    const d=document.createElement('div'); d.className='post';
-    d.innerHTML=`<div class="t">${POSTS[k].t}</div><div class="v">${n}</div>
-      <div class="fx">${POSTS[k].fx(n)}</div>`;
-    const b=document.createElement('div'); b.className='btns';
-    const minus=Object.assign(document.createElement('button'),{textContent:'−'});
-    const plus =Object.assign(document.createElement('button'),{textContent:'+'});
-    minus.disabled = n<=0 || S.over;
-    plus.disabled  = used()>=R.postes || S.over;
-    minus.onclick=()=>{ m.posts[k]--; render(); };
-    plus.onclick =()=>{ m.posts[k]++; render(); };
-    b.append(minus,plus); d.appendChild(b); row.appendChild(d);
+  state.screen = 'bataille';   // fond « mer » (§8.2)
+  const strip = el('div', { class: 'bat-range' });
+  for (let d = FAR; d >= BOARD; d--) {
+    strip.appendChild(el('span', { class: `bat-range-step${d === S.dist ? ' now' : ''}`, text: RANGES[d] }));
   }
-  P.appendChild(row);
+  strip.appendChild(el('span', { class: 'bat-turn', text: `Tour ${S.turn}` }));
 
-  const iv=S.intent;
-  const INTENT = {
-    fire:  () => `tirer ${AMMO[iv.ammo].ico} ${AMMO[iv.ammo].nom}`,
-    close: () => 'refermer la distance',
-    board: () => 'vous aborder',
-    fuit:  () => 'prendre le large',
-    attend:() => `attendre — ${iv.why.toLowerCase()}`,
-    rien:  () => `ne rien faire — ${iv.why.toLowerCase()}`,
-  };
-  document.getElementById('intent').innerHTML = iv ? `⚠ <b>Elle va</b> : ${INTENT[iv.k]()}` : '';
+  mount(el('div', { class: 'screen bat-screen' }, [
+    bandeau(),
+    strip,
+    el('div', { class: 'pont-sea bat-sea' }, [shipBlock(S.mine, 'mine'), shipBlock(S.theirs, 'theirs')]),
+    bulle(),
+    postes(),
+    el('div', { class: 'bat-intent' }, [
+      S.intent ? el('span', {}, [
+        el('span', { class: 'warn', text: '⚠ Elle va : ' }),
+        document.createTextNode(INTENT[S.intent.k](S.intent)),
+      ]) : null,
+      S.log ? el('span', { class: 'bat-note', text: '  ' + S.log }) : null,
+    ]),
+    actions(),
+    el('div', { class: 'bat-rules', text: 'Chaque tour : répartissez vos hommes (gratuit), puis UNE manœuvre et UNE bordée. Les deux sont facultatives.' }),
+  ]));
 
-  // Munitions
-  const A=document.getElementById('ammo'); A.innerHTML='';
-  for (const [id,a] of Object.entries(AMMO)) {
-    const b=document.createElement('button');
-    b.className = S.ammo===id?'on':'';
-    b.innerHTML=`<span>${a.ico}</span><span>${a.nom}</span>`;
-    b.disabled = S.dist > a.max;
-    b.title = S.dist>a.max ? 'Hors de portée' : a.hint;
-    b.onclick=()=>{ S.ammo=id; render(); };
-    A.appendChild(b);
-  }
-  document.getElementById('hint').textContent = AMMO[S.ammo].hint;
-
-  // Actions
-  const C=document.getElementById('acts'); C.innerHTML='';
-  const mk=(label,why,fn,cta)=>{
-    const b=document.createElement('button'); if(cta) b.className='cta';
-    b.innerHTML=`<span>${label}</span>`+(why?`<span class="why">${why}</span>`:'');
-    b.disabled=!!why; if(!why) b.onclick=fn; C.appendChild(b);
-  };
-  const tooFar = S.dist > AMMO[S.ammo].max;
-  const manque = `${R.manNeed} hommes à la manœuvre`;
-  mk(`${AMMO[S.ammo].ico} Tirer`,
-     S.over?'—':S.usedFire?'Déjà tiré':tooFar?'Hors de portée'
-       :S.turn<=R.silentJusqua?'Le grain couvre tout'
-       :S.tirs>=R.tirsMax?'Plus de poudre':null,
-     ()=>{ S.usedFire=true; S.tirs++; S.log = shoot(m,t,S.ammo,firePower());
-           checkBascule(); check(); render(); }, true);
-  mk('→ S\'approcher',
-     S.over?'—':S.usedMan?'Déjà manœuvré':!canMan()?manque
-       :S.turn<R.pasAvant?`Pas avant le tour ${R.pasAvant}`:S.dist===BOARD?'—':null,
-     ()=>{ S.usedMan=true; S.dist--;
-           if (R.approachDmg) { m.coque=Math.max(0,m.coque-R.approachDmg);
-             S.log=`Un fond dur : la coque touche. −${R.approachDmg}`; if(m.coque<55) m.leak=1; }
-           checkBascule(); check(); render(); });
-  mk('← Rompre',
-     S.over?'—':R.noBreak?'Impossible ici':S.usedMan?'Déjà manœuvré'
-       :!canMan()?manque:S.dist===FAR?'—':null,
-     ()=>{ S.usedMan=true; S.dist++; render(); });
-  mk('⚔ Aborder',
-     S.over?'—':S.dist!==BOARD?'Bord à bord':null,
-     ()=>{ boardBy(m,t); S.usedFire=S.usedMan=true; checkBascule(); check(); render(); });
-  mk('⏭ Fin de tour', S.over?'—':null, ()=>{ endTurn(); checkBascule(); render(); });
-
-  document.getElementById('log').textContent = S.log || ' ';
-
-  document.querySelector('.over')?.remove();
-  if (S.over) {
-    const o=document.createElement('div'); o.className='over';
-    o.innerHTML=`<h2>${S.over.titre}</h2><p>${S.over.txt}</p>`;
-    const b=Object.assign(document.createElement('button'),{textContent:'↺ Un autre combat'});
-    b.onclick=()=>{ fresh(); render(); };
-    o.appendChild(b); document.body.appendChild(o);
-  }
-
-  document.querySelector('.carte')?.remove();
-  if (!S.engage) document.body.appendChild(carteDouverture());
+  if (!S.engage) carteDouverture();
+  if (S.over) fin();
 }
+
+/* --- modales, sur src/ui.js ------------------------------------------- */
 
 // La carte d'ouverture : le seul endroit où le joueur voit la rencontre en
 // entier avant d'y entrer. Ce qu'elle ne montre pas, l'équipage en parle.
 function carteDouverture() {
-  const c=document.createElement('div'); c.className='carte';
-  c.innerHTML=`<h2>À la vue</h2><p class="resume">${summarise(DATA, S.enc)}</p>`;
-  const s=document.createElement('div'); s.className='setup';
-  renderSetup(s);
-  c.appendChild(S.notables.length ? s
-    : Object.assign(document.createElement('p'),
-        {className:'rien', textContent:'Rien de particulier. Une voile, une bonne mer, une journée ordinaire.'}));
-  if (S.bulle) {
-    const b=document.createElement('div'); b.className='bulle'; b.style.marginTop='14px';
-    b.innerHTML=`<div class="qui">${S.bulle.voix.nom||S.bulle.voix}</div>
-      <div class="dit">« ${S.bulle.texte} »</div>`;
-    c.appendChild(b);
-  }
-  const go=Object.assign(document.createElement('button'),{className:'go',textContent:'Engager'});
-  go.onclick=()=>{ S.engage=true; render(); };
-  c.appendChild(go);
-  c.appendChild(Object.assign(document.createElement('p'),
-    {className:'seed', textContent:`tirage ${S.seed} · ${S.enc.tags.length} traits, ${S.notables.length} montrés`}));
-  return c;
+  if (document.querySelector('.rc-carte')) return;
+  const b = el('div', { class: 'rc-bandeau' });
+  for (const n of S.notables) b.appendChild(trait(n));
+
+  const box = el('div', { class: 'rc-carte' }, [
+    el('h2', { text: 'À la vue' }),
+    el('p', { class: 'resume', text: summarise(DATA, S.enc) }),
+    S.notables.length ? b
+      : el('p', { class: 'rien', text: 'Rien de particulier. Une voile, une bonne mer, une journée ordinaire.' }),
+    S.bulle ? el('div', { class: 'rc-bulle', style: 'margin-top:14px' }, [
+      el('div', { class: 'qui', text: S.bulle.voix.nom || S.bulle.voix }),
+      el('div', { class: 'dit', text: `« ${S.bulle.texte} »` }),
+    ]) : null,
+    el('div', { class: 'rc-actions' }, [
+      el('button', { class: 'btn-level-1', text: 'Engager', on: { click: () => { close(); S.engage = true; render(); } } }),
+      el('button', { class: 'btn-level-4', text: '↻ Une autre', on: { click: () => { close(); fresh(); render(); } } }),
+    ]),
+  ]);
+  const { close } = modal(box, { closable: false });
 }
 
-fresh(); render();
+function fin() {
+  if (document.querySelector('.bat-outcome')) return;
+  const gagne = S.over.k === 'prise' || S.over.k === 'coulee';
+  document.body.appendChild(el('div', { class: `bat-outcome ${gagne ? 'won' : 'lost'}` }, [
+    el('h2', { text: S.over.titre }),
+    el('p', { text: `Butin : ${S.over.gain}` }),
+    S.over.note ? el('p', { class: 'warn', text: S.over.note }) : null,
+    el('div', { class: 'bat-outcome-btns' }, [
+      el('button', {
+        class: 'btn-level-1', text: '↺ Un autre combat',
+        on: { click: () => { document.querySelector('.bat-outcome').remove(); fresh(); render(); } },
+      }),
+    ]),
+  ]));
+}
+
+/* --- outils de développement, tous derrière la roue crantée ------------ */
+document.body.appendChild(el('button', {
+  class: 'rc-gear', text: '⚙', attrs: { title: 'Outils de maquette' },
+  on: { click: showDev },
+}));
+
+function showDev() {
+  const inconnus = S.enc.tags.filter((t) => !ACTIFS.has(t));
+  const listeTags = el('ul');
+  for (const t of S.enc.tags) listeTags.appendChild(el('li', { class: ACTIFS.has(t) ? 'actif' : '', text: t }));
+
+  const box = el('div', { class: 'rc-carte' }, [
+    el('h2', { text: 'Maquette B2' }),
+    el('div', { class: 'rc-dev' }, [
+      el('p', { text: 'Maquette jetable — deux jauges, répartition d\'équipage, pas de salles. Jouez cinq combats : le tour contient-il une vraie décision, et les cinq sont-ils cinq ?' }),
+      el('h5', { text: 'Ce tirage' }),
+      el('p', {}, [
+        document.createTextNode('graine '), el('span', { class: 'val', text: String(S.seed) }),
+        document.createTextNode(' · météo '), el('span', { class: 'val', text: `${S.meteo} (${DB.weather[S.meteo].name_fr})` }),
+        document.createTextNode(' · ciel '), el('span', { class: 'val', text: oceanSceneFor(S.enc) }),
+        document.createTextNode(' · pavillon montré '), el('span', { class: 'val', text: S.pav.montre || '(nu)' }),
+        S.pav.ment ? el('span', { class: 'val', text: ` — en réalité ${S.pav.vraie}` }) : null,
+      ]),
+      el('h5', { text: `Tags tirés (${S.enc.tags.length}, dont ${S.notables.length} montrés)` }),
+      listeTags,
+      el('p', { text: `Encadré = câblé sur une règle. ${inconnus.length} tag(s) ne servent qu'au dialogue.` }),
+      el('h5', { text: 'Règles effectives' }),
+      el('p', { text: Object.entries(S.R).filter(([, v]) => v !== false && v !== 0)
+        .map(([k, v]) => `${k}=${typeof v === 'number' ? +v.toFixed(2) : v}`).join(' · ') }),
+    ]),
+    el('div', { class: 'rc-actions' }, [
+      el('button', { class: 'btn-level-4', text: 'Fermer', on: { click: () => close() } }),
+    ]),
+  ]);
+  const { close } = modal(box);
+}
+
+fresh();
+render();
 </script>
 </body>
 </html>

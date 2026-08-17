@@ -8,7 +8,10 @@
 
 import { readFileSync } from 'node:fs';
 import { suite, test, assert, equal, empty } from './harness.js';
-import { rollEncounter, notableOf, summarise, AFFICHAGE_MAX } from '../src/rencontre.js';
+import {
+  rollEncounter, notableOf, summarise, AFFICHAGE_MAX,
+  weatherFor, oceanSceneFor, flagFor,
+} from '../src/rencontre.js';
 import { speak } from '../src/rencontre.js';
 
 const root = new URL('../', import.meta.url);
@@ -353,6 +356,98 @@ test('nothing that changes the fight is ever cut from the card', () => {
     for (const id of enc.epices) if (!shown.has(id)) bad.push(`tirage ${i}: l'épice "${id}" est cachée au joueur`);
   }
   empty(bad, 'hidden spices');
+});
+
+suite('rencontres — ce que le tirage donne aux systèmes existants');
+
+const WEATHER = readJson('data/weather.json');
+const FACTIONS = readJson('data/factions.json');
+const CIELS = ['dawn', 'day', 'cloudy', 'storm', 'sunset', 'night'];
+
+// La météo reste en jeu (CLAUDE.md) : le tirage doit lui parler, et ne jamais
+// nommer un temps qui n'existe pas dans data/weather.json.
+test('every draw names a real weather and a real sky', () => {
+  const bad = [];
+  const vus = new Set(), ciels = new Set();
+  for (let i = 1; i <= 400; i++) {
+    const enc = rollEncounter(DATA, { seed: i * 2654435761 });
+    const m = weatherFor(enc), c = oceanSceneFor(enc);
+    if (!WEATHER[m]) bad.push(`tirage ${i}: météo inconnue "${m}"`);
+    if (!CIELS.includes(c)) bad.push(`tirage ${i}: ciel inconnu "${c}"`);
+    vus.add(m); ciels.add(c);
+  }
+  empty(bad, 'unknown weather or sky');
+  console.log(`      météos rencontrées : ${[...vus].join(', ')}`);
+  console.log(`      ciels rencontrés : ${[...ciels].join(', ')}`);
+});
+
+// Un temps qui ne sort jamais est du contenu mort ; un ciel unique, un décor.
+test('the weather actually varies from fight to fight', () => {
+  const count = {};
+  const N = 600;
+  for (let i = 1; i <= N; i++) {
+    const m = weatherFor(rollEncounter(DATA, { seed: i * 40503 }));
+    count[m] = (count[m] || 0) + 1;
+  }
+  const dominant = Math.max(...Object.values(count));
+  assert(Object.keys(count).length >= 4,
+    `seulement ${Object.keys(count).length} temps différents sur ${N} combats`);
+  assert(dominant / N < 0.8,
+    `un seul temps sort dans ${(100 * dominant / N).toFixed(0)}% des combats`);
+  console.log('      ' + Object.entries(count).map(([k, v]) => `${k} ${v}`).join(' · '));
+});
+
+// La plainte qui a déclenché ce travail : toujours le même pavillon. Chaque
+// réglage de l'axe doit donner une faction qui existe dans data/factions.json.
+test('every flag setting maps to a real faction', () => {
+  const bad = [];
+  for (const r of DATA.socle.pavillon.reglages) {
+    const enc = { seed: 12345, socle: { pavillon: r.id }, tags: [r.id], epices: [] };
+    const f = flagFor(enc);
+    for (const k of ['montre', 'vraie']) {
+      if (f[k] === null) continue;                   // pavillon nu, voulu
+      if (!FACTIONS[f[k]]) bad.push(`${r.id} → ${k} "${f[k]}" absent de factions.json`);
+    }
+  }
+  empty(bad, 'unknown factions');
+});
+
+// « Aucun pavillon » est un réglage, pas une absence de réglage. Confondre les
+// deux repeignait discrètement des couleurs espagnoles sur une drisse nue —
+// invisible dans les tests d'intégrité, visible seulement en comptant.
+test('a bare halyard stays bare', () => {
+  const enc = { seed: 99, socle: { pavillon: 'pav_aucun' }, tags: ['pav_aucun'], epices: [] };
+  const f = flagFor(enc);
+  equal(f.montre, null, 'pav_aucun doit ne montrer aucun pavillon');
+  equal(f.vraie, null, 'pav_aucun ne cache rien non plus');
+});
+
+test('a false flag never shows what she really is', () => {
+  const bad = [];
+  const montres = new Set();
+  for (let i = 1; i <= 400; i++) {
+    const enc = { seed: i * 7919, socle: { pavillon: 'pav_faux' }, tags: ['pav_faux'], epices: [] };
+    const f = flagFor(enc);
+    if (!f.ment) bad.push(`tirage ${i}: pav_faux ne ment pas`);
+    if (f.montre === f.vraie) bad.push(`tirage ${i}: montre et est "${f.montre}"`);
+    montres.add(f.montre);
+  }
+  empty(bad, 'false flags that tell the truth');
+  assert(montres.size >= 3, `un faux pavillon ne prend que ${montres.size} apparence(s)`);
+});
+
+test('the flags flown across a career are not always the same', () => {
+  const count = {};
+  const N = 400;
+  for (let i = 1; i <= N; i++) {
+    const f = flagFor(rollEncounter(DATA, { seed: i * 2246822519 }));
+    const k = f.montre || '(nu)';
+    count[k] = (count[k] || 0) + 1;
+  }
+  const dominant = Math.max(...Object.values(count));
+  assert(Object.keys(count).length >= 4, `seulement ${Object.keys(count).length} pavillons différents`);
+  assert(dominant / N < 0.85, `le même pavillon dans ${(100 * dominant / N).toFixed(0)}% des combats`);
+  console.log('      ' + Object.entries(count).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · '));
 });
 
 suite('phylactères — sélection');

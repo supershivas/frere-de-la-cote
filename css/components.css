@@ -144,17 +144,25 @@
    ========================================= */
 .bars-grid { display: flex; flex-direction: column; gap: var(--space-lg); max-width: 500px; }
 .bar-item { display: flex; flex-direction: column; gap: var(--space-xs); }
-/* ⚠ RÉCONCILIER avec la version jeu : .bar-hp */
-.bar-hp { width: 100%; height: 16px; background: var(--bg-dark); border: 1px solid #333; border-radius: 8px; overflow: hidden; position: relative; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
-/* ⚠ RÉCONCILIER avec la version jeu : .bar-hp */
-.bar-hp__fill { height: 100%; border-radius: inherit; transition: width 0.4s var(--ease-fast); box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.2); }
-.bar--hp .bar-hp__fill { background: linear-gradient(90deg, var(--hp-dark), var(--hp)); }
-.bar--shield .bar-hp__fill { background: linear-gradient(90deg, var(--shield-dark), var(--shield)); }
-.bar--armor .bar-hp__fill { background: linear-gradient(90deg, #7f8c8d, var(--armor-light)); }
-.bar--morale .bar-hp__fill { background: linear-gradient(90deg, var(--morale-dark), var(--gold-light)); }
-.bar--fatigue .bar-hp__fill { background: linear-gradient(90deg, var(--fatigue-dark), var(--fatigue)); }
-.bar--low .bar-hp__fill { animation: pulse-low 2s infinite; }
-.bar--critical .bar-hp__fill { background: linear-gradient(90deg, #8e1600, var(--hp)); animation: pulse-critical 0.8s infinite; }
+/* RÉCONCILIÉ : il y avait ici un second .bar-hp, propre à la documentation et
+   utilisé par rien, qui masquait celui du jeu dès que cette feuille était
+   chargée sans style.css — la jauge sortait noire et sans remplissage. Les
+   règles réelles vivent désormais ci-dessous : une seule définition. */
+.bar { position: relative; height: 19px; background: #05070bcc; border-radius: 5px; overflow: hidden; border: 1px solid #000a; box-shadow: inset 0 1px 2px #000a; }
+.bar-fill { position: absolute; inset: 0; width: 0; transition: width 0.35s ease; border-radius: 5px 0 0 5px; }
+.bar-hp .bar-fill { background: linear-gradient(90deg, var(--hp-dark), var(--hp)); box-shadow: inset 0 0 8px #ff9a8a55; }
+.bar-shield .bar-fill { background: linear-gradient(90deg, var(--shield-dark), var(--shield)); box-shadow: inset 0 0 8px #9fd0ff55; }
+.bar-label {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: 12px; line-height: 1; font-weight: 800;
+  color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  letter-spacing: 0.02em;
+}
+.bar-ico { font-size: 11px; filter: drop-shadow(0 1px 1px #000); }
+.bar-num { font-variant-numeric: tabular-nums; }
+.bar--low .bar-fill { animation: pulse-low 2s infinite; }
+.bar--critical .bar-fill { background: linear-gradient(90deg, #8e1600, var(--hp)); animation: pulse-critical 0.8s infinite; }
 @keyframes pulse-low { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
 @keyframes pulse-critical { 0%, 100% { opacity: 1; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 0 8px var(--hp); } 50% { opacity: 0.7; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3), 0 0 15px var(--hp); } }
 
