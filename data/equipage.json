@@ -1,0 +1,345 @@
+{
+  "_doc": "Le contenu des cartes d'équipage. Un rôle = un verbe (la règle, dans src/cartes.js) ; un quart = une couleur (la combinatoire) ; une carte = un homme (le contenu, ici). Ajouter un matelot ne doit demander aucune ligne de code.",
+  "roles": {
+    "canonnier": {
+      "nom": "canonnier",
+      "verbe": "ajoute sa valeur à la puissance",
+      "aide": "Le chiffre de la carte part directement dans la puissance de la volée.",
+      "couleur": "--hp",
+      "court": "canon"
+    },
+    "gabier": {
+      "nom": "gabier",
+      "verbe": "+1 au multiplicateur",
+      "aide": "Faible en puissance, il gagne le vent : chaque gabier joué ajoute 1 au multiplicateur.",
+      "couleur": "--info",
+      "court": "gabier"
+    },
+    "abordeur": {
+      "nom": "abordeur",
+      "verbe": "valeur doublée si la prise est à moins de la moitié",
+      "aide": "Inutile tant que la coque tient. Dès que la prise est sous la moitié, sa valeur compte double.",
+      "couleur": "--warning",
+      "court": "abord."
+    },
+    "charpentier": {
+      "nom": "charpentier",
+      "verbe": "aucune puissance ; rend un largage et jette un Feu",
+      "aide": "Ne frappe pas. Il rend un largage et retire une carte Feu de ton jeu.",
+      "couleur": "--success",
+      "court": "charp."
+    }
+  },
+  "equipage": [
+    {
+      "id": "le_basque",
+      "nom": "Le Basque",
+      "role": "canonnier",
+      "quart": "ba",
+      "valeur": 5
+    },
+    {
+      "id": "perrin",
+      "nom": "Perrin",
+      "role": "canonnier",
+      "quart": "ba",
+      "valeur": 4
+    },
+    {
+      "id": "guillou",
+      "nom": "Guillou",
+      "role": "canonnier",
+      "quart": "br",
+      "valeur": 5
+    },
+    {
+      "id": "riou",
+      "nom": "Riou",
+      "role": "canonnier",
+      "quart": "ta",
+      "valeur": 4
+    },
+    {
+      "id": "bosser",
+      "nom": "Bosser",
+      "role": "canonnier",
+      "quart": "ba",
+      "valeur": 4
+    },
+    {
+      "id": "kerlouan",
+      "nom": "Kerlouan",
+      "role": "gabier",
+      "quart": "ba",
+      "valeur": 1
+    },
+    {
+      "id": "mahe",
+      "nom": "Mahé",
+      "role": "gabier",
+      "quart": "br",
+      "valeur": 1
+    },
+    {
+      "id": "le_bihan",
+      "nom": "Le Bihan",
+      "role": "gabier",
+      "quart": "ta",
+      "valeur": 1
+    },
+    {
+      "id": "nedelec",
+      "nom": "Nédélec",
+      "role": "gabier",
+      "quart": "tr",
+      "valeur": 2
+    },
+    {
+      "id": "tanguy",
+      "nom": "Tanguy",
+      "role": "abordeur",
+      "quart": "ba",
+      "valeur": 3
+    },
+    {
+      "id": "le_gall",
+      "nom": "Le Gall",
+      "role": "abordeur",
+      "quart": "br",
+      "valeur": 3
+    },
+    {
+      "id": "jaouen",
+      "nom": "Jaouen",
+      "role": "abordeur",
+      "quart": "ta",
+      "valeur": 3
+    },
+    {
+      "id": "cadiou",
+      "nom": "Cadiou",
+      "role": "charpentier",
+      "quart": "br",
+      "valeur": 0
+    },
+    {
+      "id": "herviou",
+      "nom": "Herviou",
+      "role": "charpentier",
+      "quart": "tr",
+      "valeur": 0
+    }
+  ],
+  "recrues": [
+    {
+      "id": "etcheverry",
+      "nom": "Etcheverry",
+      "role": "canonnier",
+      "quart": "br",
+      "valeur": 6,
+      "prix": 5
+    },
+    {
+      "id": "gohier",
+      "nom": "Gohier",
+      "role": "canonnier",
+      "quart": "tr",
+      "valeur": 6,
+      "prix": 5
+    },
+    {
+      "id": "coudray",
+      "nom": "Coudray",
+      "role": "gabier",
+      "quart": "ba",
+      "valeur": 2,
+      "prix": 4
+    },
+    {
+      "id": "toussaint",
+      "nom": "Toussaint",
+      "role": "charpentier",
+      "quart": "ba",
+      "valeur": 0,
+      "prix": 3
+    },
+    {
+      "id": "ravenel",
+      "nom": "Ravenel",
+      "role": "abordeur",
+      "quart": "ta",
+      "valeur": 4,
+      "prix": 5
+    },
+    {
+      "id": "kermarrec",
+      "nom": "Kermarrec",
+      "role": "abordeur",
+      "quart": "ba",
+      "valeur": 4,
+      "prix": 5
+    },
+    {
+      "id": "lozac_h",
+      "nom": "Lozac'h",
+      "role": "gabier",
+      "quart": "ta",
+      "valeur": 2,
+      "prix": 4
+    },
+    {
+      "id": "quemeneur",
+      "nom": "Quéméneur",
+      "role": "canonnier",
+      "quart": "ba",
+      "valeur": 5,
+      "prix": 4
+    },
+    {
+      "id": "le_dref",
+      "nom": "Le Dréf",
+      "role": "abordeur",
+      "quart": "tr",
+      "valeur": 4,
+      "prix": 4
+    },
+    {
+      "id": "morvan",
+      "nom": "Morvan",
+      "role": "canonnier",
+      "quart": "ta",
+      "valeur": 5,
+      "prix": 4
+    }
+  ],
+  "prises": [
+    {
+      "id": "barque",
+      "nom": "Barque longue",
+      "rang": "petite prise",
+      "hullClass": 6,
+      "objectif": 500,
+      "bordees": 4,
+      "butin": 4,
+      "regle": null
+    },
+    {
+      "id": "flute",
+      "nom": "Flûte marchande",
+      "rang": "marchand",
+      "hullClass": 4,
+      "objectif": 650,
+      "bordees": 4,
+      "butin": 6,
+      "regle": "lest"
+    },
+    {
+      "id": "galion",
+      "nom": "Galion d'argent",
+      "rang": "gros porteur",
+      "hullClass": 2,
+      "objectif": 850,
+      "bordees": 4,
+      "butin": 9,
+      "regle": "franc_bord"
+    },
+    {
+      "id": "fregate",
+      "nom": "Frégate royale",
+      "rang": "escorte",
+      "hullClass": 3,
+      "objectif": 700,
+      "bordees": 3,
+      "butin": 12,
+      "regle": "riposte"
+    },
+    {
+      "id": "vaisseau",
+      "nom": "Vaisseau de ligne",
+      "rang": "vaisseau",
+      "hullClass": 1,
+      "objectif": 950,
+      "bordees": 3,
+      "butin": 16,
+      "regle": "cuirasse"
+    }
+  ],
+  "regles": {
+    "lest": {
+      "nom": "Lourdement lestée",
+      "texte": "Les volées de moins de trois cartes ne comptent que pour moitié."
+    },
+    "franc_bord": {
+      "nom": "Franc-bord haut",
+      "texte": "Un seul bord porte : les cartes de tribord ne comptent pas en puissance."
+    },
+    "riposte": {
+      "nom": "Riposte",
+      "texte": "Chaque volée met une carte Feu dans ta pioche."
+    },
+    "cuirasse": {
+      "nom": "Bordé doublé",
+      "texte": "Le multiplicateur est plafonné à 8."
+    }
+  },
+  "reliques": [
+    {
+      "id": "longue_vue",
+      "nom": "Longue-vue",
+      "texte": "+1 carte en main.",
+      "prix": 6
+    },
+    {
+      "id": "grappins",
+      "nom": "Grappins neufs",
+      "texte": "Les abordeurs comptent double dès 70 %.",
+      "prix": 6
+    },
+    {
+      "id": "poudre_seche",
+      "nom": "Poudre sèche",
+      "texte": "+1 multiplicateur sur chaque volée.",
+      "prix": 8
+    },
+    {
+      "id": "seaux",
+      "nom": "Seaux de cuir",
+      "texte": "+1 largage par prise.",
+      "prix": 5
+    },
+    {
+      "id": "pavillon",
+      "nom": "Pavillon noir",
+      "texte": "+1 bordée par prise.",
+      "prix": 10
+    },
+    {
+      "id": "quille",
+      "nom": "Quille carénée",
+      "texte": "Les Feux ne se remettent plus dans ta pioche.",
+      "prix": 7
+    }
+  ],
+  "quarts": {
+    "ba": {
+      "nom": "bâbord avant",
+      "bord": "babord",
+      "icone": "◤"
+    },
+    "br": {
+      "nom": "bâbord arrière",
+      "bord": "babord",
+      "icone": "◣"
+    },
+    "ta": {
+      "nom": "tribord avant",
+      "bord": "tribord",
+      "icone": "◥"
+    },
+    "tr": {
+      "nom": "tribord arrière",
+      "bord": "tribord",
+      "icone": "◢"
+    }
+  }
+}

@@ -40,6 +40,21 @@ const PAGES = [
     apres: async (p) => { await p.click('.rc-carte .btn-level-1'); } },
   { nom: 'C — la rade', url: 'docs/refonte/mockups/c-rade.html', pret: '.fl-rade' },
   { nom: 'D — la rade tactique', url: 'docs/refonte/mockups/d-breche.html', pret: '.hx-scene' },
+  { nom: 'E — la chasse-partie', url: 'docs/refonte/mockups/e-cartes.html', pret: '.ecran-cartes .main' },
+  { nom: 'E — le partage', url: 'docs/refonte/mockups/e-cartes.html', pret: '.ecran-cartes .main',
+    apres: async (p) => {
+      // Joue la prise d'ouverture jusqu'au partage : la boutique est un écran
+      // à part entière, et c'est là que 47 % des cartes de recrutement du jeu
+      // réel sortaient hors de l'écran.
+      for (let tour = 0; tour < 8; tour++) {
+        if (await p.$('.partage')) break;
+        for (let i = 0; i < 5; i++) { const c = await p.$$('.carte'); if (c[i]) await c[i].click(); }
+        const feu = await p.$('.ordres .btn-level-1');
+        if (!feu) break;
+        await feu.click();
+        await p.waitForTimeout(700);
+      }
+    } },
   { nom: 'jeu — recrutement', url: 'index.html#recrutement', pret: '.screen' },
   { nom: 'jeu — combat', url: 'index.html#bataille', pret: '.screen' },
 ];

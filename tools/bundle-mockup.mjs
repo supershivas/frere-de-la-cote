@@ -1,0 +1,90 @@
+// Assemble une maquette en UN SEUL fichier autonome.
+//
+//   node tools/bundle-mockup.mjs docs/refonte/mockups/e-cartes.html dist/e-cartes.html
+//
+// Pourquoi : la maquette du dépôt charge les vrais modules et les vraies
+// feuilles par HTTP — c'est ce qui garantit qu'elle ne réinvente pas
+// l'interface à côté. Mais pour la faire ESSAYER à quelqu'un, il faut une page
+// qui tienne toute seule, sans serveur. Ce script produit cette page à partir
+// des mêmes sources : il n'y a pas de seconde version du jeu à maintenir.
+//
+// Le procédé tient parce que les modules embarqués (cartes, sprites, ocean,
+// fx) n'importent RIEN : il suffit de retirer le mot-clé `export` et de les
+// coller bout à bout. Si un jour l'un d'eux importe quoi que ce soit, ce
+// script doit échouer plutôt que produire un fichier muet — d'où le contrôle
+// ci-dessous.
+
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+
+const [entree, sortie = 'dist/bundle.html'] = process.argv.slice(2);
+if (!entree) { console.error('usage: node tools/bundle-mockup.mjs <maquette.html> [sortie.html]'); process.exit(1); }
+
+const racine = resolve(dirname(new URL(import.meta.url).pathname), '..');
+const lire = (p) => readFileSync(resolve(racine, p), 'utf8');
+
+const MODULES = ['src/cartes.js', 'src/sprites.js', 'src/ocean.js', 'src/fx.js'];
+const DONNEES = { CONTENU: 'data/equipage.json', METEO: 'data/weather.json', PHY: 'data/phylacteres.json' };
+
+// --- CSS : style.css et tout ce qu'elle @importe, dans l'ordre ---
+function css(fichier) {
+  const src = lire(fichier);
+  // `@import "variables.css";` comme `@import url('variables.css');`
+  return src.replace(/@import\s+(?:url\(\s*)?['"]([^'"]+)['"]\s*\)?\s*;?/g,
+    (_, ref) => `\n/* ${ref} */\n${css('css/' + ref.replace(/^\.\//, ''))}\n`);
+}
+
+// --- JS : les modules, désexportés ---
+const js = MODULES.map((m) => {
+  const src = lire(m);
+  if (/^\s*import\s/m.test(src)) throw new Error(`${m} importe quelque chose — le bundle ne sait pas résoudre les dépendances`);
+  return `/* ===== ${m} ===== */\n${src.replace(/^export\s+(?=(const|let|var|function|class|async))/gm, '')}`;
+}).join('\n\n');
+
+// --- le script de la maquette, privé de ses imports et de ses fetch ---
+const page = lire(entree);
+const bloc = page.match(/<script type="module">([\s\S]*?)<\/script>/);
+if (!bloc) throw new Error('pas de <script type="module"> dans la maquette');
+let corps = bloc[1]
+  .replace(/^import[\s\S]*?;\s*$/gm, '')
+  .replace(/const \[CONTENU, METEO, PHY\] = await Promise\.all\(\[[\s\S]*?\]\);/, '')
+  .replace(/const jget[^\n]*\n/, '');
+// Les modules sont collés à plat : `C.machin` doit redevenir `machin`.
+corps = corps.replace(/\bC\.([A-Za-z_$][\w$]*)/g, '$1');
+
+const donnees = Object.entries(DONNEES)
+  .map(([nom, f]) => `const ${nom} = ${lire(f)};`).join('\n');
+
+const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>${(page.match(/<title>([^<]*)<\/title>/) || [, 'Frères de la Côte'])[1]}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+${css('css/style.css')}
+html, body { height: 100%; margin: 0; }
+</style>
+</head>
+<body data-bg="sea">
+<canvas id="ocean"></canvas>
+<div id="parchment"></div>
+<main id="app"></main>
+<script type="module">
+${donnees}
+
+${js}
+
+/* ===== ${entree} ===== */
+${corps}
+<\/script>
+</body>
+</html>
+`;
+
+mkdirSync(resolve(racine, dirname(sortie)), { recursive: true });
+writeFileSync(resolve(racine, sortie), html);
+console.log(`${sortie} — ${(html.length / 1024).toFixed(0)} Ko, autonome`);

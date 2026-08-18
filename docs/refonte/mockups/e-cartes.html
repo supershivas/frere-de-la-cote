@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<base href="../../../">
+<title>E — la chasse-partie en cartes (maquette jouable)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%83%8F%3C/text%3E%3C/svg%3E">
+</head>
+<body data-bg="sea">
+<canvas id="ocean"></canvas>
+<div id="parchment"></div>
+<main id="app"></main>
+
+<script type="module">
+/* ============================================================
+   E — LA CHASSE-PARTIE EN CARTES.
+
+   Le tour est un tour de Balatro : une main d'hommes, on en joue de une à
+   cinq, la combinaison porte un nom, le nom donne une puissance et un
+   multiplicateur, le produit tombe dans la coque de la prise.
+
+   Ce qui vient du jeu, et n'est pas réinventé ici :
+     src/cartes.js      les règles, pures et sans dé
+     src/sprites.js     les coques, générées à l'exécution
+     src/ocean.js       le ciel et la mer animés
+     src/fx.js          la fumée, les éclats, les nombres flottants
+     data/equipage.json l'équipage, les prises, les reliques
+     data/weather.json  la météo, avec ses vrais modificateurs
+     data/phylacteres.json les voix de l'équipage
+     css/style.css      l'interface (le §17 de css/deck.css pour cet écran)
+
+   MOBILE D'ABORD : aucune largeur fixe, la main se partage la largeur
+   disponible, tout ce qui se touche fait 44 px. Première touche = viser
+   (le tableau dit exactement ce que la volée ferait), seconde = confirmer.
+   ============================================================ */
+
+import * as C from './src/cartes.js';
+import { getGeneratedShip, drawGrid } from './src/sprites.js';
+import { startOcean, randomOceanScene } from './src/ocean.js';
+import { initFx, fxBroadside, fxExplosion, fxFloatText } from './src/fx.js';
+
+/* -- hyperscript minimal : la maquette emprunte l'INTERFACE du jeu (ses
+      feuilles, ses composants), pas sa chaîne de chargement de données. -- */
+const el = (tag, o = {}, kids = []) => {
+  const n = document.createElement(tag);
+  if (o.class) n.className = o.class;
+  if (o.text !== undefined) n.textContent = o.text;
+  if (o.html !== undefined) n.innerHTML = o.html;
+  if (o.attrs) for (const [k, v] of Object.entries(o.attrs)) n.setAttribute(k, v);
+  if (o.on) for (const [e, f] of Object.entries(o.on)) n.addEventListener(e, f);
+  for (const k of [].concat(kids)) if (k != null) n.appendChild(typeof k === 'string' ? document.createTextNode(k) : k);
+  return n;
+};
+const app = () => document.getElementById('app');
+
+/* -- données -- */
+const jget = async (p) => (await fetch(p)).json();
+const [CONTENU, METEO, PHY] = await Promise.all([
+  jget('data/equipage.json'), jget('data/weather.json'), jget('data/phylacteres.json'),
+]);
+const METEO_CLES = Object.keys(METEO);
+
+/* -- l'aléatoire vit ici, dans la GÉNÉRATION, et nulle part ailleurs -- */
+let graine = (Math.random() * 4294967295) >>> 0;
+const rngPour = (s) => { let x = s >>> 0 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; };
+let rng = rngPour(graine);
+
+const NOMS = ['Santa Clara', 'Nuestra Señora', 'San Cristóbal', 'La Concepción', 'El Rosario', 'San Felipe'];
+
+const P = C.nouvellePartie(CONTENU);
+let ecran = 'chasse';
+let dernierMot = '';
+let apercuFige = null;
+
+/* ---------------------------------------------------------------- prises */
+function prochainePrise() {
+  const def = CONTENU.prises[Math.min(P.prisesFaites, CONTENU.prises.length - 1)];
+  const palier = Math.floor(P.prisesFaites / CONTENU.prises.length);
+  const nom = NOMS[Math.floor(rng() * NOMS.length)];
+  const meteo = METEO[METEO_CLES[Math.floor(rng() * METEO_CLES.length)]];
+  const echelle = 1 + 0.6 * palier;
+  return {
+    def: { ...def, nom, objectif: Math.round(def.objectif * echelle), butin: def.butin + 3 * palier, sceau: (rng() * 1e9) | 0 },
+    meteo,
+  };
+}
+function engagerSuivante() {
+  const { def, meteo } = prochainePrise();
+  C.engager(P, def, meteo, rng);
+  randomOceanScene(meteo.id);
+  ecran = 'chasse';
+  dernierMot = '';
+  rendre();
+  peindreCoques();
+  phylactere('ouverture');
+}
+
+/* ------------------------------------------------------------ les coques */
+function specNous() {
+  return {
+    seed: 4211, hullClass: 4, hullShape: 'fine', sailsPerMast: 3, jibs: 1, wear: 0,
+    colors: { hull: '#5a3d25', sail: '#e6d9bd', faction: '#8a1f1f' },
+    flag: { motif: 'Crâne', bg: '#161616', sym: '#e6d9bd', accent: '#f1c40f' },
+    trim: 'simple', emblem: 'petit',
+  };
+}
+function specPrise() {
+  const p = P.prise;
+  return {
+    seed: p.sceau || 9137, hullClass: p.hullClass, hullShape: 'ronde',
+    sailsPerMast: 3, jibs: 2, wear: 1,
+    colors: { hull: '#6b4a26', sail: '#f0e6cc', faction: '#c8a227' },
+    flag: { motif: 'Croix', bg: '#f0e6cc', sym: '#a3242a', accent: '#c8a227' },
+    trim: 'doré', emblem: 'grand',
+  };
+}
+function peindreCoque(id, spec, facing, couleur, pavillon) {
+  const cv = document.getElementById(id);
+  if (!cv) return;
+  const g = getGeneratedShip(spec);
+  const grille = g.grid || g;
+  // Le canvas prend la taille de la grille : le CSS le remet à l'échelle de la
+  // colonne, donc la coque suit l'écran au lieu de le déborder.
+  cv.width = (grille[0].length || 60) * 4;
+  cv.height = grille.length * 4;
+  drawGrid(cv, grille, { color: couleur, flag: pavillon, facing, waterline: true, waterRow: g.waterY != null ? g.waterY : null });
+}
+function peindreCoques() {
+  peindreCoque('c-nous', specNous(), 1, '#c9a24b', '#1a1210');
+  if (P.prise) peindreCoque('c-prise', specPrise(), -1, '#b5893f', '#b23b3b');
+}
+
+/* ------------------------------------------------------------ phylactères */
+function phylactere(moment) {
+  const lignes = (PHY.repliques || []).filter((r) => r.moment === moment);
+  if (!lignes.length) return;
+  const r = lignes[Math.floor(rng() * lignes.length)];
+  const v = PHY.voix[r.voix] || { nom: r.voix, role: '' };
+  dernierMot = `<b>${v.nom}</b>${v.role ? ` — ${v.role}` : ''} : « ${r.texte} »`;
+  const t = document.querySelector('.tb-aide');
+  if (t) t.innerHTML = dernierMot;
+}
+
+/* ------------------------------------------------------------ le tableau */
+function ligneTableau() {
+  const sel = P.selection;
+  const t = el('div', { class: `tableau${sel.length ? ' arme' : ''}` });
+  if (!sel.length) {
+    t.appendChild(el('div', { class: 'tb-nom', text: apercuFige ? apercuFige.nom : 'Aucune volée' }));
+    t.appendChild(el('div', {
+      class: 'tb-aide',
+      html: dernierMot || 'Touche un homme pour l’ajouter à la volée. Le compte s’écrit ici <b>avant</b> que tu tires.',
+    }));
+    return t;
+  }
+  const r = C.evaluer(P, sel);
+  t.appendChild(el('div', { class: 'tb-nom', text: r.manoeuvre.nom }));
+  t.appendChild(el('div', { class: 'tb-eff', text: r.manoeuvre.eff }));
+  t.appendChild(el('div', { class: 'tb-compte' }, [
+    el('span', { class: 'tb-p', text: String(r.base) }),
+    el('span', { class: 'tb-x', text: '×' }),
+    el('span', { class: 'tb-m', text: String(r.mult) }),
+    el('span', { class: 'tb-eg', text: '=' }),
+    el('span', { class: 'tb-t', text: String(r.points) }),
+  ]));
+  const reste = Math.max(0, P.prise.pv - r.points);
+  t.appendChild(el('div', {
+    class: 'tb-aide',
+    html: reste === 0
+      ? '<b>Cette volée la prend.</b>'
+      : `Il resterait <b>${reste}</b> à abattre, avec <b>${P.bordees - 1}</b> volée${P.bordees - 1 > 1 ? 's' : ''}.`,
+  }));
+  return t;
+}
+
+/* -------------------------------------------------------------- la main */
+const ROLE_COULEUR = { canonnier: 'var(--hp-dark)', gabier: 'var(--info-dark)', abordeur: 'var(--warning-dark)', charpentier: 'var(--success-dark)' };
+
+function carteVue(c) {
+  const feu = C.estFeu(c);
+  const pris = P.selection.includes(c);
+  const n = el('button', {
+    class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}`,
+    attrs: { type: 'button', 'aria-pressed': String(pris), 'aria-label': feu ? 'Feu, encombre la main' : `${c.nom}, ${c.role}, ${CONTENU.quarts[c.quart].nom}, valeur ${C.valeur(c)}` },
+    on: {
+      click: () => {
+        if (P.fini) return;
+        if (!C.selectionner(P, c)) { flashRefus(n); return; }
+        rendre();
+      },
+    },
+  }, [
+    c.grade ? el('span', { class: 'c-grade', text: '★'.repeat(c.grade) }) : null,
+    el('span', { class: 'c-quart', text: feu ? '' : CONTENU.quarts[c.quart].icone }),
+    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
+    el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c)) }),
+    el('span', {
+      class: 'c-role', text: feu ? 'encombre' : CONTENU.roles[c.role].court,
+      attrs: { style: `background:${feu ? 'var(--warning-dark)' : ROLE_COULEUR[c.role]}` },
+    }),
+  ]);
+  return n;
+}
+function flashRefus(n) {
+  // Règle 5 : un ordre impossible se refuse à voix haute.
+  n.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(0)' }], { duration: 180 });
+  dernierMot = 'Cinq hommes au maximum dans une volée.';
+  const t = document.querySelector('.tb-aide');
+  if (t) t.innerHTML = dernierMot;
+}
+
+/* -------------------------------------------------------------- écrans */
+function ecranChasse() {
+  const p = P.prise;
+  const s = el('div', { class: 'screen ecran-cartes' });
+
+  s.appendChild(el('div', { class: 'ruban' }, [
+    el('div', { class: 'rb-txt' }, [
+      el('div', { class: 'rb-quoi', text: `Prendre ${p.nom}` }),
+      el('div', { class: 'rb-rang', text: `${p.rang} · prise n° ${P.prisesFaites + 1}` }),
+    ]),
+    el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
+    el('button', { class: 'btn-level-3 rouage', text: '⚙', attrs: { type: 'button', 'aria-label': 'barème et réglages' }, on: { click: ouvrirBareme } }),
+  ]));
+
+  const mer = el('div', { class: 'mer' });
+  mer.appendChild(el('div', { class: 'coque nous' }, [
+    el('div', { class: 'etiq' }, [
+      el('div', { class: 'e-nom', text: 'La Tortue' }),
+      el('div', { class: 'jauge reste' }, [el('i', { attrs: { style: `width:${(100 * P.bordees) / (p.bordees + (P.reliques.includes('pavillon') ? 1 : 0))}%` } })]),
+      el('div', { class: 'e-chif', text: `${P.bordees} volée${P.bordees > 1 ? 's' : ''} · ${P.largages} largage${P.largages > 1 ? 's' : ''}` }),
+    ]),
+    el('canvas', { attrs: { id: 'c-nous' } }),
+  ]));
+  mer.appendChild(el('div', { class: 'coque prise' }, [
+    el('div', { class: 'etiq' }, [
+      el('div', { class: 'e-nom', text: p.nom }),
+      el('div', { class: 'jauge' }, [el('i', { attrs: { style: `width:${(100 * p.pv) / p.max}%` } })]),
+      el('div', { class: 'e-chif', text: `${p.pv} / ${p.max}` }),
+    ]),
+    el('canvas', { attrs: { id: 'c-prise' } }),
+  ]));
+  const past = el('div', { class: 'pastilles' });
+  if (P.meteo) past.appendChild(el('span', { class: 'pastille', text: `${P.meteo.icon} ${P.meteo.name_fr}${P.meteo.mods.damageMult !== 1 ? ` ×${P.meteo.mods.damageMult}` : ''}` }));
+  if (p.regle) past.appendChild(el('span', { class: 'pastille regle', text: `⚑ ${CONTENU.regles[p.regle].nom}`, attrs: { title: CONTENU.regles[p.regle].texte } }));
+  for (const id of P.reliques) {
+    const r = CONTENU.reliques.find((x) => x.id === id);
+    if (r) past.appendChild(el('span', { class: 'pastille relique', text: `✦ ${r.nom}` }));
+  }
+  mer.appendChild(past);
+  s.appendChild(mer);
+
+  s.appendChild(ligneTableau());
+
+  const main = el('div', { class: 'main' });
+  for (const c of P.main) main.appendChild(carteVue(c));
+  s.appendChild(main);
+
+  const rien = P.selection.length === 0;
+  s.appendChild(el('div', { class: 'ordres' }, [
+    el('button', {
+      class: 'btn-level-2 largue', attrs: { type: 'button', ...(rien || P.largages <= 0 ? { disabled: '' } : {}) },
+      html: `Largage<span class="compteur">${P.largages} restant${P.largages > 1 ? 's' : ''}</span>`,
+      on: { click: () => { if (C.largage(P)) { C.completer(P, rng); rendre(); } } },
+    }),
+    el('button', {
+      class: 'btn-level-1', attrs: { type: 'button', ...(rien || P.bordees <= 0 ? { disabled: '' } : {}) },
+      html: `Bordée !<span class="compteur">${P.bordees} restante${P.bordees > 1 ? 's' : ''}</span>`,
+      on: { click: tirer },
+    }),
+  ]));
+  return s;
+}
+
+function tirer() {
+  if (!P.selection.length) return;
+  const r = C.jouer(P);
+  if (!r) return;
+  apercuFige = r.manoeuvre;
+  dernierMot = P.journal.length ? P.journal[P.journal.length - 1] : '';
+
+  const nous = document.getElementById('c-nous');
+  const prise = document.getElementById('c-prise');
+  if (nous && prise) {
+    const a = nous.getBoundingClientRect(); const b = prise.getBoundingClientRect();
+    fxBroadside(a.right - 10, a.top + a.height * 0.5, 1, { scale: 1 });
+    setTimeout(() => {
+      fxExplosion(b.left + b.width * 0.45, b.top + b.height * 0.45, { scale: 1.1 });
+      fxFloatText(b.left + b.width * 0.45, b.top + b.height * 0.25, `−${r.points}`, 'dmg');
+    }, 220);
+  }
+  C.completer(P, rng);
+  setTimeout(() => {
+    if (P.fini) { ecran = P.fini === 'prise' ? 'partage' : 'naufrage'; phylactere('denouement'); }
+    rendre();
+  }, 520);
+  rendre();
+}
+
+function ecranPartage() {
+  const s = el('div', { class: 'screen ecran-cartes' });
+  s.appendChild(el('div', { class: 'ruban' }, [
+    el('div', { class: 'rb-txt' }, [
+      el('div', { class: 'rb-quoi', text: 'Partage du butin' }),
+      el('div', { class: 'rb-rang', text: `${P.prisesFaites} prise(s) · chasse-partie` }),
+    ]),
+    el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
+  ]));
+  s.appendChild(el('div', { class: 'verdict' }, [
+    el('h2', { text: 'La prise est à nous' }),
+    el('p', { html: dernierMot || 'On radoube, on recrute, et on repart. Ce qui n’est pas acheté maintenant ne le sera plus.' }),
+  ]));
+
+  const liste = el('div', { class: 'partage' });
+  for (const o of offres()) {
+    const cher = o.prix > P.butin || o.pris;
+    liste.appendChild(el('button', {
+      class: 'offre', attrs: { type: 'button', ...(cher ? { disabled: '' } : {}) },
+      on: { click: () => { if (o.acheter()) { rendre(); } } },
+    }, [
+      el('div', { class: 'o-txt' }, [
+        el('div', { class: 'o-nom', text: o.nom }),
+        el('div', { class: 'o-det', text: o.det }),
+      ]),
+      el('div', { class: 'o-prix', text: o.pris ? 'à bord' : `${o.prix} 💰` }),
+    ]));
+  }
+  s.appendChild(liste);
+  s.appendChild(el('div', { class: 'ordres' }, [
+    el('button', { class: 'btn-level-1', text: 'Reprendre la chasse', attrs: { type: 'button' }, on: { click: engagerSuivante } }),
+  ]));
+  return s;
+}
+
+// Les offres sont tirées une fois par partage, pas à chaque rendu : le magasin
+// ne doit pas changer sous le pouce du joueur.
+let lot = null; let lotPour = -1;
+function offres() {
+  if (lotPour !== P.prisesFaites) {
+    lotPour = P.prisesFaites;
+    const dispo = CONTENU.recrues.filter((r) => !P.equipage.some((c) => c.id === r.id));
+    const rel = CONTENU.reliques.filter((r) => !P.reliques.includes(r.id));
+    lot = [
+      ...C.melanger(dispo, rng).slice(0, 2).map((r) => ({
+        nom: `Recruter ${r.nom}`, prix: r.prix,
+        det: `${r.role} · ${CONTENU.quarts[r.quart].nom} · valeur ${r.valeur} — ${CONTENU.roles[r.role].verbe}`,
+        acheter: () => C.recruter(P, r),
+      })),
+      ...C.melanger(rel, rng).slice(0, 2).map((r) => ({
+        nom: r.nom, prix: r.prix, det: r.texte, acheter: () => C.acheterRelique(P, r),
+      })),
+    ];
+    const promu = C.melanger(P.equipage.filter((c) => c.grade < 3 && c.role !== 'charpentier'), rng)[0];
+    if (promu) {
+      lot.push({
+        nom: `Passer ${promu.nom} gradé`, prix: 4,
+        det: `${promu.role} · valeur ${C.valeur(promu)} → ${C.valeur(promu) + 1}`,
+        acheter: () => C.graduer(P, promu),
+      });
+    }
+  }
+  return lot;
+}
+
+function ecranNaufrage() {
+  const s = el('div', { class: 'screen ecran-cartes' });
+  s.appendChild(el('div', { class: 'verdict' }, [
+    el('h2', { text: 'La chasse est rompue' }),
+    el('p', { html: `${P.prise.nom} tient encore ${P.prise.pv} coup(s) et tu n’as plus de volée. <br>Butin ramené : <b>${P.butin}</b> après ${P.prisesFaites} prise(s).` }),
+  ]));
+  s.appendChild(el('div', { class: 'ordres' }, [
+    el('button', { class: 'btn-level-1', text: 'Reprendre la mer', attrs: { type: 'button' }, on: { click: () => location.reload() } }),
+  ]));
+  return s;
+}
+
+function ouvrirBareme() {
+  // Roue crantée : le barème, la graine, l'état — tout ce qui sert au
+  // développement vit derrière ce bouton, jamais dans l'écran de jeu (§6).
+  const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
+  const corps = el('div', { class: 'modal ecran-cartes bareme-boite' });
+  corps.appendChild(el('h3', { text: 'Les manœuvres' }));
+  const t = el('table', { class: 'bareme' });
+  for (const m of C.MANOEUVRES) {
+    t.appendChild(el('tr', {}, [
+      el('td', {}, [el('div', { class: 'b-nom', text: m.nom }), el('div', { class: 'b-eff', text: m.eff })]),
+      el('td', { class: 'b-chif', text: `${m.base} × ${m.mult}` }),
+    ]));
+  }
+  corps.appendChild(t);
+  corps.appendChild(el('p', { class: 'tb-aide', html: `Graine <b>${graine}</b> · pioche ${P.pioche.length} · défausse ${P.defausse.length} · équipage ${P.equipage.length}` }));
+  corps.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
+  fond.appendChild(corps);
+  document.body.appendChild(fond);
+}
+
+/* -------------------------------------------------------------- rendu */
+function rendre() {
+  const r = app();
+  while (r.firstChild) r.removeChild(r.firstChild);
+  r.appendChild(ecran === 'partage' ? ecranPartage() : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse());
+  if (ecran === 'chasse') peindreCoques();
+}
+
+initFx();
+startOcean(document.getElementById('ocean'));
+engagerSuivante();
+</script>
+</body>
+</html>

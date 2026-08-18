@@ -12,3 +12,8 @@ npm-debug.log*
 
 # Local server / scratch
 *.log
+
+# Dev only : playwright-core et le fichier autonome produit par tools/bundle-mockup.mjs
+package.json
+package-lock.json
+dist/
