@@ -49,6 +49,28 @@ gated order (§12) exists to prevent.
 
 ---
 
+## 📱 Mobile first
+
+The reference screen is **375 × 667 in portrait**. What does not fit there does
+not fit. This is a constraint on the design, not a layout pass at the end — and
+it is measured, not reviewed:
+
+```bash
+node tools/mobile-audit.mjs      # fails if any screen clips or overflows
+```
+
+The audit opens every screen on three phones and looks for the four defects a
+desktop hides: **clipping** (a box wider than the window, silently cut by
+`#app { overflow-x: hidden }` — no scrollbar, no error, half the game simply
+gone), **touch targets under 44 px**, **horizontal overflow**, and **hover-only
+information**, which does not exist under a thumb.
+
+Its first run was unforgiving, and it caught the shipped game as much as the
+mockups: 51 % of proposal D's board off-screen, 47 % of the recruitment cards,
+and 10 of 10 touch targets too small in combat. Fixing this properly means
+changing the *shape* of the board, not scaling it down — see
+`docs/refonte/PLAN.md`.
+
 ## ▶️ Run it
 
 The game loads its data with `fetch`, so it must be served over HTTP, not opened
@@ -146,6 +168,7 @@ python3 -m http.server 8000 &
 npm i playwright-core           # dev-only; the game itself ships no deps
 node tools/playtest.mjs 4       # plays full combats, fails on any console error
 node tools/contrast-audit.mjs   # WCAG ratios, measured on rendered pixels
+node tools/mobile-audit.mjs     # clipping, touch targets, overflow, hover-only
 ```
 
 The contrast audit samples the **screenshot**, not computed styles: the
@@ -225,6 +248,10 @@ src/
 
 - **A ship, an enemy, a relic** = one entry in the matching JSON, with its
   `name_fr` / `name_en`. No code change.
+- **A ship *type*** (proposed, not built) = one entry in `data/batiments.json`:
+  a hull class, a few numbers, and the name of a **verb**. The verb itself is a
+  rule and stays in code; the type is content. Adding a heavier brigantine must
+  not mean touching the engine.
 - **A string** = add the key to `locales/fr.json` *and* `locales/en.json`, then
   use `t('key')`. A test fails if one language has it and the other does not.
 - **A UI component** = add it to `css/deck.css` *and* demo it in

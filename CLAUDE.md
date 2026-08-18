@@ -76,6 +76,32 @@ neuf sur le second.**
 | `css/components.css` | Composants **partagés** : jauges `.bar`, boutons, badges |
 | **V1, à remplacer** | `src/combat.js`, `src/map.js`, `src/abilities.js`, les anciens `src/screens/*` |
 
+## Deux contraintes qui priment sur le reste
+
+**Le jeu est mobile d'abord.** L'écran de référence est 375 × 667 en portrait.
+Ce qui n'y tient pas ne tient pas. Concrètement :
+
+- Le plateau **se met à l'échelle de la fenêtre** — jamais de largeur fixe en
+  pixels. `#app { overflow-x: hidden }` ampute en silence : pas d'ascenseur,
+  pas d'erreur, la moitié du jeu absente. C'est le défaut le plus grave parce
+  que rien ne le signale.
+- 44 × 44 px minimum pour tout ce qui se touche, y compris une case de plateau.
+- **Le survol ne porte aucune information.** Sur un plateau tactique : première
+  touche = viser et montrer ce que l'action ferait, seconde touche = confirmer.
+- La vue isométrique écrase la grille et la rend large et basse — la mauvaise
+  forme pour un portrait. Le plateau doit devenir **plus haut que large** ; une
+  rade est un couloir qu'on remonte, pas un cercle (design-system §13.4).
+
+```bash
+node tools/mobile-audit.mjs      # échoue si un écran ampute ou déborde
+```
+
+**Il y a plusieurs types de bâtiments.** Un type = une silhouette (la classe de
+coque de `src/sprites.js`) + **un verbe**, et les verbes ne se remplacent pas.
+Les types sont du **contenu**, pas de la logique : ils vivent dans `data/`, pas
+dans un objet littéral au milieu des règles. Ajouter un type ne doit pas
+demander de toucher au moteur.
+
 ## Les cinq règles qui ont chacune coûté un bug
 
 **1. Aucune entropie dans la résolution.** `src/battle.js`, `src/flotte.js` et
@@ -152,7 +178,12 @@ python3 -m http.server 8000 &
 npm i playwright-core                 # dev uniquement, le jeu reste sans dépendance
 node tools/playtest.mjs 4             # joue des combats, échoue sur toute erreur console
 node tools/contrast-audit.mjs         # contrastes mesurés sur pixels rendus
+node tools/mobile-audit.mjs           # amputation, cibles tactiles, débordement
 ```
+
+L'audit mobile ouvre chaque écran sur trois téléphones et **échoue** si l'un
+ampute ou déborde. Il mesure aussi les cibles sous 44 px et les règles `:hover`
+qui portent une information — invisible au doigt.
 
 L'audit de contraste échantillonne la **capture d'écran**, pas les styles
 calculés : les fonds sont peints par un canvas et par un calque fixe derrière

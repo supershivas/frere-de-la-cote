@@ -154,7 +154,7 @@
     <li><a href="#s10">Icônes & Pictogrammes</a></li>
     <li><a href="#s11">États des Composants</a></li>
     <li><a href="#s12">Accessibilité</a></li>
-    <li><a href="#s13">Responsive & Échelles</a></li>
+    <li><a href="#s13">Mobile d'abord</a></li>
     <li><a href="#s14">Fichiers Source</a></li>
     <li><a href="#s15">Contrôles de contraste</a></li>
     <li><a href="#s16">Composants de la refonte</a></li>
@@ -667,10 +667,18 @@ de dégâts interchangeables. Le harpon de la V1 a été retiré.</p>
 
 <h3>12.2 Taille minimale</h3>
 <ul>
-  <li>Boutons interactifs : min 44×44px</li>
-  <li>Texte lisible : min 11px</li>
-  <li>Zone de clic carte : toute la carte</li>
+  <li>Tout ce qui se touche : <strong>44 × 44 px minimum</strong>, y compris une
+    case de plateau et une carte de bâtiment.</li>
+  <li>Texte lisible : 11 px minimum, et jamais 11 px pour une information dont
+    dépend une décision.</li>
+  <li>Zone de touche d'une carte : toute la carte, pas son titre.</li>
 </ul>
+<div class="rule-box">
+  <strong>Cette règle était écrite ici depuis la V1 et violée partout.</strong>
+  Mesuré au premier passage de <code>tools/mobile-audit.mjs</code> : 24 cibles
+  sous le seuil sur la maquette B2, 6 sur C, 3 sur D. Une règle qu'aucun outil
+  ne vérifie n'est pas une règle, c'est un vœu.
+</div>
 
 <h3>12.3 Réduction des animations</h3>
 <p>Écrit dans <code>css/components.css</code>. Le canvas de la mer garde son
@@ -692,24 +700,75 @@ mais tout ce qui bouge en CSS s'arrête : tangage, houle du pont, incendie.</p>
   outline-offset: 2px;
 }</code></pre>
 
-<h2 id="s13">13. Responsive & Échelles</h2>
-<h3>13.1 Facteurs d'échelle</h3>
+<h2 id="s13">13. Mobile d'abord</h2>
+
+<div class="rule-box">
+  <strong>Cette section était écrite à l'envers.</strong> Elle partait du bureau
+  et réduisait ensuite : un tableau d'échelles « Desktop / Laptop / Tablet /
+  Mobile » et des seuils de réduction. C'est la démarche qui produit un jeu
+  jouable au clavier et amputé au pouce. Le téléphone est désormais la cible
+  de référence ; le grand écran est le cas facile qu'on traite après.
+</div>
+
+<h3>13.1 L'écran de référence</h3>
+<p>375 × 667 en portrait (iPhone SE, le plus petit encore courant). Tout ce qui
+ne tient pas là ne tient pas. Un écran plus grand reçoit la même mise en page,
+plus d'air — jamais une mise en page différente.</p>
+
+<h3>13.2 Les quatre défauts que le mobile crée, et que le bureau cache</h3>
 <table>
-  <tr><th>Élément</th><th>Desktop</th><th>Laptop</th><th>Tablet</th><th>Mobile</th></tr>
-  <tr><td>Carte bateau</td><td>200px</td><td>180px</td><td>160px</td><td>100% width</td></tr>
-  <tr><td>Panel actions</td><td>220px</td><td>200px</td><td>180px</td><td>160px</td></tr>
-  <tr><td>Font H1</td><td>24px</td><td>22px</td><td>20px</td><td>18px</td></tr>
-  <tr><td>Font body</td><td>13px</td><td>12px</td><td>12px</td><td>11px</td></tr>
-  <tr><td>Spacing</td><td>16px</td><td>14px</td><td>12px</td><td>8px</td></tr>
+  <tr><th>Défaut</th><th>Ce que ça donne</th><th>Règle</th></tr>
+  <tr>
+    <td><strong>Amputation</strong></td>
+    <td>Un plateau plus large que la fenêtre est coupé <em>en silence</em> par
+      <code>#app { overflow-x: hidden }</code> : pas d'ascenseur, pas d'erreur,
+      la moitié du jeu absente</td>
+    <td>Le plateau se met à l'échelle de la fenêtre. Jamais de largeur fixe en pixels</td>
+  </tr>
+  <tr>
+    <td><strong>Cible trop petite</strong></td>
+    <td>Le pouce rate, ou pire, touche la case d'à côté</td>
+    <td>44 × 44 px minimum pour tout ce qui se touche (§12.2)</td>
+  </tr>
+  <tr>
+    <td><strong>Débordement</strong></td>
+    <td>La page défile latéralement</td>
+    <td>Aucune largeur fixe ; <code>clamp()</code> et pourcentages</td>
+  </tr>
+  <tr>
+    <td><strong>Survol seul</strong></td>
+    <td>Une information qui n'existe qu'au <code>:hover</code> n'existe pas</td>
+    <td>Le survol ne fait que <em>souligner</em>. Toute information passe par une première touche</td>
+  </tr>
 </table>
 
-<h3>13.2 Règles de réduction</h3>
-<ul>
-  <li>&lt; 1200px : Colonnes latérales passent à 240px</li>
-  <li>&lt; 1000px : Colonnes passent à 200px, textes réduits</li>
-  <li>&lt; 768px : Layout vertical, 1 colonne, scroll</li>
-  <li>&lt; 480px : Cartes full-width, actions en grille 2×3</li>
-</ul>
+<div class="rule-box">
+  <strong>C'est mesuré, pas relu.</strong> <code>node tools/mobile-audit.mjs</code>
+  ouvre chaque écran sur trois téléphones et échoue si l'un d'eux ampute ou
+  déborde. « Mobile first » est une intention, et une intention ne casse pas un
+  test — c'est la même leçon que pour les contrastes (§15).
+</div>
+
+<h3>13.3 Deux touches, jamais une</h3>
+<p>Sur un plateau tactique, la première touche <strong>vise</strong> — elle
+affiche ce que l'action ferait — et la seconde <strong>confirme</strong>. Ce
+n'est pas une concession au tactile : c'est ce qui remplace le survol, et ça
+supprime du même coup la faute de frappe irréversible, qui compte bien plus au
+pouce qu'à la souris.</p>
+
+<h3>13.4 La forme du plateau suit l'écran, et la fiction suit la forme</h3>
+<p>La vue isométrique écrase la grille : un plateau en disque devient
+<strong>large et bas</strong> — exactement la mauvaise forme pour un téléphone
+en portrait. Plutôt que de rétrécir le disque jusqu'à l'illisible, on change sa
+forme : un plateau <strong>plus haut que large</strong>, où l'on remonte vers le
+fond de la rade.</p>
+<p>Ce n'est pas un compromis technique déguisé : une rade se pénètre par une
+passe, et c'est un couloir, pas un cercle. La contrainte du portrait donne ici
+une meilleure fiction que celle qu'on avait choisie librement.</p>
+
+<h3>13.5 Le pouce est en bas</h3>
+<p>Tout ce qui se touche souvent — choisir un bâtiment, finir le tour — vit dans
+le tiers inférieur. Le haut de l'écran porte l'état, qu'on lit sans toucher.</p>
 
 <h2 id="s14">14. Fichiers Source</h2>
 

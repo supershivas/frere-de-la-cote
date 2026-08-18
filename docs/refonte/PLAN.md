@@ -530,3 +530,118 @@ la même case quand la colonne d'entrée était courte, et une intention qui
 retenait la case visée mais pas la position du tireur — donc impossible de
 savoir qu'il avait été poussé. Un troisième était dans le test lui-même : (1,1)
 *est* sur un axe de (2,0), contrairement à ce que j'avais écrit.
+
+## Deux contraintes nouvelles, et ce qu'elles impliquent (brainstorm, rien n'est construit)
+
+### Mobile d'abord — l'état des lieux, mesuré
+
+`tools/mobile-audit.mjs` ouvre chaque écran sur trois téléphones et mesure
+quatre défauts que le bureau cache : **amputation** (une boîte plus large que
+la fenêtre, coupée en silence par `#app { overflow-x: hidden }`), **cibles sous
+44 px**, **débordement**, **survol porteur d'information**. Premier passage, en
+375 × 667 :
+
+| Écran | Amputé | Cibles trop petites |
+|---|---|---|
+| D — la rade tactique | **51 % du plateau** | 3 / 6 |
+| B2 — combat | 41-51 % des navires | 19 / 20 |
+| C — la rade | 8 % | 6 / 11 |
+| **jeu — recrutement** | **47 % des cartes** | 1 / 2 |
+| **jeu — combat** | — | **10 / 10** |
+
+Le jeu réel est concerné autant que les maquettes. L'amputation est le défaut
+le plus grave des quatre parce que **rien ne la signale** : pas d'ascenseur, pas
+d'erreur, juste la moitié du plateau absente.
+
+### La forme du plateau est le vrai sujet, pas sa taille
+
+La contrainte n'est pas la largeur d'une case mais **sa hauteur** : la vue
+isométrique l'écrase de moitié (`hauteur = taille × √3 × 0,56`). Un plateau
+mis à l'échelle d'un téléphone donne donc des cases larges et plates, sous le
+seuil du pouce. Mesuré, pour une zone de 375 × 520 :
+
+| Plateau | Cases | Case (l × h) | Plateau rendu | Touche 44 px ? |
+|---|---|---|---|---|
+| `disque(3)` — l'actuel | 37 | 68 × **33** | 374 × 231 | ✗ |
+| `disque(2)` | 19 | 92 × 45 | 368 × 223 | ✓ |
+| **couloir 4 × 9** | **36** | **112 × 54** | **364 × 516** | ✓ |
+| couloir 5 × 8 | 40 | 92 × 45 | 368 × 379 | ✓ |
+
+Le disque actuel est le seul qui échoue, et il gaspille 290 px de hauteur : la
+projection isométrique le rend **large et bas**, exactement la mauvaise forme
+pour un portrait.
+
+**Le couloir 4 × 9 garde le même nombre de cases que le disque actuel, double la
+taille tactile, et remplit l'écran.** Ce n'est pas un compromis technique
+déguisé : une rade se pénètre **par une passe**, et c'est un couloir, pas un
+cercle. La passe en bas, sous le pouce ; la côte et la batterie en haut ; on
+remonte l'écran vers le fond de la rade. La contrainte du portrait donne ici une
+meilleure fiction que celle qu'on avait choisie librement.
+
+### Deux touches, jamais une
+
+L'aperçu de D vit dans un `mouseenter` : au doigt, il n'existe pas. La parade
+n'est pas un pis-aller — **première touche = viser et montrer ce que l'action
+ferait, seconde touche = confirmer**. Cela remplace le survol *et* supprime la
+faute de frappe irréversible, qui coûte bien plus au pouce qu'à la souris.
+
+### Types de bâtiments — la proposition
+
+Aujourd'hui trois bâtiments figés, écrits en dur dans `src/breche.js`. Trois
+lectures possibles de « plusieurs types », et elles ne se valent pas :
+
+| Piste | Ce qu'elle apporte | Verdict |
+|---|---|---|
+| Plus de types **à composer avant la rade** | Un choix avant la partie, et le crochet de la méta-progression (étape 6) | **Retenue** |
+| Plus de bâtiments **sur le plateau à la fois** | Plus à penser par tour | Écartée : le tour doit rester de la taille d'un pouce |
+| Plus de **types ennemis** | Plus de variété de problèmes | Retenue, en second |
+
+La piste retenue sort la complexité **du tour** — qui doit rester court — pour
+la mettre **dans le menu**, qui est la chose la plus facile à réussir sur un
+téléphone.
+
+**Un type = une silhouette + un verbe, et les verbes ne se remplacent pas.** La
+classe de coque de `src/sprites.js` porte déjà la silhouette ; on lui donne un
+sens mécanique.
+
+| Type | Classe | PV | Mvt | Portée | Verbe | Ce qu'il résout |
+|---|---|---|---|---|---|---|
+| Barque longue | 6 | 2 | 4 | 1 | **Grappin** — hale d'une case | Amener une proie à l'abordeur |
+| Brigantin | 5 | 3 | 3 | 3 | **Bordée** — 1 dégât, repousse | Annuler un tir, écarter une menace |
+| Flûte | 4 | 4 | 2 | 1 | **Abordage** — prend une proie entamée | La seule source de butin |
+| Chaloupe canonnière | 6 | 1 | 3 | 2 | **Semonce** — repousse de deux, aucun dégât | Déplacer sans détruire la valeur |
+| Brûlot | 6 | 1 | 3 | 1 | **Brûlot** — se saborde, frappe trois cases | L'ouvre-boîte, à usage unique |
+| Frégate | 3 | 4 | 2 | 3 | **Double bordée** — deux cases d'un axe | Nettoyer une file |
+
+On en emmène **trois**. Au moins un abordeur, sinon on ne rapporte rien — une
+contrainte qui enseigne la règle au lieu de l'expliquer. La chaloupe est la
+réponse directe à « je veux déplacer une proie sans la tuer » : la tension
+couler/prendre devenue un outil. Le brûlot est à usage unique, comme l'étaient
+les vrais.
+
+Côté ennemi, trois types de plus, chacun résolvant un problème de rythme :
+**garde-côte** (vient à vous, tire à bout portant — punit l'immobilité),
+**galion** (proie qui vaut double, deux coups à encaisser avant l'abordage),
+**brûlot ennemi** (fonce sur votre coque la plus proche et explose — punit les
+escadres serrées).
+
+### La couture : types = données, verbes = code
+
+`NOTRES` et `EUX` sont des objets littéraux au milieu des règles. Ils doivent
+descendre dans `data/batiments.json`. Le **verbe** reste du code — c'est une
+règle — mais un type devient du contenu : ajouter un brigantin lourd à 4 pv ne
+doit pas demander de toucher au moteur.
+
+C'est aussi ce qui rend la suite de tests utile ici : elle est un détecteur de
+clé erronée, et elle pourra vérifier que chaque type nomme un verbe qui existe
+et une classe de coque qui existe.
+
+### Ordre proposé
+
+1. `tools/mobile-audit.mjs` — fait. L'instrument avant le chantier.
+2. Le plateau en couloir, mis à l'échelle de la fenêtre, deux touches.
+3. `data/batiments.json` et le choix de trois bâtiments avant la rade.
+4. Les trois types ennemis.
+
+Rien de tout cela n'est décidé : c'est ce dont il faut discuter avant de
+développer.
