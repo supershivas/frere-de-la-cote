@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%83%8F%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8F%B4%3C/text%3E%3C/svg%3E">
 </head>
 <body data-bg="sea">
 <canvas id="ocean"></canvas>
@@ -21,32 +21,26 @@
 /* ============================================================
    E — LA CHASSE-PARTIE EN CARTES.
 
-   Le tour est un tour de Balatro : une main d'hommes, on en joue de une à
-   cinq, la combinaison porte un nom, le nom donne une puissance et un
-   multiplicateur, le produit tombe dans la coque de la prise.
-
    Ce qui vient du jeu, et n'est pas réinventé ici :
-     src/cartes.js      les règles, pures et sans dé
-     src/sprites.js     les coques, générées à l'exécution
-     src/ocean.js       le ciel et la mer animés
-     src/fx.js          la fumée, les éclats, les nombres flottants
-     data/equipage.json l'équipage, les prises, les reliques
-     data/weather.json  la météo, avec ses vrais modificateurs
+     src/cartes.js         les règles, pures et sans dé
+     src/sprites.js        les coques, générées à l'exécution
+     src/ocean.js          le ciel et la mer animés
+     src/fx.js             la fumée, les éclats, les nombres flottants
+     data/equipage.json    l'équipage, les prises, les intentions, les reliques
+     data/weather.json     la météo, avec ses vrais modificateurs
      data/phylacteres.json les voix de l'équipage
-     css/style.css      l'interface (le §17 de css/deck.css pour cet écran)
+     css/style.css         l'interface (§17 de css/deck.css pour cet écran)
 
-   MOBILE D'ABORD : aucune largeur fixe, la main se partage la largeur
-   disponible, tout ce qui se touche fait 44 px. Première touche = viser
-   (le tableau dit exactement ce que la volée ferait), seconde = confirmer.
+   MOBILE D'ABORD, et rien en bas de l'écran : les deux ordres sont des
+   GESTES. On touche pour viser, on glisse vers le haut pour tirer, vers le
+   bas pour larguer. Un glissement monté puis redescendu annule la volée.
    ============================================================ */
 
 import * as C from './src/cartes.js';
 import { getGeneratedShip, drawGrid } from './src/sprites.js';
 import { startOcean, randomOceanScene } from './src/ocean.js';
-import { initFx, fxBroadside, fxExplosion, fxFloatText } from './src/fx.js';
+import { initFx, fxExplosion, fxBroadside, fxFloatText } from './src/fx.js';
 
-/* -- hyperscript minimal : la maquette emprunte l'INTERFACE du jeu (ses
-      feuilles, ses composants), pas sa chaîne de chargement de données. -- */
 const el = (tag, o = {}, kids = []) => {
   const n = document.createElement(tag);
   if (o.class) n.className = o.class;
@@ -58,242 +52,443 @@ const el = (tag, o = {}, kids = []) => {
   return n;
 };
 const app = () => document.getElementById('app');
+const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/* -- données -- */
 const jget = async (p) => (await fetch(p)).json();
 const [CONTENU, METEO, PHY] = await Promise.all([
   jget('data/equipage.json'), jget('data/weather.json'), jget('data/phylacteres.json'),
 ]);
 const METEO_CLES = Object.keys(METEO);
 
-/* -- l'aléatoire vit ici, dans la GÉNÉRATION, et nulle part ailleurs -- */
+/* L'aléatoire vit ici, dans la GÉNÉRATION, et nulle part ailleurs. */
 let graine = (Math.random() * 4294967295) >>> 0;
 const rngPour = (s) => { let x = s >>> 0 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; };
 let rng = rngPour(graine);
 
 const NOMS = ['Santa Clara', 'Nuestra Señora', 'San Cristóbal', 'La Concepción', 'El Rosario', 'San Felipe'];
-
 const P = C.nouvellePartie(CONTENU);
 let ecran = 'chasse';
-let dernierMot = '';
-let apercuFige = null;
+let mot = '';            // la dernière chose qui s'est passée, en une ligne
+let occupe = false;      // une animation est en cours : les gestes sont sourds
 
-/* ---------------------------------------------------------------- prises */
-function prochainePrise() {
-  const def = CONTENU.prises[Math.min(P.prisesFaites, CONTENU.prises.length - 1)];
-  const palier = Math.floor(P.prisesFaites / CONTENU.prises.length);
-  const nom = NOMS[Math.floor(rng() * NOMS.length)];
-  const meteo = METEO[METEO_CLES[Math.floor(rng() * METEO_CLES.length)]];
-  const echelle = 1 + 0.6 * palier;
-  return {
-    def: { ...def, nom, objectif: Math.round(def.objectif * echelle), butin: def.butin + 3 * palier, sceau: (rng() * 1e9) | 0 },
-    meteo,
-  };
-}
-function engagerSuivante() {
-  const { def, meteo } = prochainePrise();
-  C.engager(P, def, meteo, rng);
-  randomOceanScene(meteo.id);
-  ecran = 'chasse';
-  dernierMot = '';
-  rendre();
-  peindreCoques();
-  phylactere('ouverture');
-}
+/* ------------------------------------------------------------- la houle
+   L'amplitude vient de la météo réelle : un calme plat ne berce pas comme un
+   grain. C'est décoratif, mais c'est la seule chose qui dise « ce navire
+   flotte » plutôt que « ce navire est collé au fond de l'écran ». */
+const HOULE = {
+  calme: { amp: 1, gite: 0.25, periode: 6.5 },
+  brise: { amp: 2, gite: 0.5, periode: 5 },
+  vent_fort: { amp: 4, gite: 1.1, periode: 3.4 },
+  brume: { amp: 1.5, gite: 0.4, periode: 6 },
+  grain: { amp: 5, gite: 1.5, periode: 2.8 },
+  tempete: { amp: 7, gite: 2.2, periode: 2.2 },
+};
+const houle = () => HOULE[P.meteo && P.meteo.id] || HOULE.brise;
 
-/* ------------------------------------------------------------ les coques */
-function specNous() {
-  return {
-    seed: 4211, hullClass: 4, hullShape: 'fine', sailsPerMast: 3, jibs: 1, wear: 0,
-    colors: { hull: '#5a3d25', sail: '#e6d9bd', faction: '#8a1f1f' },
-    flag: { motif: 'Crâne', bg: '#161616', sym: '#e6d9bd', accent: '#f1c40f' },
-    trim: 'simple', emblem: 'petit',
-  };
-}
-function specPrise() {
-  const p = P.prise;
-  return {
-    seed: p.sceau || 9137, hullClass: p.hullClass, hullShape: 'ronde',
-    sailsPerMast: 3, jibs: 2, wear: 1,
-    colors: { hull: '#6b4a26', sail: '#f0e6cc', faction: '#c8a227' },
-    flag: { motif: 'Croix', bg: '#f0e6cc', sym: '#a3242a', accent: '#c8a227' },
-    trim: 'doré', emblem: 'grand',
-  };
-}
-// Une coque générée porte SA PALETTE (`g.palette`) : ses caractères sont ceux
-// du générateur (coque, voiles, pavillon, livrée), pas ceux des vieux gabarits
-// dessinés à la main. Lui passer une couleur unique à la place fait retomber
-// chaque caractère inconnu sur cette couleur — et la coque sort en aplat doré,
-// sans voiles ni pavillon, sans qu'aucune erreur ne soit levée.
-function peindreCoque(id, spec, facing) {
-  const cv = document.getElementById(id);
+/* ------------------------------------------------------------- les coques */
+
+// Une coque générée porte SA PALETTE : ses caractères sont ceux du générateur.
+// Lui passer une couleur unique fait retomber chaque caractère inconnu sur
+// cette couleur — coque en aplat, sans voiles ni pavillon, sans erreur levée.
+//
+// Le canvas est RECADRÉ à la ligne de flottaison : la mer vient exactement au
+// bas de l'image, donc aligner deux coques par le bas les aligne par la
+// flottaison, quelles que soient leurs tailles de grille.
+function peindreCoque(cv, spec, facing, { matsAbattus = 0, feu = 0, px = 3 } = {}) {
   if (!cv) return;
   const g = getGeneratedShip(spec);
-  const grille = g.grid || g;
-  // Le canvas prend la taille de la grille : le CSS le remet à l'échelle de la
-  // colonne, donc la coque suit l'écran au lieu de le déborder.
-  cv.width = (grille[0].length || 60) * 4;
-  cv.height = grille.length * 4;
-  drawGrid(cv, grille, { color: g.palette, flag: '', facing, waterRow: g.waterY != null ? g.waterY : null });
+  const grille = (g.grid || g).map((r) => (typeof r === 'string' ? r : r.join('')));
+  const cols = grille[0].length, rows = grille.length;
+  const eau = g.waterY != null ? g.waterY : rows - 1;
+
+  const off = document.createElement('canvas');
+  off.width = cols * px; off.height = rows * px;
+  drawGrid(off, greeVerte(grille, matsAbattus, eau), { color: g.palette, flag: '', facing, waterRow: eau });
+
+  cv.width = cols * px; cv.height = (eau + 1) * px;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(off, 0, 0);
+  cv.dataset.eau = String((eau + 1) * px);
+  cv.dataset.pont = String(Math.round((eau - 3) * px));
+  if (feu > 0) allumer(cv, feu, px, eau, facing);
 }
+
+// Un mât abattu se VOIT : on efface le haut du gréement, un cran par mât.
+// C'est la même grille, tronquée — pas un second jeu de sprites à maintenir.
+function greeVerte(grille, abattus, eau) {
+  if (!abattus) return grille;
+  const hautPont = Math.max(0, eau - 6);
+  const coupe = Math.min(hautPont, Math.round((hautPont * abattus) / 3));
+  return grille.map((ligne, y) => (y < coupe ? '.'.repeat(ligne.length) : ligne));
+}
+
+// Le feu : quelques pixels chauds sur le pont, animés par le rendu suivant.
+// Il n'y a pas de boucle d'animation dédiée — la teinte change à chaque
+// repeinte, c'est-à-dire à chaque tour, et ça suffit à le rendre vivant.
+let braise = 0;
+function allumer(cv, force, px, eau, facing) {
+  const ctx = cv.getContext('2d');
+  const pont = (eau - 5) * px;
+  const largeur = cv.width;
+  const n = 4 + force * 5;
+  for (let i = 0; i < n; i++) {
+    const t = (i * 2.399 + braise) % 1;
+    const x = Math.round((0.28 + t * 0.44) * largeur) + (facing === 1 ? -6 : 6);
+    const h = 2 + ((i * 7 + braise * 13) % 5);
+    ctx.fillStyle = i % 3 === 0 ? 'rgba(255,214,102,.95)' : i % 3 === 1 ? 'rgba(240,120,32,.9)' : 'rgba(180,42,18,.85)';
+    ctx.fillRect(x, pont - h * px, px, h * px);
+  }
+  ctx.fillStyle = 'rgba(60,54,48,.35)';
+  for (let i = 0; i < 5; i++) {
+    const x = Math.round((0.3 + ((i * 0.17 + braise * 0.1) % 0.4)) * largeur);
+    ctx.fillRect(x, pont - (10 + i * 3) * px, px * 3, px * 2);
+  }
+}
+
+const specNous = () => ({
+  seed: 4211, hullClass: 4, hullShape: 'fine', sailsPerMast: 3, jibs: 1, wear: 0,
+  colors: { hull: '#5a3d25', sail: '#e6d9bd', faction: '#8a1f1f' },
+  flag: { motif: 'Crâne', bg: '#161616', sym: '#e6d9bd', accent: '#f1c40f' },
+  trim: 'simple', emblem: 'petit',
+});
+const specPrise = () => ({
+  seed: P.prise.sceau || 9137, hullClass: P.prise.hullClass, hullShape: 'ronde',
+  sailsPerMast: 3, jibs: 2, wear: 1,
+  colors: { hull: '#6b4a26', sail: '#f0e6cc', faction: '#c8a227' },
+  flag: { motif: 'Croix', bg: '#f0e6cc', sym: '#a3242a', accent: '#c8a227' },
+  trim: 'doré', emblem: 'grand',
+});
+
 function peindreCoques() {
-  peindreCoque('c-nous', specNous(), 1);
-  if (P.prise) peindreCoque('c-prise', specPrise(), -1);
+  braise += 1;
+  const feuNous = P.nous.pv / P.nous.max < 0.4 ? (P.nous.pv / P.nous.max < 0.2 ? 2 : 1) : 0;
+  const feuElle = P.prise.pv / P.prise.max < 0.4 ? (P.prise.pv / P.prise.max < 0.2 ? 2 : 1) : 0;
+  // UNE SEULE ÉCHELLE pour les deux coques, calculée sur la plus haute et sur
+  // la bande de mer disponible. Deux échelles différentes faisaient de la
+  // frégate et de la barque deux jouets sans rapport de taille ; et une
+  // échelle fixe débordait vers le haut, poussant les plaques par-dessus le
+  // ruban — un débordement qu'`overflow: hidden` aurait masqué en silence.
+  // On mesure la BANDE, jamais le conteneur des coques : celui-ci tire sa
+  // hauteur du canvas qu'on est en train de dimensionner, et chaque repeinte
+  // rétrécissait les navires un peu plus. Une boucle de rétroaction silencieuse
+  // — rien n'échoue, les navires deviennent seulement minuscules.
+  const bande = document.querySelector('.ecran-cartes .mer');
+  const plaques = document.querySelector('.ecran-cartes .etiquettes');
+  const dispo = bande ? (bande.clientHeight - (plaques ? plaques.offsetHeight : 0) - 8) * 0.84 : 120;
+  const hauteurs = [specNous(), specPrise()].map((s) => {
+    const g = getGeneratedShip(s);
+    return (g.waterY != null ? g.waterY : (g.grid || g).length - 1) + 1;
+  });
+  const px = Math.max(1, Math.min(5, Math.floor(dispo / Math.max(...hauteurs))));
+  peindreCoque(document.getElementById('c-nous'), specNous(), 1, { feu: feuNous, px });
+  peindreCoque(document.getElementById('c-prise'), specPrise(), -1,
+    { matsAbattus: P.prise.matsMax - P.prise.mats, feu: feuElle, px });
+  const h = houle();
+  for (const id of ['c-nous', 'c-prise']) {
+    const cv = document.getElementById(id);
+    if (!cv) continue;
+    cv.style.setProperty('--amp', `${h.amp}px`);
+    cv.style.setProperty('--gite', `${h.gite}deg`);
+    cv.style.setProperty('--periode', `${h.periode + (id === 'c-prise' ? 0.7 : 0)}s`);
+  }
+}
+
+/* ------------------------------------------------------------ le boulet */
+// Un tir se suit des yeux : bouffée au départ, boulet en vol, éclat à
+// l'arrivée, chiffre qui monte. Les deux tirs sont SÉQUENTIELS — le nôtre,
+// puis le sien — parce que deux fumées simultanées ne racontent rien.
+function centre(id, dx = 0.5, dy = 0.45) {
+  const n = document.getElementById(id);
+  if (!n) return { x: innerWidth / 2, y: innerHeight / 2 };
+  const r = n.getBoundingClientRect();
+  return { x: r.left + r.width * dx, y: r.top + r.height * dy };
+}
+function boulet(a, b, duree = 420) {
+  return new Promise((fini) => {
+    const d = el('div', { class: 'boulet' });
+    document.body.appendChild(d);
+    const arc = Math.min(60, Math.abs(b.x - a.x) * 0.22);
+    const t0 = performance.now();
+    const pas = (t) => {
+      const k = Math.min(1, (t - t0) / duree);
+      const x = a.x + (b.x - a.x) * k;
+      const y = a.y + (b.y - a.y) * k - Math.sin(k * Math.PI) * arc;
+      d.style.transform = `translate(${x - 4}px, ${y - 4}px)`;
+      if (k < 1) requestAnimationFrame(pas); else { d.remove(); fini(); }
+    };
+    requestAnimationFrame(pas);
+  });
+}
+async function tir(deId, versId, sens, texte, ton) {
+  const a = centre(deId, sens === 1 ? 0.82 : 0.18, 0.42);
+  const b = centre(versId, 0.5, 0.45);
+  fxBroadside(a.x, a.y, sens, { scale: 1 });
+  await attendre(140);
+  await boulet(a, b);
+  fxExplosion(b.x, b.y, { scale: 1.15 });
+  if (texte) fxFloatText(b.x, b.y - 26, texte, ton);
+  await attendre(260);
 }
 
 /* ------------------------------------------------------------ phylactères */
-function phylactere(moment) {
-  const lignes = (PHY.repliques || []).filter((r) => r.moment === moment);
+// La réplique la plus SPÉCIFIQUE d'abord : une phrase sur la mer d'huile
+// pendant une tempête casse le peu de fiction qu'un phylactère porte. Les
+// étiquettes du tirage (`quand`) sont celles de la météo et de la prise ;
+// une réplique sans étiquette est un filet, elle ne sort que faute de mieux.
+function phylactere(moment, etiquettes = []) {
+  const toutes = (PHY.repliques || []).filter((r) => r.moment === moment);
+  const precises = toutes.filter((r) => (r.quand || []).some((q) => etiquettes.includes(q)));
+  const lignes = precises.length ? precises : toutes.filter((r) => !r.quand || !r.quand.length);
   if (!lignes.length) return;
   const r = lignes[Math.floor(rng() * lignes.length)];
   const v = PHY.voix[r.voix] || { nom: r.voix, role: '' };
-  dernierMot = `<b>${v.nom}</b>${v.role ? ` — ${v.role}` : ''} : « ${r.texte} »`;
-  const t = document.querySelector('.tb-aide');
-  if (t) t.innerHTML = dernierMot;
+  mot = `<b>${v.nom}</b> : « ${r.texte} »`;
+}
+
+/* --------------------------------------------------------------- prises */
+function engagerSuivante() {
+  const base = CONTENU.prises[Math.min(P.prisesFaites, CONTENU.prises.length - 1)];
+  const palier = Math.floor(P.prisesFaites / CONTENU.prises.length);
+  const echelle = 1 + 0.5 * palier;
+  const def = {
+    ...base, nom: NOMS[Math.floor(rng() * NOMS.length)],
+    pv: Math.round(base.pv * echelle), riposte: Math.round(base.riposte * echelle),
+    butin: base.butin + 3 * palier, sceau: (rng() * 1e9) | 0,
+  };
+  const meteo = METEO[METEO_CLES[Math.floor(rng() * METEO_CLES.length)]];
+  C.engager(P, def, meteo, rng);
+  randomOceanScene(meteo.id);
+  ecran = 'chasse'; mot = '';
+  phylactere('ouverture', [meteo.id, def.id, def.rang]);
+  rendre();
 }
 
 /* ------------------------------------------------------------ le tableau */
-function ligneTableau() {
-  const sel = P.selection;
-  const t = el('div', { class: `tableau${sel.length ? ' arme' : ''}` });
-  if (!sel.length) {
-    t.appendChild(el('div', { class: 'tb-nom', text: apercuFige ? apercuFige.nom : 'Aucune volée' }));
-    t.appendChild(el('div', {
-      class: 'tb-aide',
-      html: dernierMot || 'Touche un homme pour l’ajouter à la volée. Le compte s’écrit ici <b>avant</b> que tu tires.',
-    }));
+function tableau() {
+  const t = el('div', { class: `tableau${P.selection.length ? ' arme' : ''}` });
+  if (!P.selection.length) {
+    t.appendChild(el('div', { class: 'tb-tete' }, [el('span', { class: 'tb-cible', text: 'Aucune volée' })]));
+    t.appendChild(el('div', { class: 'tb-detail', html: mot || 'Touche des hommes d’un <b>même bord</b> pour former une volée.' }));
+    t.appendChild(el('div', { class: 'tb-geste', text: `relève : ${C.RELEVE} hommes par tour · ${P.largages} largage${P.largages > 1 ? 's' : ''}` }));
     return t;
   }
-  const r = C.evaluer(P, sel);
-  t.appendChild(el('div', { class: 'tb-nom', text: r.manoeuvre.nom }));
-  t.appendChild(el('div', { class: 'tb-eff', text: r.manoeuvre.eff }));
-  t.appendChild(el('div', { class: 'tb-compte' }, [
-    el('span', { class: 'tb-p', text: String(r.base) }),
-    el('span', { class: 'tb-x', text: '×' }),
-    el('span', { class: 'tb-m', text: String(r.mult) }),
-    el('span', { class: 'tb-eg', text: '=' }),
-    el('span', { class: 'tb-t', text: String(r.points) }),
+  const r = C.evaluer(P, P.selection);
+  const cible = r.cible === 'greement' ? 'Tir au gréement' : r.cible === 'radoub' ? 'Radoub' : 'Tir à la coque';
+  t.appendChild(el('div', { class: 'tb-tete' }, [
+    el('span', { class: 'tb-cible', text: cible }),
+    el('span', { class: 'tb-total', text: r.cible === 'coque' ? String(r.degats) : (r.cible === 'greement' ? (r.abat ? 'un mât' : 'rien') : '+12') }),
   ]));
-  const reste = Math.max(0, P.prise.pv - r.points);
+  const detail = r.lignes.filter((l) => l.points !== 0 || l.note)
+    .map((l) => `<b>${l.quoi}</b>${l.points ? ` ${l.points > 0 ? '+' : ''}${l.points}` : ''}`).join(' · ');
+  t.appendChild(el('div', { class: 'tb-detail', html: detail || '—' }));
+  const reste = Math.max(0, P.prise.pv - r.degats);
   t.appendChild(el('div', {
-    class: 'tb-aide',
-    html: reste === 0
-      ? '<b>Cette volée la prend.</b>'
-      : `Il resterait <b>${reste}</b> à abattre, avec <b>${P.bordees - 1}</b> volée${P.bordees - 1 > 1 ? 's' : ''}.`,
+    class: 'tb-geste',
+    html: r.cible === 'greement'
+      ? (r.abat ? 'un mât tombe : <b>son coup n’aura pas lieu</b>' : `il faut ${C.SEUIL_GREEMENT} de puissance pour abattre un mât`)
+      : r.cible === 'radoub' ? 'il ne tire pas, il répare'
+        : (reste === 0 ? '<b>cette volée la prend</b>' : `il lui resterait ${reste}`),
   }));
-  t.appendChild(el('div', { class: 'tb-geste', text: '↑ glisse pour tirer   ·   ↓ glisse pour larguer' }));
   return t;
 }
 
-/* -------------------------------------------------------------- la main */
-const ROLE_COULEUR = { canonnier: 'var(--hp-dark)', gabier: 'var(--info-dark)', abordeur: 'var(--warning-dark)', charpentier: 'var(--success-dark)' };
+/* ---------------------------------------------------------------- la main */
+const ROLE_FOND = { canonnier: '#7b241c', gabier: '#1a5276', abordeur: '#9c640c', charpentier: '#186a3b' };
 
 function carteVue(c) {
   const feu = C.estFeu(c);
   const pris = P.selection.includes(c);
+  const q = feu ? null : CONTENU.quarts[c.quart];
+  const permis = C.peutJouer(P, c);
   const n = el('button', {
-    class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}`,
-    attrs: { type: 'button', 'aria-pressed': String(pris), 'aria-label': feu ? 'Feu, encombre la main' : `${c.nom}, ${c.role}, ${CONTENU.quarts[c.quart].nom}, valeur ${C.valeur(c)}` },
+    class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}${c.blesse ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}`,
+    attrs: {
+      type: 'button', 'aria-pressed': String(pris),
+      'data-bord': feu ? '' : q.bord,
+      'aria-label': feu ? 'Feu — encombre la main'
+        : `${c.nom}, ${c.role}, ${q.nom}, valeur ${C.valeur(c)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
+    },
     on: {
       click: () => {
-        if (P.fini || glisseEnCours) return;
-        if (!C.selectionner(P, c)) { flashRefus(n); return; }
+        if (occupe || glisse) return;
+        const r = C.selectionner(P, c);
+        if (!r.ok) { mot = `<span class="tb-refus">${r.pourquoi}</span>`; secouer(n); }
         rendre();
       },
     },
   }, [
+    el('span', { class: 'c-bord' }, [
+      el('span', { text: feu ? 'feu' : (q.bord === 'babord' ? 'bâ' : 'tri') }),
+      el('span', { class: 'c-bout', text: feu ? '' : (q.bout === 'avant' ? 'AV' : 'AR') }),
+    ]),
     c.grade ? el('span', { class: 'c-grade', text: '★'.repeat(c.grade) }) : null,
-    el('span', { class: 'c-quart', text: feu ? '' : CONTENU.quarts[c.quart].icone }),
+    c.blesse ? el('span', { class: 'c-etat', text: 'bl.' }) : null,
     el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
     el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c)) }),
     el('span', {
       class: 'c-role', text: feu ? 'encombre' : CONTENU.roles[c.role].court,
-      attrs: { style: `background:${feu ? 'var(--warning-dark)' : ROLE_COULEUR[c.role]}` },
+      attrs: { style: `background:${feu ? '#6b3a10' : ROLE_FOND[c.role]}` },
     }),
   ]);
   return n;
 }
-function flashRefus(n) {
-  // Règle 5 : un ordre impossible se refuse à voix haute.
-  n.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(0)' }], { duration: 180 });
-  dernierMot = 'Cinq hommes au maximum dans une volée.';
-  const t = document.querySelector('.tb-aide');
-  if (t) t.innerHTML = dernierMot;
+function secouer(n) {
+  n.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 190 });
 }
 
+/* ---------------------------------------------------------------- l'écran */
+function ecranChasse() {
+  const p = P.prise;
+  const s = el('div', { class: 'screen ecran-cartes' });
 
-/* ------------------------------------------------------------ le geste
-   Sur un plateau tactile, le pouce fait deux choses et pas plus : il touche
-   pour viser, il glisse pour ordonner. Vers le haut la bordée part, vers le
-   bas la sélection est larguée — dans les deux cas, le tableau a déjà écrit
-   ce qui va se passer, donc le geste ne fait que confirmer.
+  s.appendChild(el('div', { class: 'ruban' }, [
+    el('div', { class: 'rb-txt' }, [
+      el('div', { class: 'rb-quoi', text: `Prendre ${p.nom}` }),
+      el('div', { class: 'rb-rang', text: `${p.rang} · tour ${P.tour}${P.encrasse ? ` · ${CONTENU.bords[P.encrasse].nom} recharge` : ''}` }),
+    ]),
+    el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
+    el('button', { class: 'btn-level-3 rouage', text: '⚙', attrs: { type: 'button', 'aria-label': 'aide et réglages' }, on: { click: ouvrirAide } }),
+  ]));
 
-   Les deux boutons restent : le geste ne remplace pas un ordre nommé, il le
-   raccourcit. Un pouce mouillé, un écran cassé, un lecteur d'écran — le
-   bouton doit toujours être là. */
-const SEUIL_GESTE = 44;   // la même mesure que la cible tactile minimale
-let glisseEnCours = false;
+  // Les deux plaques sont dans UNE rangée en haut de la bande : posées
+  // au-dessus de chaque coque, elles se retrouvaient à deux hauteurs
+  // différentes selon la taille des navires, et l'œil lisait deux mers.
+  const mats = '|'.repeat(p.mats) + '.'.repeat(p.matsMax - p.mats);
+  const matsHtml = mats.split('').map((ch) => (ch === '|' ? '|' : '<span class="bas">.</span>')).join('');
+  const mer = el('div', { class: 'mer' }, [
+    el('div', { class: 'etiquettes' }, [
+      el('div', { class: 'etiq nous' }, [
+        el('div', { class: 'e-nom', text: 'La Tortue' }),
+        el('div', { class: 'jauge notre' }, [el('i', { attrs: { style: `width:${(100 * P.nous.pv) / P.nous.max}%` } })]),
+        el('div', { class: 'e-chif' }, [
+          el('span', { text: `${P.nous.pv} / ${P.nous.max}` }),
+          el('span', { class: 'e-mats', text: `${P.largages} larg.` }),
+        ]),
+      ]),
+      el('div', { class: 'etiq prise' }, [
+        el('div', { class: 'e-nom', text: p.nom }),
+        el('div', { class: 'jauge' }, [el('i', { attrs: { style: `width:${(100 * p.pv) / p.max}%` } })]),
+        el('div', { class: 'e-chif' }, [
+          el('span', { text: `${p.pv} / ${p.max}` }),
+          el('span', { class: 'e-mats', html: matsHtml }),
+        ]),
+      ]),
+    ]),
+    el('div', { class: 'flotte' }, [
+      el('div', { class: 'coque nous' }, [el('canvas', { attrs: { id: 'c-nous' } })]),
+      el('div', { class: 'coque prise' }, [el('canvas', { attrs: { id: 'c-prise' } })]),
+    ]),
+  ]);
+  const past = el('div', { class: 'pastilles' });
+  if (P.meteo) past.appendChild(el('span', { class: 'pastille', text: `${P.meteo.icon} ${P.meteo.name_fr}${P.meteo.mods.damageMult !== 1 ? ` ×${P.meteo.mods.damageMult}` : ''}` }));
+  if (p.regle) past.appendChild(el('span', { class: 'pastille regle', text: `⚑ ${CONTENU.regles[p.regle].nom}` }));
+  for (const id of P.reliques) {
+    const r = CONTENU.reliques.find((x) => x.id === id);
+    if (r) past.appendChild(el('span', { class: 'pastille relique', text: `✦ ${r.nom}` }));
+  }
+  mer.appendChild(past);
+  s.appendChild(mer);
+
+  // La carte d'intention : son coup est écrit avant qu'on joue.
+  const a = p.annonce;
+  const chiffre = a.effet === 'canon'
+    ? `−${Math.round(p.riposte * a.force * (0.5 + 0.5 * (p.mats / p.matsMax)))}`
+    : '⚑';
+  s.appendChild(el('div', { class: `intention${p.tirAnnule ? ' annulee' : ''}` }, [
+    el('div', { class: 'int-mesure', text: p.tirAnnule ? '✕' : chiffre }),
+    el('div', { class: 'int-txt' }, [
+      el('div', { class: 'int-eyebrow', text: p.tirAnnule ? 'son coup est emporté' : 'au prochain tour, elle' }),
+      el('div', { class: 'int-nom', text: a.nom }),
+      el('div', { class: 'int-quoi', text: p.tirAnnule ? 'Le mât abattu emporte son tir.' : a.texte }),
+    ]),
+  ]));
+
+  s.appendChild(tableau());
+  const main = el('div', { class: 'main' });
+  for (const c of P.main) main.appendChild(carteVue(c));
+  s.appendChild(main);
+  return s;
+}
+
+/* ----------------------------------------------------------- le geste
+   Deux ordres, aucun bouton. On touche pour viser ; on glisse pour ordonner.
+     ↑ la volée part          ↓ la sélection est larguée
+     ↑ puis ↓ : on renonce, la sélection est défaite.
+
+   Dès que le glissement commence, les cartes choisies SE REGROUPENT : elles
+   convergent vers le centre de la main et se serrent en paquet, pour qu'on
+   voie partir une volée et non cinq cartes indépendantes. */
+const SEUIL = 44;              // la mesure de la cible tactile minimale
+let glisse = false;
 
 function brancherGeste(scene) {
-  const zones = [scene.querySelector('.main'), scene.querySelector('.tableau')].filter(Boolean);
-  const tableau = scene.querySelector('.tableau');
+  const main = scene.querySelector('.main');
+  const tab = scene.querySelector('.tableau');
+  const zones = [main, tab].filter(Boolean);
   const aide = scene.querySelector('.tb-geste');
-  let y0 = null, dy = 0, franchi = false;
+  const aideTexte = aide ? aide.innerHTML : '';
+  let y0 = null, dy = 0, montee = 0, franchi = false;
 
   const levees = () => [...scene.querySelectorAll('.carte.prise-en-main')];
-  const marquer = (d) => {
-    if (!tableau) return;
-    const tire = d <= -SEUIL_GESTE && P.bordees > 0;
-    const largue = d >= SEUIL_GESTE && P.largages > 0;
-    tableau.classList.toggle('tire', tire);
-    tableau.classList.toggle('largue-pret', largue);
-    if (aide) {
-      aide.textContent = tire ? '↑ relâche : la bordée part'
-        : largue ? '↓ relâche : la sélection est larguée'
-          : '↑ glisse pour tirer   ·   ↓ glisse pour larguer';
-    }
+  const dire = (h, cls) => {
+    if (tab) { tab.classList.remove('tire', 'largue-pret', 'annule'); if (cls) tab.classList.add(cls); }
+    if (aide) aide.innerHTML = h;
   };
 
   const debut = (e) => {
-    if (P.fini || !P.selection.length) return;
-    y0 = e.clientY; dy = 0; franchi = false;
-    // PAS de setPointerCapture ici. Capturer dès l'appui redirige le `click`
-    // qui suit vers la zone au lieu de la carte : une fois un homme
-    // sélectionné, plus aucune touche n'en sélectionnait un second. La capture
-    // n'est prise qu'au moment où le geste devient un glissement.
+    if (occupe || P.fini || !P.selection.length) return;
+    y0 = e.clientY; dy = 0; montee = 0; franchi = false;
   };
   const bouge = (e) => {
     if (y0 === null) return;
     dy = e.clientY - y0;
+    montee = Math.min(montee, dy);
     if (!franchi && Math.abs(dy) > 8) {
-      franchi = true;
-      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* souris déjà relâchée */ }
+      franchi = true; glisse = true;
+      // PAS de capture avant ce point : capturer dès l'appui redirige le
+      // `click` suivant vers la zone au lieu de la carte, et plus aucun homme
+      // ne peut être ajouté à la volée.
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* souris relâchée */ }
     }
     if (!franchi) return;
-    // Le glissement vers le haut suit le doigt ; vers le bas il résiste, parce
-    // que larguer coûte une ressource et ne doit pas se faire par inadvertance
-    // en reposant le pouce. Le suivi est borné pour que la carte levée ne
-    // vienne pas recouvrir le tableau, qui est ce qu'on doit lire à cet
-    // instant précis.
-    const suivi = Math.max(-22, Math.min(22, dy < 0 ? dy : dy * 0.6));
-    for (const c of levees()) c.style.transform = `translateY(${-12 + suivi}px)`;
-    marquer(dy);
+
+    const cartes = levees();
+    if (cartes.length) {
+      const boites = cartes.map((n) => n.getBoundingClientRect());
+      const cx = (Math.min(...boites.map((b) => b.left)) + Math.max(...boites.map((b) => b.right))) / 2;
+      const monte = Math.max(0, Math.min(1, -dy / SEUIL));
+      const suivi = Math.max(-26, Math.min(24, dy < 0 ? dy : dy * 0.6));
+      cartes.forEach((n, i) => {
+        const b = boites[i];
+        const vers = (cx - (b.left + b.width / 2)) * monte * 0.85;
+        n.style.transform = `translate(${vers}px, ${-14 + suivi}px) rotate(${vers * 0.05}deg)`;
+        n.style.zIndex = String(10 + i);
+      });
+    }
+
+    const annule = montee < -20 && dy > 10;
+    if (annule) dire('↩ relâche : la volée est défaite', 'annule');
+    else if (dy <= -SEUIL) dire('↑ relâche : la volée part', 'tire');
+    else if (dy >= SEUIL && P.largages > 0) dire('↓ relâche : la sélection est larguée', 'largue-pret');
+    else dire(aideTexte, null);
   };
   const fin = () => {
     if (y0 === null) return;
-    const d = dy, bouge_ = franchi;
+    const d = dy, m = montee, bougea = franchi;
     y0 = null; franchi = false;
-    for (const c of levees()) c.style.transform = '';
-    if (tableau) tableau.classList.remove('tire', 'largue-pret');
-    if (!bouge_) { marquer(0); return; }
-    // Le `pointerup` d'un glissement est suivi d'un `click` sur la carte du
-    // dessous : sans ce verrou, tirer désélectionnerait aussitôt une carte de
-    // la main suivante.
-    glisseEnCours = true;
-    setTimeout(() => { glisseEnCours = false; }, 80);
-    if (d <= -SEUIL_GESTE && P.bordees > 0) tirer();
-    else if (d >= SEUIL_GESTE && P.largages > 0) { if (C.largage(P)) { C.completer(P, rng); rendre(); } }
-    else marquer(0);
+    for (const n of levees()) { n.style.transform = ''; n.style.zIndex = ''; }
+    setTimeout(() => { glisse = false; }, 60);
+    if (!bougea) { dire(aideTexte, null); return; }
+    if (m < -20 && d > 10) { P.selection = []; mot = 'Volée défaite.'; rendre(); return; }
+    if (d <= -SEUIL) { tirer(); return; }
+    if (d >= SEUIL) {
+      const r = C.largage(P);
+      if (!r.ok) mot = `<span class="tb-refus">${r.pourquoi}</span>`;
+      else { C.completer(P, rng); mot = 'Sélection larguée.'; }
+      rendre(); return;
+    }
+    dire(aideTexte, null);
   };
 
   for (const z of zones) {
@@ -302,134 +497,64 @@ function brancherGeste(scene) {
     z.addEventListener('pointerup', fin);
     z.addEventListener('pointercancel', fin);
   }
+  // Clavier : le geste raccourcit un ordre, il ne doit pas être le seul chemin.
+  scene.tabIndex = -1;
+  scene.addEventListener('keydown', (e) => {
+    if (occupe || !P.selection.length) return;
+    if (e.key === 'ArrowUp' || e.key === 'Enter') { e.preventDefault(); tirer(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (C.largage(P).ok) { C.completer(P, rng); rendre(); } }
+    if (e.key === 'Escape') { P.selection = []; rendre(); }
+  });
 }
 
-/* -------------------------------------------------------------- écrans */
-function ecranChasse() {
-  const p = P.prise;
-  const s = el('div', { class: 'screen ecran-cartes' });
-
-  s.appendChild(el('div', { class: 'ruban' }, [
-    el('div', { class: 'rb-txt' }, [
-      el('div', { class: 'rb-quoi', text: `Prendre ${p.nom}` }),
-      el('div', { class: 'rb-rang', text: `${p.rang} · prise n° ${P.prisesFaites + 1}` }),
-    ]),
-    el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
-    el('button', { class: 'btn-level-3 rouage', text: '⚙', attrs: { type: 'button', 'aria-label': 'barème et réglages' }, on: { click: ouvrirBareme } }),
-  ]));
-
-  const mer = el('div', { class: 'mer' });
-  mer.appendChild(el('div', { class: 'coque nous' }, [
-    el('div', { class: 'etiq' }, [
-      el('div', { class: 'e-nom', text: 'La Tortue' }),
-      el('div', { class: 'jauge reste' }, [el('i', { attrs: { style: `width:${(100 * P.bordees) / (p.bordees + (P.reliques.includes('pavillon') ? 1 : 0))}%` } })]),
-      el('div', { class: 'e-chif', text: `${P.bordees} volée${P.bordees > 1 ? 's' : ''} · ${P.largages} largage${P.largages > 1 ? 's' : ''}` }),
-    ]),
-    el('canvas', { attrs: { id: 'c-nous' } }),
-  ]));
-  mer.appendChild(el('div', { class: 'coque prise' }, [
-    el('div', { class: 'etiq' }, [
-      el('div', { class: 'e-nom', text: p.nom }),
-      el('div', { class: 'jauge' }, [el('i', { attrs: { style: `width:${(100 * p.pv) / p.max}%` } })]),
-      el('div', { class: 'e-chif', text: `${p.pv} / ${p.max}` }),
-    ]),
-    el('canvas', { attrs: { id: 'c-prise' } }),
-  ]));
-  const past = el('div', { class: 'pastilles' });
-  if (P.meteo) past.appendChild(el('span', { class: 'pastille', text: `${P.meteo.icon} ${P.meteo.name_fr}${P.meteo.mods.damageMult !== 1 ? ` ×${P.meteo.mods.damageMult}` : ''}` }));
-  if (p.regle) past.appendChild(el('span', { class: 'pastille regle', text: `⚑ ${CONTENU.regles[p.regle].nom}`, attrs: { title: CONTENU.regles[p.regle].texte } }));
-  for (const id of P.reliques) {
-    const r = CONTENU.reliques.find((x) => x.id === id);
-    if (r) past.appendChild(el('span', { class: 'pastille relique', text: `✦ ${r.nom}` }));
-  }
-  mer.appendChild(past);
-  s.appendChild(mer);
-
-  s.appendChild(ligneTableau());
-
-  const main = el('div', { class: 'main' });
-  for (const c of P.main) main.appendChild(carteVue(c));
-  s.appendChild(main);
-
-  const rien = P.selection.length === 0;
-  s.appendChild(el('div', { class: 'ordres' }, [
-    el('button', {
-      class: 'btn-level-2 largue', attrs: { type: 'button', ...(rien || P.largages <= 0 ? { disabled: '' } : {}) },
-      html: `Largage<span class="compteur">${P.largages} restant${P.largages > 1 ? 's' : ''}</span>`,
-      on: { click: () => { if (C.largage(P)) { C.completer(P, rng); rendre(); } } },
-    }),
-    el('button', {
-      class: 'btn-level-1', attrs: { type: 'button', ...(rien || P.bordees <= 0 ? { disabled: '' } : {}) },
-      html: `Bordée !<span class="compteur">${P.bordees} restante${P.bordees > 1 ? 's' : ''}</span>`,
-      on: { click: tirer },
-    }),
-  ]));
-  return s;
-}
-
-function tirer() {
-  if (!P.selection.length) return;
+/* ------------------------------------------------------------ le tour */
+async function tirer() {
+  if (occupe || P.fini || !P.selection.length) return;
+  occupe = true;
   const r = C.jouer(P);
-  if (!r) return;
-  apercuFige = r.manoeuvre;
-  dernierMot = P.journal.length ? P.journal[P.journal.length - 1] : '';
-
-  const nous = document.getElementById('c-nous');
-  const prise = document.getElementById('c-prise');
-  if (nous && prise) {
-    const a = nous.getBoundingClientRect(); const b = prise.getBoundingClientRect();
-    fxBroadside(a.right - 10, a.top + a.height * 0.5, 1, { scale: 1 });
-    setTimeout(() => {
-      fxExplosion(b.left + b.width * 0.45, b.top + b.height * 0.45, { scale: 1.1 });
-      fxFloatText(b.left + b.width * 0.45, b.top + b.height * 0.25, `−${r.points}`, 'dmg');
-    }, 220);
-  }
-  C.completer(P, rng);
-  setTimeout(() => {
-    if (P.fini) { ecran = P.fini === 'prise' ? 'partage' : 'naufrage'; phylactere('denouement'); }
-    rendre();
-  }, 520);
   rendre();
-}
 
-function ecranPartage() {
-  const s = el('div', { class: 'screen ecran-cartes' });
-  s.appendChild(el('div', { class: 'ruban' }, [
-    el('div', { class: 'rb-txt' }, [
-      el('div', { class: 'rb-quoi', text: 'Partage du butin' }),
-      el('div', { class: 'rb-rang', text: `${P.prisesFaites} prise(s) · chasse-partie` }),
-    ]),
-    el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
-  ]));
-  s.appendChild(el('div', { class: 'verdict' }, [
-    el('h2', { text: 'La prise est à nous' }),
-    el('p', { html: dernierMot || 'On radoube, on recrute, et on repart. Ce qui n’est pas acheté maintenant ne le sera plus.' }),
-  ]));
-
-  const liste = el('div', { class: 'partage' });
-  for (const o of offres()) {
-    const cher = o.prix > P.butin || o.pris;
-    liste.appendChild(el('button', {
-      class: 'offre', attrs: { type: 'button', ...(cher ? { disabled: '' } : {}) },
-      on: { click: () => { if (o.acheter()) { rendre(); } } },
-    }, [
-      el('div', { class: 'o-txt' }, [
-        el('div', { class: 'o-nom', text: o.nom }),
-        el('div', { class: 'o-det', text: o.det }),
-      ]),
-      el('div', { class: 'o-prix', text: o.pris ? 'à bord' : `${o.prix} 💰` }),
-    ]));
+  // 1. NOTRE tir.
+  if (r.cible === 'radoub') {
+    fxFloatText(centre('c-nous').x, centre('c-nous').y - 20, '+12', 'heal');
+    await attendre(500);
+  } else {
+    await tir('c-nous', 'c-prise', 1,
+      r.cible === 'greement' ? (r.abat ? 'un mât !' : 'dans les voiles') : `−${r.degats}`,
+      r.cible === 'greement' ? '' : 'dmg');
   }
-  s.appendChild(liste);
-  s.appendChild(el('div', { class: 'ordres' }, [
-    el('button', { class: 'btn-level-1', text: 'Reprendre la chasse', attrs: { type: 'button' }, on: { click: engagerSuivante } }),
-  ]));
-  return s;
-}
+  peindreCoques();
+  rendre();
 
-// Les offres sont tirées une fois par partage, pas à chaque rendu : le magasin
-// ne doit pas changer sous le pouce du joueur.
-let lot = null; let lotPour = -1;
+  if (P.fini === 'prise') { occupe = false; finPrise(); return; }
+
+  // 2. PUIS la sienne — jamais les deux en même temps.
+  await attendre(180);
+  const rip = C.riposter(P);
+  if (rip.annulee) {
+    fxFloatText(centre('c-prise').x, centre('c-prise').y - 24, 'tir emporté', '');
+    await attendre(560);
+  } else if (rip.degats > 0) {
+    await tir('c-prise', 'c-nous', -1, `−${rip.degats}`, 'dmg');
+  } else if (rip.effets.length) {
+    fxFloatText(centre('c-prise').x, centre('c-prise').y - 24, rip.intention.nom, '');
+    await attendre(560);
+  }
+  mot = [rip.annulee ? rip.raison : null, ...rip.effets].filter(Boolean).join(' ');
+  peindreCoques();
+  occupe = false;
+  if (P.fini === 'naufrage') { ecran = 'naufrage'; rendre(); return; }
+  C.completer(P, rng);
+  rendre();
+  ecranCourant()?.focus?.();
+}
+function finPrise() { ecran = 'partage'; phylactere('denouement', [P.meteo && P.meteo.id, P.prise.id].filter(Boolean)); lotPour = -1; rendre(); }
+// `scene` est déjà pris par src/ocean.js : dans le fichier autonome les
+// modules partagent une portée, et le doublon rendait la page blanche.
+const ecranCourant = () => document.querySelector('.screen.ecran-cartes');
+
+/* ------------------------------------------------------------- le partage */
+let lot = null, lotPour = -1;
 function offres() {
   if (lotPour !== P.prisesFaites) {
     lotPour = P.prisesFaites;
@@ -438,64 +563,94 @@ function offres() {
     lot = [
       ...C.melanger(dispo, rng).slice(0, 2).map((r) => ({
         nom: `Recruter ${r.nom}`, prix: r.prix,
-        det: `${r.role} · ${CONTENU.quarts[r.quart].nom} · valeur ${r.valeur} — ${CONTENU.roles[r.role].verbe}`,
+        det: `${r.role} · ${CONTENU.quarts[r.quart].nom} · valeur ${r.valeur}`,
         acheter: () => C.recruter(P, r),
       })),
-      ...C.melanger(rel, rng).slice(0, 2).map((r) => ({
-        nom: r.nom, prix: r.prix, det: r.texte, acheter: () => C.acheterRelique(P, r),
-      })),
+      ...C.melanger(rel, rng).slice(0, 2).map((r) => ({ nom: r.nom, prix: r.prix, det: r.texte, acheter: () => C.acheterRelique(P, r) })),
     ];
     const promu = C.melanger(P.equipage.filter((c) => c.grade < 3 && c.role !== 'charpentier'), rng)[0];
-    if (promu) {
-      lot.push({
-        nom: `Passer ${promu.nom} gradé`, prix: 4,
-        det: `${promu.role} · valeur ${C.valeur(promu)} → ${C.valeur(promu) + 1}`,
-        acheter: () => C.graduer(P, promu),
-      });
-    }
+    if (promu) lot.push({ nom: `Passer ${promu.nom} gradé`, prix: 4, det: `${promu.role} · valeur ${C.valeur(promu)} → ${C.valeur(promu) + 1}`, acheter: () => C.graduer(P, promu) });
   }
   return lot;
 }
-
+function ecranPartage() {
+  const s = el('div', { class: 'screen ecran-cartes' });
+  s.appendChild(el('div', { class: 'ruban' }, [
+    el('div', { class: 'rb-txt' }, [
+      el('div', { class: 'rb-quoi', text: 'Partage du butin' }),
+      el('div', { class: 'rb-rang', text: `${P.prisesFaites} prise(s) · La Tortue radoubée` }),
+    ]),
+    el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
+  ]));
+  s.appendChild(el('div', { class: 'verdict' }, [
+    el('h2', { text: 'La prise est à nous' }),
+    el('p', { html: mot || 'On radoube, on recrute, et on repart. Ce qui n’est pas acheté maintenant est perdu.' }),
+  ]));
+  const liste = el('div', { class: 'partage' });
+  for (const o of offres()) {
+    const cher = o.prix > P.butin;
+    liste.appendChild(el('button', {
+      class: 'offre', attrs: { type: 'button', ...(cher ? { disabled: '' } : {}) },
+      on: { click: () => { if (o.acheter().ok) rendre(); } },
+    }, [
+      el('div', { class: 'o-txt' }, [el('div', { class: 'o-nom', text: o.nom }), el('div', { class: 'o-det', text: o.det })]),
+      el('div', { class: 'o-prix', text: `${o.prix} 💰` }),
+    ]));
+  }
+  s.appendChild(liste);
+  s.appendChild(el('div', { class: 'suite' }, [
+    el('button', { class: 'btn-level-1', text: 'Reprendre la chasse', attrs: { type: 'button' }, on: { click: engagerSuivante } }),
+  ]));
+  return s;
+}
 function ecranNaufrage() {
   const s = el('div', { class: 'screen ecran-cartes' });
   s.appendChild(el('div', { class: 'verdict' }, [
-    el('h2', { text: 'La chasse est rompue' }),
-    el('p', { html: `${P.prise.nom} tient encore ${P.prise.pv} coup(s) et tu n’as plus de volée. <br>Butin ramené : <b>${P.butin}</b> après ${P.prisesFaites} prise(s).` }),
+    el('h2', { text: 'La Tortue est démâtée' }),
+    el('p', { html: `${P.prise.nom} tient encore ${P.prise.pv}. Butin ramené : <b>${P.butin}</b> après ${P.prisesFaites} prise(s).` }),
   ]));
-  s.appendChild(el('div', { class: 'ordres' }, [
+  s.appendChild(el('div', { class: 'suite' }, [
     el('button', { class: 'btn-level-1', text: 'Reprendre la mer', attrs: { type: 'button' }, on: { click: () => location.reload() } }),
   ]));
   return s;
 }
 
-function ouvrirBareme() {
-  // Roue crantée : le barème, la graine, l'état — tout ce qui sert au
-  // développement vit derrière ce bouton, jamais dans l'écran de jeu (§6).
+/* ---------------------------------------------------------------- l'aide */
+function ouvrirAide() {
   const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
-  const corps = el('div', { class: 'modal ecran-cartes bareme-boite' });
-  corps.appendChild(el('h3', { text: 'Les manœuvres' }));
-  const t = el('table', { class: 'bareme' });
-  for (const m of C.MANOEUVRES) {
-    t.appendChild(el('tr', {}, [
-      el('td', {}, [el('div', { class: 'b-nom', text: m.nom }), el('div', { class: 'b-eff', text: m.eff })]),
-      el('td', { class: 'b-chif', text: `${m.base} × ${m.mult}` }),
-    ]));
-  }
-  corps.appendChild(t);
-  corps.appendChild(el('p', { class: 'tb-aide', html: `Graine <b>${graine}</b> · pioche ${P.pioche.length} · défausse ${P.defausse.length} · équipage ${P.equipage.length}` }));
-  corps.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
-  fond.appendChild(corps);
+  const b = el('div', { class: 'modal ecran-cartes aide-boite' });
+  b.innerHTML = `
+    <h3>Comment on tire</h3>
+    <h4>Le bord — avec qui</h4>
+    <p>Chaque homme sert d'un côté du navire : <span class="pion ba">bâbord</span> ou
+    <span class="pion tri">tribord</span>, comme les feux de position. <b>Une volée ne mêle pas les deux bords</b> :
+    les canons d'un bord tirent ensemble, ceux d'en face regardent la mer.</p>
+    <p>Et le bord qui vient de tirer <b>recharge</b> : au tour suivant, c'est l'autre qui parle. Il faut alterner.</p>
+    <h4>L'avant et l'arrière — sur quoi</h4>
+    <p>Une volée descend à la <b>coque</b> : ce sont les dégâts. Elle monte au <b>gréement</b> si
+    <b>tous</b> les hommes sont à l'avant <b>et</b> qu'un gabier en est : elle n'entame pas la coque, elle
+    abat un mât — et un mât qui tombe <b>emporte le coup qu'elle avait annoncé</b>. Il se regrée en deux tours.</p>
+    <h4>Les métiers</h4>
+    <ul>${Object.values(CONTENU.roles).map((r) => `<li><b>${r.nom}</b> — ${r.aide}</li>`).join('')}</ul>
+    <h4>La relève</h4>
+    <p>On ne remplit pas sa main : on relève <b>${C.RELEVE} hommes par tour</b>. Brûler cinq hommes maintenant,
+    c'est tirer à deux le tour prochain.</p>
+    <h4>Les gestes</h4>
+    <p>Toucher un homme l'ajoute à la volée. <b>Glisser vers le haut</b> : la volée part.
+    <b>Vers le bas</b> : la sélection est larguée. <b>Monter puis redescendre</b> : on renonce.</p>
+    <p style="margin-top:10px;color:var(--text-muted)">Graine ${graine} · pioche ${P.pioche.length} · défausse ${P.defausse.length} · équipage ${P.equipage.length}</p>`;
+  b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
+  fond.appendChild(b);
   document.body.appendChild(fond);
 }
 
-/* -------------------------------------------------------------- rendu */
+/* ---------------------------------------------------------------- rendu */
 function rendre() {
   const r = app();
   while (r.firstChild) r.removeChild(r.firstChild);
-  const scene = ecran === 'partage' ? ecranPartage() : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse();
-  r.appendChild(scene);
-  if (ecran === 'chasse') { peindreCoques(); brancherGeste(scene); }
+  const s = ecran === 'partage' ? ecranPartage() : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse();
+  r.appendChild(s);
+  if (ecran === 'chasse') { peindreCoques(); brancherGeste(s); }
 }
 
 initFx();

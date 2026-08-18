@@ -27,32 +27,56 @@ bloquait le chantier est tranché : cette question-là est fermée.
 
 ### La boucle, en une page
 
-1. **Une prise** (`data/equipage.json → prises`) a un objectif, un nombre de
-   volées, et parfois une **règle** qui casse une habitude : « les cartes de
-   tribord ne comptent pas », « chaque volée met un Feu dans ta pioche ».
-2. **Une main** de sept hommes. On en sélectionne jusqu'à cinq. Le tableau
-   affiche le compte exact **avant** de tirer.
-3. **Deux ordres seulement** : *Bordée* (tire, consomme une volée) et
-   *Largage* (jette la sélection, repioche, consomme un largage).
-4. Objectif atteint → **le partage** : deux recrues, deux reliques, une
-   promotion. Ce qui n'est pas acheté est perdu.
-5. Plus de volées → la chasse est rompue.
+1. **Une prise** (`data/equipage.json → prises`) a une coque, des mâts, une
+   riposte, et parfois une **règle** qui casse une habitude.
+2. Elle **annonce son coup un tour à l'avance**, écrit en toutes lettres sur
+   une carte d'intention. Rien n'est caché, rien n'est tiré au dé.
+3. **Une main** de sept hommes. On en choisit, on tire. La prise riposte avec
+   le coup qu'elle avait annoncé.
+4. Sa coque à zéro → **le partage** : deux recrues, deux reliques, une
+   promotion. La Tortue à zéro → la chasse est rompue.
 
-### Les deux axes qui font la combinatoire
+Une prise se joue en **cinq à huit tours**.
 
-- **Le métier** est le *verbe* : canonnier (puissance brute), gabier (+1 au
-  multiplicateur), abordeur (double si la prise est basse), charpentier (ne
-  frappe pas ; rend un largage et jette un Feu).
-- **Le quart** est la *couleur* : bâbord avant, bâbord arrière, tribord avant,
-  tribord arrière. L'équipage de départ est déséquilibré exprès (5/4/3/2) :
-  concentrer un quart pour débloquer les grosses manœuvres, c'est le crochet
-  du recrutement.
+### Les trois choses qui font la décision
 
-Quatre métiers **et** quatre quarts : sans les deux, une main tirée au hasard
-forme presque toujours une bonne manœuvre, et choisir ne veut plus rien dire.
-C'est mesuré, pas supposé — voir §4.
+**LE BORD — avec qui.** Chaque homme sert d'un côté : bâbord ou tribord, et la
+carte le dit par sa couleur, celle des vrais feux de position — **bâbord
+rouge, tribord vert**. Une volée ne mêle pas les deux bords. Et **le bord qui
+vient de tirer recharge** : au tour suivant, c'est l'autre qui parle. Il faut
+alterner ; c'est le verbe du jeu.
 
----
+**L'AVANT ET L'ARRIÈRE — sur quoi.** Une volée descend à la coque : ce sont
+les dégâts. Elle monte au gréement si **tous** les hommes sont à l'avant **et**
+qu'un gabier en est — elle n'entame alors pas la coque, elle abat un mât, et
+un mât qui tombe **emporte le coup annoncé**. Il se regrée en deux tours.
+C'est le seul échange du jeu : des dégâts contre un répit.
+
+**LA RELÈVE — combien.** On ne remplit pas sa main : on relève **trois hommes
+par tour**. Brûler cinq hommes maintenant, c'est tirer à deux le tour prochain.
+Sans cette rareté, jouer tout ce qu'on a était toujours la bonne réponse et il
+n'y avait rien à décider — c'est mesuré, §5.
+
+**Pas de multiplicateur.** Une volée rend un chiffre, et le détail dit d'où
+vient chaque point. Les métiers apportent des effets, pas des coefficients :
+le canonnier sa valeur, le gabier règle le tir sur le meilleur canonnier,
+l'abordeur compte double sous la moitié, le charpentier **ne répare que s'il
+est seul** dans la volée.
+
+### Les deux ordres sont des gestes
+
+Rien en bas de l'écran. On touche un homme pour l'ajouter à la volée, puis :
+
+| geste | effet |
+|---|---|
+| glisser vers le haut | la volée part |
+| glisser vers le bas | la sélection est larguée |
+| monter puis redescendre | on renonce, la volée est défaite |
+
+Dès que le glissement commence, les cartes choisies **se regroupent** en
+paquet : on voit partir une volée, pas cinq cartes. Les flèches du clavier
+doublent les gestes — un geste raccourcit un ordre, il ne doit pas être le
+seul chemin.
 
 ## 2. Les deux contraintes qui priment sur le reste
 
@@ -69,12 +93,10 @@ tient pas. Ce n'est pas une passe de mise en page à la fin.
 - **Le survol ne porte aucune information.** Première touche = viser, et
   l'écran dit exactement ce que l'action ferait ; seconde = confirmer.
   Sélectionner une carte n'engage rien.
-- **Deux gestes, et pas plus.** On touche pour viser, on **glisse pour
-  ordonner** : vers le haut la bordée part, vers le bas la sélection est
-  larguée (seuil : 44 px, la même mesure que la cible tactile minimale). Le
-  glissement vers le bas résiste — larguer coûte une ressource et ne doit pas
-  arriver en reposant le pouce. Les deux boutons restent : un geste raccourcit
-  un ordre nommé, il ne le remplace pas.
+- **Les ordres sont des gestes, pas des boutons** (voir §1). Seuil 44 px, la
+  même mesure que la cible tactile minimale ; le glissement vers le bas
+  résiste, parce que larguer coûte une ressource et ne doit pas arriver en
+  reposant le pouce. Le clavier double les gestes.
 - L'instrument : `node tools/mobile-audit.mjs`, qui **échoue** si un écran
   ampute ou déborde.
 
@@ -116,7 +138,7 @@ entre eux ; les hommes, si.
 
 ---
 
-## 4. Les huit règles qui ont chacune coûté un bug
+## 4. Les dix règles qui ont chacune coûté un bug
 
 **1. Aucune entropie dans la résolution.** `src/cartes.js` ne doit jamais
 contenir `Math.random`, `Date.now` ni `crypto` — un test échoue s'ils y
@@ -164,12 +186,23 @@ fois un homme sélectionné, plus aucune touche n'en sélectionnait un second, e
 rien ne le signalait — la carte s'illuminait bien au premier appui. La capture
 se prend au franchissement du seuil (8 px), pas avant.
 
+**9. Ne jamais mesurer un conteneur pour dimensionner ce qui le remplit.** Le
+canvas d'une coque était dimensionné d'après la hauteur de son parent, laquelle
+venait du canvas : à chaque repeinte les navires rétrécissaient d'un cran.
+Aucune erreur, aucun test rouge, des navires minuscules au bout de six tours.
+On mesure la bande de mer, jamais la boîte qui s'ajuste au dessin.
+
+**10. Dans le fichier autonome, tous les modules partagent une portée.** Une
+`const scene` dans la maquette et une `let scene` dans `src/ocean.js` donnent
+une page blanche et une ligne en console. `tools/bundle-mockup.mjs` échoue
+maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
+
 ---
 
 ## 5. Tests
 
 ```bash
-node test/run.js          # 152 vérifications, zéro dépendance
+node test/run.js          # 157 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
@@ -178,13 +211,23 @@ node test/run.js          # 152 vérifications, zéro dépendance
 clé, références pendantes, rôles inconnus. C'est la classe de bug qui a coulé
 le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
 
-*Les tests qui mesurent une décision de conception.* Dans
-`cartes.test.js`, la suite **« est-ce que choisir compte ? »** fait jouer les
-mêmes mains, sur les mêmes graines, à un capitaine appliqué (sa meilleure
-volée) et à un maladroit (les cinq premières cartes). Le maladroit doit perdre
-nettement. **Un seuil qui casse là est une décision à prendre, pas un test à
-assouplir** : c'est ce test qui a forcé le passage de deux bords à quatre
-quarts, parce qu'à deux bords le maladroit gagnait 60 fois sur 60.
+*Les tests qui mesurent une décision de conception.* Dans `cartes.test.js` :
+
+- **« la promesse du tour »** — ce que la prise fera est annoncé avant qu'on
+  joue, et abattre un mât l'empêche vraiment. Si l'annonce ment, le tour
+  redevient un pari et tout le reste ne sert à rien.
+- **« est-ce que choisir compte ? »** — les mêmes mains, sur les mêmes
+  graines, jouées par un capitaine appliqué et par un maladroit. Le maladroit
+  doit perdre nettement.
+
+**Un seuil qui casse là est une décision à prendre, pas un test à assouplir.**
+C'est ce test qui a écrit la moitié des règles ci-dessus : il a montré qu'avec
+une main qui se remplit à ras bord, jouer tout ce qu'on a est toujours la
+bonne réponse (d'où la relève) ; qu'un tir au gréement à la majorité partait
+par accident une fois sur deux (d'où « tous à l'avant, et un gabier ») ; qu'un
+mât perdu définitivement faisait du démâtage la seule tactique du jeu (d'où le
+regréement) ; et qu'un charpentier glissé dans chaque volée rendait plus de
+coque que la prise n'en enlevait (d'où « il ne répare que seul »).
 
 Pour ce que les tests de données ne voient pas :
 

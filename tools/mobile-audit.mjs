@@ -45,14 +45,21 @@ const PAGES = [
     apres: async (p) => {
       // Joue la prise d'ouverture jusqu'au partage : la boutique est un écran
       // à part entière, et c'est là que 47 % des cartes de recrutement du jeu
-      // réel sortaient hors de l'écran.
-      for (let tour = 0; tour < 8; tour++) {
+      // réel sortaient hors de l'écran. L'écran de jeu n'a plus de bouton —
+      // on passe par le clavier, qui double les gestes précisément pour que
+      // l'écran reste pilotable sans le pouce.
+      for (let tour = 0; tour < 14; tour += 1) {
         if (await p.$('.partage')) break;
-        for (let i = 0; i < 5; i++) { const c = await p.$$('.carte'); if (c[i]) await c[i].click(); }
-        const feu = await p.$('.ordres .btn-level-1');
-        if (!feu) break;
-        await feu.click();
-        await p.waitForTimeout(700);
+        for (let k = 0; k < 3; k += 1) {
+          const c = await p.$$('.carte:not(.muet):not(.prise-en-main)');
+          if (c[0]) await c[0].click();
+        }
+        if (!(await p.$('.carte.prise-en-main'))) break;
+        await p.$eval('.screen.ecran-cartes', (n) => {
+          n.focus();
+          n.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+        });
+        await p.waitForTimeout(2600);
       }
     } },
   { nom: 'jeu — recrutement', url: 'index.html#recrutement', pret: '.screen' },

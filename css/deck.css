@@ -658,7 +658,7 @@
    de texte et plus personne ne le lit. Le texte entier reste dans le title. */
 .rc-trait .e {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-size: 11.5px;
@@ -1120,182 +1120,245 @@
 .hx-ordres { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
 
 /* ============================================================
-   §17 — LA CHASSE-PARTIE EN CARTES (proposition E)
+   §17 — LA CHASSE-PARTIE EN CARTES
 
    Tout est scopé `.screen.ecran-cartes` : `deck.css` est importée EN TÊTE de
    `style.css`, donc une règle écrite sans `.screen` perd contre le
    `.screen { animation: fade }` qui vient plus bas (règle 2 du dépôt).
 
-   Aucune largeur fixe. La rangée de cartes se partage la largeur disponible ;
-   la hauteur d'une carte est bornée pour qu'à 375 × 667 le pouce trouve
-   toujours 44 px, et que le plateau ne soit jamais amputé.
+   La mise en page est une colonne de bandes à hauteur fixe, et UNE seule
+   bande élastique : la mer. Aucune largeur en pixels. La mer est bornée en
+   haut — de l'eau vide n'apprend rien, et chaque pixel qu'elle prend est un
+   pixel que la main n'a pas.
    ============================================================ */
 
 .screen.ecran-cartes {
   display: flex; flex-direction: column;
   height: 100%; min-height: 0;
-  gap: 6px; padding: 6px 8px 8px;
+  gap: 5px; padding: 5px 7px 7px;
   animation: none;
 }
 
-/* --- ruban d'objectif : ce qu'on chasse, toujours visible --- */
+/* --- ruban : ce qu'on chasse, ce qu'on a --- */
 .screen.ecran-cartes .ruban {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  flex: 0 0 auto; display: flex; align-items: center; gap: 7px;
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;
-  padding: 6px 8px; min-height: 44px;
+  padding: 5px 7px; min-height: 44px;
 }
-.screen.ecran-cartes .ruban .rb-txt { flex: 1 1 auto; min-width: 0; }
-.screen.ecran-cartes .ruban .rb-quoi {
+.screen.ecran-cartes .rb-txt { flex: 1 1 auto; min-width: 0; }
+.screen.ecran-cartes .rb-quoi {
   font-family: var(--font-title); font-size: 14px; color: var(--text-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.screen.ecran-cartes .ruban .rb-rang {
+.screen.ecran-cartes .rb-rang {
   font-family: var(--font-body); font-size: 9px; color: var(--text-secondary);
   text-transform: uppercase; letter-spacing: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.screen.ecran-cartes .ruban .rb-butin {
-  font-family: var(--font-title); font-size: 15px; color: var(--gold); white-space: nowrap;
-}
+.screen.ecran-cartes .rb-butin { font-family: var(--font-title); font-size: 15px; color: var(--gold); }
 .screen.ecran-cartes .rouage {
   flex: 0 0 auto; width: 44px; height: 44px; min-height: 44px; padding: 0;
   font-size: 16px; line-height: 1; border-radius: 6px;
 }
 
-/* --- la mer : coques générées, jauge d'objectif, étiquettes --- */
+/* --- la mer : deux coques posées sur UNE ligne de flottaison --- */
 .screen.ecran-cartes .mer {
-  position: relative; flex: 1 1 auto; min-height: 132px;
-  display: flex; align-items: flex-end; justify-content: space-between;
+  position: relative; flex: 1 1 auto;
+  min-height: 120px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.screen.ecran-cartes .etiquettes { flex: 0 0 auto; display: flex; gap: 6px; align-items: flex-start; }
+.screen.ecran-cartes .etiquettes .etiq { flex: 1 1 0; min-width: 0; }
+.screen.ecran-cartes .flotte {
+  /* Une marge basse en pourcentage remonte les DEUX coques d'autant : elles
+     restent alignées entre elles par `align-items: flex-end`, donc la ligne de
+     flottaison reste commune, et les navires ne sont pas collés au bas de la
+     bande. */
+  flex: 1 1 auto; min-height: 0; padding-bottom: 14%;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 4px;
+}
+/* La ligne d'horizon est tracée : sans elle, deux coques de tailles
+   différentes semblent flotter à deux hauteurs d'eau. */
+.screen.ecran-cartes .mer::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,245,220,.28), transparent);
 }
 .screen.ecran-cartes .coque {
-  position: relative; width: 46%;
-  display: flex; flex-direction: column; justify-content: flex-end; min-width: 0;
+  position: relative; flex: 0 1 auto; min-width: 0;
+  display: flex; flex-direction: column; justify-content: flex-end;
 }
-.screen.ecran-cartes .coque canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
-.screen.ecran-cartes .coque.nous { transform: scaleX(1); opacity: .85; width: 38%; }
+.screen.ecran-cartes .coque.nous { width: 40%; }
+.screen.ecran-cartes .coque.prise { width: 48%; }
+/* Les coques sont RECADRÉES à leur ligne de flottaison (le canvas s'arrête à
+   l'eau), donc les aligner par le bas les aligne par la flottaison — quelles
+   que soient leurs tailles de grille. */
+.screen.ecran-cartes .coque canvas {
+  display: block; margin: 0 auto; max-width: 100%; height: auto; image-rendering: pixelated;
+  transform-origin: 50% 100%;
+  animation: houle var(--periode, 4s) ease-in-out infinite;
+}
+@keyframes houle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(calc(var(--amp, 2px) * -1)) rotate(calc(var(--gite, .6deg) * -1)); }
+  75% { transform: translateY(var(--amp, 2px)) rotate(var(--gite, .6deg)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen.ecran-cartes .coque canvas { animation: none; }
+}
 
-/* Une plaque opaque, jamais une ombre : le fond est un canvas animé qui va du
-   bleu nuit au ciel de midi (règle 4 du dépôt). Elle est DANS le flux, au-dessus
-   de la coque : posée par-dessus, elle masquait les mâts et le pavillon —
-   c'est-à-dire précisément ce qui distingue un navire d'un autre. */
 .screen.ecran-cartes .etiq {
-  position: relative; z-index: 2; flex: 0 0 auto; margin-bottom: 4px;
+  position: relative; z-index: 2;
   background: var(--bg-panel); border: 1px solid var(--border);
-  border-radius: 4px; padding: 3px 6px;
+  border-radius: 4px; padding: 3px 5px;
 }
-.screen.ecran-cartes .coque.prise .etiq { border-color: var(--border-enemy); }
+.screen.ecran-cartes .etiq.prise { border-color: var(--border-enemy); }
 .screen.ecran-cartes .etiq .e-nom {
   font-family: var(--font-title); font-size: 11px; color: var(--gold);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.screen.ecran-cartes .coque.prise .etiq .e-nom { color: #e8a49c; }
+.screen.ecran-cartes .etiq.prise .e-nom { color: #e8a49c; }
 .screen.ecran-cartes .jauge {
-  height: 8px; margin-top: 3px; border-radius: 4px; overflow: hidden;
+  height: 7px; margin-top: 2px; border-radius: 4px; overflow: hidden;
   background: var(--bg-dark); border: 1px solid #3a2a20;
 }
 .screen.ecran-cartes .jauge i {
-  display: block; height: 100%; transition: width .35s var(--ease-fast);
+  display: block; height: 100%; transition: width .4s var(--ease-fast);
   background: linear-gradient(90deg, var(--hp-dark), var(--hp));
 }
-.screen.ecran-cartes .jauge.reste i { background: linear-gradient(90deg, var(--gold-dark), var(--gold)); }
+.screen.ecran-cartes .jauge.notre i { background: linear-gradient(90deg, #6b8f3a, #9acd32); }
 .screen.ecran-cartes .etiq .e-chif {
-  font-family: var(--font-body); font-size: 9px; color: var(--text-secondary); text-align: right;
+  display: flex; justify-content: space-between; gap: 4px;
+  font-family: var(--font-body); font-size: 9px; color: var(--text-secondary); margin-top: 1px;
 }
+.screen.ecran-cartes .e-mats { color: var(--gold-dark); letter-spacing: 1px; }
+.screen.ecran-cartes .e-mats .bas { color: #6b4a26; }
+
 .screen.ecran-cartes .pastilles {
-  position: absolute; z-index: 2; left: 0; right: 0; bottom: 0;
-  display: flex; flex-wrap: wrap; gap: 4px;
+  position: absolute; z-index: 2; left: 0; bottom: 2px;
+  display: flex; flex-wrap: wrap; gap: 3px; max-width: 62%;
 }
 .screen.ecran-cartes .pastille {
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;
-  padding: 3px 6px; font-size: 9px; color: var(--text-secondary); line-height: 1.2;
+  padding: 2px 5px; font-size: 9px; color: var(--text-secondary); line-height: 1.2;
 }
 .screen.ecran-cartes .pastille.regle { border-color: var(--border-enemy); color: #e8a49c; }
 .screen.ecran-cartes .pastille.relique { border-color: var(--gold-dark); color: var(--gold); }
 
-/* --- le tableau : le compte de la volée, avant qu'on la tire --- */
+/* --- la carte d'intention : ce qu'elle fera, écrit avant qu'on joue --- */
+.screen.ecran-cartes .intention {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, #2e1a18, #1d1110);
+  border: 1px solid var(--border-enemy); border-radius: 6px;
+  padding: 6px 8px; min-height: 52px;
+}
+.screen.ecran-cartes .intention.annulee { border-color: var(--success); opacity: .75; }
+.screen.ecran-cartes .int-mesure {
+  flex: 0 0 auto; width: 46px; text-align: center;
+  font-family: var(--font-body); font-weight: 700; font-size: 19px; color: var(--hp);
+}
+.screen.ecran-cartes .intention.annulee .int-mesure { color: var(--success); font-size: 15px; }
+.screen.ecran-cartes .int-txt { flex: 1 1 auto; min-width: 0; }
+.screen.ecran-cartes .int-nom { font-family: var(--font-title); font-size: 13px; color: #e8a49c; }
+.screen.ecran-cartes .int-quoi { font-size: 9px; color: var(--text-secondary); line-height: 1.35; }
+.screen.ecran-cartes .int-eyebrow {
+  font-size: 8px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted);
+}
+
+/* --- le tableau : le compte de la volée, avant qu'on la tire ---
+   Il garde sa taille : le mou vertical va à la mer, qui est peinte, et non à
+   un panneau vide — un grand rectangle brun sans rien dedans se lit comme un
+   bug, pas comme de la respiration. */
 .screen.ecran-cartes .tableau {
   flex: 0 0 auto; background: var(--bg-panel);
   border: 1px solid var(--border); border-left: 3px solid var(--border);
-  border-radius: 0 6px 6px 0; padding: 6px 8px; min-height: 62px;
+  border-radius: 0 6px 6px 0; padding: 5px 8px; min-height: 58px;
+  touch-action: none;
 }
 .screen.ecran-cartes .tableau.arme { border-left-color: var(--gold); }
-.screen.ecran-cartes .tb-nom {
-  font-family: var(--font-title); font-size: 15px; color: var(--gold-light); line-height: 1.15;
-}
-.screen.ecran-cartes .tb-eff { font-size: 9px; color: var(--text-secondary); margin-top: 1px; }
-.screen.ecran-cartes .tb-compte {
-  display: flex; align-items: baseline; gap: 6px; margin-top: 3px;
-  font-family: var(--font-body);
-}
-.screen.ecran-cartes .tb-p { font-size: 18px; font-weight: 700; color: var(--info); }
-.screen.ecran-cartes .tb-x { font-size: 12px; color: var(--text-muted); }
-.screen.ecran-cartes .tb-m { font-size: 18px; font-weight: 700; color: var(--hp); }
-.screen.ecran-cartes .tb-eg { font-size: 12px; color: var(--text-muted); }
-.screen.ecran-cartes .tb-t { font-size: 20px; font-weight: 700; color: var(--gold); margin-left: auto; }
-.screen.ecran-cartes .tb-aide { font-size: 9px; color: var(--text-secondary); line-height: 1.45; }
-.screen.ecran-cartes .tb-aide b { color: var(--gold); }
-
-/* --- la main : sept hommes, jamais amputée --- */
-.screen.ecran-cartes .main {
-  flex: 0 0 auto; display: flex; gap: 4px; align-items: flex-end;
-  padding-top: 12px; /* la place que prend une carte levée */
-  touch-action: none;  /* le glissement vertical est un ordre, pas un défilement */
-}
-.screen.ecran-cartes .tableau { touch-action: none; }
-.screen.ecran-cartes .tb-geste {
-  font-size: 9px; color: var(--gold-dark); letter-spacing: .5px; margin-top: 2px;
-}
 .screen.ecran-cartes .tableau.tire { border-left-color: var(--hp); }
 .screen.ecran-cartes .tableau.largue-pret { border-left-color: var(--info); }
+.screen.ecran-cartes .tableau.annule { border-left-color: var(--text-muted); }
+.screen.ecran-cartes .tb-tete { display: flex; align-items: baseline; gap: 6px; }
+.screen.ecran-cartes .tb-cible { font-family: var(--font-title); font-size: 14px; color: var(--gold-light); }
+.screen.ecran-cartes .tb-total {
+  margin-left: auto; font-family: var(--font-body); font-weight: 700; font-size: 21px; color: var(--gold);
+}
+.screen.ecran-cartes .tb-detail {
+  font-size: 9px; color: var(--text-secondary); line-height: 1.4; margin-top: 2px;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+}
+.screen.ecran-cartes .tb-detail b { color: var(--text-primary); }
+.screen.ecran-cartes .tb-geste {
+  font-size: 9px; color: var(--gold-dark); letter-spacing: .4px; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.screen.ecran-cartes .tb-refus { color: var(--hp); }
+
+/* --- la main : sept hommes, jamais amputée, rien en dessous --- */
+.screen.ecran-cartes .main {
+  flex: 0 0 auto; display: flex; gap: 3px; align-items: flex-end;
+  padding-top: 14px;              /* la place que prend une carte levée */
+  touch-action: none;             /* le glissement vertical est un ordre */
+}
 .screen.ecran-cartes .carte {
-  flex: 1 1 0; min-width: 0; height: 96px;
-  background: linear-gradient(180deg, #efe3c4, #d8c8a2);
+  flex: 1 1 0; min-width: 0; height: 98px;
+  background: linear-gradient(180deg, #efe3c4, #d5c49c);
   color: #241608; border: 1px solid #241608; border-radius: 6px;
-  padding: 3px 2px 2px; display: flex; flex-direction: column; align-items: center;
-  cursor: pointer; user-select: none; position: relative;
-  transition: transform .14s var(--ease-fast), box-shadow .14s var(--ease-fast);
+  padding: 0 0 2px; display: flex; flex-direction: column; align-items: center;
+  cursor: pointer; user-select: none; position: relative; overflow: hidden;
+  transition: transform .16s var(--ease-fast), box-shadow .16s var(--ease-fast), opacity .16s;
 }
-.screen.ecran-cartes .carte:disabled { opacity: .5; }
-.screen.ecran-cartes .carte.prise-en-main {
-  transform: translateY(-12px);
-  box-shadow: 0 0 0 2px var(--gold-light), 0 6px 10px rgba(0,0,0,.5);
+/* LE BORD EST UNE COULEUR, ET C'EST LA VRAIE : bâbord rouge, tribord vert,
+   comme les feux de position. C'est ce qui rend le quart lisible sans une
+   ligne d'explication — deux hommes de la même couleur peuvent tirer
+   ensemble, deux couleurs différentes, jamais. */
+.screen.ecran-cartes .carte .c-bord {
+  width: 100%; flex: 0 0 auto; padding: 2px 3px;
+  font-size: 8px; letter-spacing: .4px; text-transform: uppercase;
+  color: #f5f5dc; display: flex; justify-content: space-between; align-items: center;
 }
-.screen.ecran-cartes .carte .c-quart {
-  font-size: 11px; line-height: 1; color: #6b4a26; align-self: flex-end; padding-right: 2px;
-}
+.screen.ecran-cartes .carte[data-bord="babord"] .c-bord { background: #a5342a; }
+.screen.ecran-cartes .carte[data-bord="tribord"] .c-bord { background: #1f7a4a; }
+.screen.ecran-cartes .carte .c-bout { font-weight: 700; }
 .screen.ecran-cartes .carte .c-nom {
   font-family: var(--font-title); font-size: 10px; line-height: 1.05; text-align: center;
-  width: 100%; overflow: hidden; word-break: break-word;
+  width: 100%; padding: 2px 1px 0; word-break: break-word;
 }
 .screen.ecran-cartes .carte .c-val {
   font-family: var(--font-body); font-size: 22px; font-weight: 700; margin-top: auto; line-height: 1;
 }
 .screen.ecran-cartes .carte .c-role {
-  font-size: 7px; text-transform: uppercase; letter-spacing: .3px;
-  width: 100%; text-align: center; border-radius: 0 0 4px 4px;
-  overflow: hidden; white-space: nowrap; text-overflow: clip;
-  padding: 2px 0; margin-top: 2px; color: #f5f5dc;
+  font-size: 7px; text-transform: uppercase; letter-spacing: .2px;
+  width: 100%; text-align: center; padding: 2px 0; margin-top: 2px;
+  color: #f5f5dc; overflow: hidden; white-space: nowrap;
 }
+.screen.ecran-cartes .carte.prise-en-main {
+  transform: translateY(-14px);
+  box-shadow: 0 0 0 2px var(--gold-light), 0 6px 12px rgba(0,0,0,.55);
+}
+/* Un homme qu'on ne peut pas jouer ce tour-ci le DIT : il est baissé et grisé,
+   et toucher explique pourquoi (règle 5). */
+.screen.ecran-cartes .carte.muet { opacity: .38; filter: grayscale(.7); }
 .screen.ecran-cartes .carte.feu {
   background: linear-gradient(180deg, #4a2415, #2a1408); color: #f0d0a0; border-color: var(--warning);
 }
-.screen.ecran-cartes .carte.feu .c-nom, .screen.ecran-cartes .carte.feu .c-quart { color: var(--warning); }
+.screen.ecran-cartes .carte.feu .c-bord { background: #6b3a10; }
+.screen.ecran-cartes .carte.blesse .c-val { color: #a5342a; }
+.screen.ecran-cartes .carte .c-etat {
+  position: absolute; top: 15px; right: 2px; font-size: 7px; color: #a5342a; letter-spacing: -.2px;
+}
 .screen.ecran-cartes .carte .c-grade {
-  position: absolute; top: 2px; left: 3px; font-size: 8px; color: var(--gold-dark); letter-spacing: -1px;
+  position: absolute; top: 15px; left: 2px; font-size: 7px; color: #8a6a1a; letter-spacing: -1px;
 }
 
-/* --- les deux ordres : rien d'autre à toucher en bas de l'écran --- */
-.screen.ecran-cartes .ordres { flex: 0 0 auto; display: flex; gap: 8px; }
-.screen.ecran-cartes .ordres > button {
-  flex: 1 1 0; min-height: 48px; padding: 8px 6px; font-size: 14px; border-radius: 8px;
+/* --- boulet : un projectile qu'on suit des yeux --- */
+.boulet {
+  position: fixed; z-index: 45; width: 9px; height: 9px; border-radius: 50%;
+  background: radial-gradient(circle at 32% 32%, #6a6a6a, #141414 70%);
+  box-shadow: 0 0 5px rgba(0,0,0,.7); pointer-events: none;
 }
-.screen.ecran-cartes .ordres .compteur {
-  display: block; font-family: var(--font-body); font-size: 9px;
-  color: var(--text-secondary); letter-spacing: 1px; margin-top: 2px;
-}
-.screen.ecran-cartes .ordres .largue { border-color: var(--info); }
-.screen.ecran-cartes .ordres button[disabled] { opacity: .45; }
 
-/* --- le partage : la boutique entre deux prises --- */
+/* --- le partage --- */
 .screen.ecran-cartes .partage { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .screen.ecran-cartes .offre {
   display: flex; align-items: center; gap: 8px; text-align: left;
@@ -1307,29 +1370,31 @@
 .screen.ecran-cartes .offre .o-nom { font-family: var(--font-title); font-size: 13px; color: var(--text-primary); }
 .screen.ecran-cartes .offre .o-det { font-size: 9px; color: var(--text-secondary); line-height: 1.4; }
 .screen.ecran-cartes .offre .o-prix { font-family: var(--font-title); font-size: 14px; color: var(--gold); white-space: nowrap; }
+.screen.ecran-cartes .suite { flex: 0 0 auto; }
+.screen.ecran-cartes .suite button { width: 100%; min-height: 48px; font-size: 14px; border-radius: 8px; }
 
-/* --- fin de prise / de chasse --- */
 .screen.ecran-cartes .verdict {
-  /* Règle 4 : un libellé posé sur la mer porte une plaque, pas une ombre —
-     le fond est un canvas animé qui va du bleu nuit au ciel de midi. */
+  /* Règle 4 : un libellé posé sur la mer porte une plaque, pas une ombre. */
   flex: 0 0 auto; text-align: center; padding: 10px 12px;
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;
 }
-.screen.ecran-cartes .verdict h2 { font-family: var(--font-title); font-size: 20px; color: var(--gold); margin: 0 0 6px; }
-.screen.ecran-cartes .verdict p { font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+.screen.ecran-cartes .verdict h2 { font-family: var(--font-title); font-size: 19px; color: var(--gold); margin: 0 0 5px; }
+.screen.ecran-cartes .verdict p { font-size: 11px; color: var(--text-secondary); line-height: 1.55; margin: 0; }
 
-/* --- le tableau des manœuvres, derrière la roue crantée --- */
-.ecran-cartes.bareme-boite { padding: var(--space-md); max-height: 82vh; overflow-y: auto; display: block; height: auto; }
-.ecran-cartes.bareme-boite h3 { font-family: var(--font-title); color: var(--gold-light); margin: 0 0 8px; font-size: 16px; }
-.ecran-cartes.bareme-boite .btn-level-3 { width: 100%; min-height: 44px; margin-top: 10px; }
-.ecran-cartes.bareme-boite .tb-aide { font-size: 9px; color: var(--text-secondary); margin-top: 8px; }
-.ecran-cartes .bareme { width: 100%; border-collapse: collapse; font-size: 10px; }
-.ecran-cartes .bareme td { padding: 4px 3px; border-bottom: 1px solid #2a1f1d; vertical-align: top; }
-.ecran-cartes .bareme .b-nom { font-family: var(--font-title); font-size: 11px; color: var(--gold); }
-.ecran-cartes .bareme .b-eff { color: var(--text-secondary); }
-.ecran-cartes .bareme .b-chif { font-family: var(--font-body); color: var(--text-primary); text-align: right; white-space: nowrap; }
+/* --- l'aide, derrière la roue crantée --- */
+.ecran-cartes.aide-boite { padding: var(--space-md); max-height: 84vh; overflow-y: auto; display: block; height: auto; }
+.ecran-cartes.aide-boite h3 { font-family: var(--font-title); color: var(--gold-light); margin: 0 0 6px; font-size: 16px; }
+.ecran-cartes.aide-boite h4 { font-family: var(--font-title); color: var(--gold); margin: 12px 0 4px; font-size: 13px; }
+.ecran-cartes.aide-boite p, .ecran-cartes.aide-boite li { font-size: 10px; color: var(--text-secondary); line-height: 1.5; }
+.ecran-cartes.aide-boite b { color: var(--text-primary); }
+.ecran-cartes.aide-boite ul { margin: 0; padding-left: 16px; }
+.ecran-cartes.aide-boite .pion { display: inline-block; padding: 1px 5px; border-radius: 3px; color: #f5f5dc; font-size: 9px; }
+.ecran-cartes.aide-boite .pion.ba { background: #a5342a; }
+.ecran-cartes.aide-boite .pion.tri { background: #1f7a4a; }
+.ecran-cartes.aide-boite .btn-level-3 { width: 100%; min-height: 44px; margin-top: 12px; }
 
-@media (max-height: 620px) {
-  .screen.ecran-cartes .carte { height: 84px; }
-  .screen.ecran-cartes .mer { min-height: 108px; }
+@media (max-height: 640px) {
+  .screen.ecran-cartes .carte { height: 88px; }
+  .screen.ecran-cartes .mer { min-height: 104px; max-height: 150px; }
+  .screen.ecran-cartes .intention { min-height: 46px; }
 }

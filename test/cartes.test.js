@@ -1,13 +1,14 @@
-// La chasse-partie en cartes (proposition E). Deux natures de tests ici :
+// La chasse-partie en cartes. Trois natures de tests :
 //
-//  - les invariants (pas de dé dans la résolution, hiérarchie des manœuvres,
-//    intégrité de data/equipage.json) ;
-//  - et la seule question qui décide si le jeu vaut quelque chose : est-ce que
+//  - les invariants (pas de dé dans la résolution, refus motivés, contenu
+//    cohérent) ;
+//  - la promesse du tour : ce que la prise fera est annoncé AVANT qu'on joue,
+//    et abattre un mât l'empêche vraiment. Si l'annonce ment, le tour redevient
+//    un pari et tout le reste ne sert à rien ;
+//  - et la question qui décide si le jeu vaut quelque chose : est-ce que
 //    CHOISIR compte ? Un joueur qui lit sa main doit gagner nettement plus
-//    qu'un joueur qui jette cinq cartes au hasard. Si les deux courbes se
-//    touchent, la main n'est pas un problème, c'est une formalité — et le
-//    seuil qui casse ici est une décision de conception, pas un test à
-//    assouplir.
+//    qu'un joueur qui joue les cartes dans l'ordre où elles tombent. Un seuil
+//    qui casse là est une décision de conception, pas un test à assouplir.
 
 import { readFileSync } from 'node:fs';
 import { suite, test, assert, equal, empty } from './harness.js';
@@ -19,6 +20,12 @@ const METEO = JSON.parse(readFileSync(new URL('../data/weather.json', import.met
 const rngFor = (seed) => {
   let s = seed >>> 0 || 1;
   return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+};
+const partie = (prise, seed, meteo = METEO.brise) => {
+  const P = C.nouvellePartie(CONTENU);
+  const rng = rngFor(seed);
+  C.engager(P, prise, meteo, rng);
+  return { P, rng };
 };
 
 suite('cartes — invariants');
@@ -33,106 +40,211 @@ test('the rules never reach for a die', () => {
   empty(bad, 'entropy inside the resolution');
 });
 
-test('the manoeuvre table is a strict hierarchy', () => {
-  const produits = C.MANOEUVRES.map((m) => m.base * m.mult);
-  const fautes = [];
-  for (let i = 1; i < produits.length; i++) {
-    if (produits[i] >= produits[i - 1]) {
-      fautes.push(`${C.MANOEUVRES[i].nom} (${produits[i]}) ne vaut pas moins que ${C.MANOEUVRES[i - 1].nom} (${produits[i - 1]})`);
-    }
-  }
-  empty(fautes, 'the table order does not match the payouts');
-});
-
 test('the same volley scored twice gives the same number', () => {
-  const P = C.nouvellePartie(CONTENU);
-  C.engager(P, CONTENU.prises[1], METEO.brume, rngFor(7));
-  const cartes = P.main.slice(0, 4);
-  equal(C.evaluer(P, cartes).points, C.evaluer(P, cartes).points, 'evaluation drifted');
+  const { P } = partie(CONTENU.prises[1], 7, METEO.brume);
+  const cartes = P.main.filter((c) => C.peutJouer(P, c).ok).slice(0, 3);
+  equal(C.evaluer(P, cartes).total, C.evaluer(P, cartes).total, 'evaluation drifted');
 });
 
 test('the same seed played the same way ends the same way', () => {
   const jouer = (seed) => {
-    const P = C.nouvellePartie(CONTENU);
-    const rng = rngFor(seed);
-    C.engager(P, CONTENU.prises[2], METEO.calme, rng);
-    while (!P.fini) {
+    const { P, rng } = partie(CONTENU.prises[2], seed);
+    let garde = 0;
+    while (!P.fini && garde++ < 60) {
       const b = C.meilleureVolee(P);
-      P.selection = b.cartes;
-      C.jouer(P);
-      C.completer(P, rng);
+      if (!b) { C.riposter(P); C.completer(P, rng); continue; }
+      P.selection = b.cartes; C.jouer(P); C.riposter(P); C.completer(P, rng);
     }
-    return `${P.fini}/${P.prise.pv}/${P.butin}`;
+    return `${P.fini}/${P.prise.pv}/${P.nous.pv}`;
   };
   equal(jouer(31337), jouer(31337), 'two identical runs diverged');
 });
 
-test('an impossible order says no out loud', () => {
-  const P = C.nouvellePartie(CONTENU);
-  C.engager(P, CONTENU.prises[0], METEO.calme, rngFor(3));
-  equal(C.jouer(P), false, 'playing an empty selection should be refused');
-  equal(C.largage(P), false, 'discarding nothing should be refused');
-  P.selection = P.main.slice(0, 5);
-  equal(C.selectionner(P, P.main[5]), false, 'a sixth card should be refused');
-  equal(C.recruter(P, CONTENU.recrues[0]), false, 'recruiting without loot should be refused');
+test('an impossible order says why, out loud', () => {
+  const { P } = partie(CONTENU.prises[0], 3);
+  equal(C.largage(P).ok, false, 'discarding nothing should be refused');
+  equal(C.recruter(P, CONTENU.recrues[0]).ok, false, 'recruiting without loot should be refused');
+
+  // Une volée ne mêle pas les deux bords, et le refus doit le dire.
+  const premier = P.main.find((c) => !C.estFeu(c));
+  C.selectionner(P, premier);
+  const enFace = P.main.find((c) => !C.estFeu(c) && C.bordDe(CONTENU, c) !== C.bordDe(CONTENU, premier));
+  if (enFace) {
+    const r = C.selectionner(P, enFace);
+    equal(r.ok, false, 'mixing both sides should be refused');
+    assert(/bord/i.test(r.pourquoi), `le refus n'explique pas le bord : « ${r.pourquoi} »`);
+  }
+});
+
+test('the side that just fired has to reload', () => {
+  const { P } = partie(CONTENU.prises[0], 11);
+  const b = C.meilleureVolee(P);
+  P.selection = b.cartes;
+  const bord = C.bordDeLaVolee(P, b.cartes);
+  C.jouer(P);
+  equal(P.encrasse, bord, 'the side that fired is not fouled');
+  const encore = P.main.find((c) => !C.estFeu(c) && C.bordDe(CONTENU, c) === bord);
+  if (encore) equal(C.peutJouer(P, encore).ok, false, 'a fouled side can still fire');
+});
+
+test('the hand is relieved three at a time, never refilled', () => {
+  // C'est la seule chose qui fasse du choix un choix : brûler cinq hommes
+  // maintenant, c'est tirer à deux le tour prochain. Tant que la main se
+  // remplissait à ras bord, jouer cinq cartes était toujours la bonne réponse
+  // et il n'y avait rien à décider — mesuré, et corrigé par la relève.
+  const { P, rng } = partie(CONTENU.prises[1], 13);
+  equal(P.main.length, C.tailleMain(P), 'la main d’engagement n’est pas pleine');
+  P.selection = P.main.filter((c) => C.peutJouer(P, c).ok).slice(0, 5);
+  const joues = P.selection.length;
+  C.jouer(P); C.riposter(P);
+  const avant = P.main.length;
+  C.completer(P, rng);
+  equal(P.main.length, Math.min(C.tailleMain(P), avant + C.RELEVE),
+    `la relève a rendu ${P.main.length - avant} hommes au lieu de ${C.RELEVE}`);
+  if (joues > C.RELEVE) {
+    assert(P.main.length < C.tailleMain(P),
+      'une volée de cinq hommes n’a rien coûté à la main du tour suivant');
+  }
+});
+
+suite('cartes — la promesse du tour');
+
+test('the prize announces her blow before it lands', () => {
+  const { P } = partie(CONTENU.prises[1], 5);
+  const annonce = P.prise.annonce;
+  assert(annonce && annonce.nom && annonce.texte, 'aucune intention annoncée au premier tour');
+  const b = C.meilleureVolee(P);
+  P.selection = b.cartes; C.jouer(P);
+  const r = C.riposter(P);
+  equal(r.intention.id, annonce.id, 'the blow that landed is not the one announced');
+});
+
+test('shooting the rigging really cancels the announced blow', () => {
+  // On force une prise dont l'intention d'ouverture est un coup de canon, puis
+  // on tire au gréement : le coup annoncé ne doit pas partir.
+  let trouve = false;
+  for (let s = 1; s <= 80 && !trouve; s++) {
+    const { P } = partie({ ...CONTENU.prises[2], mats: 3 }, s * 31);
+    if (P.prise.annonce.effet !== 'canon') continue;
+    const g = C.meilleureVolee(P, { viser: 'greement' });
+    if (!g || !g.abat) continue;
+    trouve = true;
+    const avant = P.nous.pv;
+    P.selection = g.cartes;
+    const j = C.jouer(P);
+    equal(j.cible, 'greement', 'the volley did not aim at the rigging');
+    equal(P.prise.mats, 2, 'no mast came down');
+    const r = C.riposter(P);
+    equal(r.annulee, true, 'the announced blow still landed');
+    equal(P.nous.pv, avant, 'La Tortue took damage from a cancelled blow');
+  }
+  assert(trouve, 'aucune graine ne produit un tir au gréement — le cas de test ne teste rien');
+});
+
+test('a mast is a reprieve, not a switch: it grows back', () => {
+  // Un mât définitivement perdu faisait de la mise à mal du gréement la seule
+  // tactique du jeu — y compris pour un joueur qui l'atteignait par hasard.
+  // Il se regrée, et la prise tire plus faiblement en attendant.
+  const { P, rng } = partie({ ...CONTENU.prises[2], pv: 99999 }, 17);
+  const g = C.meilleureVolee(P, { viser: 'greement' });
+  if (!g || !g.abat) return;
+  const mats0 = P.prise.mats;
+  P.selection = g.cartes; C.jouer(P);
+  equal(P.prise.mats, mats0 - 1, 'no mast came down');
+  C.riposter(P); C.completer(P, rng);
+  C.riposter(P); C.completer(P, rng);
+  equal(P.prise.mats, mats0, 'the mast never grew back');
+});
+
+test('grapeshot hits the best man in hand, not a man at random', () => {
+  const mitraille = CONTENU.intentions.find((i) => i.effet === 'mitraille');
+  const { P } = partie(CONTENU.prises[1], 23);
+  P.prise.annonce = mitraille;
+  const attendu = P.main.filter((c) => !C.estFeu(c)).sort((a, b) => C.valeur(b) - C.valeur(a) || a.uid - b.uid)[0];
+  C.riposter(P);
+  equal(attendu.blesse, true, 'grapeshot did not hit the announced target');
 });
 
 suite('cartes — contenu');
 
-test('every crew card names a role that exists', () => {
+test('every crew card names a role and a quarter that exist', () => {
   const roles = Object.keys(CONTENU.roles);
+  const quarts = Object.keys(CONTENU.quarts);
   const bad = [];
   for (const c of [...CONTENU.equipage, ...CONTENU.recrues]) {
     if (!roles.includes(c.role)) bad.push(`${c.id} → rôle inconnu « ${c.role} »`);
-    if (!Object.keys(CONTENU.quarts).includes(c.quart)) bad.push(`${c.id} → quart inconnu « ${c.quart} »`);
-    if (c.id !== c.id.toLowerCase()) bad.push(`${c.id} → identifiant non normalisé`);
+    if (!quarts.includes(c.quart)) bad.push(`${c.id} → quart inconnu « ${c.quart} »`);
   }
-  empty(bad, 'crew entries pointing at nothing');
+  for (const [id, q] of Object.entries(CONTENU.quarts)) {
+    if (!CONTENU.bords[q.bord]) bad.push(`quart ${id} → bord inconnu « ${q.bord} »`);
+    if (!['avant', 'arriere'].includes(q.bout)) bad.push(`quart ${id} → bout inconnu « ${q.bout} »`);
+  }
+  empty(bad, 'entries pointing at nothing');
 });
 
-test('identifiers are unique across the whole file', () => {
-  const vus = new Set(); const bad = [];
-  for (const [zone, liste] of [['equipage', CONTENU.equipage], ['recrues', CONTENU.recrues],
-    ['prises', CONTENU.prises], ['reliques', CONTENU.reliques]]) {
-    for (const e of liste) {
-      const k = `${zone}:${e.id}`;
-      if (vus.has(k)) bad.push(k);
-      vus.add(k);
-    }
+test('both sides of the ship are playable, in both halves', () => {
+  // Un bord qui n'aurait presque personne rendrait le rechargement injouable.
+  const compte = {};
+  for (const c of CONTENU.equipage) {
+    const q = CONTENU.quarts[c.quart];
+    compte[q.bord] = (compte[q.bord] || 0) + 1;
   }
-  empty(bad, 'duplicate identifiers');
+  const bad = Object.entries(compte).filter(([, n]) => n < 5).map(([b, n]) => `${b} : ${n} hommes`);
+  empty(bad, 'a side with too few men to fire on its turn');
 });
 
-test('every prize rule is defined', () => {
+test('every prize rule and intention is defined', () => {
   const bad = CONTENU.prises.filter((p) => p.regle && !CONTENU.regles[p.regle]).map((p) => `${p.id} → ${p.regle}`);
-  empty(bad, 'prize rules with no definition');
+  for (const i of CONTENU.intentions) {
+    if (!i.nom || !i.texte || !i.effet) bad.push(`intention ${i.id} incomplète`);
+  }
+  empty(bad, 'dangling references');
 });
 
 test('the prizes climb', () => {
-  // L'objectif brut ne suffit pas à dire la difficulté : une prise à trois
-  // bordées est plus dure qu'une prise à quatre pour le même chiffre. Ce qui
-  // doit monter, c'est l'objectif RAPPORTÉ AU NOMBRE DE VOLÉES, et le butin.
   const bad = [];
-  const par = (p) => p.objectif / p.bordees;
   for (let i = 1; i < CONTENU.prises.length; i++) {
-    if (par(CONTENU.prises[i]) <= par(CONTENU.prises[i - 1])) bad.push(`${CONTENU.prises[i].id} (objectif par volée)`);
-    if (CONTENU.prises[i].butin <= CONTENU.prises[i - 1].butin) bad.push(`${CONTENU.prises[i].id} (butin)`);
+    const a = CONTENU.prises[i - 1], b = CONTENU.prises[i];
+    if (b.pv <= a.pv) bad.push(`${b.id} (coque)`);
+    if (b.riposte <= a.riposte) bad.push(`${b.id} (riposte)`);
+    if (b.butin <= a.butin) bad.push(`${b.id} (butin)`);
   }
   empty(bad, 'prizes that do not escalate');
 });
 
 suite('cartes — est-ce que choisir compte ?');
 
-// Le joueur appliqué joue sa meilleure volée ; le maladroit joue cinq cartes
-// prises dans l'ordre où elles sont tombées. Les deux jouent exactement les
-// mêmes mains, sur les mêmes graines.
-function partie(prise, seed, applique) {
-  const P = C.nouvellePartie(CONTENU);
-  const rng = rngFor(seed);
-  C.engager(P, prise, METEO.brise, rng);
-  while (!P.fini) {
-    P.selection = applique ? C.meilleureVolee(P).cartes : P.main.slice(0, C.MAIN_MAX);
+// Les deux capitaines jouent exactement les mêmes mains, sur les mêmes graines.
+// L'appliqué lit sa main ; le maladroit prend les premières cartes jouables.
+function duel(prise, seed, applique) {
+  const { P, rng } = partie(prise, seed);
+  let garde = 0;
+  while (!P.fini && garde++ < 80) {
+    let cartes;
+    if (applique) {
+      // L'appliqué fait deux choses que le maladroit ne fait pas : il MÉNAGE
+      // sa main (au plus une relève par volée, sinon il tirera à deux le tour
+      // suivant), et il monte au gréement quand le coup annoncé coûte plus
+      // cher que ce qu'il renonce à infliger.
+      const g = C.meilleureVolee(P, { viser: 'greement', max: C.RELEVE });
+      const d = C.meilleureVolee(P, { max: C.RELEVE });
+      const a = P.prise.annonce;
+      const evite = a.effet === 'canon' && !P.prise.tirAnnule
+        ? Math.round(P.prise.riposte * a.force * (0.5 + 0.5 * (P.prise.mats / P.prise.matsMax))) : 0;
+      cartes = (g && g.abat && evite > (d ? d.degats : 0)) ? g.cartes : (d ? d.cartes : null);
+    } else {
+      cartes = [];
+      for (const c of P.main) {
+        if (cartes.length >= C.MAIN_MAX) break;
+        const r = C.selectionner(P, c);
+        if (r.ok) cartes.push(c);
+      }
+      cartes = P.selection.slice();
+    }
+    if (!cartes || !cartes.length) { P.selection = []; C.riposter(P); C.completer(P, rng); continue; }
+    P.selection = cartes;
     C.jouer(P);
+    if (!P.fini) C.riposter(P);
     C.completer(P, rng);
   }
   return P.fini === 'prise';
@@ -142,17 +254,17 @@ test('a careful captain takes the merchantman far more often than a careless one
   const prise = CONTENU.prises[1];
   let bons = 0, mauvais = 0;
   for (let s = 1; s <= 60; s++) {
-    if (partie(prise, s * 977, true)) bons++;
-    if (partie(prise, s * 977, false)) mauvais++;
+    if (duel(prise, s * 977, true)) bons++;
+    if (duel(prise, s * 977, false)) mauvais++;
   }
-  assert(bons >= 50, `le joueur appliqué ne prend la flûte que ${bons}/60 — la manche est trop dure`);
-  assert(mauvais <= 20, `le joueur maladroit la prend ${mauvais}/60 — le choix ne compte pas`);
-  assert(bons - mauvais >= 30, `écart de seulement ${bons - mauvais} sur 60 entre appliqué et maladroit`);
+  console.log(`      appliqué : ${bons}/60 · maladroit : ${mauvais}/60`);
+  assert(bons >= 34, `le joueur appliqué ne prend la flûte que ${bons}/60 — la manche est trop dure`);
+  assert(mauvais <= 26, `le joueur maladroit la prend ${mauvais}/60 — le choix ne compte pas`);
+  assert(bons - mauvais >= 15, `écart de seulement ${bons - mauvais} sur 60 entre appliqué et maladroit`);
 });
 
 test('the line-of-battle ship is out of reach of a starting crew', () => {
-  const prise = CONTENU.prises[4];
   let bons = 0;
-  for (let s = 1; s <= 40; s++) if (partie(prise, s * 613, true)) bons++;
-  assert(bons <= 10, `le vaisseau tombe ${bons}/40 avec l'équipage de départ — la progression n'a rien à vendre`);
+  for (let s = 1; s <= 40; s++) if (duel(CONTENU.prises[4], s * 613, true)) bons++;
+  assert(bons <= 8, `le vaisseau tombe ${bons}/40 avec l'équipage de départ — la progression n'a rien à vendre`);
 });

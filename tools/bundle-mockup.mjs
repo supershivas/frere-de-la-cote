@@ -52,6 +52,19 @@ let corps = bloc[1]
 // Les modules sont collés à plat : `C.machin` doit redevenir `machin`.
 corps = corps.replace(/\bC\.([A-Za-z_$][\w$]*)/g, '$1');
 
+// Les modules sont collés dans UNE portée : deux déclarations de même nom
+// produisent une page blanche et une seule ligne d'erreur en console. On
+// échoue ici plutôt que de livrer ça — c'est arrivé avec `scene`, déclaré à la
+// fois par src/ocean.js et par la maquette.
+const nomsDe = (src) => [...src.matchAll(/^(?:const|let|var|function|class|async function)\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
+const vus = new Map();
+for (const [nom, src] of [...MODULES.map((m) => [m, lire(m)]), [entree, corps]]) {
+  for (const n of nomsDe(src)) {
+    if (vus.has(n)) throw new Error(`nom déclaré deux fois : \`${n}\` dans ${vus.get(n)} et ${nom} — le fichier autonome partage une seule portée`);
+    vus.set(n, nom);
+  }
+}
+
 const donnees = Object.entries(DONNEES)
   .map(([nom, f]) => `const ${nom} = ${lire(f)};`).join('\n');
 
