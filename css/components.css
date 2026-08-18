@@ -320,3 +320,28 @@
 .empty-desc { color: var(--text-secondary); font-size: 13px; margin-bottom: var(--space-lg); }
 
 /* =========================================
+
+/* =========================================
+   ACCESSIBILITÉ (design-system.html §12)
+   Ces deux règles étaient prescrites par la documentation depuis la V1 et
+   n'avaient jamais été écrites. Elles vivent ici parce qu'elles s'appliquent à
+   tous les écrans, pas à un seul.
+   ========================================= */
+
+/* Le canvas de la mer garde son mouvement (c'est une boucle rAF, pas du CSS) ;
+   tout ce qui bouge en CSS s'arrête : tangage, houle du pont, incendie. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Au clavier, savoir où l'on est. `:focus-visible` et non `:focus` : la souris
+   ne doit pas laisser de contour derrière elle. */
+*:focus-visible {
+  outline: 2px solid var(--gold, #c9a24b);
+  outline-offset: 2px;
+}

@@ -155,20 +155,32 @@
     <li><a href="#s11">États des Composants</a></li>
     <li><a href="#s12">Accessibilité</a></li>
     <li><a href="#s13">Responsive & Échelles</a></li>
-    <li><a href="#s14">Fichiers Source & Assets</a></li>
+    <li><a href="#s14">Fichiers Source</a></li>
     <li><a href="#s15">Contrôles de contraste</a></li>
     <li><a href="#s16">Composants de la refonte</a></li>
   </ol>
 </div>
 
 <div class="rule-box">
-  <strong>État du document.</strong> Les sections 1 à 6 et 8 à 14 datent de la
-  V1 et restent valables : palette, typographie, grille, animations, icônes,
-  accessibilité, assets. Les sections <strong>7</strong> (layouts),
-  <strong>10.3</strong> (munitions), <strong>15</strong> (contrastes) et
-  <strong>16</strong> (composants) ont été refaites pour la refonte. Un
-  composant décrit ici et absent du §16 appartient à l'ancien combat de flotte,
-  encore présent dans le jeu mais destiné à disparaître.
+  <strong>État du document.</strong> Les sections <strong>1 à 6</strong>
+  (philosophie, identité, couleurs, typographie, grille, composants) et
+  <strong>10 à 13</strong> (icônes, états, accessibilité, échelles) datent de la
+  V1 et restent valables. Les sections <strong>7</strong> (layouts),
+  <strong>8</strong> (animations), <strong>9</strong> (feedback),
+  <strong>14</strong> (fichiers), <strong>15</strong> (contrastes) et
+  <strong>16</strong> (composants de la refonte) ont été réécrites : elles
+  décrivaient un jeu qui n'existe pas — des sprite sheets PNG, une arborescence
+  <code>/assets/</code>, des flashs et des <em>screen shakes</em> que le §9
+  proscrit par ailleurs.
+</div>
+
+<div class="rule-box">
+  <strong>Ce document ne peut pas mentir sur son apparence.</strong> Il charge
+  <code>css/variables.css</code>, <code>css/components.css</code> et
+  <code>css/deck.css</code> — les feuilles réelles du jeu. Les blocs du §6 et du
+  §16 ne sont pas des reproductions : si un composant change dans le jeu, il
+  change ici. En revanche, <strong>ajouter</strong> un composant sans l'ajouter
+  au §16 le rend introuvable.
 </div>
 
 <h2 id="s1">1. Philosophie de Design</h2>
@@ -380,48 +392,94 @@
 }</code></pre>
 
 <h2 id="s7">7. Layouts par Écran</h2>
-<h3>7.1 Écran de combat — refonte</h3>
-<p>Un navire contre un navire (§7 du brief), vus de profil sur une même mer.
-Il n'y a pas de grille : la position est une bande de distance.</p>
+
+<div class="rule-box">
+  <strong>L'échelle du combat n'est pas tranchée.</strong> Le combat 1 contre 1
+  du §7.1 a été construit, mesuré, puis jugé illisible en jeu. Deux propositions
+  sont jouables (§7.2 et §7.3) et la décision appartient au concepteur. Tant
+  qu'elle n'est pas prise, ne rien construire par-dessus.
+</div>
+
+<h3>7.1 Combat 1 contre 1 — la version construite</h3>
+<p>Un navire contre un navire, vus de profil sur une même mer. Il n'y a pas de
+grille : la position est une bande de distance.</p>
 <pre><code>┌──────────────────────────────────────────────────────────┐
-│  bord à bord · mousquet · [PORTÉE DE CANON] · au loin   │ ← bande de distance, toujours visible
+│  au loin · [PORTÉE DE CANON] · mousquet · bord à bord    │ ← bande de distance, toujours visible
 ├──────────────────────────────────────────────────────────┤
-│                                                          │
 │      ▄▄▄ votre navire ▄▄▄        ▄▄ ennemi ▄▄            │ ← les deux flottaisons
 │   ═══════════════════════════════════════════════        │   sur une seule ligne de mer
-│                                                          │
 ├──────────────────────────────────────────────────────────┤
-│ ⚠ Intention ennemie : Bordée sur Batterie — ● Boulet     │ ← annoncée un tour à l'avance
+│ ⚠ Elle va : tirer ● Boulet                               │ ← annoncée un tour à l'avance
 ├──────────────────────────────────────────────────────────┤
-│   ● Boulet  ⛓ Chaîne  ✳ Mitraille  💥 Explosif  🔥       │ ← munitions
-│   « Brise la structure de la salle visée. »              │ ← conséquence en clair
-│   [● Tirer] [→ S'approcher] [← Rompre] [⚔] [⏭]          │ ← actions, raison si bloquée
-│   Déplacez vos hommes, puis UNE manœuvre et UNE bordée.  │ ← structure du tour, permanente
+│   ● Boulet  ⛓ Chaîne  ✳ Mitraille  💥 Explosif           │ ← munitions
+│   « Ronge la coque. La voie rapide, et la moins payante » │ ← conséquence en clair
+│   [● Tirer] [→ S'approcher] [← Rompre] [⚔] [⏭]           │ ← actions, raison si bloquée
+│   Répartissez vos hommes, puis UNE manœuvre, UNE bordée.  │ ← structure du tour, permanente
 └──────────────────────────────────────────────────────────┘</code></pre>
 
 <table>
   <tr><th>Zone</th><th>Rôle</th><th>Règle</th></tr>
   <tr><td>Bande de distance</td><td>Les quatre portées, la courante marquée</td><td>Toujours visible : c'est tout le jeu de position</td></tr>
-  <tr><td>Scène</td><td>Les deux navires en écorché</td><td>Flottaisons alignées ; l'ennemi est plus petit, proportions FTL</td></tr>
-  <tr><td>Intention</td><td>Ce que l'ennemi fera</td><td>Un tour à l'avance, propagation du feu comprise</td></tr>
+  <tr><td>Scène</td><td>Les deux navires</td><td>Flottaisons alignées ; l'ennemi plus petit, proportions FTL</td></tr>
+  <tr><td>Intention</td><td>Ce que l'ennemi fera</td><td>Un tour à l'avance, sans exception</td></tr>
   <tr><td>Munitions</td><td>Le choix de bordée</td><td>Conséquence en clair sous le choix, jamais le seul terme d'époque</td></tr>
   <tr><td>Actions</td><td>Manœuvre, bordée, abordage, fin de tour</td><td>Une action bloquée affiche <em>pourquoi</em></td></tr>
   <tr><td>Règle du tour</td><td>La structure du tour, en toutes lettres</td><td>Ne pas l'énoncer était la première cause d'incompréhension du prototype</td></tr>
 </table>
 
-<h3>7.2 Écrans de préparation — documents</h3>
+<p><strong>Ce qui n'a pas marché.</strong> Le brief demandait que le sprite
+généré serve de cadre au plan de pont (§5.1). Mesuré : sur 860 pixels de
+hauteur, le gréement en occupait ~500 et la bande jouable ~90. Un générateur qui
+fait de <em>jolis navires</em> donne des proportions dictées par la mâture ;
+un plan de pont a besoin d'espace diagrammatique. Les deux demandes sont
+incompatibles, et c'est ce constat qui a rouvert la question de l'échelle.</p>
+
+<h3>7.2 Proposition B2 — deux jauges, une répartition</h3>
+<p>Même échelle, mais plus de salles : deux jauges seulement — <strong>la coque
+pour la couler, l'équipage pour la prendre</strong> — et le choix de chaque tour
+devient la <strong>répartition de cinq hommes sur trois postes</strong> (canons,
+manœuvre, pompes). Chaque poste dit en clair ce qu'il produit au nombre où il
+est. Composants au §16.12 et §16.13.</p>
+<p>Le combat s'ouvre sur une <strong>carte de rencontre</strong> (§16.10) : le
+temps qu'il fait, ce qui s'écarte de l'ordinaire, et un phylactère d'équipage.
+Quatorze axes sont tirés à chaque combat, quatre choses en moyenne sont
+montrées, le reste nourrit le dialogue.</p>
+
+<h3>7.3 Proposition C — la rade</h3>
+<p>L'échelle d'une peinture de bataille navale : beaucoup de coques, bien plus
+petites, sur <strong>trois bandes de profondeur</strong>. On ne commande plus un
+navire mais une escadre de cinq, et <strong>un tour est un ordre</strong>.</p>
+<pre><code>┌──────────────────────────────────────────────────────────┐
+│ Tour 3 · 5 coques à flot · Butin 360 💰 · ⚠ 3 coups      │ ← l'état, en une ligne
+├──────────────────────────────────────────────────────────┤
+│ SOUS LA CÔTE   ▴▴▴ les galions      ▴ la batterie        │ ← le butin est au fond
+│ LA LIGNE       ▴▴▴▴ l'escadre du port    ▮▮▮▮▮ NOUS      │ ← plus près = plus gros
+│ AU LARGE       ▴▴▴ la garde du môle                      │
+├──────────────────────────────────────────────────────────┤
+│ Une bordée coule 2 coques — il en resterait 2.           │ ← l'aperçu, AVANT le clic
+│ [⚔ Bordée] [🪝 Aborder] [↑ Serrer] [↓ Rompre] [⚓ Sortir] │
+└──────────────────────────────────────────────────────────┘</code></pre>
+<p><strong>Trois canaux, trois informations, sans recouvrement</strong> :
+la <strong>taille</strong> dit la distance et rien d'autre, le
+<strong>pavillon</strong> dit la nationalité, la <strong>couleur du libellé</strong>
+dit le rôle. Le premier essai faisait porter la taille par la classe de coque —
+les caraques du fond de rade sortaient plus grosses que les vaisseaux du milieu,
+et la profondeur ne se lisait plus. Composants au §16.15.</p>
+<p>Le butin ne compte que <strong>ramené au large</strong> : c'est ce qui fait du
+dernier ordre une décision plutôt qu'une formalité.</p>
+
+<h3>7.4 Écrans de préparation — des documents</h3>
 <p>Recrutement et chasse-partie sont des <strong>documents sur parchemin</strong>,
 écrits à l'encre sombre (§15.3). Trois écrans au plus avant le premier combat.</p>
 
-<h3>7.3 Carte des Caraïbes</h3>
+<h3>7.5 Carte des Caraïbes</h3>
 <p>Géographie réelle, côtes tracées, départ toujours à l'Île de la Tortue.
 Chaque escale annonce son coût avant qu'on y aille ; seules les escales
 atteignables, l'escale courante et celles déjà visitées portent un libellé.</p>
 
-<h3>7.4 Ancien écran de combat de flotte <em>(V1, à retirer)</em></h3>
-<p>Alliés en colonne gauche, ennemis à droite, log au centre-bas, barre
-d'actions contextuelle. Toujours dans le jeu sous « Nouvelle Traversée », mais
-remplacé par le §7.1 — ne rien construire de neuf dessus.</p>
+<h3>7.6 Ancien écran de combat de flotte <em>(V1, à retirer)</em></h3>
+<p>Alliés en colonne gauche, ennemis à droite, log au centre-bas. Toujours dans
+le jeu sous « Nouvelle Traversée » — ne rien construire de neuf dessus.</p>
 
 <h2 id="s8">8. Animations & Transitions</h2>
 <h3>8.1 Durées standard</h3>
@@ -439,42 +497,91 @@ remplacé par le §7.1 — ne rien construire de neuf dessus.</p>
 --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55); /* Bounce léger */
 --ease-sharp: cubic-bezier(0.4, 0, 0.6, 1);    /* Entrée rapide */</code></pre>
 
-<h3>8.3 Animations clés & Sprite Sheets</h3>
-<p><strong>Sélection de bateau :</strong></p>
-<pre><code>@keyframes select-pulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(212, 160, 23, 0.3); }
-  50%      { box-shadow: 0 0 20px rgba(212, 160, 23, 0.6); }
-}
-.ship-card--selected {
-  animation: select-pulse 2s ease-in-out infinite;
-}</code></pre>
+<h3>8.3 Les animations qui existent réellement</h3>
+<p>Il n'y a <strong>ni sprite sheet ni fichier PNG</strong> dans ce jeu : les
+navires sont générés par <code>src/sprites.js</code> et les effets sont des
+particules dessinées sur un canvas (<code>src/fx.js</code>). Ce qui bouge :</p>
+<table>
+  <tr><th>Animation</th><th>Où</th><th>Rôle</th></tr>
+  <tr><td>Tangage</td><td><code>.ship-stage.in-combat .ship-canvas</code></td><td>Le navire monte et descend ; la flottaison, elle, ne bouge jamais — c'est le <code>.ship-waterline-clip</code> qui la tient fixe</td></tr>
+  <tr><td>Houle du pont</td><td><code>@keyframes deck-swell</code></td><td>La ligne d'eau de l'écorché respire, pour que le plan se lise comme un navire à flot</td></tr>
+  <tr><td>Incendie</td><td><code>@keyframes deck-burn</code></td><td>La seule salle qui pulse. Rien d'autre ne clignote</td></tr>
+  <tr><td>Phylactère</td><td><code>.rc-bulle.neuve</code></td><td>La réplique arrive quand elle change, elle n'apparaît pas d'un coup</td></tr>
+  <tr><td>Mer et ciel</td><td><code>src/ocean.js</code></td><td>Nuages, vagues, pluie, soleil — en fond de tout écran en mer</td></tr>
+</table>
 
 <div class="rule-box">
-  <strong>Note technique pour les sprite sheets (effets) :</strong><br>
-  Pour les animations d'effets (ex: <code>fx_explosion.png</code>), utiliser impérativement <code>animation: nom steps(X) infinite</code> (où X est le nombre de frames) sur la propriété <code>background-position</code>. Cela garantit un rendu pixel art net, <strong>sans interpolation fluide</strong> entre les frames.
+  <strong>Le piège de cascade qui a coûté des mois.</strong> Un écran de la
+  refonte qui neutralise le fondu d'entrée doit s'écrire
+  <code>.screen.mon-ecran { animation: none }</code> et <strong>jamais</strong>
+  <code>.mon-ecran</code>. <code>deck.css</code> est <code>@importée</code> en
+  tête de <code>style.css</code> : à spécificité égale, le
+  <code>.screen { animation: fade }</code> qui vient plus bas gagne. Écrites
+  sans le <code>.screen</code>, ces règles n'ont jamais pris effet — le fondu
+  était rejoué à chaque reconstruction d'écran, c'est-à-dire à chaque clic, et
+  le flash proscrit au §9 était toujours là dans une règle qui avait l'air
+  correcte. Découvert par accident : l'audit de contraste sortait des captures
+  délavées.
+</div>
+
+<div class="rule-box">
+  <code>@media (prefers-reduced-motion: reduce)</code> coupe la houle et
+  l'incendie. Toute animation en boucle ajoutée doit y être ajoutée aussi.
 </div>
 
 <h2 id="s9">9. Feedback Visuel</h2>
-<h3>9.1 Effets de combat — INTERDICTIONS</h3>
+
+<h3>9.1 Un coup au but est de la fumée</h3>
+<p>La référence est une peinture de bataille navale du XIX<sup>e</sup> : sur une
+rade entière, on ne voit <strong>que de la fumée</strong>. Pas une flamme, pas
+un éclair. C'est aussi la seule façon de rendre lisible un écran où trente
+coques tirent.</p>
 <table>
-  <tr><th>INTERDIT</th><th>REMPLACÉ PAR</th></tr>
-  <tr><td>Flash blanc éblouissant</td><td>Sparks dorés (4-8 lignes croisées)</td></tr>
-  <tr><td>Écran qui clignote</td><td>Tremblement léger de la carte cible</td></tr>
-  <tr><td>Saturation soudaine</td><td>Particules oranges/rouges qui s'éparpillent</td></tr>
-  <tr><td>Zoom brutal</td><td>Zoom lent + focus sur l'action</td></tr>
+  <tr><th>PROSCRIT</th><th>À LA PLACE</th></tr>
+  <tr><td>Flash blanc, halo lumineux</td><td>Bouffée de poudre qui dérive sous le vent</td></tr>
+  <tr><td>Écran qui clignote</td><td>Rien. L'écran ne clignote jamais</td></tr>
+  <tr><td>Étincelles orange, braises</td><td>Éclats <em>couleur de coque</em> : c'est du bois arraché</td></tr>
+  <tr><td><em>Screen shake</em></td><td>Un sursaut local de la seule cible touchée</td></tr>
+  <tr><td>Zoom brutal</td><td>Rien. La caméra ne bouge pas</td></tr>
 </table>
+<div class="rule-box">
+  <strong>Ceci a été enfreint et corrigé.</strong> <code>fxExplosion</code>
+  peignait un anneau lumineux et douze étincelles orange à chaque coup au but,
+  et la gueule du canon étincelait. Sur des navires de trente pixels, cela se
+  lisait comme un flash à chaque tir. Ne restent qu'une bouffée de poudre et des
+  éclats sombres — et la fabrique <code>flash()</code> a été
+  <strong>supprimée</strong> de <code>src/fx.js</code> : une fabrique qui traîne
+  finit par resservir.
+</div>
 
 <h3>9.2 Feedback des actions</h3>
 <table>
-  <tr><th>Action</th><th>Feedback visuel</th></tr>
-  <tr><td>Attaque réussie</td><td>Sparks + dégâts flottants + shake</td></tr>
-  <tr><td>Attaque bloquée</td><td>Popup gris + son métallique</td></tr>
-  <tr><td>Coup critique</td><td>Sparks plus gros + texte jaune + screen shake</td></tr>
-  <tr><td>Soin</td><td>Particules vertes + "+XX PV" montant</td></tr>
-  <tr><td>Mort ennemie</td><td>Opacité 50% + overlay + nom barré</td></tr>
-  <tr><td>Niveau up</td><td>Glow doré + "NIVEAU X" + particules</td></tr>
-  <tr><td>Loot or</td><td>Pièces qui tombent + "+XX or"</td></tr>
+  <tr><th>Action</th><th>Feedback</th></tr>
+  <tr><td>Bordée tirée</td><td>Fumée au bord qui tire, dérivant sous le vent</td></tr>
+  <tr><td>Coup au but</td><td>Fumée + éclats de bois + le nombre de dégâts, flottant</td></tr>
+  <tr><td>Action impossible</td><td>Le bouton reste lisible et <strong>affiche pourquoi</strong> — jamais un simple grisé</td></tr>
+  <tr><td>Navire hors de combat</td><td>La silhouette s'assombrit et se désature ; elle ne disparaît pas</td></tr>
+  <tr><td>Coque abîmée</td><td>Assombrissement des pixels du navire, jamais de sa boîte (voir l'encadré)</td></tr>
+  <tr><td>Prise</td><td>Le butin embarqué change dans la ligne d'état</td></tr>
+  <tr><td>Escadre visée</td><td>Bordure d'or, et l'aperçu écrit ce que l'ordre fera</td></tr>
 </table>
+<div class="rule-box">
+  <strong>Le cadre fantôme.</strong> <code>drawGrid</code> assombrissait les
+  navires abîmés avec un <code>fillRect</code> sur <em>toute la toile</em>, pas
+  sur leurs pixels : au-dessus d'une mer transparente, cela peignait un
+  rectangle gris translucide — un « cadre » visible seulement autour des coques
+  touchées. <code>globalCompositeOperation = 'source-atop'</code> suffit.
+</div>
+
+<h3>9.3 Ce que le joueur doit savoir avant de cliquer</h3>
+<p>Deux règles qui valent pour tous les écrans de la refonte :</p>
+<ul>
+  <li><strong>L'intention ennemie est annoncée un tour à l'avance</strong>, sans
+  exception. Un tour est un problème fermé, pas un pari (brief §4.1).</li>
+  <li><strong>L'aperçu dit ce que l'ordre fera avant qu'on le donne.</strong> En
+  proposition C, un test vérifie que l'aperçu ne ment jamais : s'il promet deux
+  coques coulées, l'ordre en coule deux.</li>
+</ul>
 
 <h2 id="s10">10. Icônes & Pictogrammes</h2>
 <h3>10.1 Icônes de statut</h3>
@@ -526,7 +633,7 @@ de dégâts interchangeables. Le harpon de la V1 a été retiré.</p>
   <tr><td>Default</td><td>Fond bois, bordure marron, texte beige</td></tr>
   <tr><td>Hover</td><td>Bordure or, fond plus clair, translateY(-2px)</td></tr>
   <tr><td>Active/Pressed</td><td>translateY(0), ombre réduite</td></tr>
-  <tr><td>Disabled</td><td>Opacité 50%, grayscale, cursor: not-allowed</td></tr>
+  <tr><td>Disabled</td><td><strong>Jamais l'opacité</strong> : couleur sourde mesurée (#9a8f7c), bordure et fond assourdis, <code>cursor: not-allowed</code>. À l'opacité 0,3 un libellé mesurait 1,93:1 — et un bouton éteint porte souvent la raison de son indisponibilité, donc c'est justement ce texte-là qui doit rester lisible (§15.5)</td></tr>
   <tr><td>Selected</td><td>Bordure or + glow doré</td></tr>
 </table>
 
@@ -566,6 +673,9 @@ de dégâts interchangeables. Le harpon de la V1 a été retiré.</p>
 </ul>
 
 <h3>12.3 Réduction des animations</h3>
+<p>Écrit dans <code>css/components.css</code>. Le canvas de la mer garde son
+mouvement — c'est une boucle <code>requestAnimationFrame</code>, pas du CSS —
+mais tout ce qui bouge en CSS s'arrête : tangage, houle du pont, incendie.</p>
 <pre><code>@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -575,6 +685,8 @@ de dégâts interchangeables. Le harpon de la V1 a été retiré.</p>
 }</code></pre>
 
 <h3>12.4 Focus visible</h3>
+<p>Écrit dans <code>css/components.css</code>. <code>:focus-visible</code> et non
+<code>:focus</code> : la souris ne doit pas laisser de contour derrière elle.</p>
 <pre><code>*:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 2px;
@@ -599,68 +711,67 @@ de dégâts interchangeables. Le harpon de la V1 a été retiré.</p>
   <li>&lt; 480px : Cartes full-width, actions en grille 2×3</li>
 </ul>
 
-<h2 id="s14">14. Fichiers Source & Assets</h2>
-<h3>Structure des assets UI</h3>
-<p><em>Harmonisée avec le <code>assets-manifest.json</code> (format PNG exclusif, naming <code>snake_case</code>)</em></p>
-<pre><code>/assets/ui/
-├── fonts/
-│   ├── im-fell-english.woff2
-│   └── courier-prime.woff2
-├── sprites/
-│   ├── ships/
-│   │   ├── ship_fregate_ally.png
-│   │   ├── ship_sloop_ally.png
-│   │   └── ...
-│   └── ammo/
-│       ├── ammo_standard.png
-│       └── ...
-├── effects/
-│   ├── fx_spark.png
-│   ├── fx_fire.png
-│   ├── fx_smoke.png
-│   └── fx_explosion.png
-├── icons/
-│   ├── icon_stat_hull.png
-│   ├── icon_stat_shield.png
-│   └── ...
-├── frames/
-│   ├── frame_panel.png
-│   └── ...
-├── map/
-│   ├── map_acte1_tile_1.png
-│   └── ...
-└── backgrounds/
-    ├── bg_sea_tile.png
-    └── bg_menu.png</code></pre>
+<h2 id="s14">14. Fichiers Source</h2>
 
-<h3>Fichiers CSS recommandés</h3>
+<div class="rule-box">
+  <strong>Il n'y a aucun asset.</strong> Cette section décrivait une
+  arborescence <code>/assets/ui/</code> pleine de PNG — sprites de navires,
+  sprite sheets d'explosions, icônes, tuiles de carte. Rien de tout cela
+  n'existe et rien ne doit être créé : <strong>tous les navires sont générés à
+  l'exécution</strong> par <code>src/sprites.js</code>, les effets sont des
+  particules de canvas, la mer et le ciel sont peints par
+  <code>src/ocean.js</code>, et les icônes sont des glyphes texte. Le seul
+  fichier binaire du dépôt serait une police, et les deux sont chargées depuis
+  Google Fonts.
+</div>
+
+<h3>14.1 Les feuilles de style, telles qu'elles sont</h3>
+<p><code>css/style.css</code> importe les cinq autres, dans cet ordre. L'ordre
+compte : voir le piège de cascade du §8.3.</p>
 <table>
-  <tr><th>Fichier</th><th>Contenu</th></tr>
-  <tr><td><code>variables.css</code></td><td>Toutes les variables CSS (couleurs, spacing, fonts)</td></tr>
-  <tr><td><code>reset.css</code></td><td>Reset de base, scrollbar custom</td></tr>
-  <tr><td><code>components.css</code></td><td>Boutons, cartes, barres, toasts, tooltips</td></tr>
-  <tr><td><code>layouts.css</code></td><td>Grids des écrans (combat, map, event, menu)</td></tr>
-  <tr><td><code>animations.css</code></td><td>Toutes les keyframes (y compris les <code>steps()</code> pour les sprites)</td></tr>
-  <tr><td><code>effects.css</code></td><td>Hit effects, particules, trajectoires</td></tr>
-  <tr><td><code>responsive.css</code></td><td>Media queries</td></tr>
+  <tr><th>Fichier</th><th>Contenu</th><th>Règle</th></tr>
+  <tr><td><code>variables.css</code></td><td>Les tokens canoniques : couleurs, espacements, polices, courbes</td><td>Source de vérité. Une valeur en dur ailleurs est une dette</td></tr>
+  <tr><td><code>animations.css</code></td><td>Les keyframes partagées</td><td>Toute boucle doit être coupée en <code>prefers-reduced-motion</code></td></tr>
+  <tr><td><code>components.css</code></td><td>Composants <strong>partagés</strong> : jauges <code>.bar</code>, boutons, badges, modales</td><td>Une classe = une définition. Voir l'encadré ci-dessous</td></tr>
+  <tr><td><code>pattern.css</code></td><td>Textures et motifs</td><td>—</td></tr>
+  <tr><td><code>deck.css</code></td><td><strong>Tout le CSS de la refonte</strong> : écorché, combat, rencontre, rade, carte</td><td>Ajouter à côté de l'existant, jamais l'écraser</td></tr>
+  <tr><td><code>style.css</code></td><td>Ce qui appartient à <strong>un écran</strong>, et rien d'autre</td><td>Un composant réutilisable qui atterrit ici finira par être dupliqué</td></tr>
 </table>
 
-<h3>Checklist d'implémentation</h3>
-<p>Avant de considérer un écran comme terminé, vérifier :</p>
+<div class="rule-box">
+  <strong>Deux définitions d'une même classe est un bug à retardement.</strong>
+  <code>components.css</code> portait un second <code>.bar-hp</code>, propre à
+  la documentation et utilisé par rien, qui masquait celui du jeu. Invisible
+  tant que les deux feuilles étaient chargées ensemble — et le jour où ce
+  document a chargé <code>components.css</code> sans <code>style.css</code>, la
+  jauge est sortie noire et vide. Les règles <code>.bar</code> réelles vivent
+  désormais dans <code>components.css</code>, une seule fois.
+</div>
+
+<h3>14.2 Où vit une nouvelle règle</h3>
+<table>
+  <tr><th>Ce qu'on ajoute</th><th>Où</th></tr>
+  <tr><td>Une couleur, un espacement, une courbe</td><td><code>variables.css</code>, puis <code>var(--…)</code> partout</td></tr>
+  <tr><td>Un composant réutilisable</td><td><code>components.css</code> <strong>et</strong> une démonstration au §6</td></tr>
+  <tr><td>Un composant de la refonte</td><td><code>deck.css</code> <strong>et</strong> une démonstration au §16</td></tr>
+  <tr><td>La mise en page d'un écran précis</td><td><code>style.css</code> ou <code>deck.css</code> selon l'écran</td></tr>
+  <tr><td>Un effet de combat</td><td><code>src/fx.js</code> — particules, jamais d'image</td></tr>
+</table>
+
+<h3>14.3 Checklist avant de considérer un écran terminé</h3>
 <ul>
-  <li>[ ] Les couleurs respectent la palette définie (pas de <code>#000000</code> ni <code>#FFFFFF</code>).</li>
-  <li>[ ] La typographie utilise les bonnes polices (<code>IM Fell English</code> / <code>Courier Prime</code>).</li>
-  <li>[ ] Les espacements suivent le grid 4px.</li>
-  <li>[ ] Les états hover/active/disabled sont implémentés.</li>
-  <li>[ ] Les animations respectent les durées standard (et <code>steps()</code> pour les sprites).</li>
-  <li>[ ] Pas de flash blanc ni d'effet agressif.</li>
-  <li>[ ] Le contraste est suffisant (≥ 4.5:1).</li>
-  <li>[ ] Les raccourcis clavier sont affichés.</li>
-  <li>[ ] Le texte est externalisé (i18n ready).</li>
-  <li>[ ] Le layout est testé en 1920×1080 et 1366×768.</li>
+  <li>[ ] Les couleurs sortent de la palette — jamais <code>#000000</code> ni <code>#FFFFFF</code>.</li>
+  <li>[ ] La typographie utilise IM Fell English (titres, noms) et Courier Prime (technique).</li>
+  <li>[ ] Les espacements suivent la grille de 4 px.</li>
+  <li>[ ] Un bouton indisponible <strong>dit pourquoi</strong>, et reste lisible.</li>
+  <li>[ ] Aucun flash, aucun clignotement, aucun <em>screen shake</em> (§9.1).</li>
+  <li>[ ] L'écran neutralise le fondu en <code>.screen.mon-ecran</code>, pas <code>.mon-ecran</code> (§8.3).</li>
+  <li>[ ] Tout texte posé sur la mer porte une <strong>plaque opaque</strong>, pas une ombre (§15.4).</li>
+  <li>[ ] <code>node tools/contrast-audit.mjs</code> passe sur cet écran, dans ses états principaux.</li>
+  <li>[ ] Le texte est externalisé dans <code>locales/</code>.</li>
+  <li>[ ] Rien qui serve au développement n'est visible : tout derrière la roue crantée (§16.14).</li>
+  <li>[ ] Testé en 1920×1080 et en 1366×768.</li>
 </ul>
-
-
 
 <h2 id="s15">15. Contrôles de contraste</h2>
 
@@ -728,7 +839,7 @@ donc, et chaque composant appartient à l'un ou à l'autre.</p>
 
 <h3>15.4 Résultat de l'audit</h3>
 
-<p>Six états d'écran, tous les textes visibles à l'écran mesurés. Seuils WCAG AA :
+<p>Onze états d'écran, tous les textes visibles mesurés. Seuils WCAG AA :
 4,5:1 en corps de texte, 3:1 au-delà de 24 px.</p>
 
 <table>
@@ -738,13 +849,33 @@ donc, et chaque composant appartient à l'un ou à l'autre.</p>
   <tr><td>Chasse-partie</td><td class="num">22</td><td class="num pass">0</td></tr>
   <tr><td>Chasse-partie — clauses cochées</td><td class="num">24</td><td class="num pass">0</td></tr>
   <tr><td>Carte des Caraïbes</td><td class="num">16</td><td class="num pass">0</td></tr>
-  <tr><td>Combat</td><td class="num">16</td><td class="num pass">0</td></tr>
+  <tr><td>Combat 1 contre 1</td><td class="num">16</td><td class="num pass">0</td></tr>
+  <tr><td>B2 — carte d'ouverture</td><td class="num">~15</td><td class="num pass">0</td></tr>
+  <tr><td>B2 — combat engagé</td><td class="num">~60</td><td class="num pass">0</td></tr>
+  <tr><td>B2 — outils de maquette</td><td class="num">~25</td><td class="num pass">0</td></tr>
+  <tr><td>C — la rade</td><td class="num">~22</td><td class="num pass">0</td></tr>
+  <tr><td>C — une escadre visée</td><td class="num">~22</td><td class="num pass">0</td></tr>
 </table>
+<p class="ds-caption">Les nombres des cinq dernières lignes sont approximatifs :
+chaque combat est tiré, donc le nombre de libellés à l'écran varie d'une
+exécution à l'autre. Ce qui ne varie pas, c'est la colonne de droite.</p>
 
 <p>Un second défaut est sorti de cet audit : la barre d'état de la carte passait
 devant le dégradé de ciel, clair en haut, et tombait à <strong>3,77:1</strong>.
 Corrigé en lui donnant son propre fond plutôt qu'en éclaircissant le texte —
 un texte posé sur un fond variable doit porter son propre terrain.</p>
+
+<div class="rule-box">
+  <strong>La règle de la plaque.</strong> Les écrans de combat posent des
+  libellés <em>directement sur la mer animée</em>, qui va du bleu nuit au ciel de
+  midi. Un <code>text-shadow</code> n'y suffit pas : mesuré <strong>1,46:1</strong>
+  sur l'horizon éclairé, <strong>3,37:1</strong> pour la bande de distance en
+  plein jour. Tout texte dans cette situation porte un <strong>fond opaque</strong>
+  — <code>.rc-trait</code>, <code>.rc-meteo</code>, <code>.bat-range</code>,
+  <code>.fl-bande &gt; .nom</code>, <code>.fl-escadre &gt; .et</code>. C'est une
+  contrainte de fond, pas un réglage : la couleur du terrain n'est pas connue à
+  l'avance.
+</div>
 
 <h3>15.5 Défauts trouvés en auditant cette page même</h3>
 
@@ -781,6 +912,16 @@ simultanément.</p>
     <td>Non-courant ne veut pas dire illisible : les quatre bandes doivent se lire d'un coup d'œil.</td>
   </tr>
   <tr>
+    <td>Libellé d'escadre sur la mer</td>
+    <td class="num fail">1,46:1</td><td class="num pass">≥ 4,5:1</td>
+    <td>Une plaque opaque, pas une ombre portée. Le fond est un canvas animé dont la luminance varie du bleu nuit au ciel de midi.</td>
+  </tr>
+  <tr>
+    <td>Bouton <code>+</code>/<code>−</code> désactivé</td>
+    <td class="num fail">1,93:1</td><td class="num pass">≥ 4,5:1</td>
+    <td>Opacité 0,3 remplacée par une couleur sourde mesurée. Même leçon que <code>.bat-btn.off</code>, réapprise sur un autre composant.</td>
+  </tr>
+  <tr>
     <td>Icône de boulet <code>⚫</code></td>
     <td class="num fail">1,59:1</td><td class="num pass">hérite</td>
     <td>Un émoji noir sur un bouton sombre est invisible et ne se colore pas. Remplacé par un glyphe texte <code>●</code>, qui hérite de la couleur du bouton.</td>
@@ -811,7 +952,20 @@ dépens :</p>
     à 1,0:1.</li>
   <li>Ignorer les boîtes sans variance de luminance : aucun glyphe n'y a été
     échantillonné, ce n'est pas un défaut de contraste.</li>
+  <li>Vérifier qu'un élément n'est pas <strong>recouvert</strong> avant de
+    l'échantillonner. Sans ce test, l'audit lit les pixels d'une modale posée
+    par-dessus et invente des échecs sur du texte que personne ne voit.</li>
 </ul>
+
+<div class="rule-box">
+  <strong>L'audit a trouvé un bug qui n'était pas le sien.</strong> Ses captures
+  de la maquette C sortaient délavées et il annonçait 21 échecs sur 22 textes,
+  alors que l'écran était parfaitement lisible. Ce n'était pas un problème de
+  contraste : c'était le fondu d'entrée d'écran, saisi en vol, rejoué à chaque
+  clic à cause du piège de cascade du §8.3. Un outil qui mesure les pixels réels
+  voit des choses qu'on ne lui a pas demandé de chercher — raison de plus pour
+  ne pas le remplacer par une lecture du DOM.
+</div>
 
 <div class="rule-box">
   <strong>Deux règles issues de ces deux bugs.</strong>
