@@ -6,6 +6,8 @@ import './shipPlans.test.js';
 import './battle.test.js';
 import './rencontre.test.js';
 import './flotte.test.js';
+import './hex.test.js';
+import './breche.test.js';
 
 console.log('\n  Frères de la Côte — data & integrity checks');
 await run();

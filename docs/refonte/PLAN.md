@@ -480,3 +480,53 @@ au but — sortir de sous une batterie intacte peut tuer.
 Les libellés de la rade se posent à même la mer et le ciel. Un `text-shadow` n'y
 suffit pas (mesuré 1,46:1 sur l'horizon éclairé) : ils portent une plaque
 opaque, comme la bande de distance de B2, corrigée pour la même raison.
+
+## Proposition D — la rade tactique, façon Into the Breach
+
+Direction demandée : vue isométrique, grille hexagonale, récifs sur certaines
+cases, coques plus petites, jeu plus nerveux.
+
+**Deux modules, deux responsabilités.** `src/hex.js` ne fait que de la
+géométrie — axial (q, r), hexagones à sommet plat, six directions dont l'ordre
+est un contrat. `src/breche.js` ne fait que des règles. Aucun des deux ne
+touche au DOM, aucun ne contient d'aléatoire hors de `genererRade`.
+
+La géométrie est testée par **propriétés** plutôt que par valeurs choisies :
+la distance est une vraie métrique (symétrie, inégalité triangulaire), le
+voisinage est réciproque, le disque de rayon *n* contient bien 3n(n+1)+1 cases,
+la projection est injective, et l'écrasement isométrique aplatit réellement le
+plateau. Ce sont les propriétés que le reste du code suppose sans les vérifier.
+
+**Ce que D emprunte à Into the Breach.**
+
+- *Information parfaite.* Chaque tir ennemi est écrit sur la case qu'il
+  frappera, une flèche tiretée depuis le tireur. Le tour est un problème résolu.
+- *La poussée est le verbe central.* Une bordée fait 1 dégât **et repousse d'une
+  case**. On annule un tir en bousculant le tireur, pas en le tuant — et sortir
+  de son axe suffit aussi, puisqu'on ne tire que le long des six directions.
+- *On ne gagne pas en tuant tout.* La rade se réveille en cinq tours. Ce qu'on
+  emporte est ce qu'on a **abordé**, et une proie ne s'aborde qu'entamée.
+
+**Ce que D garde de la rade.** Le butin est la seule mesure. Une bordée qui
+pousse une proie sur un récif la détruit — et détruit sa valeur : c'est
+« couler ou prendre » devenu une question de position. Trois bâtiments, trois
+verbes qui ne se remplacent pas : la canonnière pousse, le harponneur tire à
+soi, l'abordeur seul encaisse.
+
+**Trois canaux de lisibilité, sans recouvrement** : la couleur de la case dit
+ce qu'on peut y faire, la couleur du socle dit à qui appartient la coque, la
+flèche dit ce qui va arriver. Les socles ne sont pas une décoration : à trente
+pixels, deux coques qui se font face ne se distinguent pas.
+
+**Réglé en mesurant.** Deux politiques sur 200 plateaux : l'appliquée — qui
+regarde les intentions et évite de pousser une proie sur un récif — rapporte
+~200 💰 et 1,7 prise ; la maladroite ~48 💰 et 0,4. **Un facteur quatre**, et
+c'est la mesure de « la position compte ». Deux tests le gardent : l'un vérifie
+que bien jouer paie, l'autre que le plateau reste serré — jamais la rade
+entière (< 2,6 prises sur 3), jamais bredouille la moitié du temps.
+
+Deux bugs trouvés par les tests et non par l'œil : deux de nos coques posées sur
+la même case quand la colonne d'entrée était courte, et une intention qui
+retenait la case visée mais pas la position du tireur — donc impossible de
+savoir qu'il avait été poussé. Un troisième était dans le test lui-même : (1,1)
+*est* sur un axe de (2,0), contrairement à ce que j'avais écrit.

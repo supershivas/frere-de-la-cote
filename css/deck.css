@@ -1004,3 +1004,117 @@
   max-width: 1100px;
   min-height: 32px;
 }
+
+/* --- la rade tactique (proposition D) ------------------------------------- */
+/* Grille hexagonale en vue isométrique. Le plateau est un SVG (polygones :
+   détection de survol et style gratuits) et les coques sont des canvas posés
+   par-dessus, aux mêmes coordonnées. Démo : design-system.html §16.16. */
+
+.screen.hx-screen {
+  animation: none;               /* voir .screen.pont-screen : .screen.X, jamais .X */
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 4px clamp(8px, 2vw, 20px) 8px;
+  gap: 4px;
+}
+
+.hx-plateau { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.hx-scene { position: relative; }
+.hx-scene svg { display: block; overflow: visible; }
+
+/* --- les cases --- */
+.hx-case {
+  fill: rgba(20, 50, 74, .58);
+  stroke: rgba(150, 200, 215, .3);
+  stroke-width: 1;
+  transition: fill .12s;
+}
+.hx-case.passe { fill: rgba(30, 76, 104, .42); stroke: rgba(150, 200, 215, .5); stroke-dasharray: 4 3; }
+.hx-case.recif { fill: rgba(52, 44, 32, .88); stroke: rgba(150, 130, 96, .7); }
+/* Une case où l'on peut aller. Le vert est celui des salles atteignables du
+   plan de pont : même sens, même couleur, sur tout le jeu. */
+.hx-case.atteignable { fill: rgba(60, 140, 110, .35); stroke: rgba(110, 190, 150, .85); cursor: pointer; }
+.hx-case.atteignable:hover { fill: rgba(60, 140, 110, .6); }
+.hx-case.visable { stroke: var(--gold, #c9a24b); stroke-width: 2.5; cursor: pointer; }
+.hx-case.visable:hover { fill: rgba(201, 162, 75, .35); }
+.hx-case.ici { stroke: var(--gold, #c9a24b); stroke-width: 2.5; }
+/* La case qu'un tir a déjà nommée. C'est l'information la plus importante de
+   l'écran : elle doit se voir avant tout le reste. */
+.hx-case.menacee { fill: rgba(160, 42, 32, .5); stroke: #e0705c; stroke-width: 2; }
+
+.hx-recif-marque { fill: rgba(158, 138, 102, .95); pointer-events: none; }
+
+/* Le socle : un disque posé au sol, écrasé comme la case. Il porte le camp —
+   deux coques de trente pixels qui se font face ne se distinguent pas seules. */
+.hx-socle { pointer-events: none; stroke-width: 2; }
+.hx-socle.nous { fill: rgba(60, 140, 110, .34); stroke: #6fae92; }
+.hx-socle.eux { fill: rgba(160, 42, 32, .32); stroke: #d9694f; }
+.hx-socle.proie { fill: rgba(201, 162, 75, .28); stroke: var(--gold, #c9a24b); }
+.hx-socle.joue { stroke: var(--gold, #c9a24b); stroke-width: 3; }
+
+/* --- ce qui se pose sur les cases --- */
+.hx-jetons { position: absolute; inset: 0; pointer-events: none; }
+/* La flottaison du sprite tombe sur le centre de la case : c'est ce qui fait
+   qu'une coque « occupe » sa case au lieu de flotter au-dessus. */
+.hx-coque { position: absolute; transform: translate(-50%, -100%); }
+.hx-coque canvas { image-rendering: pixelated; display: block; }
+.hx-coque .pv {
+  position: absolute; left: 50%; transform: translateX(-50%); top: 100%;
+  display: flex; gap: 2px; justify-content: center;
+}
+.hx-coque .pv i { width: 6px; height: 6px; display: block; background: #7fd0a8; box-shadow: 0 0 0 1px rgba(0,0,0,.7); }
+.hx-coque .pv i.out { background: rgba(20, 16, 12, .8); }
+.hx-coque.eux .pv i { background: #ee8a70; }
+.hx-coque.joue { filter: drop-shadow(0 0 4px var(--gold, #c9a24b)); }
+.hx-coque.epuise { opacity: .55; }
+.hx-coque .etiq {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  top: 100%; margin-top: 8px;
+  font-family: "Courier Prime", monospace; font-size: 9px; white-space: nowrap;
+  color: #ded5bd; background: rgba(16, 12, 8, .86); padding: 0 4px;
+}
+.hx-coque.proie .etiq { color: #f3daa2; }
+
+/* La flèche du tir annoncé, du tireur vers sa case. */
+.hx-menace { stroke: #e0705c; stroke-width: 2; stroke-dasharray: 5 4; fill: none; pointer-events: none; }
+.hx-menace-tete { fill: #e0705c; pointer-events: none; }
+
+/* --- les panneaux --- */
+.hx-etat {
+  display: flex; align-items: center; gap: 14px; justify-content: center; flex-wrap: wrap;
+  font-family: "Courier Prime", monospace; font-size: 11px;
+  color: #ded5bd; background: rgba(16, 12, 8, .82);
+  padding: 3px 10px; margin: 0 auto; max-width: 1100px;
+}
+.hx-etat b { color: #f3daa2; font-weight: 400; }
+.hx-etat .danger { color: #f0907e; }
+
+.hx-flotte { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; }
+.hx-fiche {
+  border: 1px solid rgba(201, 162, 75, .3);
+  background: rgba(16, 12, 8, .84);
+  padding: 3px 9px 4px; cursor: pointer; min-width: 168px;
+}
+.hx-fiche:hover { border-color: rgba(201, 162, 75, .8); }
+.hx-fiche.active { border-color: var(--gold, #c9a24b); background: rgba(201, 162, 75, .16); }
+.hx-fiche.coule { opacity: .5; cursor: default; }
+.hx-fiche b { font-family: "IM Fell English", Georgia, serif; font-size: 13.5px; font-weight: 400; color: var(--parchment, #e6dcc3); }
+.hx-fiche .role { font-family: "Courier Prime", monospace; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: #cdc3a9; }
+.hx-fiche .reste { font-family: "Courier Prime", monospace; font-size: 10px; color: #f3daa2; }
+.hx-fiche .reste .fait { color: #9a8f7c; }
+
+.hx-apercu {
+  text-align: center; font-size: 13.5px; font-style: italic;
+  color: #e2d9c1; background: rgba(16, 12, 8, .82);
+  padding: 3px 10px; margin: 0 auto; max-width: 1100px; min-height: 22px;
+}
+.hx-apercu b { font-style: normal; color: #f3daa2; font-weight: 400; }
+.hx-apercu .perte { font-style: normal; color: #f0907e; }
+
+.hx-journal {
+  font-family: "Courier Prime", monospace; font-size: 11px; line-height: 1.6; text-align: center;
+  color: #d8cfb6; background: rgba(16, 12, 8, .78);
+  padding: 2px 8px; margin: 0 auto; max-width: 1100px; min-height: 30px;
+}
+.hx-ordres { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }

@@ -16,12 +16,13 @@ reprendre la question de fond : quelle est la bonne échelle d'un combat.
 Deux propositions sont sur la table, jouables, **et la décision appartient à
 l'utilisateur** :
 
-| | `docs/refonte/mockups/b2-combat.html` | `docs/refonte/mockups/c-rade.html` |
-|---|---|---|
-| Échelle | un navire contre un navire | une escadre de cinq contre une rade |
-| Le tour | répartir cinq hommes sur trois postes, puis manœuvre et bordée | **un ordre**, et c'est tout |
-| Durée | 8 à 15 tours | 6 à 10 ordres |
-| Règles | `src/battle.js` (partiellement), `src/rencontre.js` | `src/flotte.js` |
+| | `b2-combat.html` | `c-rade.html` | `d-breche.html` |
+|---|---|---|---|
+| Échelle | un navire contre un navire | une escadre contre une rade | **une grille hexagonale isométrique** |
+| Le tour | répartir cinq hommes sur trois postes | **un ordre** | déplacer et agir, trois bâtiments |
+| Le verbe | la répartition | le pari sur la profondeur | **la poussée** (façon Into the Breach) |
+| Durée | 8 à 15 tours | 6 à 10 ordres | 5 tours, plafond dur |
+| Règles | `src/battle.js`, `src/rencontre.js` | `src/flotte.js` | `src/hex.js` + `src/breche.js` |
 
 Ne pas commencer l'étape 6 tant que ce choix n'est pas tranché : construire
 la méta-progression sur un combat qui va changer d'échelle est exactement le
@@ -60,6 +61,8 @@ neuf sur le second.**
 |---|---|
 | `src/battle.js` | Règles du combat 1 contre 1 — pures |
 | `src/flotte.js` | Règles de la rade (proposition C) : une escadre, trois bandes, un ordre par tour — pures |
+| `src/hex.js` | Géométrie hexagonale : axial, voisinage, distance, axes, projection isométrique. **Aucune règle de jeu** |
+| `src/breche.js` | Règles de la rade tactique (proposition D) : grille, récifs, poussée, intentions annoncées — pures |
 | `src/rencontre.js` | Tirage d'ouverture de combat, météo, pavillon, phylactères. **L'entropie entre ici** |
 | `src/shipPlans.js` | Plans de pont par classe de coque : salles, passages, spécialités, coûts de trajet |
 | `src/deckView.js` | Rendu en profil : le sprite généré sert de cadre au plan |
@@ -75,8 +78,8 @@ neuf sur le second.**
 
 ## Les cinq règles qui ont chacune coûté un bug
 
-**1. Aucune entropie dans la résolution.** `src/battle.js` et
-`src/flotte.js` ne doivent jamais contenir `Math.random`, `Date.now` ni
+**1. Aucune entropie dans la résolution.** `src/battle.js`, `src/flotte.js` et
+`src/breche.js` ne doivent jamais contenir `Math.random`, `Date.now` ni
 `crypto` — un test échoue s'ils y apparaissent. L'aléatoire est permis dans
 la *génération* (rade, rencontre, butin), jamais dans la *résolution*
 (brief §4.1). C'est ce qui fait qu'un tour est un problème fermé et non un
@@ -136,7 +139,10 @@ affichés, fréquence des raretés, taille de l'espace des ouvertures, parties
 avant qu'une réplique revienne. `test/flotte.test.js` mesure la *forme du
 pari* : deux façons de piller jouées sur 300 rades chacune, et il échoue si
 foncer devient sûr — auquel cas le fond de la rade n'est plus un pari mais
-une étape. **Un seuil qui casse dans ces fichiers est presque toujours une
+une étape. `test/breche.test.js` mesure si **la position compte** : un joueur
+appliqué doit gagner nettement plus qu'un maladroit, sinon la grille ne sert à
+rien. `test/hex.test.js` teste des *propriétés* (métrique, réciprocité,
+injectivité) et non des valeurs choisies à la main. **Un seuil qui casse dans ces fichiers est presque toujours une
 décision à prendre, pas un test à assouplir.**
 
 Pour ce que les tests de données ne peuvent pas voir :

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<base href="../../../">
+<title>D — la rade tactique (maquette jouable)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8F%B4%E2%80%8D%E2%98%A0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<canvas id="ocean"></canvas>
+<div id="parchment"></div>
+<main id="app"></main>
+<div id="toast-container"></div>
+
+<script type="module">
+/* ============================================================
+   D — LA RADE TACTIQUE, façon Into the Breach.
+   Grille hexagonale en vue isométrique, récifs, coques petites.
+
+   Le contrat : tout ce que la rade fera au prochain tour est
+   écrit sur le plateau AVANT qu'on joue, et chaque action dit
+   ce qu'elle fera avant qu'on la donne. Un tour est un problème
+   résolu, jamais un pari (brief §4.1).
+
+   Règles pures dans src/breche.js, géométrie dans src/hex.js.
+   Interface : les feuilles et les modules du jeu.
+   ============================================================ */
+
+import { el, mount, modal } from './src/ui.js';
+import { loadData } from './src/data.js';
+import { loadLocales } from './src/i18n.js';
+import { startOcean, randomOceanScene } from './src/ocean.js';
+import { initFx, fxBroadside, fxExplosion } from './src/fx.js';
+import { getGeneratedShip, drawGrid } from './src/sprites.js';
+import { buildSpriteSpec, state } from './src/state.js';
+import { versPixel, sommets, cadre, disque, key, distance, same } from './src/hex.js';
+import * as D from './src/breche.js';
+
+await Promise.all([loadData(), loadLocales()]);
+startOcean(document.getElementById('ocean'));
+initFx();
+
+// Le plateau doit remplir l'écran : à 44, il flottait au milieu d'une mer vide
+// et les mâts d'une rangée mordaient sur la rangée du dessus.
+const TAILLE = 72;                       // rayon d'un hexagone, en pixels
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+// Les coques sont petites : c'est la grille qui porte la lecture, pas le
+// portrait du navire. Classe 6 (la plus courte) au grossissement 1 : trente
+// pixels de large pour une case de quatre-vingt-huit.
+const SPECS = {
+  canonniere: () => spec('free_pirates', 6, 11),
+  harponneur: () => spec('free_pirates', 6, 29),
+  abordeur:   () => spec('free_pirates', 6, 47),
+  escorte:    () => spec('espagnole', 6, 61),
+  transport:  () => spec('hollandaise', 6, 83),
+  batterie:   () => spec('marine_anglaise', 6, 97),
+};
+const spec = (faction, classe, graine) => buildSpriteSpec(
+  { hullClass: classe, hullShape: 'auto', sailsPerMast: 2, jibs: 1, wear: 1 }, faction, graine);
+
+let B, choisie = null, survol = null;
+
+function neuve() {
+  const graine = (Math.random() * 0xffffffff) >>> 0;
+  let s = graine >>> 0 || 1;
+  const rng = () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+  randomOceanScene(['day', 'dawn', 'sunset', 'cloudy'][graine % 4]);
+  B = D.nouvelleRade(D.genererRade(rng));
+  B.graine = graine;
+  choisie = null; survol = null;
+}
+
+/* --- le plateau -------------------------------------------------------- */
+
+const boite = () => cadre(disque(B.rayon), { taille: TAILLE });
+const px = (h) => { const p = versPixel(h, { taille: TAILLE }); const b = boite(); return { x: p.x - b.x0, y: p.y - b.y0 }; };
+
+function plateau() {
+  const b = boite();
+  const scene = el('div', { class: 'hx-scene', style: `width:${b.largeur}px;height:${b.hauteur}px` });
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('width', b.largeur);
+  svg.setAttribute('height', b.hauteur);
+
+  const atteignables = choisie && !choisie.aBouge ? D.atteignables(B, choisie) : [];
+  const visables = choisie ? D.cibles(B, choisie) : [];
+  const menacees = B.intentions;
+
+  for (const h of disque(B.rayon)) {
+    const poly = document.createElementNS(SVGNS, 'polygon');
+    poly.setAttribute('points', sommets(h, { taille: TAILLE })
+      .map(([x, y]) => `${x - b.x0},${y - b.y0}`).join(' '));
+    const classes = ['hx-case'];
+    if (D.estRecif(B, h)) classes.push('recif');
+    else if (D.estPasse(B, h)) classes.push('passe');
+    if (menacees.some((i) => i.q === h.q && i.r === h.r)) classes.push('menacee');
+    if (atteignables.some((x) => same(x, h))) classes.push('atteignable');
+    if (visables.some((x) => same(x, h))) classes.push('visable');
+    if (choisie && same(choisie, h)) classes.push('ici');
+    poly.setAttribute('class', classes.join(' '));
+    if (classes.includes('atteignable') || classes.includes('visable')) {
+      poly.addEventListener('click', () => surCase(h));
+      poly.addEventListener('mouseenter', () => { survol = h; peindre(); });
+      poly.addEventListener('mouseleave', () => { survol = null; peindre(); });
+    }
+    svg.appendChild(poly);
+
+    // Un récif se voit sans légende : trois cailloux au milieu de la case.
+    if (D.estRecif(B, h)) {
+      const c = px(h);
+      for (const [dx, dy, rr] of [[-9, 2, 6], [6, -2, 5], [1, 6, 4]]) {
+        const e = document.createElementNS(SVGNS, 'ellipse');
+        e.setAttribute('cx', c.x + dx); e.setAttribute('cy', c.y + dy);
+        e.setAttribute('rx', rr); e.setAttribute('ry', rr * 0.55);
+        e.setAttribute('class', 'hx-recif-marque');
+        svg.appendChild(e);
+      }
+    }
+  }
+
+  // Un socle sous chaque coque. C'est la convention d'Into the Breach, et à
+  // cette échelle c'est la SEULE façon de lire un camp d'un coup d'œil : deux
+  // sprites de trente pixels qui se font face ne se distinguent pas.
+  for (const u of B.unites.filter((x) => x.pv > 0)) {
+    const c = px(u);
+    const e = document.createElementNS(SVGNS, 'ellipse');
+    e.setAttribute('cx', c.x); e.setAttribute('cy', c.y);
+    e.setAttribute('rx', TAILLE * 0.42); e.setAttribute('ry', TAILLE * 0.42 * 0.56);
+    e.setAttribute('class', `hx-socle ${u.camp}${u.type === 'transport' ? ' proie' : ''}`
+      + (choisie && choisie.id === u.id ? ' joue' : ''));
+    svg.appendChild(e);
+  }
+
+  // Les tirs annoncés, du tireur vers la case qu'il a nommée.
+  for (const i of B.intentions) {
+    const tireur = B.unites.find((u) => u.id === i.parId);
+    if (!tireur || tireur.pv <= 0) continue;
+    const a = px(tireur), z = px({ q: i.q, r: i.r });
+    const l = document.createElementNS(SVGNS, 'line');
+    l.setAttribute('x1', a.x); l.setAttribute('y1', a.y);
+    l.setAttribute('x2', z.x); l.setAttribute('y2', z.y);
+    l.setAttribute('class', 'hx-menace');
+    svg.appendChild(l);
+    const ang = Math.atan2(z.y - a.y, z.x - a.x);
+    const t = document.createElementNS(SVGNS, 'polygon');
+    const p = (k, off) => `${z.x - Math.cos(ang + off) * k},${z.y - Math.sin(ang + off) * k}`;
+    t.setAttribute('points', `${z.x},${z.y} ${p(13, 0.4)} ${p(13, -0.4)}`);
+    t.setAttribute('class', 'hx-menace-tete');
+    svg.appendChild(t);
+  }
+
+  scene.appendChild(svg);
+  scene.appendChild(jetons());
+  return scene;
+}
+
+function jetons() {
+  const couche = el('div', { class: 'hx-jetons' });
+  // De haut en bas : ce qui est devant doit passer par-dessus ce qui est
+  // derrière, sinon la profondeur se contredit.
+  const ordre = [...B.unites].filter((u) => u.pv > 0).sort((a, b) => px(a).y - px(b).y);
+  for (const u of ordre) {
+    const p = px(u);
+    const gen = getGeneratedShip(SPECS[u.type]());
+    // On coupe le sprite à la flottaison et on ne garde qu'un bout de mâture :
+    // en vue de dessus rapprochée, une coque entière avec ses trois étages de
+    // voiles couvre la case voisine et la grille cesse de se lire.
+    const HAUT = Math.min(gen.H, 34);
+    const cv = el('canvas');
+    cv.width = gen.W; cv.height = HAUT;
+    const plein = document.createElement('canvas');
+    plein.width = gen.W; plein.height = gen.H;
+    drawGrid(plein, gen.grid, {
+      color: gen.palette, flag: '',
+      facing: u.camp === 'nous' ? 1 : -1,
+      damaged: 1 - u.pv / u.pvMax,
+    });
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    const bas = Math.min(gen.H, gen.waterY + 2);
+    ctx.drawImage(plein, 0, bas - HAUT, gen.W, HAUT, 0, 0, gen.W, HAUT);
+    const pips = el('div', { class: 'pv' });
+    for (let i = 0; i < u.pvMax; i++) pips.appendChild(el('i', { class: i < u.pv ? '' : 'out' }));
+
+    const jeton = el('div', {
+      class: `hx-coque ${u.camp}${u.type === 'transport' ? ' proie' : ''}`
+        + (choisie && choisie.id === u.id ? ' joue' : '')
+        + (u.camp === 'nous' && u.aBouge && u.aAgi ? ' epuise' : ''),
+      style: `left:${p.x}px;top:${p.y}px`,
+    }, [cv, pips]);
+    // Seules les proies portent leur étiquette en permanence : c'est la valeur
+    // qui décide du tour. Neuf étiquettes empilées ne se lisaient plus.
+    if (u.type === 'transport') {
+      jeton.appendChild(el('div', { class: 'etiq', text: `${u.valeur} 💰` }));
+    } else if (choisie && choisie.id === u.id) {
+      jeton.appendChild(el('div', { class: 'etiq', text: u.nom }));
+    }
+    jeton.title = u.nom;
+    couche.appendChild(jeton);
+  }
+  return couche;
+}
+
+/* --- ce qu'on peut faire ----------------------------------------------- */
+
+function surCase(h) {
+  if (!choisie) return;
+  const cible = D.uniteEn(B, h);
+  if (cible && cible.camp === 'eux') {
+    const vu = D.apercu(B, choisie, h);
+    if (!vu) return;
+    fumee(choisie, vu.verbe === 'abordage' ? 'abordage' : 'tir');
+    D.agir(B, choisie, h);
+    if (vu.verbe !== 'abordage') setTimeout(() => impact(h), 120);
+  } else {
+    D.deplacer(B, choisie, h);
+  }
+  survol = null;
+  if (choisie.aBouge && choisie.aAgi) choisie = D.nous(B).find((u) => !u.aAgi || !u.aBouge) || null;
+  peindre();
+}
+
+// Un tir, c'est de la fumée. Le §9 proscrit les flashs, et sur des coques de
+// trente pixels un éclair mangerait tout le plateau.
+function fumee(u, quoi) {
+  const n = document.querySelector(`.hx-coque[style*="left:${Math.round(px(u).x)}"]`);
+  const p = px(u), s = document.querySelector('.hx-scene');
+  if (!s) return;
+  const r = s.getBoundingClientRect();
+  fxBroadside(r.left + p.x, r.top + p.y, u.camp === 'nous' ? 1 : -1, { scale: quoi === 'tir' ? 1 : 0.6 });
+}
+function impact(h) {
+  const s = document.querySelector('.hx-scene');
+  if (!s) return;
+  const r = s.getBoundingClientRect(), p = px(h);
+  fxExplosion(r.left + p.x, r.top + p.y, { scale: 0.9 });
+}
+
+function texteApercu() {
+  if (!choisie) return 'Choisissez un de vos bâtiments — en bas, ou sur le plateau.';
+  const def = D.NOTRES[choisie.type];
+  if (survol) {
+    const c = D.uniteEn(B, survol);
+    if (c) {
+      const vu = D.apercu(B, choisie, survol);
+      if (vu) {
+        return vu.verbe === 'abordage'
+          ? `<b>${c.nom}</b> — ${vu.texte}`
+          : `<b>${c.nom}</b> — ${vu.perd ? `<span class="perte">${vu.texte}</span>` : vu.texte}`;
+      }
+    }
+    return `Se porter là. Il restera ${choisie.aAgi ? 'rien à faire ce tour' : 'l\'action'}.`;
+  }
+  const reste = [];
+  if (!choisie.aBouge) reste.push('se déplacer');
+  if (!choisie.aAgi) reste.push(def.verbe === 'bordee' ? 'tirer' : def.verbe === 'grappin' ? 'harponner' : 'aborder');
+  return `<b>${choisie.nom}</b> — ${def.dit} ${reste.length ? `Il lui reste à ${reste.join(' et ')}.` : 'Elle a tout fait.'}`;
+}
+
+/* --- rendu -------------------------------------------------------------- */
+
+function fiches() {
+  const box = el('div', { class: 'hx-flotte' });
+  for (const u of B.unites.filter((x) => x.camp === 'nous')) {
+    const def = D.NOTRES[u.type];
+    const mort = u.pv <= 0;
+    const f = el('div', {
+      class: `hx-fiche${choisie && choisie.id === u.id ? ' active' : ''}${mort ? ' coule' : ''}`,
+    }, [
+      el('div', {}, [el('b', { text: u.nom })]),
+      el('div', { class: 'role', text: `${def.role} · ${u.pv}/${u.pvMax} · ${def.portee} de portée` }),
+      el('div', { class: 'reste' }, mort ? [document.createTextNode('coulée')] : [
+        el('span', { class: u.aBouge ? 'fait' : '', text: u.aBouge ? '✓ déplacée' : `↔ ${u.mouvement} cases` }),
+        document.createTextNode('  '),
+        el('span', { class: u.aAgi ? 'fait' : '', text: u.aAgi ? '✓ a agi' : '⚔ action prête' }),
+      ]),
+    ]);
+    if (!mort) f.addEventListener('click', () => { choisie = choisie && choisie.id === u.id ? null : u; survol = null; peindre(); });
+    box.appendChild(f);
+  }
+  return box;
+}
+
+function peindre() {
+  state.screen = 'bataille';
+  const proies = D.eux(B).filter((u) => u.type === 'transport');
+  const menace = B.intentions.reduce((s, i) => s + i.degats, 0);
+
+  mount(el('div', { class: 'screen hx-screen' }, [
+    el('div', { class: 'hx-etat' }, [
+      el('span', { html: `Tour <b>${Math.min(B.tour, B.tours)}</b> / ${B.tours}` }),
+      el('span', { html: `Butin embarqué <b>${D.butin(B)}</b> 💰` }),
+      el('span', { html: `${proies.length} proie(s) dans la rade` }),
+      B.echappes.length ? el('span', { class: 'danger', text: `${B.echappes.length} échappée(s)` }) : null,
+      menace
+        ? el('span', { class: 'danger', text: `⚠ ${B.intentions.length} tir(s) annoncé(s) — ${menace} dégât(s)` })
+        : el('span', { text: 'Rien ne nous vise.' }),
+    ]),
+    el('div', { class: 'hx-plateau' }, [plateau()]),
+    el('div', { class: 'hx-apercu', html: texteApercu() }),
+    fiches(),
+    el('div', { class: 'hx-ordres' }, [
+      el('button', { class: 'bat-btn primary', text: '⏭ Fin de tour',
+        on: { click: () => { D.finDeTour(B); choisie = null; survol = null; peindre(); } } }),
+      el('button', { class: 'bat-btn', text: '⚓ Sortir avec le butin',
+        on: { click: () => { D.sortir(B); peindre(); } } }),
+    ]),
+    el('div', { class: 'hx-journal', html: B.journal.slice(-2).join('<br>') || '&nbsp;' }),
+  ]));
+
+  if (B.fini) fin();
+}
+
+function fin() {
+  if (document.querySelector('.bat-outcome')) return;
+  const gagne = B.fini === 'retire';
+  document.body.appendChild(el('div', { class: `bat-outcome ${gagne ? 'won' : 'lost'}` }, [
+    el('h2', { text: gagne ? 'Sortis de la rade' : 'Perdus dans la rade' }),
+    el('p', { text: gagne
+      ? `${D.butin(B)} 💰 · ${B.pris.length} prise(s) · ${D.nous(B).length} coque(s) ramenée(s).`
+      : 'Plus une coque à nous. Le butin reste au fond avec elles.' }),
+    B.echappes.length ? el('p', { class: 'warn', text: `${B.echappes.length} proie(s) ont gagné la passe.` }) : null,
+    el('div', { class: 'bat-outcome-btns' }, [
+      el('button', { class: 'btn-level-1', text: '↺ Une autre rade',
+        on: { click: () => { document.querySelector('.bat-outcome').remove(); neuve(); peindre(); } } }),
+    ]),
+  ]));
+}
+
+/* --- outils de maquette, derrière la roue crantée ---------------------- */
+document.body.appendChild(el('button', {
+  class: 'rc-gear', text: '⚙', attrs: { title: 'Outils de maquette' }, on: { click: dev },
+}));
+
+function dev() {
+  const box = el('div', { class: 'rc-carte' }, [
+    el('h2', { text: 'Maquette D — la rade tactique' }),
+    el('div', { class: 'rc-dev' }, [
+      el('p', { text: "Grille hexagonale en vue isométrique, façon Into the Breach. Tout ce que la rade fera au prochain tour est écrit sur le plateau ; chaque action dit ce qu'elle fera avant qu'on la donne. La poussée est le verbe central : on annule un tir en bousculant le tireur, et on détruit une proie en la poussant sur un récif." }),
+      el('h5', { text: 'Ce plateau' }),
+      el('p', { html: `graine <span class="val">${B.graine}</span> · rayon <span class="val">${B.rayon}</span> · `
+        + `<span class="val">${B.recifs.size}</span> récifs · tour <span class="val">${B.tour}</span>/${B.tours}` }),
+      el('h5', { text: 'Unités' }),
+      el('p', { html: B.unites.map((u) =>
+        `${u.pv > 0 ? '' : '✝ '}${u.nom} — ${u.camp}/${u.type}, (${u.q},${u.r}), ${u.pv}/${u.pvMax} pv`
+        + (u.valeur ? `, ${u.valeur} 💰` : '')).join('<br>') }),
+      el('h5', { text: 'Intentions annoncées' }),
+      el('p', { html: B.intentions.length
+        ? B.intentions.map((i) => {
+          const t = B.unites.find((u) => u.id === i.parId);
+          return `${t.nom} (${i.deQ},${i.deR}) → (${i.q},${i.r}) pour ${i.degats}`;
+        }).join('<br>')
+        : 'aucune' }),
+      el('h5', { text: 'Forme mesurée' }),
+      el('p', { text: "Sur 200 plateaux joués par deux politiques : l'appliqué rapporte ~200 💰 et 1,7 prise, le maladroit ~48 💰 et 0,4. Un joueur qui regarde les intentions et les récifs gagne quatre fois plus qu'un joueur qui tire au hasard — c'est la mesure de « la position compte »." }),
+    ]),
+    el('div', { class: 'rc-actions' }, [
+      el('button', { class: 'btn-level-4', text: 'Fermer', on: { click: () => close() } }),
+    ]),
+  ]);
+  const { close } = modal(box);
+}
+
+neuve();
+peindre();
+</script>
+</body>
+</html>

@@ -1278,6 +1278,44 @@ grosses que les vaisseaux du milieu, et la profondeur ne se lisait plus.</p>
   <tr><td>Aperçu</td><td><code>.fl-apercu</code></td><td>Ce que l'ordre fera, écrit avant le clic (§4.2)</td></tr>
 </table>
 
+<h3>16.16 La rade tactique — grille hexagonale isométrique (proposition D)</h3>
+<p class="ds-caption">Le plateau est un SVG : un polygone par case, ce qui donne
+la détection de survol et les états gratuitement. Les coques sont des canvas
+posés par-dessus, aux mêmes coordonnées, coupés à la flottaison — une mâture
+entière couvrirait la case voisine. La démonstration ci-dessous est construite
+par <code>src/hex.js</code>, le module réel : sa géométrie ne peut pas diverger
+de celle du jeu.</p>
+<div class="ds-stage">
+  <div id="ds-hex" style="display:flex;justify-content:center"></div>
+</div>
+<table>
+  <tr><th>Case</th><th>Classe</th><th>Lecture</th></tr>
+  <tr><td>Eau</td><td><code>.hx-case</code></td><td>Navigable</td></tr>
+  <tr><td>Récif</td><td><code>.recif</code></td><td>Infranchissable, et une coque poussée dessus s'y brise</td></tr>
+  <tr><td>La passe</td><td><code>.passe</code></td><td>Par où l'on entre, et par où les proies s'échappent</td></tr>
+  <tr><td>Atteignable</td><td><code>.atteignable</code></td><td>Le vert des salles atteignables du plan de pont : même sens partout dans le jeu</td></tr>
+  <tr><td>À portée</td><td><code>.visable</code></td><td>Une cible que le bâtiment choisi peut atteindre</td></tr>
+  <tr><td>Menacée</td><td><code>.menacee</code></td><td><strong>Un tir déjà annoncé tombera ici.</strong> L'information la plus importante de l'écran</td></tr>
+  <tr><td>Socle</td><td><code>.hx-socle</code></td><td>Vert = à nous, rouge = escorte, or = proie. À trente pixels, deux coques qui se font face ne se distinguent pas sans lui</td></tr>
+</table>
+
+<div class="rule-box">
+  <strong>Trois canaux, encore, et toujours sans recouvrement.</strong> La
+  <em>couleur de la case</em> dit ce qu'on peut y faire, la <em>couleur du
+  socle</em> dit à qui appartient la coque, et la <em>flèche tiretée</em> dit ce
+  qui va se passer. Aucun des trois n'exprime deux choses à la fois — c'est la
+  même discipline qu'au §7.3, apprise en la ratant une première fois.
+</div>
+
+<div class="rule-box">
+  <strong>La promesse d'Into the Breach, et ce qu'elle coûte.</strong> Tout ce
+  que la rade fera au prochain tour est écrit avant qu'on joue, et chaque action
+  dit ce qu'elle fera avant qu'on la donne. Cela n'a de valeur que si c'est
+  <em>vrai</em> : un test vérifie sur 150 plateaux que l'aperçu ne ment jamais —
+  dégâts promis, poussée promise, « elle coule » promis. Le jour où il ment,
+  l'écran redevient un pari déguisé en puzzle.
+</div>
+
 <div class="rule-box">
   <strong>Pas de flash au tir (rappel du §9).</strong> Un coup au but est de la
   <em>fumée</em> et du bois arraché. L'anneau lumineux et les étincelles orange
@@ -1301,5 +1339,71 @@ grosses que les vaisseaux du milieu, et la profondeur ne se lisait plus.</p>
   La matière historique (contexte 1640-1697, figures) vit dans <a href="histoire.html">histoire.html</a>.
 </div>
 
+
+<script type="module">
+// La démonstration du §16.16 est construite par src/hex.js — le module que le
+// jeu utilise. Recopier des polygones à la main aurait fait de cette page une
+// reproduction, exactement ce que le préambule du §16 interdit.
+import { disque, sommets, versPixel, cadre, key } from './src/hex.js';
+
+const TAILLE = 40, SVGNS = 'http://www.w3.org/2000/svg';
+const cases = disque(2);
+const b = cadre(cases, { taille: TAILLE });
+const svg = document.createElementNS(SVGNS, 'svg');
+svg.setAttribute('width', b.largeur + 4);
+svg.setAttribute('height', b.hauteur + 4);
+svg.style.overflow = 'visible';
+
+const etats = {
+  '-2,0': 'passe', '-2,1': 'passe', '-2,2': 'passe',
+  '1,-2': 'recif', '2,-1': 'recif', '0,2': 'recif',
+  '-1,0': 'atteignable', '-1,1': 'atteignable', '0,0': 'atteignable',
+  '1,0': 'visable', '0,-1': 'menacee',
+};
+const px = (h) => { const p = versPixel(h, { taille: TAILLE }); return { x: p.x - b.x0 + 2, y: p.y - b.y0 + 2 }; };
+
+for (const h of cases) {
+  const poly = document.createElementNS(SVGNS, 'polygon');
+  poly.setAttribute('points', sommets(h, { taille: TAILLE })
+    .map(([x, y]) => `${x - b.x0 + 2},${y - b.y0 + 2}`).join(' '));
+  poly.setAttribute('class', 'hx-case ' + (etats[key(h.q, h.r)] || ''));
+  svg.appendChild(poly);
+  if (etats[key(h.q, h.r)] === 'recif') {
+    const c = px(h);
+    for (const [dx, dy, rr] of [[-8, 2, 5], [5, -2, 4], [1, 5, 3]]) {
+      const e = document.createElementNS(SVGNS, 'ellipse');
+      e.setAttribute('cx', c.x + dx); e.setAttribute('cy', c.y + dy);
+      e.setAttribute('rx', rr); e.setAttribute('ry', rr * 0.55);
+      e.setAttribute('class', 'hx-recif-marque');
+      svg.appendChild(e);
+    }
+  }
+}
+// Trois socles : à nous, une escorte, une proie.
+for (const [k, camp] of [['0,-1', 'nous'], ['1,0', 'eux'], ['1,-1', 'proie']]) {
+  const [q, r] = k.split(',').map(Number);
+  const c = px({ q, r });
+  const e = document.createElementNS(SVGNS, 'ellipse');
+  e.setAttribute('cx', c.x); e.setAttribute('cy', c.y);
+  e.setAttribute('rx', TAILLE * 0.42); e.setAttribute('ry', TAILLE * 0.42 * 0.56);
+  e.setAttribute('class', 'hx-socle ' + camp);
+  svg.appendChild(e);
+}
+// Le tir annoncé, de l'escorte vers la case menacée.
+const a = px({ q: 1, r: 0 }), z = px({ q: 0, r: -1 });
+const l = document.createElementNS(SVGNS, 'line');
+l.setAttribute('x1', a.x); l.setAttribute('y1', a.y);
+l.setAttribute('x2', z.x); l.setAttribute('y2', z.y);
+l.setAttribute('class', 'hx-menace');
+svg.appendChild(l);
+const ang = Math.atan2(z.y - a.y, z.x - a.x);
+const t = document.createElementNS(SVGNS, 'polygon');
+const pt = (kk, off) => `${z.x - Math.cos(ang + off) * kk},${z.y - Math.sin(ang + off) * kk}`;
+t.setAttribute('points', `${z.x},${z.y} ${pt(12, 0.4)} ${pt(12, -0.4)}`);
+t.setAttribute('class', 'hx-menace-tete');
+svg.appendChild(t);
+
+document.getElementById('ds-hex').appendChild(svg);
+</script>
 </body>
 </html>

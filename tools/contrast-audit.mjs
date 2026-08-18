@@ -85,4 +85,10 @@ await audit('B2 — outils de maquette', async()=>{ await p.click('.rc-gear'); a
 const C = 'http://localhost:8000/docs/refonte/mockups/c-rade.html';
 await audit('C — la rade', async()=>{ await p.goto(C); await p.waitForSelector('.fl-rade'); await p.waitForTimeout(900); });
 await audit('C — une escadre visée', async()=>{ await p.click('.fl-bande.ici .fl-escadre'); await p.waitForTimeout(400); });
+
+// La rade tactique (proposition D) : des étiquettes minuscules posées sur une
+// grille dont la teinte change de case en case.
+const Dm = 'http://localhost:8000/docs/refonte/mockups/d-breche.html';
+await audit('D — la rade tactique', async()=>{ await p.goto(Dm); await p.waitForSelector('.hx-scene'); await p.waitForTimeout(1000); });
+await audit('D — un bâtiment choisi', async()=>{ await p.click('.hx-fiche'); await p.waitForTimeout(400); });
 await b.close();

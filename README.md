@@ -19,15 +19,24 @@ The game is being rebuilt against `docs/refonte/brief.md`. Steps 0 to 5 are
 done. Then the fight was judged **unreadable in play**, and the work stopped to
 reopen the question underneath it: *what is the right scale for a fight?*
 
-**Two proposals are playable, and the choice is not made.** Try both:
+**Three proposals are playable, and the choice is not made.** Try them:
 
-| | [B2 — one ship](docs/refonte/mockups/b2-combat.html) | [C — the roadstead](docs/refonte/mockups/c-rade.html) |
-|---|---|---|
-| Scale | one ship against one ship | a squadron of five against a whole anchorage |
-| A turn is | spread five men over three posts, then one manoeuvre and one broadside | **one order** |
-| Length | 8–15 turns | 6–10 orders |
-| Rules | `src/battle.js`, `src/rencontre.js` | `src/flotte.js` |
-| The gamble | sink her fast, or take her slow and richer | how deep into the roadstead do you go before you run for it |
+| | [B2 — one ship](docs/refonte/mockups/b2-combat.html) | [C — the roadstead](docs/refonte/mockups/c-rade.html) | [D — the tactical raid](docs/refonte/mockups/d-breche.html) |
+|---|---|---|---|
+| Scale | one ship against one ship | a squadron against an anchorage | **an isometric hex board** |
+| A turn is | spread five men over three posts | **one order** | move and act, three ships |
+| The verb | the allocation | the bet on depth | **the push** (Into the Breach) |
+| Length | 8–15 turns | 6–10 orders | 5 turns, hard cap |
+| Rules | `src/battle.js`, `src/rencontre.js` | `src/flotte.js` | `src/hex.js` + `src/breche.js` |
+| The gamble | sink her fast, or take her slow and richer | how deep before you run | shoot her, or grapple her close enough to board |
+
+**D is the newest and the most different.** Everything the anchorage will do
+next turn is written on the board before you play: a dashed arrow from each
+gunner to the cell it will hit. You cancel a shot by *shoving the gunner*, not by
+killing it — and stepping off its axis works too. Reefs are not scenery: a
+broadside that pushes a prize onto one destroys her, and her cargo with her. A
+prize is only ever collected by boarding, so the whole fight is a positioning
+problem about getting the boarder alongside something already softened.
 
 Both mockups load the **real** stylesheets and modules of the game, so they show
 the actual interface rather than a mock-up of one. Everything a developer needs
@@ -107,7 +116,7 @@ removed from the final game.
 ## ✅ Tests
 
 ```bash
-node test/run.js     # 109 checks, plain node, no install
+node test/run.js     # 141 checks, plain node, no install
 ```
 
 Two different kinds of test live here, and it matters which one breaks.
@@ -123,7 +132,11 @@ often a rare trait comes up, how many distinct openings exist, how many runs
 before a line of dialogue repeats. `test/flotte.test.js` measures the *shape of
 the gamble*: two ways of raiding, played over 300 roadsteads each, and it fails
 if charging in ever becomes safe — because then the bottom of the roadstead is
-no longer a bet, it is a corridor. **A threshold that breaks in those files is
+no longer a bet, it is a corridor. `test/breche.test.js` measures whether
+*position matters at all*: a careful player must out-earn a careless one by a
+wide margin, or the board is decoration. And `test/hex.test.js` tests
+*properties* — distance is a real metric, neighbourhood is reciprocal,
+projection is injective — rather than hand-picked values. **A threshold that breaks in those files is
 almost always a decision to make, not a test to loosen.**
 
 For what data tests cannot see:
@@ -183,6 +196,8 @@ src/
   === rules: pure, deterministic, no DOM, no randomness ===
   battle.js           One ship against one ship
   flotte.js           The roadstead (proposal C): a squadron, three bands
+  breche.js           The tactical raid (proposal D): hex board, reefs, pushes
+  hex.js              Hex geometry only — axial coords, axes, isometric projection
   shipPlans.js        Deck plans per hull class: rooms, passages, specialties
 
   === generation: this is where entropy is allowed ===
@@ -227,7 +242,7 @@ src/
 | 2 | Profile rendering — the sprite frames the plan | ✅ |
 | 3 | Crew movement — real routes, turn cost, fire | ✅ |
 | 4 | Combat 1-v-1 — range, localized damage, boarding | ✅ then **reopened** |
-| — | **Scale of the fight — B2 vs C, awaiting a decision** | ⏳ |
+| — | **Scale of the fight — B2 vs C vs D, awaiting a decision** | ⏳ |
 | 5 | Run loop — archetypes, charter, Caribbean chart | ✅ |
 | 6 | Meta-progression — officers, prize register, calendar | — |
 | 7 | Interface pass — only once the mechanics are frozen | — |
