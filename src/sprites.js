@@ -553,18 +553,30 @@ export function drawGrid(canvas, grid, { color = '#c9a24b', flag = '#b23b3b', fa
   }
 
   const palette = buildPalette(color, flag, isMonster);
+  // Une grille GÉNÉRÉE utilise les caractères du générateur (h, s, f, L…) et
+  // n'est lisible qu'avec SA palette. Lui passer une couleur unique faisait
+  // retomber chaque caractère inconnu sur cette couleur : la coque sortait en
+  // aplat, sans voiles ni pavillon, et rien ne le signalait. On le dit tout
+  // haut plutôt que de peindre un navire faux (règle 5).
+  const inconnus = new Set();
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const cx = facing === 1 ? x : cols - 1 - x;
       const c = grid[y][cx];
       if (!c || c === '.' || c === 'W') continue; // 'W' foam trim no longer drawn
-      ctx.fillStyle = palette[c] || color;
+      if (!palette[c]) inconnus.add(c);
+      ctx.fillStyle = palette[c] || (typeof color === 'string' ? color : '#c9a24b');
       ctx.fillRect(ox + x * px, oy + y * px, px, px);
       if (c === 'H') { // top-edge highlight for depth
         ctx.fillStyle = shade(color, 0.25);
         ctx.fillRect(ox + x * px, oy + y * px, px, Math.max(1, Math.floor(px / 4)));
       }
     }
+  }
+
+  if (inconnus.size) {
+    console.warn(`drawGrid : ${inconnus.size} caractère(s) hors palette (${[...inconnus].join('')}) — `
+      + 'une grille générée doit recevoir `getGeneratedShip(spec).palette` comme `color`.');
   }
 
   if (damaged > 0) {

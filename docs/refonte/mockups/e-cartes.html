@@ -120,7 +120,12 @@ function specPrise() {
     trim: 'doré', emblem: 'grand',
   };
 }
-function peindreCoque(id, spec, facing, couleur, pavillon) {
+// Une coque générée porte SA PALETTE (`g.palette`) : ses caractères sont ceux
+// du générateur (coque, voiles, pavillon, livrée), pas ceux des vieux gabarits
+// dessinés à la main. Lui passer une couleur unique à la place fait retomber
+// chaque caractère inconnu sur cette couleur — et la coque sort en aplat doré,
+// sans voiles ni pavillon, sans qu'aucune erreur ne soit levée.
+function peindreCoque(id, spec, facing) {
   const cv = document.getElementById(id);
   if (!cv) return;
   const g = getGeneratedShip(spec);
@@ -129,11 +134,11 @@ function peindreCoque(id, spec, facing, couleur, pavillon) {
   // colonne, donc la coque suit l'écran au lieu de le déborder.
   cv.width = (grille[0].length || 60) * 4;
   cv.height = grille.length * 4;
-  drawGrid(cv, grille, { color: couleur, flag: pavillon, facing, waterline: true, waterRow: g.waterY != null ? g.waterY : null });
+  drawGrid(cv, grille, { color: g.palette, flag: '', facing, waterRow: g.waterY != null ? g.waterY : null });
 }
 function peindreCoques() {
-  peindreCoque('c-nous', specNous(), 1, '#c9a24b', '#1a1210');
-  if (P.prise) peindreCoque('c-prise', specPrise(), -1, '#b5893f', '#b23b3b');
+  peindreCoque('c-nous', specNous(), 1);
+  if (P.prise) peindreCoque('c-prise', specPrise(), -1);
 }
 
 /* ------------------------------------------------------------ phylactères */
@@ -176,6 +181,7 @@ function ligneTableau() {
       ? '<b>Cette volée la prend.</b>'
       : `Il resterait <b>${reste}</b> à abattre, avec <b>${P.bordees - 1}</b> volée${P.bordees - 1 > 1 ? 's' : ''}.`,
   }));
+  t.appendChild(el('div', { class: 'tb-geste', text: '↑ glisse pour tirer   ·   ↓ glisse pour larguer' }));
   return t;
 }
 
@@ -190,7 +196,7 @@ function carteVue(c) {
     attrs: { type: 'button', 'aria-pressed': String(pris), 'aria-label': feu ? 'Feu, encombre la main' : `${c.nom}, ${c.role}, ${CONTENU.quarts[c.quart].nom}, valeur ${C.valeur(c)}` },
     on: {
       click: () => {
-        if (P.fini) return;
+        if (P.fini || glisseEnCours) return;
         if (!C.selectionner(P, c)) { flashRefus(n); return; }
         rendre();
       },
@@ -213,6 +219,89 @@ function flashRefus(n) {
   dernierMot = 'Cinq hommes au maximum dans une volée.';
   const t = document.querySelector('.tb-aide');
   if (t) t.innerHTML = dernierMot;
+}
+
+
+/* ------------------------------------------------------------ le geste
+   Sur un plateau tactile, le pouce fait deux choses et pas plus : il touche
+   pour viser, il glisse pour ordonner. Vers le haut la bordée part, vers le
+   bas la sélection est larguée — dans les deux cas, le tableau a déjà écrit
+   ce qui va se passer, donc le geste ne fait que confirmer.
+
+   Les deux boutons restent : le geste ne remplace pas un ordre nommé, il le
+   raccourcit. Un pouce mouillé, un écran cassé, un lecteur d'écran — le
+   bouton doit toujours être là. */
+const SEUIL_GESTE = 44;   // la même mesure que la cible tactile minimale
+let glisseEnCours = false;
+
+function brancherGeste(scene) {
+  const zones = [scene.querySelector('.main'), scene.querySelector('.tableau')].filter(Boolean);
+  const tableau = scene.querySelector('.tableau');
+  const aide = scene.querySelector('.tb-geste');
+  let y0 = null, dy = 0, franchi = false;
+
+  const levees = () => [...scene.querySelectorAll('.carte.prise-en-main')];
+  const marquer = (d) => {
+    if (!tableau) return;
+    const tire = d <= -SEUIL_GESTE && P.bordees > 0;
+    const largue = d >= SEUIL_GESTE && P.largages > 0;
+    tableau.classList.toggle('tire', tire);
+    tableau.classList.toggle('largue-pret', largue);
+    if (aide) {
+      aide.textContent = tire ? '↑ relâche : la bordée part'
+        : largue ? '↓ relâche : la sélection est larguée'
+          : '↑ glisse pour tirer   ·   ↓ glisse pour larguer';
+    }
+  };
+
+  const debut = (e) => {
+    if (P.fini || !P.selection.length) return;
+    y0 = e.clientY; dy = 0; franchi = false;
+    // PAS de setPointerCapture ici. Capturer dès l'appui redirige le `click`
+    // qui suit vers la zone au lieu de la carte : une fois un homme
+    // sélectionné, plus aucune touche n'en sélectionnait un second. La capture
+    // n'est prise qu'au moment où le geste devient un glissement.
+  };
+  const bouge = (e) => {
+    if (y0 === null) return;
+    dy = e.clientY - y0;
+    if (!franchi && Math.abs(dy) > 8) {
+      franchi = true;
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* souris déjà relâchée */ }
+    }
+    if (!franchi) return;
+    // Le glissement vers le haut suit le doigt ; vers le bas il résiste, parce
+    // que larguer coûte une ressource et ne doit pas se faire par inadvertance
+    // en reposant le pouce. Le suivi est borné pour que la carte levée ne
+    // vienne pas recouvrir le tableau, qui est ce qu'on doit lire à cet
+    // instant précis.
+    const suivi = Math.max(-22, Math.min(22, dy < 0 ? dy : dy * 0.6));
+    for (const c of levees()) c.style.transform = `translateY(${-12 + suivi}px)`;
+    marquer(dy);
+  };
+  const fin = () => {
+    if (y0 === null) return;
+    const d = dy, bouge_ = franchi;
+    y0 = null; franchi = false;
+    for (const c of levees()) c.style.transform = '';
+    if (tableau) tableau.classList.remove('tire', 'largue-pret');
+    if (!bouge_) { marquer(0); return; }
+    // Le `pointerup` d'un glissement est suivi d'un `click` sur la carte du
+    // dessous : sans ce verrou, tirer désélectionnerait aussitôt une carte de
+    // la main suivante.
+    glisseEnCours = true;
+    setTimeout(() => { glisseEnCours = false; }, 80);
+    if (d <= -SEUIL_GESTE && P.bordees > 0) tirer();
+    else if (d >= SEUIL_GESTE && P.largages > 0) { if (C.largage(P)) { C.completer(P, rng); rendre(); } }
+    else marquer(0);
+  };
+
+  for (const z of zones) {
+    z.addEventListener('pointerdown', debut);
+    z.addEventListener('pointermove', bouge);
+    z.addEventListener('pointerup', fin);
+    z.addEventListener('pointercancel', fin);
+  }
 }
 
 /* -------------------------------------------------------------- écrans */
@@ -404,8 +493,9 @@ function ouvrirBareme() {
 function rendre() {
   const r = app();
   while (r.firstChild) r.removeChild(r.firstChild);
-  r.appendChild(ecran === 'partage' ? ecranPartage() : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse());
-  if (ecran === 'chasse') peindreCoques();
+  const scene = ecran === 'partage' ? ecranPartage() : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse();
+  r.appendChild(scene);
+  if (ecran === 'chasse') { peindreCoques(); brancherGeste(scene); }
 }
 
 initFx();

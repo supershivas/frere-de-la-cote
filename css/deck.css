@@ -1166,14 +1166,19 @@
   position: relative; flex: 1 1 auto; min-height: 132px;
   display: flex; align-items: flex-end; justify-content: space-between;
 }
-.screen.ecran-cartes .coque { position: relative; width: 46%; }
+.screen.ecran-cartes .coque {
+  position: relative; width: 46%;
+  display: flex; flex-direction: column; justify-content: flex-end; min-width: 0;
+}
 .screen.ecran-cartes .coque canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
 .screen.ecran-cartes .coque.nous { transform: scaleX(1); opacity: .85; width: 38%; }
 
 /* Une plaque opaque, jamais une ombre : le fond est un canvas animé qui va du
-   bleu nuit au ciel de midi (règle 4 du dépôt). */
+   bleu nuit au ciel de midi (règle 4 du dépôt). Elle est DANS le flux, au-dessus
+   de la coque : posée par-dessus, elle masquait les mâts et le pavillon —
+   c'est-à-dire précisément ce qui distingue un navire d'un autre. */
 .screen.ecran-cartes .etiq {
-  position: absolute; z-index: 2; left: 0; right: 0; top: 0;
+  position: relative; z-index: 2; flex: 0 0 auto; margin-bottom: 4px;
   background: var(--bg-panel); border: 1px solid var(--border);
   border-radius: 4px; padding: 3px 6px;
 }
@@ -1233,7 +1238,14 @@
 .screen.ecran-cartes .main {
   flex: 0 0 auto; display: flex; gap: 4px; align-items: flex-end;
   padding-top: 12px; /* la place que prend une carte levée */
+  touch-action: none;  /* le glissement vertical est un ordre, pas un défilement */
 }
+.screen.ecran-cartes .tableau { touch-action: none; }
+.screen.ecran-cartes .tb-geste {
+  font-size: 9px; color: var(--gold-dark); letter-spacing: .5px; margin-top: 2px;
+}
+.screen.ecran-cartes .tableau.tire { border-left-color: var(--hp); }
+.screen.ecran-cartes .tableau.largue-pret { border-left-color: var(--info); }
 .screen.ecran-cartes .carte {
   flex: 1 1 0; min-width: 0; height: 96px;
   background: linear-gradient(180deg, #efe3c4, #d8c8a2);

@@ -67,9 +67,14 @@ tient pas. Ce n'est pas une passe de mise en page à la fin.
   d'un ancien plateau hors écran, et 47 % des cartes de recrutement du jeu.
 - **44 × 44 px minimum** pour tout ce qui se touche.
 - **Le survol ne porte aucune information.** Première touche = viser, et
-  l'écran dit exactement ce que l'action ferait ; seconde = confirmer. Dans la
-  maquette E, sélectionner une carte n'engage rien : seul le bouton *Bordée*
-  tire.
+  l'écran dit exactement ce que l'action ferait ; seconde = confirmer.
+  Sélectionner une carte n'engage rien.
+- **Deux gestes, et pas plus.** On touche pour viser, on **glisse pour
+  ordonner** : vers le haut la bordée part, vers le bas la sélection est
+  larguée (seuil : 44 px, la même mesure que la cible tactile minimale). Le
+  glissement vers le bas résiste — larguer coûte une ressource et ne doit pas
+  arriver en reposant le pouce. Les deux boutons restent : un geste raccourcit
+  un ordre nommé, il ne le remplace pas.
 - L'instrument : `node tools/mobile-audit.mjs`, qui **échoue** si un écran
   ampute ou déborde.
 
@@ -111,7 +116,7 @@ entre eux ; les hommes, si.
 
 ---
 
-## 4. Les six règles qui ont chacune coûté un bug
+## 4. Les huit règles qui ont chacune coûté un bug
 
 **1. Aucune entropie dans la résolution.** `src/cartes.js` ne doit jamais
 contenir `Math.random`, `Date.now` ni `crypto` — un test échoue s'ils y
@@ -142,6 +147,22 @@ joueur et ne se remarque qu'en constatant que rien n'a bougé.
 **6. Une contrainte sans instrument est un vœu.** « Mobile d'abord »,
 « 44 px », « contraste AA » étaient tous écrits, et tous violés. Avant de poser
 une règle transversale, écrire ce qui la mesurera.
+
+**7. Une coque générée se dessine avec SA palette.** `drawGrid(cv, grille,
+{ color })` accepte une couleur *ou* une palette. Les grilles générées par
+`generateShipGrid` utilisent les caractères du générateur (coque, voiles,
+livrée, pavillon) : lui passer une couleur unique fait retomber chaque
+caractère inconnu sur cette couleur, et le navire sort en **aplat monochrome**,
+sans voiles ni pavillon — sans qu'aucune erreur ne soit levée. Toujours
+`drawGrid(cv, g.grid, { color: g.palette })`. `drawGrid` avertit maintenant en
+console quand des caractères tombent hors palette.
+
+**8. Ne jamais capturer le pointeur avant que le geste soit un glissement.**
+`setPointerCapture` dès le `pointerdown` redirige aussi le `click` qui suit
+vers la zone capturante, pas vers l'élément touché. Conséquence observée : une
+fois un homme sélectionné, plus aucune touche n'en sélectionnait un second, et
+rien ne le signalait — la carte s'illuminait bien au premier appui. La capture
+se prend au franchissement du seuil (8 px), pas avant.
 
 ---
 
