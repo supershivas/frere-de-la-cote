@@ -269,6 +269,9 @@ function engagerPrise(place) {
   ecran = 'chasse'; mot = '';
   phylactere('ouverture', [meteo.id, def.id, def.rang]);
   rendre();
+  // Le mot d'ouverture appartient au premier COMBAT, pas au premier écran :
+  // expliquer ce qu'est une volée devant une carte marine n'apprend rien.
+  motPremier();
   if (!tuto.fini) tutoLancer();
 }
 
@@ -1160,7 +1163,6 @@ function rendre() {
 
 initFx();
 rendre();
-motPremier();
 window.addEventListener('resize', () => { if (!tuto.fini) tutoRendre(); });
 
 // L'HORIZON EST POSÉ SUR LES NAVIRES, pas sur une fraction devinée : on le
