@@ -40,31 +40,51 @@ const PAGES = [
     apres: async (p) => { await p.click('.rc-carte .btn-level-1'); } },
   { nom: 'C — la rade', url: 'docs/refonte/mockups/c-rade.html', pret: '.fl-rade' },
   { nom: 'D — la rade tactique', url: 'docs/refonte/mockups/d-breche.html', pret: '.hx-scene' },
-  { nom: 'E — la chasse-partie', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture', pret: '.ecran-cartes .main' },
-  { nom: 'E — le partage', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture', pret: '.ecran-cartes .main',
+  { nom: 'E — la carte', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture&sansTuto', pret: '.ecran-cartes .chart' },
+  { nom: 'E — la chasse-partie', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture&sansTuto', pret: '.ecran-cartes .chart',
+    apres: async (p) => { await capSurUneChasse(p); } },
+  { nom: 'E — le partage', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture&sansTuto', pret: '.ecran-cartes .chart',
     apres: async (p) => {
-      // Joue la prise d'ouverture jusqu'au partage : la boutique est un écran
-      // à part entière, et c'est là que 47 % des cartes de recrutement du jeu
+      // Joue la première prise jusqu'au partage : la boutique est un écran à
+      // part entière, et c'est là que 47 % des cartes de recrutement du jeu
       // réel sortaient hors de l'écran. L'écran de jeu n'a plus de bouton —
       // on passe par le clavier, qui double les gestes précisément pour que
       // l'écran reste pilotable sans le pouce.
-      for (let tour = 0; tour < 14; tour += 1) {
+      if (!(await capSurUneChasse(p))) return;
+      for (let tour = 0; tour < 16; tour += 1) {
         if (await p.$('.partage')) break;
         for (let k = 0; k < 3; k += 1) {
           const c = await p.$$('.carte:not(.muet):not(.prise-en-main)');
-          if (c[0]) await c[0].click();
+          if (c[0]) await c[0].click().catch(() => {});
         }
         if (!(await p.$('.carte.prise-en-main'))) break;
         await p.$eval('.screen.ecran-cartes', (n) => {
           n.focus();
           n.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
         });
-        await p.waitForTimeout(2600);
+        await p.waitForTimeout(2500);
       }
     } },
   { nom: 'jeu — recrutement', url: 'index.html#recrutement', pret: '.screen' },
   { nom: 'jeu — combat', url: 'index.html#bataille', pret: '.screen' },
 ];
+
+// Depuis la carte, met le cap sur la première escale de chasse : viser puis
+// confirmer, comme un joueur. Rend `false` si aucune n'est ouverte.
+async function capSurUneChasse(p) {
+  const epingles = await p.$$('.epingle.ouverte');
+  for (const e of epingles) {
+    await e.click().catch(() => {});
+    await p.waitForTimeout(220);
+    const ou = await p.$eval('.cap .c-ou', (n) => n.textContent).catch(() => '');
+    if (/prise/i.test(ou)) {
+      await e.click().catch(() => {});
+      await p.waitForTimeout(1500);
+      return true;
+    }
+  }
+  return false;
+}
 
 // Tout est mesuré DANS la page : c'est le seul endroit où l'on connaît la
 // géométrie réelle après mise en page.

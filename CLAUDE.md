@@ -27,16 +27,22 @@ bloquait le chantier est tranché : cette question-là est fermée.
 
 ### La boucle, en une page
 
-1. **Une prise** (`data/equipage.json → prises`) a une coque, des mâts, une
+1. **La carte** (`src/voyage.js` + `src/caribbean.js`). On part toujours de
+   l'Île de la Tortue et on met le cap sur une escale voisine : une prise, un
+   port, une épave, une rencontre. Chaque escale **dit ce qu'elle est avant
+   qu'on y aille**.
+2. **Une prise** (`data/equipage.json → prises`) a une coque, des mâts, une
    riposte, et parfois une **règle** qui casse une habitude.
-2. Elle **annonce son coup un tour à l'avance**, écrit en toutes lettres sur
+3. Elle **annonce son coup un tour à l'avance**, écrit en toutes lettres sur
    une carte d'intention. Rien n'est caché, rien n'est tiré au dé.
-3. **Une main** de sept hommes. On en choisit, on tire. La prise riposte avec
-   le coup qu'elle avait annoncé.
-4. Sa coque à zéro → **le partage** : deux recrues, deux reliques, une
+4. **Une main** de cinq hommes. On en choisit jusqu'à trois, ils tirent
+   ensemble. La prise riposte avec le coup qu'elle avait annoncé.
+5. Sa coque à zéro → **le partage** : recrues, reliques, officiers,
    promotion. La Tortue à zéro → la chasse est rompue.
 
-Une prise se joue en **cinq à huit tours**.
+Une prise se joue en **cinq à huit tours**. Le théâtre s'ouvre par actes :
+l'acte 1 longe Hispaniola, l'acte 2 atteint la Jamaïque et Cuba, l'acte 3 la
+Terre-Ferme, où la flotte des Indes passait vraiment.
 
 ### Les trois choses qui font la décision
 
@@ -102,6 +108,16 @@ Dès le début du glissement les cartes **se regroupent** en paquet et se
 redressent : on voit partir une volée, pas trois cartes en parallèle. Les
 flèches du clavier doublent le geste — un geste raccourcit un ordre, il ne
 doit pas être le seul chemin.
+
+### Le tutoriel ne prend jamais la main
+
+Sept étapes, un projecteur sur ce qu'il faut regarder, une phrase dite par un
+homme de l'équipage. **Aucune touche n'est bloquée, aucune action n'est
+forcée** : une étape se termine quand le joueur a fait la chose, pas quand il
+a appuyé sur « suivant », et une étape dont la condition est déjà vraie est
+sautée. Un tutoriel qui pilote apprend à obéir, pas à jouer. Il se retient
+dans `localStorage` ; `?sansTuto` et `?sansOuverture` le coupent, ce dont se
+sert `tools/mobile-audit.mjs`.
 
 ### Ce que l'écran montre, et où
 
@@ -171,9 +187,10 @@ entre eux ; les hommes, si.
 | `src/cartes.js` | **La chasse-partie en cartes.** Manœuvres, évaluation, prise, partage |
 | `src/shipPlans.js` | Plans de pont par classe de coque (encore utilisé par la vue en profil) |
 | **Génération — c'est ici que l'aléatoire est permis** | |
+| `src/voyage.js` | **La progression sur la carte** : escales, actes, prise trouvée, épaves, rencontres |
 | `src/rencontre.js` | Tirage d'ouverture : météo, pavillon, phylactères |
 | `src/sprites.js` | Générateur de navires |
-| `src/caribbean.js` | La Caraïbe réelle : lieux, côtes, distances |
+| `src/caribbean.js` | La Caraïbe réelle : lieux, côtes, distances (règles pures — `src/voyage.js` s'appuie dessus) |
 | **Présentation** | |
 | `src/ui.js` | `el`, `mount`, `modal`, `bar` — les briques de tout écran |
 | `src/ocean.js` | Ciel et mer animés, en fond de tout écran « en mer » |
@@ -181,7 +198,7 @@ entre eux ; les hommes, si.
 | `src/deckView.js` | Rendu en profil : le sprite généré sert de cadre au plan |
 | `src/run.js` | État de partie : archétypes, chasse-partie, moral, légitimité |
 | **Styles** | |
-| `css/deck.css` | Le CSS de la refonte. **§17 = l'écran de cartes** |
+| `css/deck.css` | Le CSS de la refonte. **§17 = l'écran de cartes, §17.2 = la carte, §17.3 = le tutoriel** |
 | `css/components.css` | Composants **partagés** : jauges, boutons `.btn-level-*`, modales |
 | `css/style.css` | Ce qui appartient à **un écran**, et rien d'autre |
 | **Outils** | |
@@ -264,7 +281,7 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 161 vérifications, zéro dépendance
+node test/run.js          # 170 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
@@ -281,6 +298,11 @@ le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
 - **« est-ce que choisir compte ? »** — les mêmes mains, sur les mêmes
   graines, jouées par un capitaine appliqué et par un maladroit. Le maladroit
   doit perdre nettement.
+
+Dans `voyage.test.js` : on part toujours du même coin, on ne saute pas d'un
+bout de la mer à l'autre, et **chaque escale dit ce qu'elle est avant qu'on y
+aille**. Le jour où l'un des trois cesse d'être vrai, la carte redevient une
+liste de nœuds.
 
 **Un seuil qui casse là est une décision à prendre, pas un test à assouplir.**
 C'est ce test qui a écrit la moitié des règles ci-dessus : il a montré qu'avec
@@ -338,7 +360,7 @@ seconde version du jeu à maintenir.
 | Fichier | Contenu |
 |---|---|
 | `docs/refonte/brief.md` | Le brief d'origine. Sa **section 2** (suppressions) et sa **section 9** (pistes écartées) font toujours foi : elles évitent de reconstruire ce qui a été essayé et rejeté |
-| `docs/refonte/PLAN.md` | Avancement, décisions, bugs trouvés |
+| `docs/refonte/PLAN.md` | **Où en est le chantier** : ce qui est fait, ce qui reste, et le tableau de ce que les mesures ont imposé au jeu |
 | `docs/refonte/notes-2025-refonte.md` | **L'ancienne version de ce fichier.** Tout l'état du chantier « trois échelles de combat » : ce qui était bloqué, pourquoi, et ce que chaque proposition valait. À lire avant de rouvrir une question de combat |
 | `design-system.html` | Interface : palette, composants vivants, contrastes, mobile |
 | `histoire.html` | Le monde : contexte 1640-1697, figures historiques |

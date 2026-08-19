@@ -37,6 +37,8 @@
    ============================================================ */
 
 import * as C from './src/cartes.js';
+import * as Voy from './src/voyage.js';
+import { coastlines, places } from './src/caribbean.js';
 import { getGeneratedShip, drawGrid } from './src/sprites.js';
 import { startOcean, randomOceanScene } from './src/ocean.js';
 import { initFx, fxExplosion, fxBroadside, fxFloatText } from './src/fx.js';
@@ -65,9 +67,11 @@ let graine = (Math.random() * 4294967295) >>> 0;
 const rngPour = (s) => { let x = s >>> 0 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; };
 let rng = rngPour(graine);
 
-const NOMS = ['Santa Clara', 'Nuestra Señora', 'San Cristóbal', 'La Concepción', 'El Rosario', 'San Felipe'];
 const P = C.nouvellePartie(CONTENU);
-let ecran = 'chasse';
+const V = Voy.nouveauVoyage();
+let ecran = 'carte';
+let trouve = null;        // ce qu'une épave vient de rendre
+let rencontre = null;     // la rencontre en cours
 let mot = '';            // la dernière chose qui s'est passée, en une ligne
 let occupe = false;      // une animation est en cours : les gestes sont sourds
 let neuves = [];         // les `uid` relevés au dernier tour, pour l'animation
@@ -256,15 +260,8 @@ function phylactere(moment, etiquettes = []) {
 }
 
 /* --------------------------------------------------------------- prises */
-function engagerSuivante() {
-  const base = CONTENU.prises[Math.min(P.prisesFaites, CONTENU.prises.length - 1)];
-  const palier = Math.floor(P.prisesFaites / CONTENU.prises.length);
-  const echelle = 1 + 0.5 * palier;
-  const def = {
-    ...base, nom: NOMS[Math.floor(rng() * NOMS.length)],
-    pv: Math.round(base.pv * echelle), riposte: Math.round(base.riposte * echelle),
-    butin: base.butin + 3 * palier, sceau: (rng() * 1e9) | 0,
-  };
+function engagerPrise(place) {
+  const def = Voy.priseDe(V, place, CONTENU, rng);
   const meteo = METEO[METEO_CLES[Math.floor(rng() * METEO_CLES.length)]];
   C.engager(P, def, meteo, rng);
   neuves = P.main.map((c) => c.uid);
@@ -272,10 +269,39 @@ function engagerSuivante() {
   ecran = 'chasse'; mot = '';
   phylactere('ouverture', [meteo.id, def.id, def.rang]);
   rendre();
-  motPremier();
+  if (!tuto.fini) tutoLancer();
 }
 
-/* ------------------------------------------------------------ le tableau */
+// Ce qu'une escale déclenche. Chaque type dit d'abord ce qu'il est (§10.3 du
+// brief) : aucun nœud n'est une distributrice, aucun n'est une surprise.
+function aborder(place) {
+  const r = Voy.cingler(V, place.id);
+  if (!r.ok) { mot = r.pourquoi; rendre(); return; }
+  switch (place.type) {
+    case 'chasse':
+    case 'boss':
+      engagerPrise(place);
+      break;
+    case 'port':
+      P.nous.pv = P.nous.max;
+      mot = `${place.name} : la Tortue est radoubée, et l'on recrute.`;
+      lotPour = -1; ecran = 'partage'; rendre();
+      break;
+    case 'epave':
+      trouve = Voy.trouvaille(P, CONTENU, rng);
+      if (trouve) {
+        if (trouve.genre === 'relique') P.reliques.push(trouve.def.id);
+        else P.officiers.push(trouve.def.id);
+      }
+      ecran = 'epave'; rendre();
+      break;
+    default:
+      rencontre = Voy.rencontreDe(V, rng);
+      ecran = 'rencontre'; rendre();
+  }
+}
+
+/* ------------------------------------------------------------ le tableau *//* ------------------------------------------------------------ le tableau */
 function tableau() {
   const t = el('div', { class: `tableau${P.selection.length ? ' arme' : ''}` });
   if (!P.selection.length) {
@@ -764,10 +790,162 @@ function ecranPartage() {
   }
   s.appendChild(liste);
   s.appendChild(el('div', { class: 'suite' }, [
-    el('button', { class: 'btn-level-1', text: 'Reprendre la chasse', attrs: { type: 'button' }, on: { click: engagerSuivante } }),
+    el('button', { class: 'btn-level-1', text: 'Reprendre la mer', attrs: { type: 'button' }, on: { click: () => { ecran = 'carte'; rendre(); } } }),
   ]));
   return s;
 }
+// LA CARTE : la même mer à chaque partie, abordée par le même coin. Ce qu'on
+// apprend d'une partie à l'autre, c'est cette mer-là — pas une suite de nœuds.
+function ecranCarte() {
+  const s = el('div', { class: 'screen ecran-cartes' });
+  const ouvertes = Voy.escales(V);
+  const h = Voy.ici(V);
+
+  s.appendChild(el('div', { class: 'ruban' }, [
+    el('div', { class: 'rb-txt' }, [
+      el('div', { class: 'rb-quoi', text: 'Mettre le cap' }),
+      el('div', { class: 'rb-rang', text: `acte ${V.acte} · ${V.etapes} traversée${V.etapes > 1 ? 's' : ''} · ${P.prisesFaites} prise${P.prisesFaites > 1 ? 's' : ''}` }),
+    ]),
+    el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
+    el('button', { class: 'btn-level-3 rouage', text: '⚙', attrs: { type: 'button', 'aria-label': 'aide' }, on: { click: ouvrirAide } }),
+  ]));
+
+  // LA CARTE SE RECADRE SUR CE QUI EST EN JEU. À l'acte 1, tout se passe dans
+  // un coin d'Hispaniola : à l'échelle des Caraïbes entières, c'était quatre
+  // points superposés dans 5 % de l'image et 95 % d'eau vide. On cadre sur là
+  // où l'on est, là où l'on peut aller et là où l'on est passé, avec une marge.
+  const enJeu = [h, ...ouvertes, ...V.visites.map((id) => places().find((p) => p.id === id)).filter(Boolean)];
+  const marge = 0.09;
+  const bx0 = Math.max(0, Math.min(...enJeu.map((p) => p.x)) - marge);
+  const bx1 = Math.min(1, Math.max(...enJeu.map((p) => p.x)) + marge);
+  const by0 = Math.max(0, Math.min(...enJeu.map((p) => p.y)) - marge);
+  const by1 = Math.min(1, Math.max(...enJeu.map((p) => p.y)) + marge);
+  const cadre = (p) => ({ x: (p.x - bx0) / (bx1 - bx0), y: (p.y - by0) / (by1 - by0) });
+
+  const chart = el('div', { class: 'chart' });
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `${bx0 * 100} ${by0 * 100} ${(bx1 - bx0) * 100} ${(by1 - by0) * 100}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  // La terre d'abord : sans elle, la carte est une poignée de points sur du
+  // bleu, et l'on ne voit pas que la Tortue est bien tapie derrière Hispaniola.
+  for (const cote of coastlines()) {
+    const path = document.createElementNS(NS, 'path');
+    const d = cote.points.map((pt, i) => `${i ? 'L' : 'M'}${(pt.x * 100).toFixed(2)},${(pt.y * 100).toFixed(2)}`).join(' ');
+    path.setAttribute('d', d + (cote.closed ? ' Z' : ''));
+    path.setAttribute('class', cote.closed ? 'terre' : 'cote');
+    svg.appendChild(path);
+  }
+  for (const e of ouvertes) {
+    const l = document.createElementNS(NS, 'line');
+    l.setAttribute('x1', h.x * 100); l.setAttribute('y1', h.y * 100);
+    l.setAttribute('x2', e.x * 100); l.setAttribute('y2', e.y * 100);
+    l.setAttribute('class', 'route');
+    svg.appendChild(l);
+  }
+  chart.appendChild(svg);
+
+  const cap = el('div', { class: 'cap' }, [
+    el('div', { class: 'c-ou', text: h.name }),
+    el('div', { class: 'c-quoi', html: `${h.note} <br>Touche une escale pour savoir ce qu’on y trouve, puis mets le cap.` }),
+  ]);
+
+  for (const place of places()) {
+    const ouverte = ouvertes.some((o) => o.id === place.id);
+    const estIci = place.id === V.lieu;
+    const vu = V.visites.includes(place.id);
+    const q = cadre(place);
+    if (q.x < -0.06 || q.x > 1.06 || q.y < -0.06 || q.y > 1.06) continue;   // hors cadre
+    const n = el('button', {
+      class: `epingle lbl-${place.label || 's'}${ouverte ? ' ouverte' : ''}${estIci ? ' ici' : ''}${vu ? ' vu' : ''}`,
+      attrs: {
+        type: 'button', style: `left:${q.x * 100}%; top:${q.y * 100}%`,
+        'aria-label': `${place.name} — ${place.note}`, ...(ouverte ? {} : { disabled: '' }),
+      },
+      on: {
+        click: () => {
+          if (!ouverte) return;
+          const esc = Voy.ESCALES[place.type] || Voy.ESCALES.chasse;
+          if (cap.dataset.vise === place.id) { aborder(place); return; }
+          // Premier appui : viser, et l'écran dit exactement ce que ça ferait.
+          // Second appui : confirmer. Jamais d'engagement à la première touche.
+          cap.dataset.vise = place.id;
+          for (const autre of chart.querySelectorAll('.epingle .nom.vise')) autre.remove();
+          if (!estIci) n.appendChild(el('span', { class: 'nom vise', text: place.name }));
+          cap.querySelector('.c-ou').textContent = `${place.name} — ${esc.nom}`;
+          cap.querySelector('.c-quoi').innerHTML = `${place.note}<br><b>${esc.quoi}</b><br>`
+            + `<b>Touche encore pour y mettre le cap.</b>`;
+        },
+      },
+    }, [
+      el('span', { class: 'pt' }),
+      // Seuls le lieu où l'on est et celui qu'on vise portent leur nom. Quatre
+      // escales voisines nommées d'un coup, dans un coin d'Hispaniola, c'était
+      // quatre étiquettes l'une par-dessus l'autre : la carte devenait un mur
+      // de texte, et le panneau du bas dit déjà le nom de ce qu'on vise.
+      estIci ? el('span', { class: 'nom', text: place.name }) : null,
+    ]);
+    chart.appendChild(n);
+  }
+  s.appendChild(chart);
+  s.appendChild(cap);
+  return s;
+}
+
+function ecranEpave() {
+  const s = el('div', { class: 'screen ecran-cartes' });
+  s.appendChild(el('div', { class: 'verdict' }, [
+    el('h2', { text: 'Une épave' }),
+    el('p', { html: trouve
+      ? `Dans ce qui reste de la cale : <b>${trouve.def.nom}</b>.<br>${trouve.def.texte || trouve.def.titre}`
+      : 'La mer a déjà tout pris. Il n’en reste rien.' }),
+  ]));
+  s.appendChild(el('div', { class: 'suite' }, [
+    el('button', { class: 'btn-level-1', text: 'Reprendre la mer', attrs: { type: 'button' },
+      on: { click: () => { trouve = null; ecran = 'carte'; rendre(); } } }),
+  ]));
+  return s;
+}
+
+function ecranRencontre() {
+  const s = el('div', { class: 'screen ecran-cartes' });
+  s.appendChild(el('div', { class: 'verdict' }, [
+    el('h2', { text: rencontre.titre }),
+    el('p', { text: rencontre.texte }),
+  ]));
+  // Sa propre classe, pas celle du partage : deux écrans qui se ressemblent
+  // au point qu'un test automatique les confond se ressemblent trop.
+  const liste = el('div', { class: 'branches' });
+  for (const b of rencontre.branches) {
+    liste.appendChild(el('button', {
+      class: 'offre', attrs: { type: 'button' },
+      on: { click: () => { appliquer(b); rencontre = null; ecran = 'carte'; rendre(); } },
+    }, [
+      el('div', { class: 'o-txt' }, [
+        el('div', { class: 'o-nom', text: b.texte }),
+        el('div', { class: 'o-det', text: b.dit }),
+      ]),
+    ]));
+  }
+  s.appendChild(liste);
+  return s;
+}
+
+function appliquer(b) {
+  switch (b.gain) {
+    case 'recrue': {
+      const libres = CONTENU.recrues.filter((r) => !P.equipage.some((c) => c.id === r.id));
+      if (libres.length) { P.butin += libres[0].prix; C.recruter(P, libres[0]); mot = `${libres[0].nom} embarque.`; }
+      break;
+    }
+    case 'soin': P.nous.pv = Math.min(P.nous.max, P.nous.pv + 20); mot = 'La Tortue est radoubée de 20.'; break;
+    case 'soin_plein': P.nous.pv = P.nous.max; mot = 'La Tortue repart neuve.'; break;
+    case 'butin': P.butin += 6; mot = '+6 de butin.'; break;
+    case 'carte_marine': P.butin = Math.max(0, P.butin - 4); mot = 'On sait où elle passe.'; break;
+    default: mot = '';
+  }
+}
+
 function ecranNaufrage() {
   const s = el('div', { class: 'screen ecran-cartes' });
   s.appendChild(el('div', { class: 'verdict' }, [
@@ -835,6 +1013,118 @@ function ouvrirAide() {
   document.body.appendChild(fond);
 }
 
+/* -------------------------------------------------------------- tutoriel
+   Un projecteur sur ce qu'il faut regarder, une phrase, et rien d'autre.
+   IL NE PREND JAMAIS LA MAIN : aucune touche n'est bloquée, aucune action
+   n'est forcée. Un tutoriel qui pilote apprend à obéir ; celui-ci nomme ce
+   qu'on a sous les yeux et s'efface dès que le joueur agit.
+
+   Chaque étape dit OÙ regarder (`quoi`, un sélecteur) et QUAND elle est finie
+   (`fait`, une condition relue à chaque rendu). Une étape dont la condition
+   est déjà vraie est sautée : on n'explique pas ce qui est déjà acquis. */
+const CLE_TUTO = 'fdlc-cartes-tuto-fait';
+const tuto = { i: -1, fini: false, halo: null, boite: null };
+
+const ETAPES = [
+  {
+    quoi: '.main',
+    qui: 'Coudray, maître d’équipage',
+    dit: 'Voilà ta main. Cinq hommes, pas un de plus — et l’on n’en relève que deux par tour.',
+    fait: () => P.selection.length > 0,
+  },
+  {
+    quoi: '.carte:not(.muet)',
+    qui: 'Coudray',
+    dit: 'Chaque homme sert d’un bord : <b>bâbord</b> en rouge, <b>tribord</b> en vert. '
+      + 'Touche-en un : les canons de l’autre bord s’éteignent aussitôt, ils ne tirent pas ensemble.',
+    fait: () => P.selection.length > 0,
+  },
+  {
+    quoi: '.tableau',
+    qui: 'Etcheverry, canonnier',
+    dit: 'Le compte est écrit <b>avant</b> qu’on tire. Pas de dé, pas de surprise : ce chiffre-là est celui qui tombera.',
+    fait: () => P.tour > 1,
+  },
+  {
+    quoi: '.sa-carte',
+    qui: 'Coudray',
+    dit: 'Et elle, elle montre la carte qu’elle jouera <b>à la fin de ton tour</b>. Tu sais ce qui vient.',
+    fait: () => P.tour > 1,
+  },
+  {
+    quoi: '.ratelier',
+    qui: 'Etcheverry',
+    dit: 'Pousse la volée jusqu’à la zone qui s’ouvre sous La Tortue, et lâche. '
+      + 'Si tu changes d’avis, redescends avant de lâcher.',
+    fait: () => P.tour > 1,
+  },
+  {
+    quoi: '.ruban',
+    qui: 'Coudray',
+    dit: 'Le bord qui vient de tirer <b>recharge</b> : au tour suivant, c’est l’autre qui parle. '
+      + 'Sauf si un homme a tiré seul — un seul canon se recharge à temps.',
+    fait: () => P.tour > 2,
+  },
+  {
+    quoi: '.coque.prise',
+    qui: 'Gohier, matelot',
+    dit: 'Une volée où <b>tous</b> les hommes sont à l’avant, avec un gabier, monte au gréement : '
+      + 'elle n’entame pas la coque, elle abat un mât — et le mât emporte son coup.',
+    fait: () => P.tour > 3,
+  },
+];
+
+function tutoLancer() {
+  try { if (localStorage.getItem(CLE_TUTO)) { tuto.fini = true; return; } } catch { /* mode privé */ }
+  if (new URLSearchParams(location.search).has('sansTuto')) { tuto.fini = true; return; }
+  if (tuto.i >= 0) return;
+  tuto.i = 0;
+  tutoRendre();
+}
+
+function tutoFinir() {
+  tuto.fini = true;
+  try { localStorage.setItem(CLE_TUTO, '1'); } catch { /* mode privé */ }
+  tutoEffacer();
+}
+function tutoEffacer() {
+  if (tuto.halo) { tuto.halo.remove(); tuto.halo = null; }
+  if (tuto.boite) { tuto.boite.remove(); tuto.boite = null; }
+}
+
+// Relu après CHAQUE rendu : l'étape avance quand le joueur a fait la chose,
+// pas quand il a appuyé sur « suivant ».
+function tutoRendre() {
+  if (tuto.fini || tuto.i < 0 || ecran !== 'chasse') { tutoEffacer(); return; }
+  while (tuto.i < ETAPES.length && ETAPES[tuto.i].fait()) tuto.i += 1;
+  if (tuto.i >= ETAPES.length) { tutoFinir(); return; }
+  const e = ETAPES[tuto.i];
+  const cible = document.querySelector(e.quoi);
+  if (!cible) { tutoEffacer(); return; }
+  const r = cible.getBoundingClientRect();
+
+  if (!tuto.halo) { tuto.halo = el('div', { class: 'tuto-halo' }); document.body.appendChild(tuto.halo); }
+  Object.assign(tuto.halo.style, {
+    left: `${r.left - 5}px`, top: `${r.top - 5}px`, width: `${r.width + 10}px`, height: `${r.height + 10}px`,
+  });
+
+  if (tuto.boite) tuto.boite.remove();
+  tuto.boite = el('div', { class: 'tuto-mot' }, [
+    el('span', { class: 't-qui', text: e.qui }),
+    el('div', { html: e.dit }),
+    el('div', { class: 't-pied' }, [
+      el('button', { class: 'passer', text: 'passer le tutoriel', attrs: { type: 'button' }, on: { click: tutoFinir } }),
+      el('span', { class: 't-cpt', text: `${tuto.i + 1}/${ETAPES.length}` }),
+      el('button', { text: 'compris', attrs: { type: 'button' }, on: { click: () => { tuto.i += 1; tutoRendre(); } } }),
+    ]),
+  ]);
+  document.body.appendChild(tuto.boite);
+  // La boîte se pose du côté où il reste de la place, jamais sur le halo.
+  const hb = tuto.boite.getBoundingClientRect();
+  const dessous = r.bottom + 12 + hb.height < window.innerHeight - 6;
+  tuto.boite.style.top = dessous ? `${r.bottom + 12}px` : `${Math.max(6, r.top - hb.height - 12)}px`;
+}
+
 /* ---------------------------------------------------------------- rendu */
 // La largeur d'une carte est calculée UNE fois pour la main pleine, et ne
 // bouge plus : sinon la main change de forme à chaque volée jouée, et deux
@@ -854,17 +1144,24 @@ function calibrerCartes() {
 function rendre() {
   const r = app();
   while (r.firstChild) r.removeChild(r.firstChild);
-  const s = ecran === 'partage' ? ecranPartage() : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse();
+  const s = ecran === 'carte' ? ecranCarte()
+    : ecran === 'partage' ? ecranPartage()
+      : ecran === 'epave' ? ecranEpave()
+        : ecran === 'rencontre' ? ecranRencontre()
+          : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse();
   r.appendChild(s);
   if (ecran === 'chasse') { calibrerCartes(); peindreCoques(); brancherGeste(s); }
   // La distribution est un ÉVÉNEMENT, pas un état : une fois les cartes
   // arrivées, on oublie qui venait d'arriver. Sans cet oubli, l'animation
   // repartait à chaque rendu — c'est-à-dire à chaque homme touché.
   neuves = [];
+  tutoRendre();
 }
 
 initFx();
-engagerSuivante();
+rendre();
+motPremier();
+window.addEventListener('resize', () => { if (!tuto.fini) tutoRendre(); });
 
 // L'HORIZON EST POSÉ SUR LES NAVIRES, pas sur une fraction devinée : on le
 // place au tiers supérieur des coques, si bien qu'on voit du ciel à travers

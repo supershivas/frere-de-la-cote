@@ -23,7 +23,10 @@ if (!entree) { console.error('usage: node tools/bundle-mockup.mjs <maquette.html
 const racine = resolve(dirname(new URL(import.meta.url).pathname), '..');
 const lire = (p) => readFileSync(resolve(racine, p), 'utf8');
 
-const MODULES = ['src/cartes.js', 'src/sprites.js', 'src/ocean.js', 'src/fx.js'];
+// DANS L'ORDRE DE DÉPENDANCE : les modules sont collés bout à bout dans une
+// seule portée, donc celui qui en utilise un autre doit venir après.
+const MODULES = ['src/caribbean.js', 'src/voyage.js', 'src/cartes.js',
+  'src/sprites.js', 'src/ocean.js', 'src/fx.js'];
 const DONNEES = { CONTENU: 'data/equipage.json', METEO: 'data/weather.json', PHY: 'data/phylacteres.json' };
 
 // --- CSS : style.css et tout ce qu'elle @importe, dans l'ordre ---
@@ -34,23 +37,38 @@ function css(fichier) {
     (_, ref) => `\n/* ${ref} */\n${css('css/' + ref.replace(/^\.\//, ''))}\n`);
 }
 
-// --- JS : les modules, désexportés ---
+// --- JS : les modules, désexportés et mis à plat ---
+//
+// Un import interne au bundle n'a plus lieu d'être : les modules partagent une
+// portée. On le retire — mais on VÉRIFIE d'abord qu'il pointe vers un module
+// embarqué, sinon le fichier autonome serait muet à l'exécution.
+const embarques = new Set(MODULES.map((m) => m.replace(/^src\//, '')));
 const js = MODULES.map((m) => {
-  const src = lire(m);
-  if (/^\s*import\s/m.test(src)) throw new Error(`${m} importe quelque chose — le bundle ne sait pas résoudre les dépendances`);
-  return `/* ===== ${m} ===== */\n${src.replace(/^export\s+(?=(const|let|var|function|class|async))/gm, '')}`;
+  let src = lire(m);
+  for (const [ligne, cible] of [...src.matchAll(/^\s*import[^;]*?from\s+['"]([^'"]+)['"];?\s*$/gm)].map((x) => [x[0], x[1]])) {
+    const fichier = cible.replace(/^\.\//, '');
+    if (!embarques.has(fichier)) throw new Error(`${m} importe ${cible}, qui n'est pas dans MODULES`);
+    src = src.replace(ligne, '');
+  }
+  return `/* ===== ${m} ===== */\n${src
+    .replace(/^export\s*\{[^}]*\};?\s*$/gm, '')          // ré-exports : sans objet à plat
+    .replace(/^export\s+(?=(const|let|var|function|class|async))/gm, '')}`;
 }).join('\n\n');
 
 // --- le script de la maquette, privé de ses imports et de ses fetch ---
 const page = lire(entree);
 const bloc = page.match(/<script type="module">([\s\S]*?)<\/script>/);
 if (!bloc) throw new Error('pas de <script type="module"> dans la maquette');
+// Les préfixes de namespace (`import * as C from …` → `C.jouer`) n'ont plus
+// de sens une fois tout à plat : on les retire, quel que soit leur nom. C'est
+// ce qui manquait le jour où un second module a été importé de cette façon —
+// la page devenait blanche sur un « Voy is not defined ».
+const alias = [...bloc[1].matchAll(/^import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from/gm)].map((m) => m[1]);
 let corps = bloc[1]
   .replace(/^import[\s\S]*?;\s*$/gm, '')
   .replace(/const \[CONTENU, METEO, PHY\] = await Promise\.all\(\[[\s\S]*?\]\);/, '')
   .replace(/const jget[^\n]*\n/, '');
-// Les modules sont collés à plat : `C.machin` doit redevenir `machin`.
-corps = corps.replace(/\bC\.([A-Za-z_$][\w$]*)/g, '$1');
+for (const a of alias) corps = corps.replace(new RegExp(`\\b${a}\\.([A-Za-z_$][\\w$]*)`, 'g'), '$1');
 
 // Les modules sont collés dans UNE portée : deux déclarations de même nom
 // produisent une page blanche et une seule ligne d'erreur en console. On

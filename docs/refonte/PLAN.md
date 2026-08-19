@@ -1,4 +1,78 @@
-# Plan de refonte — mapping brief → dépôt actuel
+# Plan de refonte — où en est le chantier
+
+**État au jour d'aujourd'hui : la proposition E (le jeu de cartes) est la
+seule branche vivante.** Les trois échelles de combat qui s'affrontaient
+avant — un contre un (`b2-combat`), la rade (`c-rade`), la grille tactique
+(`d-breche`) — sont abandonnées. La question est tranchée, elle ne se rouvre
+pas ; leurs maquettes restent en place comme archives de ce qui a été essayé.
+
+Le brief complet fait toujours foi : `docs/refonte/brief.md`. L'ancienne
+version de ce plan, avec tout l'état du chantier « trois échelles », est dans
+`docs/refonte/notes-2025-refonte.md`.
+
+---
+
+## Ce qui est fait
+
+| | Où | État |
+|---|---|---|
+| Les règles du combat en cartes | `src/cartes.js` | pures, sans dé, 161 vérifications |
+| Le contenu (hommes, prises, intentions, reliques, officiers) | `data/equipage.json` | ajouter un homme ne demande aucune ligne de code |
+| La progression sur la carte | `src/voyage.js` + `src/caribbean.js` | escales, actes, épaves, rencontres — 9 vérifications |
+| L'écran jouable | `docs/refonte/mockups/e-cartes.html` | seul écran du dépôt que `mobile-audit` valide sur trois téléphones |
+| Le tutoriel | idem, §17.3 de `css/deck.css` | sept étapes, ne prend jamais la main |
+| Le fichier autonome | `tools/bundle-mockup.mjs` | une page sans serveur, produite des mêmes sources |
+
+## Ce qui reste à faire
+
+1. **Brancher l'écran de cartes dans le jeu réel** (`index.html` + `src/main.js`).
+   La maquette est jouable et complète ; c'est un portage, pas une conception.
+2. **La fin de voyage.** L'Almirante existe comme prise, mais rien ne conclut
+   une partie gagnée : ni écran de fin, ni score, ni ce qu'on garde d'une
+   partie à l'autre.
+3. **Le port comme lieu, pas comme boutique.** Aujourd'hui une escale de port
+   ouvre le partage. Le brief (§8) veut un contrat de chasse-partie, une
+   commission, une légitimité — rien de tout cela n'est branché.
+4. **Les événements en donnée.** Les trois rencontres sont écrites dans
+   `src/voyage.js` : elles devraient vivre dans `data/`, comme le reste du
+   contenu. Leurs *effets*, eux, restent du code.
+5. **Plus d'officiers.** Sept existent ; c'est le levier de variété le moins
+   cher à étendre, et le seul qui demande une ligne de code par ajout.
+6. **Retirer le code écarté** (`src/battle.js`, `flotte.js`, `breche.js`,
+   `hex.js`, `combat.js`, `map.js`, `abilities.js`, les anciens `screens/*`)
+   une fois le portage fait — pas avant, ils servent encore de référence.
+
+## Décisions actées (déviations validées par rapport au brief)
+
+- **La proposition E remplace les trois échelles de combat.** Décision du
+  porteur du projet, prise après lecture des trois maquettes.
+- **Pas de multiplicateur façon Balatro.** Une volée rend un chiffre, et le
+  détail dit d'où vient chaque point. Les métiers apportent des effets, pas
+  des coefficients.
+- **Météo conservée** (`data/weather.json`) et agissante : son `damageMult`
+  multiplie chaque volée. Le brief ne demande pas sa suppression au §2 ; le §9
+  écarte le *vent*, qui est un autre système.
+- **Réputation à trois factions et Kraken Mécanique : supprimés.**
+- **Carte macro = la vraie Caraïbe**, départ fixe à l'Île de la Tortue.
+
+## Ce que les mesures ont imposé
+
+Le test « est-ce que choisir compte ? » (`test/cartes.test.js`) a écrit la
+moitié des règles du jeu. À chaque fois, le symptôme était le même : un joueur
+qui ne choisissait rien gagnait aussi souvent qu'un joueur appliqué.
+
+| Ce qui n'allait pas | Ce qu'il a fallu changer |
+|---|---|
+| Deux bords seulement : toute main formait une bonne combinaison | Quatre quarts (bâbord/tribord × avant/arrière) |
+| La main se remplissait à ras bord : jouer tout était toujours optimal | La relève — deux hommes par tour, pas un remplissage |
+| Le tir au gréement partait « à la majorité avant », donc par accident | Tous à l'avant **et** un gabier |
+| Un mât perdu l'était pour toujours : démâter devenait la seule tactique | Le regréement en deux tours |
+| Un charpentier dans chaque volée soignait plus que la prise n'enlevait | Il ne répare que **seul** |
+| Une main de cinq laissait des tours sans un coup jouable | Un homme qui tire seul n'encrasse pas son bord |
+
+---
+
+## Annexe — le plan d'origine (état du dépôt avant la refonte)
 
 Document de travail, succinct par nature. Le brief complet fait foi :
 `docs/refonte/brief.md`. Les deux maquettes (`docs/refonte/mockups/`) sont

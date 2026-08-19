@@ -1526,7 +1526,8 @@
 }
 
 /* --- le partage --- */
-.screen.ecran-cartes .partage { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.screen.ecran-cartes .partage,
+.screen.ecran-cartes .branches { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .screen.ecran-cartes .offre {
   display: flex; align-items: center; gap: 8px; text-align: left;
   background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
@@ -1563,4 +1564,93 @@
 @media (max-height: 640px) {
   .screen.ecran-cartes .carte { height: var(--carte-h, 96px); }
   .screen.ecran-cartes .mer { min-height: 170px; }
+}
+
+/* --- §17.2 — LA CARTE DES CARAÏBES ---------------------------------------
+   La même mer à chaque partie, abordée par le même coin. Les épingles font
+   44 px : sur un téléphone, une carte se touche au pouce, et un port qu'on
+   rate deux fois sur trois n'est pas une décision.                          */
+
+.screen.ecran-cartes .chart {
+  position: relative; flex: 1 1 auto; min-height: 0;
+  border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+  background: linear-gradient(180deg, #14324a, #0d2233 60%, #0a1a28);
+}
+.screen.ecran-cartes .chart svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* La carte se recadre, donc le `viewBox` rétrécit — et un trait épais de 0,5
+   unité devient une barre de 20 px. `non-scaling-stroke` garde les traits à
+   leur épaisseur en pixels quel que soit le cadrage. */
+.screen.ecran-cartes .chart svg * { vector-effect: non-scaling-stroke; }
+.screen.ecran-cartes .chart .terre { fill: #3a3021; stroke: #6b5a3a; stroke-width: 1.2px; }
+.screen.ecran-cartes .chart .cote { fill: none; stroke: #6b5a3a; stroke-width: 1.4px; }
+.screen.ecran-cartes .chart .route {
+  stroke: var(--gold-dark); stroke-width: 1.4px; stroke-dasharray: 4 4; opacity: .85;
+}
+.screen.ecran-cartes .epingle {
+  position: absolute; width: 44px; height: 44px; min-height: 44px; padding: 0;
+  transform: translate(-50%, -50%); border: 0; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.screen.ecran-cartes .epingle .pt {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #6b5a3a; border: 1px solid #0d0908; box-shadow: 0 0 0 2px rgba(13,9,8,.6);
+}
+.screen.ecran-cartes .epingle[disabled] { cursor: default; }
+.screen.ecran-cartes .epingle[disabled] .pt { opacity: .5; }
+.screen.ecran-cartes .epingle.vu .pt { background: #8a7a5a; }
+.screen.ecran-cartes .epingle.ouverte .pt {
+  width: 15px; height: 15px; background: var(--gold-light);
+  box-shadow: 0 0 0 3px rgba(13,9,8,.65), 0 0 12px var(--gold-glow);
+  animation: battement 2.2s ease-in-out infinite;
+}
+.screen.ecran-cartes .epingle.ici .pt {
+  width: 15px; height: 15px; background: #e6d9bd; box-shadow: 0 0 0 3px rgba(13,9,8,.7);
+}
+@keyframes battement { 0%,100% { transform: scale(1); } 50% { transform: scale(1.22); } }
+@media (prefers-reduced-motion: reduce) { .screen.ecran-cartes .epingle.ouverte .pt { animation: none; } }
+.screen.ecran-cartes .epingle .nom {
+  position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-title); font-size: 9px; color: var(--text-primary);
+  background: rgba(13,9,8,.85); border-radius: 3px; padding: 1px 4px; white-space: nowrap;
+}
+.screen.ecran-cartes .epingle.lbl-n .nom { top: auto; bottom: 30px; }
+.screen.ecran-cartes .epingle.lbl-w .nom { top: 50%; left: auto; right: 30px; transform: translateY(-50%); }
+.screen.ecran-cartes .epingle.lbl-e .nom { top: 50%; left: 30px; transform: translateY(-50%); }
+.screen.ecran-cartes .cap {
+  flex: 0 0 auto; background: var(--bg-panel); border: 1px solid var(--border);
+  border-left: 3px solid var(--gold); border-radius: 0 6px 6px 0; padding: 6px 8px; min-height: 62px;
+}
+.screen.ecran-cartes .cap .c-ou { font-family: var(--font-title); font-size: 14px; color: var(--gold-light); }
+.screen.ecran-cartes .cap .c-quoi { font-size: 9px; color: var(--text-secondary); line-height: 1.45; }
+.screen.ecran-cartes .cap .c-quoi b { color: var(--text-primary); }
+
+/* --- §17.3 — LE TUTORIEL -------------------------------------------------
+   Un projecteur sur ce qu'il faut regarder, une phrase, et rien d'autre. Il
+   ne bloque rien : on peut l'ignorer et jouer. Un tutoriel qui prend la main
+   apprend à obéir, pas à jouer.                                             */
+.tuto-halo {
+  position: fixed; z-index: 47; pointer-events: none; border-radius: 10px;
+  box-shadow: 0 0 0 3px var(--gold-light), 0 0 0 9999px rgba(6,10,14,.62);
+  transition: all .28s var(--ease-fast);
+}
+.tuto-mot {
+  position: fixed; z-index: 48; left: 10px; right: 10px;
+  background: #f3e7c8; color: #241608; border: 2px solid #241608; border-radius: 12px;
+  padding: 10px 12px 8px; font-family: var(--font-title); font-size: 14px; line-height: 1.35;
+  box-shadow: 0 10px 28px rgba(0,0,0,.6);
+}
+.tuto-mot .t-qui {
+  display: block; font-family: var(--font-body); font-size: 8px; color: #6b4a26;
+  text-transform: uppercase; letter-spacing: 1.4px; margin-bottom: 3px;
+}
+.tuto-mot .t-pied { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.tuto-mot .t-cpt { font-family: var(--font-body); font-size: 9px; color: #6b4a26; }
+.tuto-mot button {
+  margin-left: auto; min-height: 36px; padding: 6px 14px; font-size: 12px;
+  border-radius: 8px; border: 2px solid #241608; background: #e0cda4;
+  font-family: var(--font-title); color: #241608; cursor: pointer;
+}
+.tuto-mot button.passer {
+  background: none; border-color: transparent; color: #6b4a26;
+  font-family: var(--font-body); font-size: 10px; min-height: 36px; padding: 6px 8px; margin-left: 0;
 }
