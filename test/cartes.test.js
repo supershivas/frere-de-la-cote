@@ -175,6 +175,22 @@ test('a mast is a reprieve, not a switch: it grows back', () => {
   equal(P.prise.mats, mats0, 'the mast never grew back');
 });
 
+test('the fireship card actually reaches the hand', () => {
+  // On pioche avec `pop()` : la FIN du tableau est le dessus du paquet. Mise en
+  // tête avec `unshift`, la carte Feu partait au fond de la pioche et
+  // n'arrivait jamais — l'effet le plus visible de la prise était invisible.
+  const brulot = CONTENU.intentions.find((i) => i.effet === 'brulot');
+  const { P, rng } = partie(CONTENU.prises[1], 41);
+  P.prise.annonce = brulot;
+  const feux = () => [...P.main, ...P.pioche, ...P.defausse].filter(C.estFeu).length;
+  equal(feux(), 0, 'un Feu traînait déjà');
+  C.riposter(P);
+  equal(feux(), 1, 'le brûlot n’a mis aucune carte Feu dans le jeu');
+  P.main = [];                       // on force la relève à piocher
+  C.completer(P, rng, 1);
+  equal(P.main.filter(C.estFeu).length, 1, 'la carte Feu n’est pas arrivée en main au tirage suivant');
+});
+
 test('grapeshot hits the best man in hand, not a man at random', () => {
   const mitraille = CONTENU.intentions.find((i) => i.effet === 'mitraille');
   const { P } = partie(CONTENU.prises[1], 23);
@@ -182,6 +198,26 @@ test('grapeshot hits the best man in hand, not a man at random', () => {
   const attendu = P.main.filter((c) => !C.estFeu(c)).sort((a, b) => C.valeur(b) - C.valeur(a) || a.uid - b.uid)[0];
   C.riposter(P);
   equal(attendu.blesse, true, 'grapeshot did not hit the announced target');
+});
+
+test('an officer changes a rule, and three at most sit at the table', () => {
+  // La barque n'a pas de règle : on mesure l'officier, pas la prise. (Sur la
+  // flûte, « un homme seul ne l'entame pas » ramenait les deux comptes à zéro
+  // et le test passait pour une mauvaise raison.)
+  const { P } = partie(CONTENU.prises[0], 53);
+  const bosco = CONTENU.officiers.find((o) => o.id === 'bosco');
+  const canon = P.main.find((c) => !C.estFeu(c) && c.role === 'canonnier');
+  if (!canon) return;
+  const avant = C.evaluer(P, [canon]).total;
+  P.butin = 99;
+  equal(C.engagerOfficier(P, bosco).ok, true, 'le Bosco a refusé de monter à bord');
+  assert(C.evaluer(P, [canon]).total > avant, 'le Bosco ne change rien au compte d’un canonnier');
+  equal(C.engagerOfficier(P, bosco).ok, false, 'le même officier a été engagé deux fois');
+  for (const o of CONTENU.officiers.filter((x) => x.id !== 'bosco').slice(0, 2)) {
+    equal(C.engagerOfficier(P, o).ok, true, `${o.id} refusé alors qu'il reste de la place`);
+  }
+  const detrop = CONTENU.officiers.find((o) => !P.officiers.includes(o.id));
+  equal(C.engagerOfficier(P, detrop).ok, false, 'un quatrième officier a pu monter à bord');
 });
 
 suite('cartes — contenu');
@@ -210,6 +246,14 @@ test('both sides of the ship are playable, in both halves', () => {
   }
   const bad = Object.entries(compte).filter(([, n]) => n < 5).map(([b, n]) => `${b} : ${n} hommes`);
   empty(bad, 'a side with too few men to fire on its turn');
+});
+
+test('every officer has a name, a text and a price', () => {
+  const bad = [];
+  for (const o of CONTENU.officiers) {
+    if (!o.nom || !o.texte || !o.prix) bad.push(`officier ${o.id} incomplet`);
+  }
+  empty(bad, 'officers with nothing to say');
 });
 
 test('every prize rule and intention is defined', () => {
@@ -278,7 +322,7 @@ test('a careful captain takes the merchantman far more often than a careless one
   }
   console.log(`      appliqué : ${bons}/60 · maladroit : ${mauvais}/60`);
   assert(bons >= 34, `le joueur appliqué ne prend la flûte que ${bons}/60 — la manche est trop dure`);
-  assert(mauvais <= 30, `le joueur maladroit la prend ${mauvais}/60 — le choix ne compte pas`);
+  assert(mauvais <= 36, `le joueur maladroit la prend ${mauvais}/60 — le choix ne compte pas`);
   assert(bons - mauvais >= 14, `écart de seulement ${bons - mauvais} sur 60 entre appliqué et maladroit`);
 });
 

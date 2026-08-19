@@ -70,6 +70,15 @@ const P = C.nouvellePartie(CONTENU);
 let ecran = 'chasse';
 let mot = '';            // la dernière chose qui s'est passée, en une ligne
 let occupe = false;      // une animation est en cours : les gestes sont sourds
+let neuves = [];         // les `uid` relevés au dernier tour, pour l'animation
+
+// La relève, en gardant trace de QUI vient d'arriver : c'est ce qui permet de
+// ne faire voler que les nouvelles cartes.
+function relever(combien) {
+  const avant = new Set(P.main.map((c) => c.uid));
+  C.completer(P, rng, combien);
+  neuves = P.main.filter((c) => !avant.has(c.uid)).map((c) => c.uid);
+}
 
 /* ------------------------------------------------------------- la houle
    L'amplitude vient de la météo réelle : un calme plat ne berce pas comme un
@@ -258,19 +267,25 @@ function engagerSuivante() {
   };
   const meteo = METEO[METEO_CLES[Math.floor(rng() * METEO_CLES.length)]];
   C.engager(P, def, meteo, rng);
+  neuves = P.main.map((c) => c.uid);
   randomOceanScene(meteo.id);
   ecran = 'chasse'; mot = '';
   phylactere('ouverture', [meteo.id, def.id, def.rang]);
   rendre();
+  motPremier();
 }
 
 /* ------------------------------------------------------------ le tableau */
 function tableau() {
   const t = el('div', { class: `tableau${P.selection.length ? ' arme' : ''}` });
   if (!P.selection.length) {
-    t.appendChild(el('div', { class: 'tb-tete' }, [el('span', { class: 'tb-cible', text: 'Aucune volée' })]));
-    t.appendChild(el('div', { class: 'tb-detail', html: mot || 'Touche des hommes d’un <b>même bord</b> pour former une volée.' }));
-    t.appendChild(el('div', { class: 'tb-geste', text: `relève : ${C.releveDe(P)} hommes par tour · trois au plus dans une volée` }));
+    t.appendChild(el('div', { class: 'tb-tete' }, [el('span', { class: 'tb-cible', text: 'Personne à la manœuvre' })]));
+    t.appendChild(el('div', {
+      class: 'tb-detail',
+      html: mot || 'Une <b>volée</b>, c’est le groupe d’hommes que tu envoies tirer <b>ensemble</b> : '
+        + 'jusqu’à trois, tous du <b>même bord</b>. Touche-les pour les y mettre.',
+    }));
+    t.appendChild(el('div', { class: 'tb-geste', text: `relève : ${C.releveDe(P)} hommes par tour · trois au plus par volée` }));
     return t;
   }
   const r = C.evaluer(P, P.selection);
@@ -286,25 +301,69 @@ function tableau() {
   t.appendChild(el('div', {
     class: 'tb-geste',
     html: r.cible === 'greement'
-      ? (r.abat ? 'un mât tombe : <b>son coup n’aura pas lieu</b>' : `il faut ${C.SEUIL_GREEMENT} de puissance pour abattre un mât`)
+      ? (r.abat ? 'un mât tombe : <b>son coup n’aura pas lieu</b>' : `il faut ${r.seuil} de puissance pour abattre un mât`)
       : r.cible === 'radoub' ? 'il ne tire pas, il répare'
         : (reste === 0 ? '<b>cette volée la prend</b>' : `il lui resterait ${reste}`),
   }));
   return t;
 }
 
+/* ------------------------------------------------------- la bulle d'aide
+   Ancrée au-dessus de l'élément touché, jamais au survol (§2 : le survol ne
+   porte aucune information). Elle s'ouvre au premier appui sur n'importe
+   quelle carte — y compris celles qu'on ne peut pas jouer, qui sont justement
+   celles dont il faut expliquer le refus. */
+let bulle = null, bulleT = null;
+function bulleSur(cible, html, duree = 3200) {
+  fermerBulle();
+  bulle = el('div', { class: 'ecran-cartes-bulle', html });
+  document.body.appendChild(bulle);
+  const r = cible.getBoundingClientRect();
+  const l = bulle.getBoundingClientRect();
+  const marge = 6;
+  const x = Math.max(marge, Math.min(window.innerWidth - l.width - marge, r.left + r.width / 2 - l.width / 2));
+  bulle.style.left = `${x}px`;
+  bulle.style.top = `${Math.max(marge, r.top - l.height - 10)}px`;
+  bulle.style.setProperty('--fleche', `${r.left + r.width / 2 - x}px`);
+  requestAnimationFrame(() => bulle && bulle.classList.add('vue'));
+  clearTimeout(bulleT);
+  bulleT = setTimeout(fermerBulle, duree);
+}
+function fermerBulle() {
+  clearTimeout(bulleT);
+  if (bulle) { bulle.remove(); bulle = null; }
+}
+document.addEventListener('pointerdown', (e) => {
+  if (bulle && !e.target.closest('.carte, .sa-carte, .pastille, .officier')) fermerBulle();
+}, true);
+
+// Ce qu'un homme fait, en une phrase, plus la raison s'il ne peut pas tirer.
+function aideDe(c) {
+  if (C.estFeu(c)) {
+    return '<div class="b-nom">Feu</div><div class="b-quoi">Un incendie à bord. Il occupe une place dans ta main '
+      + 'et ne tire pas. Seul un charpentier, envoyé seul, peut le jeter par-dessus bord.</div>';
+  }
+  const q = CONTENU.quarts[c.quart];
+  const r = CONTENU.roles[c.role];
+  const permis = C.peutJouer(P, c);
+  return `<div class="b-nom">${c.nom}</div>`
+    + `<div><b>${r.nom}</b> · ${q.nom} · valeur ${C.valeur(c, P)}${c.blesse ? ' (blessé)' : ''}${c.grade ? ` (gradé ${'★'.repeat(c.grade)})` : ''}</div>`
+    + `<div class="b-quoi">${r.aide}</div>`
+    + (permis.ok ? '' : `<div class="b-refus">${permis.pourquoi}</div>`);
+}
+
 /* ---------------------------------------------------------------- la main */
 const ROLE_FOND = { canonnier: '#7b241c', gabier: '#1a5276', abordeur: '#9c640c', charpentier: '#186a3b' };
 
-function carteVue(c) {
+function carteVue(c, rang = 0, neuve = false) {
   const feu = C.estFeu(c);
   const pris = P.selection.includes(c);
   const q = feu ? null : CONTENU.quarts[c.quart];
   const permis = C.peutJouer(P, c);
   const n = el('button', {
-    class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}${c.blesse ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}`,
+    class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}${c.blesse ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}${neuve ? ' neuve' : ''}`,
     attrs: {
-      type: 'button', 'aria-pressed': String(pris),
+      type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`,
       'data-bord': feu ? '' : q.bord,
       'aria-label': feu ? 'Feu — encombre la main'
         : `${c.nom}, ${c.role}, ${q.nom}, valeur ${C.valeur(c)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
@@ -313,7 +372,11 @@ function carteVue(c) {
       // Un retour SOUS LE DOIGT, avant même que l'état change : la carte
       // s'enfonce à l'appui et remonte au relâchement. C'est ce qui fait la
       // différence entre toucher un bouton et manipuler un objet.
-      pointerdown: () => { if (!occupe) n.style.transform = 'translateY(-4px) scale(.97)'; },
+      pointerdown: () => {
+        if (occupe) return;
+        n.style.transform = 'translateY(-4px) scale(.97)';
+        bulleSur(n, aideDe(c));
+      },
       pointerup: () => { n.style.transform = ''; },
       pointerleave: () => { n.style.transform = ''; },
       click: () => {
@@ -332,7 +395,7 @@ function carteVue(c) {
     c.grade ? el('span', { class: 'c-grade', text: '★'.repeat(c.grade) }) : null,
     c.blesse ? el('span', { class: 'c-etat', text: 'bl.' }) : null,
     el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
-    el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c)) }),
+    el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c, P)) }),
     el('span', {
       class: 'c-role', text: feu ? 'encombre' : CONTENU.roles[c.role].court,
       attrs: { style: `background:${feu ? '#6b3a10' : ROLE_FOND[c.role]}` },
@@ -344,6 +407,29 @@ function secouer(n) {
   n.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 190 });
 }
 
+// L'ÉTAT-MAJOR : les officiers sont les jokers de la chasse-partie. Ils ne se
+// jouent pas, ils sont là et ils changent une règle — donc ils doivent être
+// visibles en permanence, et s'expliquer au doigt.
+function etatMajor() {
+  const zone = el('div', { class: 'etat-major' });
+  for (let i = 0; i < C.OFFICIERS_MAX; i++) {
+    const id = P.officiers[i];
+    const o = id ? CONTENU.officiers.find((x) => x.id === id) : null;
+    const n = el('button', {
+      class: `officier${o ? '' : ' vide'}`, text: o ? o.nom.replace(/^(Le |La |L')/, '')[0] : '·',
+      attrs: { type: 'button', 'aria-label': o ? `${o.nom} — ${o.texte}` : 'place d’officier libre' },
+      on: {
+        click: () => bulleSur(n, o
+          ? `<div class="b-nom">${o.nom}</div><div>${o.titre}</div><div class="b-quoi">${o.texte}</div>`
+          : '<div class="b-nom">Place libre</div><div class="b-quoi">Un officier s’engage au partage. '
+            + 'Il ne se joue pas : il est là, et il change une règle. Trois au plus.</div>'),
+      },
+    });
+    zone.appendChild(n);
+  }
+  return zone;
+}
+
 /* ---------------------------------------------------------------- l'écran */
 function ecranChasse() {
   const p = P.prise;
@@ -352,8 +438,9 @@ function ecranChasse() {
   s.appendChild(el('div', { class: 'ruban' }, [
     el('div', { class: 'rb-txt' }, [
       el('div', { class: 'rb-quoi', text: `Prendre ${p.nom}` }),
-      el('div', { class: 'rb-rang', text: `${p.rang} · tour ${P.tour}${P.encrasse ? ` · ${CONTENU.bords[P.encrasse].nom} recharge` : ''}` }),
+      el('div', { class: 'rb-rang', text: `tour ${P.tour}${P.encrasse ? ` · ${CONTENU.bords[P.encrasse].nom} recharge` : ` · ${p.rang}`}` }),
     ]),
+    etatMajor(),
     el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
     el('button', { class: 'btn-level-3 rouage', text: '⚙', attrs: { type: 'button', 'aria-label': 'aide et réglages' }, on: { click: ouvrirAide } }),
   ]));
@@ -387,12 +474,30 @@ function ecranChasse() {
       el('div', { class: 'coque prise' }, [el('canvas', { attrs: { id: 'c-prise' } })]),
     ]),
   ]);
+  // Chaque pastille S'EXPLIQUE AU CLIC : météo, règle de prise, relique.
+  // Un modificateur qu'on subit sans pouvoir en lire l'effet n'est pas une
+  // règle du jeu, c'est du bruit.
   const past = el('div', { class: 'pastilles' });
-  if (P.meteo) past.appendChild(el('span', { class: 'pastille', text: `${P.meteo.icon} ${P.meteo.name_fr}${P.meteo.mods.damageMult !== 1 ? ` ×${P.meteo.mods.damageMult}` : ''}` }));
-  if (p.regle) past.appendChild(el('span', { class: 'pastille regle', text: `⚑ ${CONTENU.regles[p.regle].nom}` }));
+  const pastille = (cls, texte, titre, corps) => {
+    const n = el('button', {
+      class: `pastille ${cls}`, text: texte,
+      attrs: { type: 'button' },
+      on: { click: () => bulleSur(n, `<div class="b-nom">${titre}</div><div class="b-quoi">${corps}</div>`) },
+    });
+    past.appendChild(n);
+  };
+  if (P.meteo) {
+    const m = P.meteo.mods.damageMult || 1;
+    pastille('', `${P.meteo.icon} ${P.meteo.name_fr}${m !== 1 ? ` ×${m}` : ''}`, P.meteo.name_fr,
+      `${P.meteo.desc_fr || ''} ${m === 1 ? 'Elle ne change rien à tes volées.'
+        : m < 1 ? `Tes volées perdent ${Math.round((1 - m) * 100)} % : la mer gêne le pointage.`
+          : `Tes volées gagnent ${Math.round((m - 1) * 100)} % : la mer porte le tir.`}`);
+  }
+  if (p.regle) pastille('regle', `⚑ ${CONTENU.regles[p.regle].nom}`, CONTENU.regles[p.regle].nom,
+    `${CONTENU.regles[p.regle].texte} C'est la particularité de ce navire-là ; un autre en aura une autre.`);
   for (const id of P.reliques) {
     const r = CONTENU.reliques.find((x) => x.id === id);
-    if (r) past.appendChild(el('span', { class: 'pastille relique', text: `✦ ${r.nom}` }));
+    if (r) pastille('relique', `✦ ${r.nom}`, r.nom, r.texte);
   }
   mer.appendChild(past);
 
@@ -404,14 +509,19 @@ function ecranChasse() {
   const chiffre = a.effet === 'canon'
     ? `−${Math.round(p.riposte * a.force * (0.5 + 0.5 * (p.mats / p.matsMax)))}`
     : '⚑';
-  mer.appendChild(el('div', { class: `sa-carte${p.tirAnnule ? ' annulee' : ''}` }, [
+  const saCarte = el('div', {
+    class: `sa-carte${p.tirAnnule ? ' annulee' : ''}`,
+    attrs: { role: 'button', tabindex: '0', 'aria-label': `${a.nom} — ${a.texte}` },
+    on: { click: () => bulleSur(saCarte, `<div class="b-nom">${a.nom}</div>`
+      + `<div class="b-quoi">${p.tirAnnule ? 'Le mât abattu emporte son tir : elle ne fera rien ce tour-ci.' : a.texte}</div>`
+      + `<div>Elle joue cette carte à la fin de ton tour, pas avant.</div>`) },
+  }, [
+    el('div', { class: 'sa-tete' }, [el('span', { text: p.tirAnnule ? 'emporté' : 'sa carte' })]),
+    el('div', { class: 'sa-nom', text: a.nom }),
     el('div', { class: 'sa-mesure', text: p.tirAnnule ? '✕' : chiffre }),
-    el('div', { class: 'sa-txt' }, [
-      el('div', { class: 'sa-eyebrow', text: p.tirAnnule ? 'coup emporté' : 'elle prépare' }),
-      el('div', { class: 'sa-nom', text: a.nom }),
-      el('div', { class: 'sa-quoi', text: p.tirAnnule ? 'Le mât abattu emporte son tir.' : a.texte }),
-    ]),
-  ]));
+    el('div', { class: 'sa-pied', text: p.tirAnnule ? 'sans effet' : 'fin du tour' }),
+  ]);
+  mer.appendChild(saCarte);
 
   // La zone de dépôt vit SOUS NOTRE NAVIRE : c'est là que la volée doit
   // arriver. Elle n'apparaît que pendant le geste — une cible permanente
@@ -422,7 +532,7 @@ function ecranChasse() {
   s.appendChild(tableau());
 
   const main = el('div', { class: 'main' });
-  for (const c of P.main) main.appendChild(carteVue(c));
+  P.main.forEach((c, i) => main.appendChild(carteVue(c, neuves.indexOf(c.uid), neuves.includes(c.uid))));
   s.appendChild(el('div', { class: 'ratelier' }, [main]));
   return s;
 }
@@ -439,7 +549,6 @@ function ecranChasse() {
    Dès le début du glissement les cartes SE REGROUPENT en paquet et se
    redressent : on voit partir une volée, pas trois cartes qui montent en
    parallèle. */
-const SEUIL = 64;              // la course jusqu'à la zone de dépôt
 let glisse = false;
 
 function brancherGeste(scene) {
@@ -449,67 +558,81 @@ function brancherGeste(scene) {
   const zones = [ratelier, tab].filter(Boolean);
   const aide = scene.querySelector('.tb-geste');
   const aideTexte = aide ? aide.innerHTML : '';
-  let y0 = null, x0 = 0, dy = 0, montee = 0, franchi = false;
+  let y0 = null, x0 = 0, dy = 0, dx = 0, montee = 0, franchi = false;
+  let paquet = [];   // les cartes levées ET LEURS BOÎTES DE DÉPART
 
-  const levees = () => [...scene.querySelectorAll('.carte.prise-en-main')];
   const dire = (h, cls) => {
     if (tab) { tab.classList.remove('tire', 'annule'); if (cls) tab.classList.add(cls); }
     if (aide) aide.innerHTML = h;
   };
+  const surLeDepot = (x, y) => {
+    if (!depot) return false;
+    const r = depot.getBoundingClientRect();
+    const m = 26;   // le doigt cache la cible : on l'élargit
+    return x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m;
+  };
 
   const debut = (e) => {
     if (occupe || P.fini || !P.selection.length) return;
-    y0 = e.clientY; x0 = e.clientX; dy = 0; montee = 0; franchi = false;
+    y0 = e.clientY; x0 = e.clientX; dy = 0; dx = 0; montee = 0; franchi = false;
+    paquet = [];
   };
   const bouge = (e) => {
     if (y0 === null) return;
-    dy = e.clientY - y0;
+    dy = e.clientY - y0; dx = e.clientX - x0;
     montee = Math.min(montee, dy);
-    if (!franchi && Math.abs(dy) > 8) {
+    if (!franchi && Math.hypot(dx, dy) > 8) {
       franchi = true; glisse = true;
+      fermerBulle();
       // PAS de capture avant ce point : capturer dès l'appui redirige le
       // `click` suivant vers la zone au lieu de la carte, et plus aucun homme
       // ne peut être ajouté à la volée.
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* souris relâchée */ }
+      // LES BOÎTES SONT MESURÉES UNE FOIS. Les relire à chaque `pointermove`
+      // les lisait DÉJÀ TRANSFORMÉES : la position calculée dépendait de la
+      // précédente, et le paquet tremblait. Une boucle de rétroaction, la même
+      // que celle qui rétrécissait les coques.
+      paquet = [...scene.querySelectorAll('.carte.prise-en-main')].map((n) => {
+        const r = n.getBoundingClientRect();
+        n.style.transition = 'none';
+        return { n, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+      });
       if (depot) depot.classList.add('vu');
     }
     if (!franchi) return;
 
-    const cartes = levees();
-    const pret = dy <= -SEUIL;
-    if (cartes.length) {
-      const boites = cartes.map((n) => n.getBoundingClientRect());
-      const cx = (Math.min(...boites.map((b) => b.left)) + Math.max(...boites.map((b) => b.right))) / 2;
-      const k = Math.max(0, Math.min(1, -dy / SEUIL));   // 0 → posées, 1 → en paquet
-      const suivi = Math.max(-52, Math.min(16, dy < 0 ? dy : dy * 0.35));
-      cartes.forEach((n, i) => {
-        const b = boites[i];
-        // Elles convergent vers le centre du paquet et s'y empilent en éventail
-        // serré : un décalage résiduel de 4 px par carte suffit à dire
-        // « il y en a plusieurs » sans les faire disparaître l'une sous l'autre.
-        const vers = (cx - (b.left + b.width / 2)) * k + (i - (cartes.length - 1) / 2) * 4 * k;
-        const tourne = (1 - k) * 0 + k * ((i - (cartes.length - 1) / 2) * 3);
-        n.style.transition = 'none';
-        n.style.transform = `translate(${vers}px, ${-18 + suivi}px) rotate(${tourne}deg) scale(${1.04 + k * 0.04})`;
-        n.style.zIndex = String(10 + i);
-      });
-    }
+    // Les cartes SUIVENT LE DOIGT, sans plafond : elles doivent pouvoir se
+    // poser sur la zone de dépôt. Bornées, elles restaient collées en bas de
+    // l'écran et le geste n'aboutissait jamais.
+    const cx = paquet.length ? paquet.reduce((s, p) => s + p.cx, 0) / paquet.length : 0;
+    const k = Math.max(0, Math.min(1, -dy / 90));      // 0 → posées, 1 → en paquet
+    paquet.forEach((p, i) => {
+      const vers = (cx - p.cx) * k + (i - (paquet.length - 1) / 2) * 5 * k;
+      const tourne = (i - (paquet.length - 1) / 2) * 3.5 * k;
+      p.n.style.transform = `translate(${dx + vers}px, ${dy - 18}px) rotate(${tourne}deg) scale(${1.04 + k * 0.05})`;
+      p.n.style.zIndex = String(20 + i);
+    });
+
+    const pret = surLeDepot(e.clientX, e.clientY);
     if (depot) depot.classList.toggle('prete', pret);
-    const annule = montee < -24 && dy > 8;
+    const annule = montee < -40 && dy > montee + 60;
     if (annule) dire('↩ relâche : la volée est défaite', 'annule');
     else if (pret) dire('↑ relâche : la volée part', 'tire');
-    else dire('pousse la volée vers le pont adverse', null);
+    else dire('pose la volée sur la zone, sous La Tortue', null);
   };
-  const fin = () => {
+  const fin = (e) => {
     if (y0 === null) return;
-    const d = dy, m = montee, bougea = franchi;
+    const surZone = e && e.clientX != null ? surLeDepot(e.clientX, e.clientY) : false;
+    const m = montee, d = dy, bougea = franchi;
     y0 = null; franchi = false;
-    for (const n of levees()) { n.style.transition = ''; n.style.transform = ''; n.style.zIndex = ''; }
+    for (const p of paquet) { p.n.style.transition = ''; p.n.style.transform = ''; p.n.style.zIndex = ''; }
+    paquet = [];
     if (depot) depot.classList.remove('vu', 'prete');
     setTimeout(() => { glisse = false; }, 60);
     if (!bougea) { dire(aideTexte, null); return; }
-    if (m < -24 && d > 8) { P.selection = []; mot = 'Volée défaite.'; rendre(); return; }
-    if (d <= -SEUIL) { tirer(); return; }
+    if (surZone) { tirer(); return; }
+    // Monté puis redescendu : on renonce.
+    if (m < -40 && d > m + 60) { P.selection = []; mot = 'Volée défaite.'; rendre(); return; }
     dire(aideTexte, null);
   };
 
@@ -558,14 +681,23 @@ async function tirer() {
   } else if (rip.degats > 0) {
     await tir('c-prise', 'c-nous', -1, `−${rip.degats}`, 'dmg');
   } else if (rip.effets.length) {
-    fxFloatText(centre('c-prise').x, centre('c-prise').y - 24, rip.intention.nom, '');
-    await attendre(560);
+    // Un effet qui n'atterrit nulle part n'existe pas pour le joueur : le
+    // brûlot et la mitraille frappent NOTRE bord, donc le texte monte de
+    // NOTRE navire, après un boulet parti du sien.
+    const a = centre('c-prise', 0.18, 0.42);
+    const b = centre('c-nous', 0.5, 0.45);
+    fxBroadside(a.x, a.y, -1, { scale: 0.8 });
+    await attendre(120);
+    await boulet(a, b, 380);
+    fxExplosion(b.x, b.y, { scale: 0.9 });
+    fxFloatText(b.x, b.y - 26, rip.intention.nom, 'dmg');
+    await attendre(620);
   }
   mot = [rip.annulee ? rip.raison : null, ...rip.effets].filter(Boolean).join(' ');
   peindreCoques();
   occupe = false;
   if (P.fini === 'naufrage') { ecran = 'naufrage'; rendre(); return; }
-  C.completer(P, rng);
+  relever();
   rendre();
   ecranCourant()?.focus?.();
 }
@@ -587,7 +719,11 @@ function offres() {
         det: `${r.role} · ${CONTENU.quarts[r.quart].nom} · valeur ${r.valeur}`,
         acheter: () => C.recruter(P, r),
       })),
-      ...C.melanger(rel, rng).slice(0, 2).map((r) => ({ nom: r.nom, prix: r.prix, det: r.texte, acheter: () => C.acheterRelique(P, r) })),
+      ...C.melanger(rel, rng).slice(0, 1).map((r) => ({ nom: r.nom, prix: r.prix, det: r.texte, acheter: () => C.acheterRelique(P, r) })),
+      ...C.melanger(CONTENU.officiers.filter((o) => !P.officiers.includes(o.id)), rng).slice(0, 2).map((o) => ({
+        nom: `${o.nom}`, prix: o.prix, det: `officier · ${o.titre} — ${o.texte}`,
+        acheter: () => C.engagerOfficier(P, o),
+      })),
     ];
     const promu = C.melanger(P.equipage.filter((c) => c.grade < 3 && c.role !== 'charpentier'), rng)[0];
     if (promu) lot.push({ nom: `Passer ${promu.nom} gradé`, prix: 4, det: `${promu.role} · valeur ${C.valeur(promu)} → ${C.valeur(promu) + 1}`, acheter: () => C.graduer(P, promu) });
@@ -612,7 +748,7 @@ function ecranPartage() {
     const cher = o.prix > P.butin;
     liste.appendChild(el('button', {
       class: 'offre', attrs: { type: 'button', ...(cher ? { disabled: '' } : {}) },
-      on: { click: () => { if (o.acheter().ok) rendre(); } },
+      on: { click: () => { const r = o.acheter(); if (r.ok) rendre(); else mot = r.pourquoi; } },
     }, [
       el('div', { class: 'o-txt' }, [el('div', { class: 'o-nom', text: o.nom }), el('div', { class: 'o-det', text: o.det })]),
       el('div', { class: 'o-prix', text: `${o.prix} 💰` }),
@@ -637,6 +773,31 @@ function ecranNaufrage() {
 }
 
 /* ---------------------------------------------------------------- l'aide */
+// Une seule fois, au premier engagement : ce qu'est une volée, et le geste.
+// Trois phrases sur un fond opaque, refermées d'un doigt — pas un tutoriel.
+const CLE_OUVERTURE = 'fdlc-cartes-ouverture-vue';
+let vuLOuverture = false;
+function motPremier() {
+  if (vuLOuverture) return;
+  vuLOuverture = true;
+  try { if (localStorage.getItem(CLE_OUVERTURE)) return; localStorage.setItem(CLE_OUVERTURE, '1'); } catch { /* mode privé */ }
+  if (new URLSearchParams(location.search).has('sansOuverture')) return;
+  const fond = el('div', { class: 'overlay', on: { click: () => fond.remove() } });
+  fond.appendChild(el('div', { class: 'modal ecran-cartes aide-boite' }, [
+    el('h3', { text: 'Une volée' }),
+    el('p', { html: 'Une <b>volée</b>, c’est le groupe d’hommes que tu envoies tirer <b>en même temps</b> : '
+      + 'jusqu’à <b>trois</b>, tous du <b>même bord</b> — <span class="pion ba">bâbord</span> ou '
+      + '<span class="pion tri">tribord</span>, jamais mélangés. Les canons d’un bord tirent ensemble ; '
+      + 'ceux d’en face regardent la mer.' }),
+    el('p', { html: 'Touche des hommes pour les mettre à la manœuvre, puis <b>pousse la volée</b> sur la zone '
+      + 'qui s’ouvre sous La Tortue. Le tableau écrit le compte exact <b>avant</b> que tu lâches.' }),
+    el('p', { html: 'En face, <b>elle montre la carte qu’elle jouera</b> à la fin de ton tour. Rien n’est caché, '
+      + 'rien n’est tiré au sort.' }),
+    el('button', { class: 'btn-level-1', text: 'À la manœuvre', attrs: { type: 'button' }, on: { click: () => fond.remove() } }),
+  ]));
+  document.body.appendChild(fond);
+}
+
 function ouvrirAide() {
   const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
   const b = el('div', { class: 'modal ecran-cartes aide-boite' });

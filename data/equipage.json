@@ -1,5 +1,5 @@
 {
-  "_doc": "Le contenu du jeu de cartes. Un métier = un verbe (la règle, dans src/cartes.js) ; un quart = un poste à bord, et c'est lui qui dit AVEC QUI un homme peut tirer (le bord) et SUR QUOI (l'avant vise le gréement, l'arrière la coque). Ajouter un homme, une prise ou une intention ne doit demander aucune ligne de code.",
+  "_doc": "Le contenu du jeu de cartes. Un métier et un OFFICIER sont des verbes : leur règle vit dans src/cartes.js, leur nom, leur texte et leur prix ici. Un quart est un poste à bord : il dit AVEC QUI un homme peut tirer (le bord) et SUR QUOI (l'avant vise le gréement, l'arrière la coque). Ajouter un homme, une prise ou une intention ne doit demander aucune ligne de code ; ajouter un officier en demande une, parce qu'un officier est une règle.",
   "roles": {
     "canonnier": {
       "nom": "canonnier",
@@ -225,7 +225,7 @@
       "nom": "Flûte marchande",
       "rang": "marchand",
       "hullClass": 4,
-      "pv": 155,
+      "pv": 145,
       "mats": 2,
       "riposte": 15,
       "butin": 6,
@@ -455,5 +455,56 @@
     "virement",
     "bordee",
     "demi_bordee"
+  ],
+  "officiers": [
+    {
+      "id": "bosco",
+      "nom": "Le Bosco",
+      "titre": "maître d'équipage",
+      "texte": "Chaque canonnier de la volée compte +2.",
+      "prix": 7
+    },
+    {
+      "id": "maitre_canonnier",
+      "nom": "Le Maître canonnier",
+      "titre": "chef de pièce",
+      "texte": "Une bordée (deux canonniers) rapporte 10 de plus.",
+      "prix": 8
+    },
+    {
+      "id": "chirurgien",
+      "nom": "Le Chirurgien",
+      "titre": "barbier de bord",
+      "texte": "Un homme blessé ne perd plus qu'un point au lieu de deux.",
+      "prix": 6
+    },
+    {
+      "id": "maitre_voilier",
+      "nom": "Le Maître voilier",
+      "titre": "gabier en chef",
+      "texte": "Un tir au gréement abat un mât dès 20 de puissance.",
+      "prix": 8
+    },
+    {
+      "id": "quartier_maitre",
+      "nom": "Le Quartier-maître",
+      "titre": "partage et discipline",
+      "texte": "+1 homme à la relève de chaque tour.",
+      "prix": 9
+    },
+    {
+      "id": "aumonier",
+      "nom": "L'Aumônier",
+      "titre": "il compte les morts",
+      "texte": "Une volée de trois hommes rapporte 8 de plus.",
+      "prix": 7
+    },
+    {
+      "id": "pilote",
+      "nom": "Le Pilote côtier",
+      "titre": "il connaît les fonds",
+      "texte": "La météo ne diminue plus jamais tes dégâts.",
+      "prix": 7
+    }
   ]
 }

@@ -42,9 +42,19 @@ export const bordDe = (contenu, c) => (estFeu(c) ? null : contenu.quarts[c.quart
 export const boutDe = (contenu, c) => (estFeu(c) ? null : contenu.quarts[c.quart].bout);
 export const autreBord = (b) => (b === 'babord' ? 'tribord' : 'babord');
 
-export function valeur(c) {
+// LES OFFICIERS sont les jokers de la chasse-partie : ils ne se jouent pas,
+// ils sont là et ils changent une règle. Leur nom, leur texte et leur prix
+// sont du contenu (`data/equipage.json`) ; leur VERBE est une règle, donc il
+// vit ici. C'est la seule chose du jeu qui demande une ligne de code pour être
+// ajoutée, et c'est voulu : un officier qui ne changerait aucune règle ne
+// serait qu'un homme de plus.
+export const aOfficier = (P, id) => P.officiers.includes(id);
+export const OFFICIERS_MAX = 3;
+
+export function valeur(c, P = null) {
   if (estFeu(c)) return 0;
-  return Math.max(0, (c.valeur || 0) + (c.grade || 0) - 2 * (c.blesse ? 1 : 0));
+  const malus = c.blesse ? (P && aOfficier(P, 'chirurgien') ? 1 : 2) : 0;
+  return Math.max(0, (c.valeur || 0) + (c.grade || 0) - malus);
 }
 
 /* ------------------------------------------------------------ la volée */
@@ -93,7 +103,7 @@ export function evaluer(P, cartes) {
   const synergies = [];
 
   const canonniers = repare ? [] : hommes.filter((c) => c.role === 'canonnier');
-  const meilleurCanon = canonniers.length ? Math.max(...canonniers.map(valeur)) : 0;
+  const meilleurCanon = canonniers.length ? Math.max(...canonniers.map((c) => valeur(c, P))) : 0;
 
   let total = 0;
   if (repare) {
@@ -105,7 +115,7 @@ export function evaluer(P, cartes) {
   }
   for (const c of cartes) {
     if (estFeu(c)) { lignes.push({ quoi: 'Feu', note: 'encombre la volée', points: 0 }); continue; }
-    const v = valeur(c);
+    const v = valeur(c, P);
     if (c.role === 'charpentier') { lignes.push({ quoi: c.nom, note: 'ne tire pas — il ne répare que seul', points: 0 }); continue; }
     if (c.role === 'gabier') {
       const g = meilleurCanon || v;
@@ -117,18 +127,24 @@ export function evaluer(P, cartes) {
       lignes.push({ quoi: c.nom, note: bas ? 'à l’abordage, compte double' : 'attend que la coque cède', points: g });
       total += g; continue;
     }
-    lignes.push({ quoi: c.nom, note: null, points: v });
-    total += v;
+    const bosco = aOfficier(P, 'bosco') ? 2 : 0;
+    lignes.push({ quoi: c.nom, note: bosco ? 'le Bosco le pousse' : null, points: v + bosco });
+    total += v + bosco;
   }
 
-  if (canonniers.length >= 3) { synergies.push('Bordée pleine'); lignes.push({ quoi: 'Bordée pleine', note: 'trois canonniers', points: 24 }); total += 24; }
-  else if (canonniers.length >= 2) { synergies.push('Bordée'); lignes.push({ quoi: 'Bordée', note: 'deux canonniers', points: 10 }); total += 10; }
+  const maitre = aOfficier(P, 'maitre_canonnier') ? 10 : 0;
+  if (canonniers.length >= 3) { synergies.push('Bordée pleine'); lignes.push({ quoi: 'Bordée pleine', note: 'trois canonniers', points: 24 + maitre }); total += 24 + maitre; }
+  else if (canonniers.length >= 2) { synergies.push('Bordée'); lignes.push({ quoi: 'Bordée', note: 'deux canonniers', points: 10 + maitre }); total += 10 + maitre; }
+  if (aOfficier(P, 'aumonier') && hommes.length >= 3) {
+    synergies.push('Plein équipage'); lignes.push({ quoi: 'L’Aumônier', note: 'trois hommes à la manœuvre', points: 8 }); total += 8;
+  }
   if (hommes.filter((c) => c.role === 'abordeur').length >= 2 && bas) {
     synergies.push('Abordage'); lignes.push({ quoi: 'Abordage', note: 'deux abordeurs sur une coque basse', points: 14 }); total += 14;
   }
   if (P.reliques.includes('caronades')) { lignes.push({ quoi: 'Caronades', note: null, points: 4 }); total += 4; }
 
-  const mm = P.meteo && P.meteo.mods ? (P.meteo.mods.damageMult || 1) : 1;
+  let mm = P.meteo && P.meteo.mods ? (P.meteo.mods.damageMult || 1) : 1;
+  if (mm < 1 && aOfficier(P, 'pilote')) mm = 1;
   if (mm !== 1) {
     const avant = total;
     total = Math.round(total * mm);
@@ -157,13 +173,14 @@ export function evaluer(P, cartes) {
     total -= perdu;
   }
 
+  const seuil = aOfficier(P, 'maitre_voilier') ? 20 : SEUIL_GREEMENT;
   const abat = cible === 'greement'
-    && (total >= SEUIL_GREEMENT || P.reliques.includes('hune'))
+    && (total >= seuil || P.reliques.includes('hune'))
     && prise && prise.mats > 0;
 
   return {
     cible, lignes, synergies,
-    total,
+    total, seuil,
     degats: cible === 'coque' ? total : 0,
     abat,
     bord: bordDeLaVolee(P, cartes),
@@ -186,7 +203,7 @@ export function nouvellePartie(contenu) {
   return {
     contenu,
     equipage: contenu.equipage.map(carte),
-    reliques: [], butin: 0, prisesFaites: 0,
+    reliques: [], officiers: [], butin: 0, prisesFaites: 0,
     nous: { pv: contenu.tortue.pv, max: contenu.tortue.pv },
     prise: null,
     encrasse: null, encrasseTours: 0,
@@ -206,7 +223,8 @@ export const tailleMain = (P) => 5 + (P.reliques.includes('longue_vue') ? 1 : 0)
 // joueur qui cherchait la meilleure volée. Avec une relève de deux, brûler
 // trois hommes maintenant, c'est tirer à un seul le tour prochain.
 export const RELEVE = 2;
-export const releveDe = (P) => RELEVE + (P.reliques.includes('double_fond') ? 1 : 0);
+export const releveDe = (P) => RELEVE + (P.reliques.includes('double_fond') ? 1 : 0)
+  + (aOfficier(P, 'quartier_maitre') ? 1 : 0);
 
 export function engager(P, defPrise, meteo, rng) {
   // La suite d'intentions est TIRÉE à l'engagement (génération) puis figée :
@@ -355,13 +373,17 @@ export function riposter(P) {
       case 'mitraille': {
         // Déterministe et annoncé : elle vise le meilleur homme en main.
         const cible = P.main.filter((c) => !estFeu(c) && !c.blesse)
-          .sort((a, b) => valeur(b) - valeur(a) || a.uid - b.uid)[0];
+          .sort((a, b) => valeur(b, P) - valeur(a, P) || a.uid - b.uid)[0];
         if (cible) { cible.blesse = true; res.effets.push(`${cible.nom} est blessé — −2`); }
         else res.effets.push('Personne à blesser.');
         break;
       }
       case 'brulot':
-        if (!P.reliques.includes('quille')) { P.pioche.unshift(feu()); res.effets.push('Une carte Feu entre dans ta pioche.'); }
+        // `push`, pas `unshift` : on pioche avec `pop()`, donc la fin du
+        // tableau est le DESSUS du paquet. Mise en tête, la carte Feu partait
+        // au fond de la pioche et n'arrivait jamais en main — l'effet le plus
+        // visible de la prise était invisible.
+        if (!P.reliques.includes('quille')) { P.pioche.push(feu()); res.effets.push(`${prise.nom} envoie un brûlot : une carte Feu au-dessus de ta pioche.`); }
         else res.effets.push('La quille carénée refuse le feu.');
         break;
       case 'virement':
@@ -426,6 +448,13 @@ export const acheterRelique = (P, def) => {
   if (P.reliques.includes(def.id)) return { ok: false, pourquoi: 'Déjà à bord.' };
   P.butin -= def.prix; P.reliques.push(def.id); return { ok: true };
 };
+export const engagerOfficier = (P, def) => {
+  if (P.butin < def.prix) return { ok: false, pourquoi: 'Pas assez de butin.' };
+  if (P.officiers.includes(def.id)) return { ok: false, pourquoi: 'Déjà à bord.' };
+  if (P.officiers.length >= OFFICIERS_MAX) return { ok: false, pourquoi: `Trois officiers au plus à l'état-major.` };
+  P.butin -= def.prix; P.officiers.push(def.id); return { ok: true };
+};
+
 export const graduer = (P, c, prix = 4) => {
   if (P.butin < prix) return { ok: false, pourquoi: 'Pas assez de butin.' };
   if (estFeu(c) || c.grade >= 3) return { ok: false, pourquoi: 'Rien à promouvoir.' };

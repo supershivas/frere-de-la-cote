@@ -40,8 +40,8 @@ const PAGES = [
     apres: async (p) => { await p.click('.rc-carte .btn-level-1'); } },
   { nom: 'C — la rade', url: 'docs/refonte/mockups/c-rade.html', pret: '.fl-rade' },
   { nom: 'D — la rade tactique', url: 'docs/refonte/mockups/d-breche.html', pret: '.hx-scene' },
-  { nom: 'E — la chasse-partie', url: 'docs/refonte/mockups/e-cartes.html', pret: '.ecran-cartes .main' },
-  { nom: 'E — le partage', url: 'docs/refonte/mockups/e-cartes.html', pret: '.ecran-cartes .main',
+  { nom: 'E — la chasse-partie', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture', pret: '.ecran-cartes .main' },
+  { nom: 'E — le partage', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture', pret: '.ecran-cartes .main',
     apres: async (p) => {
       // Joue la prise d'ouverture jusqu'au partage : la boutique est un écran
       // à part entière, et c'est là que 47 % des cartes de recrutement du jeu

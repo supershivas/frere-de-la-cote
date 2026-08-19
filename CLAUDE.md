@@ -64,6 +64,14 @@ aucun homme du bord libre n'est en main, le bord encrassé reprend le service.
 Sans elles, le joueur passait des tours entiers sans un coup à jouer — et un
 tour perdu n'est pas une décision.
 
+**LES OFFICIERS — les jokers.** Trois au plus à l'état-major, engagés au
+partage. Ils ne se jouent pas : ils sont là et ils **changent une règle** (le
+Bosco pousse chaque canonnier, le Maître voilier abaisse le seuil du gréement,
+le Chirurgien allège les blessures…). Leur nom, leur texte et leur prix sont
+du contenu ; leur **verbe est du code**, dans `src/cartes.js` — c'est la seule
+chose du jeu qui demande une ligne de code pour être ajoutée, et c'est voulu :
+un officier qui ne changerait aucune règle ne serait qu'un homme de plus.
+
 **Pas de multiplicateur.** Une volée rend un chiffre, et le détail dit d'où
 vient chaque point. Les métiers apportent des effets, pas des coefficients :
 le canonnier sa valeur, le gabier règle le tir sur le meilleur canonnier,
@@ -86,7 +94,7 @@ largage — un tour.
 
 | geste | effet |
 |---|---|
-| toucher un homme | il rejoint la volée (rien n'est engagé) |
+| toucher un homme | il rejoint la volée, et une bulle dit ce qu'il fait |
 | pousser la volée vers le haut | la **zone de dépôt s'ouvre sous La Tortue** ; lâcher dedans, la volée part |
 | monter puis redescendre | on renonce, la volée est défaite |
 
@@ -97,10 +105,17 @@ doit pas être le seul chemin.
 
 ### Ce que l'écran montre, et où
 
-- **Sa carte d'intention est une carte**, de la même facture que les nôtres en
-  teinte sombre, posée **sous son navire**. Un bandeau de plus en travers de
-  l'écran était une boîte de plus à lire ; une carte appartient visuellement à
-  la prise et n'ajoute rien au vocabulaire de formes.
+- **Sa carte d'intention est une carte** : le même gabarit que les nôtres —
+  bandeau de tête, nom, grand chiffre, pied — en noir et rouge, posée à plat
+  sous son navire. Un rectangle horizontal avec du texte dedans n'est pas une
+  carte, c'est une boîte de plus à lire.
+- **Tout s'explique à l'appui, jamais au survol** : une bulle ancrée
+  au-dessus de ce qu'on touche — un homme, sa carte à elle, la météo, la règle
+  de la prise, une relique, un officier. Y compris les hommes qu'on **ne peut
+  pas** jouer : ce sont eux dont il faut expliquer le refus.
+- **Les cartes arrivent, elles n'apparaissent pas** : la relève vole depuis la
+  droite, décalée d'une carte à l'autre. On compte les hommes reçus sans lire
+  un chiffre.
 - **La zone de dépôt est sous le nôtre**, et n'existe que pendant le geste.
   Les deux se répondent : sa carte à elle, notre cible à nous.
 - **L'horizon est posé sur les navires** — `startOcean(canvas, { horizon })`,
@@ -170,7 +185,7 @@ entre eux ; les hommes, si.
 
 ---
 
-## 4. Les dix règles qui ont chacune coûté un bug
+## 4. Les onze règles qui ont chacune coûté un bug
 
 **1. Aucune entropie dans la résolution.** `src/cartes.js` ne doit jamais
 contenir `Math.random`, `Date.now` ni `crypto` — un test échoue s'ils y
@@ -218,13 +233,21 @@ fois un homme sélectionné, plus aucune touche n'en sélectionnait un second, e
 rien ne le signalait — la carte s'illuminait bien au premier appui. La capture
 se prend au franchissement du seuil (8 px), pas avant.
 
-**9. Ne jamais mesurer un conteneur pour dimensionner ce qui le remplit.** Le
-canvas d'une coque était dimensionné d'après la hauteur de son parent, laquelle
-venait du canvas : à chaque repeinte les navires rétrécissaient d'un cran.
-Aucune erreur, aucun test rouge, des navires minuscules au bout de six tours.
-On mesure la bande de mer, jamais la boîte qui s'ajuste au dessin.
+**9. Ne jamais mesurer ce qu'on est en train de transformer.** Deux fois le
+même bug. Le canvas d'une coque était dimensionné d'après la hauteur de son
+parent, laquelle venait du canvas : à chaque repeinte les navires
+rétrécissaient d'un cran. Et le paquet de cartes en cours de glissement était
+repositionné d'après des `getBoundingClientRect()` relus à chaque
+`pointermove`, donc déjà transformés : les cartes tremblaient. On mesure une
+fois, au début du geste, et on garde la mesure.
 
-**10. Dans le fichier autonome, tous les modules partagent une portée.** Une
+**10. On pioche avec `pop()` : la fin du tableau est le DESSUS du paquet.**
+La carte Feu du brûlot était posée avec `unshift`, donc au fond de la pioche :
+elle n'arrivait jamais en main. L'effet le plus visible de la prise était
+invisible, et rien ne le signalait. Un test tire maintenant la carte pour
+vérifier qu'elle arrive.
+
+**11. Dans le fichier autonome, tous les modules partagent une portée.** Une
 `const scene` dans la maquette et une `let scene` dans `src/ocean.js` donnent
 une page blanche et une ligne en console. `tools/bundle-mockup.mjs` échoue
 maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
@@ -234,7 +257,7 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 158 vérifications, zéro dépendance
+node test/run.js          # 161 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
