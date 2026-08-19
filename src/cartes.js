@@ -30,7 +30,9 @@
 // RÈGLE 5 : un ordre impossible rend un refus MOTIVÉ (`{ ok: false, pourquoi }`),
 // jamais un silence.
 
-export const MAIN_MAX = 5;
+// Trois hommes au plus dans une volée, cinq en main. Des cartes plus grandes
+// se lisent au pouce ; sept qui se partagent 375 px ne se lisent pas.
+export const MAIN_MAX = 3;
 export const SEUIL_GREEMENT = 26;   // en dessous, le tir passe dans les voiles
 
 const FEU = { id: 'feu', nom: 'Feu', role: 'feu', quart: null, valeur: 0 };
@@ -98,7 +100,7 @@ export function evaluer(P, cartes) {
     for (const c of cartes) {
       lignes.push({ quoi: estFeu(c) ? 'Feu' : c.nom, note: estFeu(c) ? 'jeté par-dessus bord' : 'au radoub', points: 0 });
     }
-    lignes.push({ quoi: 'Radoub', note: '+12 à La Tortue, +1 largage, un Feu jeté', points: 0 });
+    lignes.push({ quoi: 'Radoub', note: '+12 à La Tortue, un Feu jeté', points: 0 });
     return { cible: 'radoub', lignes, synergies: ['Radoub'], total: 0, degats: 0, abat: false, repare, bord: bordDeLaVolee(P, cartes) };
   }
   for (const c of cartes) {
@@ -136,8 +138,11 @@ export function evaluer(P, cartes) {
   // Les règles de prise agissent sur le RÉSULTAT, pas sur le barème : elles
   // cassent une habitude pour un navire donné, elles ne réécrivent pas le jeu.
   const regle = prise ? prise.regle : null;
-  if (regle === 'lest' && hommes.length < 3) {
-    lignes.push({ quoi: 'Lourdement lestée', note: 'moins de trois hommes ne l’entament pas', points: -total });
+  // Le seuil suit la taille des volées : écrit « moins de trois » quand on
+  // jouait jusqu'à cinq hommes, il annulait presque toutes les volées une fois
+  // le plafond descendu à trois.
+  if (regle === 'lest' && hommes.length < 2) {
+    lignes.push({ quoi: 'Lourdement lestée', note: 'un homme seul ne l’entame pas', points: -total });
     total = 0;
   }
   if (regle === 'cuirasse' && total > 0) {
@@ -186,21 +191,22 @@ export function nouvellePartie(contenu) {
     prise: null,
     encrasse: null, encrasseTours: 0,
     pioche: [], main: [], defausse: [], selection: [],
-    largages: 2, meteo: null, fini: null, journal: [], tour: 1,
+    meteo: null, fini: null, journal: [], tour: 1,
   };
 }
 
-export const tailleMain = (P) => 7 + (P.reliques.includes('longue_vue') ? 1 : 0);
+export const tailleMain = (P) => 5 + (P.reliques.includes('longue_vue') ? 1 : 0);
 
-// LA RELÈVE : on ne remplit pas la main, on relève TROIS hommes par tour.
+// LA RELÈVE : on ne remplit pas la main, on relève DEUX hommes par tour.
 //
 // C'est la seule chose qui fasse du choix un choix. Tant que la main se
 // remplissait à ras bord entre deux volées, jouer cinq cartes était toujours
 // la meilleure réponse et il n'y avait rien à décider : mesuré, un joueur qui
 // prenait les cinq premières cartes jouables gagnait aussi souvent qu'un
-// joueur qui cherchait la meilleure volée. Avec une relève de trois, brûler
-// cinq hommes maintenant, c'est tirer à deux le tour prochain.
-export const RELEVE = 3;
+// joueur qui cherchait la meilleure volée. Avec une relève de deux, brûler
+// trois hommes maintenant, c'est tirer à un seul le tour prochain.
+export const RELEVE = 2;
+export const releveDe = (P) => RELEVE + (P.reliques.includes('double_fond') ? 1 : 0);
 
 export function engager(P, defPrise, meteo, rng) {
   // La suite d'intentions est TIRÉE à l'engagement (génération) puis figée :
@@ -218,7 +224,6 @@ export function engager(P, defPrise, meteo, rng) {
   };
   P.meteo = meteo || null;
   P.nous.pv = P.nous.max;
-  P.largages = 2 + (P.reliques.includes('seaux') ? 1 : 0);
   P.encrasse = null; P.encrasseTours = 0;
   P.tour = 1;
   P.pioche = melanger(P.equipage, rng);
@@ -230,7 +235,8 @@ export function engager(P, defPrise, meteo, rng) {
 }
 
 // `combien` : la relève ordinaire vaut RELEVE ; l'engagement remplit la main.
-export function completer(P, rng, combien = RELEVE) {
+export function completer(P, rng, combien = null) {
+  if (combien == null) combien = releveDe(P);
   const cible = Math.min(tailleMain(P), P.main.length + combien);
   while (P.main.length < cible) {
     if (!P.pioche.length) {
@@ -247,7 +253,13 @@ export function peutJouer(P, c) {
   if (P.fini) return { ok: false, pourquoi: 'La prise est jouée.' };
   if (estFeu(c)) return { ok: true };
   const b = bordDe(P.contenu, c);
-  if (P.encrasse === b) return { ok: false, pourquoi: `${P.contenu.bords[b].nom} recharge encore.` };
+  // SOUPAPE : si aucun homme du bord libre n'est en main, le bord encrassé
+  // reprend le service. Sans elle, une main de cinq cartes toutes du même bord
+  // laissait le joueur sans le moindre coup à jouer — mesuré, c'était une
+  // majorité de tours perdus, et un tour perdu n'est pas une décision.
+  const secours = P.encrasse === b
+    && !P.main.some((x) => !estFeu(x) && bordDe(P.contenu, x) !== P.encrasse);
+  if (P.encrasse === b && !secours) return { ok: false, pourquoi: `${P.contenu.bords[b].nom} recharge encore.` };
   const bv = bordDeLaVolee(P, P.selection);
   if (bv && bv !== b) return { ok: false, pourquoi: `La volée est à ${P.contenu.bords[bv].nom} : les canons d’en face ne portent pas.` };
   return { ok: true };
@@ -269,6 +281,7 @@ export function selectionner(P, c) {
 export function jouer(P) {
   if (P.fini || !P.selection.length) return null;
   const r = evaluer(P, P.selection);
+  const joues = P.selection.slice();
   const prise = P.prise;
   const evenements = [];
 
@@ -293,17 +306,20 @@ export function jouer(P) {
   const repare = r.repare || 0;
   if (repare) {
     P.nous.pv = Math.min(P.nous.max, P.nous.pv + 12 * repare);
-    P.largages += repare;
     let jetes = 0;
     for (const zone of [P.main, P.pioche, P.defausse]) {
       while (jetes < repare) { const i = zone.findIndex(estFeu); if (i < 0) break; zone.splice(i, 1); jetes += 1; }
     }
-    P.journal.push(`Radoub : +${12 * repare} à La Tortue, +${repare} largage${repare > 1 ? 's' : ''}${jetes ? `, ${jetes} Feu jeté` : ''}`);
+    P.journal.push(`Radoub : +${12 * repare} à La Tortue${jetes ? `, ${jetes} Feu jeté` : ''}`);
   }
 
-  // Le bord qui vient de tirer encrasse. C'est le seul « coût » du tour, et il
-  // force l'alternance : sans lui, une seule bonne moitié du jeu suffirait.
-  if (r.bord) { P.encrasse = r.bord; P.encrasseTours = P.reliques.includes('ecouvillons') ? 0 : 1; }
+  // Le bord qui vient de tirer encrasse — mais SEULEMENT s'ils étaient
+  // plusieurs. Un homme seul recharge son canon à temps. C'est la porte de
+  // sortie du joueur coincé, et surtout une décision de plus : une grosse
+  // volée maintenant contre le choix du bord au tour suivant.
+  const nbHommes = joues.filter((c) => !estFeu(c)).length;
+  if (r.bord && nbHommes >= 2) { P.encrasse = r.bord; P.encrasseTours = P.reliques.includes('ecouvillons') ? 0 : 1; }
+  else if (nbHommes < 2) { P.encrasse = null; P.encrasseTours = 0; }
 
   for (const c of P.selection) {
     const i = P.main.indexOf(c);
@@ -375,18 +391,11 @@ export function riposter(P) {
   return res;
 }
 
-export function largage(P) {
-  if (P.fini || !P.selection.length) return { ok: false, pourquoi: 'Rien de sélectionné.' };
-  if (P.largages <= 0) return { ok: false, pourquoi: 'Plus de largage.' };
-  P.largages -= 1;
-  for (const c of P.selection) {
-    const i = P.main.indexOf(c);
-    if (i >= 0) P.main.splice(i, 1);
-    if (!estFeu(c)) P.defausse.push(c);
-  }
-  P.selection = [];
-  return { ok: true };
-}
+// Il n'y a plus de largage. Larguer demandait un second geste et une seconde
+// zone de dépôt en bas de l'écran, là où les cartes reposent : deux cibles
+// pour deux ordres, sur la largeur d'un pouce. La rareté vient désormais de la
+// seule relève, et une volée d'un seul homme faible fait le même office —
+// elle coûte un tour, ce qui est exactement ce que coûtait un largage.
 
 // La meilleure volée jouable de la main. Sert à l'aide et — surtout — aux
 // tests : si un joueur appliqué ne fait pas nettement mieux qu'un joueur qui

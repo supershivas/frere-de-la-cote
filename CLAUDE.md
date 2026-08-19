@@ -52,10 +52,17 @@ qu'un gabier en est — elle n'entame alors pas la coque, elle abat un mât, et
 un mât qui tombe **emporte le coup annoncé**. Il se regrée en deux tours.
 C'est le seul échange du jeu : des dégâts contre un répit.
 
-**LA RELÈVE — combien.** On ne remplit pas sa main : on relève **trois hommes
-par tour**. Brûler cinq hommes maintenant, c'est tirer à deux le tour prochain.
-Sans cette rareté, jouer tout ce qu'on a était toujours la bonne réponse et il
-n'y avait rien à décider — c'est mesuré, §5.
+**LA RELÈVE — combien.** Cinq cartes en main, **trois au plus dans une volée**,
+et on relève **deux hommes par tour**. Brûler trois hommes maintenant, c'est
+tirer à un seul le tour prochain. Sans cette rareté, jouer tout ce qu'on a
+était toujours la bonne réponse et il n'y avait rien à décider — c'est mesuré,
+§5.
+
+Deux soupapes vont avec le rechargement, et toutes deux viennent d'une main
+devenue petite : **un homme qui tire seul n'encrasse pas son bord**, et si
+aucun homme du bord libre n'est en main, le bord encrassé reprend le service.
+Sans elles, le joueur passait des tours entiers sans un coup à jouer — et un
+tour perdu n'est pas une décision.
 
 **Pas de multiplicateur.** Une volée rend un chiffre, et le détail dit d'où
 vient chaque point. Les métiers apportent des effets, pas des coefficients :
@@ -63,20 +70,45 @@ le canonnier sa valeur, le gabier règle le tir sur le meilleur canonnier,
 l'abordeur compte double sous la moitié, le charpentier **ne répare que s'il
 est seul** dans la volée.
 
-### Les deux ordres sont des gestes
+Attention aux **seuils écrits en toutes lettres dans les règles de prise** :
+« une volée de moins de trois hommes ne l'entame pas » a été écrit quand on
+jouait jusqu'à cinq cartes, et annulait presque toutes les volées une fois le
+plafond descendu à trois. Un seuil de contenu se relit à chaque fois que la
+taille des volées change.
 
-Rien en bas de l'écran. On touche un homme pour l'ajouter à la volée, puis :
+### Un seul ordre, un seul geste
+
+Rien en bas de l'écran, et **pas de largage** : les cartes reposent sur le
+râtelier de bois, il n'y a pas d'espace sous elles, et une seconde cible pour
+un second ordre demanderait deux zones de dépôt sur la largeur d'un pouce.
+Jouer une volée d'un seul homme faible coûte exactement ce que coûtait un
+largage — un tour.
 
 | geste | effet |
 |---|---|
-| glisser vers le haut | la volée part |
-| glisser vers le bas | la sélection est larguée |
+| toucher un homme | il rejoint la volée (rien n'est engagé) |
+| pousser la volée vers le haut | la **zone de dépôt s'ouvre sous La Tortue** ; lâcher dedans, la volée part |
 | monter puis redescendre | on renonce, la volée est défaite |
 
-Dès que le glissement commence, les cartes choisies **se regroupent** en
-paquet : on voit partir une volée, pas cinq cartes. Les flèches du clavier
-doublent les gestes — un geste raccourcit un ordre, il ne doit pas être le
-seul chemin.
+Dès le début du glissement les cartes **se regroupent** en paquet et se
+redressent : on voit partir une volée, pas trois cartes en parallèle. Les
+flèches du clavier doublent le geste — un geste raccourcit un ordre, il ne
+doit pas être le seul chemin.
+
+### Ce que l'écran montre, et où
+
+- **Sa carte d'intention est une carte**, de la même facture que les nôtres en
+  teinte sombre, posée **sous son navire**. Un bandeau de plus en travers de
+  l'écran était une boîte de plus à lire ; une carte appartient visuellement à
+  la prise et n'ajoute rien au vocabulaire de formes.
+- **La zone de dépôt est sous le nôtre**, et n'existe que pendant le geste.
+  Les deux se répondent : sa carte à elle, notre cible à nous.
+- **L'horizon est posé sur les navires** — `startOcean(canvas, { horizon })`,
+  calculé au tiers supérieur des coques : du ciel derrière les voiles hautes,
+  de l'eau derrière les coques.
+- **Les cartes ont une largeur fixe**, calculée pour la main pleine. En
+  `flex: 1` elles s'élargissaient à mesure qu'on en jouait : la main changeait
+  de forme sous le pouce.
 
 ## 2. Les deux contraintes qui priment sur le reste
 
@@ -202,7 +234,7 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 157 vérifications, zéro dépendance
+node test/run.js          # 158 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**

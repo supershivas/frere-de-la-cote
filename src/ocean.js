@@ -45,7 +45,11 @@ export function randomOceanScene(weatherHint) {
   return scene;
 }
 
-export function startOcean(canvas) {
+// `horizon` : la fraction de hauteur où la mer commence. Par défaut 0,13 —
+// une mer qui remplit presque tout, ce que veulent les écrans de carte et de
+// titre. L'écran de cartes la descend, pour que les navires aient du ciel
+// derrière leurs voiles au lieu de se découper sur de l'eau.
+export function startOcean(canvas, { horizon: fraction = 0.13 } = {}) {
   if (!scene) randomOceanScene();
   const ctx = canvas.getContext('2d');
   let w, h, t = 0;
@@ -61,7 +65,7 @@ export function startOcean(canvas) {
   function frame() {
     t += 0.016;
     // Horizon sits high — the sea fills ~87% of the screen.
-    const horizon = Math.floor(h * 0.13);
+    const horizon = Math.floor(h * fraction);
     const s = WEATHERS[scene.weather];
 
     // Sky.

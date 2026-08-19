@@ -31,9 +31,9 @@
      data/phylacteres.json les voix de l'équipage
      css/style.css         l'interface (§17 de css/deck.css pour cet écran)
 
-   MOBILE D'ABORD, et rien en bas de l'écran : les deux ordres sont des
-   GESTES. On touche pour viser, on glisse vers le haut pour tirer, vers le
-   bas pour larguer. Un glissement monté puis redescendu annule la volée.
+   MOBILE D'ABORD, et rien en bas de l'écran qu'un râtelier de bois : l'ordre
+   est un GESTE. On touche pour choisir ses hommes, on pousse la volée vers la
+   zone qui s'ouvre sous La Tortue, elle part. Monter puis redescendre annule.
    ============================================================ */
 
 import * as C from './src/cartes.js';
@@ -270,7 +270,7 @@ function tableau() {
   if (!P.selection.length) {
     t.appendChild(el('div', { class: 'tb-tete' }, [el('span', { class: 'tb-cible', text: 'Aucune volée' })]));
     t.appendChild(el('div', { class: 'tb-detail', html: mot || 'Touche des hommes d’un <b>même bord</b> pour former une volée.' }));
-    t.appendChild(el('div', { class: 'tb-geste', text: `relève : ${C.RELEVE} hommes par tour · ${P.largages} largage${P.largages > 1 ? 's' : ''}` }));
+    t.appendChild(el('div', { class: 'tb-geste', text: `relève : ${C.releveDe(P)} hommes par tour · trois au plus dans une volée` }));
     return t;
   }
   const r = C.evaluer(P, P.selection);
@@ -310,7 +310,14 @@ function carteVue(c) {
         : `${c.nom}, ${c.role}, ${q.nom}, valeur ${C.valeur(c)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
     },
     on: {
+      // Un retour SOUS LE DOIGT, avant même que l'état change : la carte
+      // s'enfonce à l'appui et remonte au relâchement. C'est ce qui fait la
+      // différence entre toucher un bouton et manipuler un objet.
+      pointerdown: () => { if (!occupe) n.style.transform = 'translateY(-4px) scale(.97)'; },
+      pointerup: () => { n.style.transform = ''; },
+      pointerleave: () => { n.style.transform = ''; },
       click: () => {
+        n.style.transform = '';
         if (occupe || glisse) return;
         const r = C.selectionner(P, c);
         if (!r.ok) { mot = `<span class="tb-refus">${r.pourquoi}</span>`; secouer(n); }
@@ -363,7 +370,7 @@ function ecranChasse() {
         el('div', { class: 'jauge notre' }, [el('i', { attrs: { style: `width:${(100 * P.nous.pv) / P.nous.max}%` } })]),
         el('div', { class: 'e-chif' }, [
           el('span', { text: `${P.nous.pv} / ${P.nous.max}` }),
-          el('span', { class: 'e-mats', text: `${P.largages} larg.` }),
+          el('span', { class: 'e-mats', text: `main ${P.main.length}/${C.tailleMain(P)}` }),
         ]),
       ]),
       el('div', { class: 'etiq prise' }, [
@@ -388,57 +395,71 @@ function ecranChasse() {
     if (r) past.appendChild(el('span', { class: 'pastille relique', text: `✦ ${r.nom}` }));
   }
   mer.appendChild(past);
-  s.appendChild(mer);
 
-  // La carte d'intention : son coup est écrit avant qu'on joue.
+  // SA CARTE : l'intention n'est pas un bandeau de plus en travers de l'écran,
+  // c'est une carte — même facture que les nôtres, teinte sombre — posée sous
+  // SON navire. Elle appartient visuellement à la prise, et le joueur n'a
+  // qu'un seul vocabulaire de forme à apprendre.
   const a = p.annonce;
   const chiffre = a.effet === 'canon'
     ? `−${Math.round(p.riposte * a.force * (0.5 + 0.5 * (p.mats / p.matsMax)))}`
     : '⚑';
-  s.appendChild(el('div', { class: `intention${p.tirAnnule ? ' annulee' : ''}` }, [
-    el('div', { class: 'int-mesure', text: p.tirAnnule ? '✕' : chiffre }),
-    el('div', { class: 'int-txt' }, [
-      el('div', { class: 'int-eyebrow', text: p.tirAnnule ? 'son coup est emporté' : 'au prochain tour, elle' }),
-      el('div', { class: 'int-nom', text: a.nom }),
-      el('div', { class: 'int-quoi', text: p.tirAnnule ? 'Le mât abattu emporte son tir.' : a.texte }),
+  mer.appendChild(el('div', { class: `sa-carte${p.tirAnnule ? ' annulee' : ''}` }, [
+    el('div', { class: 'sa-mesure', text: p.tirAnnule ? '✕' : chiffre }),
+    el('div', { class: 'sa-txt' }, [
+      el('div', { class: 'sa-eyebrow', text: p.tirAnnule ? 'coup emporté' : 'elle prépare' }),
+      el('div', { class: 'sa-nom', text: a.nom }),
+      el('div', { class: 'sa-quoi', text: p.tirAnnule ? 'Le mât abattu emporte son tir.' : a.texte }),
     ]),
   ]));
 
+  // La zone de dépôt vit SOUS NOTRE NAVIRE : c'est là que la volée doit
+  // arriver. Elle n'apparaît que pendant le geste — une cible permanente
+  // serait un bouton de plus, et il n'y en a aucun.
+  mer.appendChild(el('div', { class: 'depot' }, [el('span', { text: '⌃ la volée part ici' })]));
+  s.appendChild(mer);
+
   s.appendChild(tableau());
+
   const main = el('div', { class: 'main' });
   for (const c of P.main) main.appendChild(carteVue(c));
-  s.appendChild(main);
+  s.appendChild(el('div', { class: 'ratelier' }, [main]));
   return s;
 }
 
 /* ----------------------------------------------------------- le geste
-   Deux ordres, aucun bouton. On touche pour viser ; on glisse pour ordonner.
-     ↑ la volée part          ↓ la sélection est larguée
-     ↑ puis ↓ : on renonce, la sélection est défaite.
+   UN seul ordre, UNE seule cible. On touche pour choisir ses hommes, on les
+   pousse vers la zone de dépôt qui s'ouvre sous notre navire, et la volée
+   part. Redescendre avant de lâcher défait la volée.
 
-   Dès que le glissement commence, les cartes choisies SE REGROUPENT : elles
-   convergent vers le centre de la main et se serrent en paquet, pour qu'on
-   voie partir une volée et non cinq cartes indépendantes. */
-const SEUIL = 44;              // la mesure de la cible tactile minimale
+   Il n'y a rien à faire vers le bas : les cartes reposent sur le bois du
+   râtelier, il n'y a pas d'espace sous elles, et une seconde zone de dépôt
+   pour un second ordre demanderait deux cibles sur la largeur d'un pouce.
+
+   Dès le début du glissement les cartes SE REGROUPENT en paquet et se
+   redressent : on voit partir une volée, pas trois cartes qui montent en
+   parallèle. */
+const SEUIL = 64;              // la course jusqu'à la zone de dépôt
 let glisse = false;
 
 function brancherGeste(scene) {
-  const main = scene.querySelector('.main');
+  const ratelier = scene.querySelector('.ratelier');
   const tab = scene.querySelector('.tableau');
-  const zones = [main, tab].filter(Boolean);
+  const depot = scene.querySelector('.depot');
+  const zones = [ratelier, tab].filter(Boolean);
   const aide = scene.querySelector('.tb-geste');
   const aideTexte = aide ? aide.innerHTML : '';
-  let y0 = null, dy = 0, montee = 0, franchi = false;
+  let y0 = null, x0 = 0, dy = 0, montee = 0, franchi = false;
 
   const levees = () => [...scene.querySelectorAll('.carte.prise-en-main')];
   const dire = (h, cls) => {
-    if (tab) { tab.classList.remove('tire', 'largue-pret', 'annule'); if (cls) tab.classList.add(cls); }
+    if (tab) { tab.classList.remove('tire', 'annule'); if (cls) tab.classList.add(cls); }
     if (aide) aide.innerHTML = h;
   };
 
   const debut = (e) => {
     if (occupe || P.fini || !P.selection.length) return;
-    y0 = e.clientY; dy = 0; montee = 0; franchi = false;
+    y0 = e.clientY; x0 = e.clientX; dy = 0; montee = 0; franchi = false;
   };
   const bouge = (e) => {
     if (y0 === null) return;
@@ -450,44 +471,45 @@ function brancherGeste(scene) {
       // `click` suivant vers la zone au lieu de la carte, et plus aucun homme
       // ne peut être ajouté à la volée.
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* souris relâchée */ }
+      if (depot) depot.classList.add('vu');
     }
     if (!franchi) return;
 
     const cartes = levees();
+    const pret = dy <= -SEUIL;
     if (cartes.length) {
       const boites = cartes.map((n) => n.getBoundingClientRect());
       const cx = (Math.min(...boites.map((b) => b.left)) + Math.max(...boites.map((b) => b.right))) / 2;
-      const monte = Math.max(0, Math.min(1, -dy / SEUIL));
-      const suivi = Math.max(-26, Math.min(24, dy < 0 ? dy : dy * 0.6));
+      const k = Math.max(0, Math.min(1, -dy / SEUIL));   // 0 → posées, 1 → en paquet
+      const suivi = Math.max(-52, Math.min(16, dy < 0 ? dy : dy * 0.35));
       cartes.forEach((n, i) => {
         const b = boites[i];
-        const vers = (cx - (b.left + b.width / 2)) * monte * 0.85;
-        n.style.transform = `translate(${vers}px, ${-14 + suivi}px) rotate(${vers * 0.05}deg)`;
+        // Elles convergent vers le centre du paquet et s'y empilent en éventail
+        // serré : un décalage résiduel de 4 px par carte suffit à dire
+        // « il y en a plusieurs » sans les faire disparaître l'une sous l'autre.
+        const vers = (cx - (b.left + b.width / 2)) * k + (i - (cartes.length - 1) / 2) * 4 * k;
+        const tourne = (1 - k) * 0 + k * ((i - (cartes.length - 1) / 2) * 3);
+        n.style.transition = 'none';
+        n.style.transform = `translate(${vers}px, ${-18 + suivi}px) rotate(${tourne}deg) scale(${1.04 + k * 0.04})`;
         n.style.zIndex = String(10 + i);
       });
     }
-
-    const annule = montee < -20 && dy > 10;
+    if (depot) depot.classList.toggle('prete', pret);
+    const annule = montee < -24 && dy > 8;
     if (annule) dire('↩ relâche : la volée est défaite', 'annule');
-    else if (dy <= -SEUIL) dire('↑ relâche : la volée part', 'tire');
-    else if (dy >= SEUIL && P.largages > 0) dire('↓ relâche : la sélection est larguée', 'largue-pret');
-    else dire(aideTexte, null);
+    else if (pret) dire('↑ relâche : la volée part', 'tire');
+    else dire('pousse la volée vers le pont adverse', null);
   };
   const fin = () => {
     if (y0 === null) return;
     const d = dy, m = montee, bougea = franchi;
     y0 = null; franchi = false;
-    for (const n of levees()) { n.style.transform = ''; n.style.zIndex = ''; }
+    for (const n of levees()) { n.style.transition = ''; n.style.transform = ''; n.style.zIndex = ''; }
+    if (depot) depot.classList.remove('vu', 'prete');
     setTimeout(() => { glisse = false; }, 60);
     if (!bougea) { dire(aideTexte, null); return; }
-    if (m < -20 && d > 10) { P.selection = []; mot = 'Volée défaite.'; rendre(); return; }
+    if (m < -24 && d > 8) { P.selection = []; mot = 'Volée défaite.'; rendre(); return; }
     if (d <= -SEUIL) { tirer(); return; }
-    if (d >= SEUIL) {
-      const r = C.largage(P);
-      if (!r.ok) mot = `<span class="tb-refus">${r.pourquoi}</span>`;
-      else { C.completer(P, rng); mot = 'Sélection larguée.'; }
-      rendre(); return;
-    }
     dire(aideTexte, null);
   };
 
@@ -502,8 +524,7 @@ function brancherGeste(scene) {
   scene.addEventListener('keydown', (e) => {
     if (occupe || !P.selection.length) return;
     if (e.key === 'ArrowUp' || e.key === 'Enter') { e.preventDefault(); tirer(); }
-    if (e.key === 'ArrowDown') { e.preventDefault(); if (C.largage(P).ok) { C.completer(P, rng); rendre(); } }
-    if (e.key === 'Escape') { P.selection = []; rendre(); }
+    if (e.key === 'Escape' || e.key === 'ArrowDown') { e.preventDefault(); P.selection = []; rendre(); }
   });
 }
 
@@ -633,11 +654,12 @@ function ouvrirAide() {
     <h4>Les métiers</h4>
     <ul>${Object.values(CONTENU.roles).map((r) => `<li><b>${r.nom}</b> — ${r.aide}</li>`).join('')}</ul>
     <h4>La relève</h4>
-    <p>On ne remplit pas sa main : on relève <b>${C.RELEVE} hommes par tour</b>. Brûler cinq hommes maintenant,
-    c'est tirer à deux le tour prochain.</p>
+    <p>On ne remplit pas sa main : cinq cartes, <b>${C.releveDe(P)} hommes relevés par tour</b>, <b>trois au plus</b>
+    dans une volée. Et un homme qui tire <b>seul</b> ne salit pas son bord — c'est la sortie quand tout
+    le reste recharge.</p>
     <h4>Les gestes</h4>
-    <p>Toucher un homme l'ajoute à la volée. <b>Glisser vers le haut</b> : la volée part.
-    <b>Vers le bas</b> : la sélection est larguée. <b>Monter puis redescendre</b> : on renonce.</p>
+    <p>Toucher un homme l'ajoute à la volée. <b>Pousser la volée vers le haut</b>, jusqu'à la zone qui
+    s'ouvre sous La Tortue : elle part. <b>Monter puis redescendre</b> avant de lâcher : on renonce.</p>
     <p style="margin-top:10px;color:var(--text-muted)">Graine ${graine} · pioche ${P.pioche.length} · défausse ${P.defausse.length} · équipage ${P.equipage.length}</p>`;
   b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
   fond.appendChild(b);
@@ -645,17 +667,43 @@ function ouvrirAide() {
 }
 
 /* ---------------------------------------------------------------- rendu */
+// La largeur d'une carte est calculée UNE fois pour la main pleine, et ne
+// bouge plus : sinon la main change de forme à chaque volée jouée, et deux
+// cartes restantes s'étalent sur tout l'écran.
+function calibrerCartes() {
+  const rat = document.querySelector('.ecran-cartes .ratelier');
+  if (!rat) return;
+  const n = C.tailleMain(P);
+  const gap = 5;
+  const large = Math.floor((rat.clientWidth - 14 - gap * (n - 1)) / n);
+  const s = document.querySelector('.screen.ecran-cartes');
+  s.style.setProperty('--carte-l', `${large}px`);
+  s.style.setProperty('--jeu-gap', `${gap}px`);
+  s.style.setProperty('--carte-h', `${Math.round(large * 1.62)}px`);
+}
+
 function rendre() {
   const r = app();
   while (r.firstChild) r.removeChild(r.firstChild);
   const s = ecran === 'partage' ? ecranPartage() : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse();
   r.appendChild(s);
-  if (ecran === 'chasse') { peindreCoques(); brancherGeste(s); }
+  if (ecran === 'chasse') { calibrerCartes(); peindreCoques(); brancherGeste(s); }
 }
 
 initFx();
-startOcean(document.getElementById('ocean'));
 engagerSuivante();
+
+// L'HORIZON EST POSÉ SUR LES NAVIRES, pas sur une fraction devinée : on le
+// place au tiers supérieur des coques, si bien qu'on voit du ciel à travers
+// les voiles hautes et de l'eau derrière les coques. Il faut donc que la
+// bande de mer ait été mesurée — d'où l'appel APRÈS le premier rendu.
+function poserHorizon() {
+  const f = document.querySelector('.ecran-cartes .flotte');
+  if (!f) return 0.4;
+  const r = f.getBoundingClientRect();
+  return Math.max(0.2, Math.min(0.6, (r.top + r.height * 0.34) / window.innerHeight));
+}
+startOcean(document.getElementById('ocean'), { horizon: poserHorizon() });
 </script>
 </body>
 </html>

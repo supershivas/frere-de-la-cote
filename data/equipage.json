@@ -23,7 +23,7 @@
       "nom": "charpentier",
       "court": "charp.",
       "verbe": "ne tire pas ; répare s'il est seul",
-      "aide": "Une volée d'un seul charpentier rend 12 à La Tortue, un largage, et jette une carte Feu. Accompagné, il ne fait rien."
+      "aide": "Une volée d'un seul charpentier rend 12 à La Tortue et jette une carte Feu. Accompagné, il ne fait rien."
     }
   },
   "equipage": [
@@ -214,9 +214,9 @@
       "nom": "Barque longue",
       "rang": "petite prise",
       "hullClass": 6,
-      "pv": 135,
+      "pv": 110,
       "mats": 2,
-      "riposte": 14,
+      "riposte": 12,
       "butin": 4,
       "regle": null
     },
@@ -225,9 +225,9 @@
       "nom": "Flûte marchande",
       "rang": "marchand",
       "hullClass": 4,
-      "pv": 210,
+      "pv": 155,
       "mats": 2,
-      "riposte": 19,
+      "riposte": 15,
       "butin": 6,
       "regle": "lest"
     },
@@ -236,9 +236,9 @@
       "nom": "Galion d'argent",
       "rang": "gros porteur",
       "hullClass": 2,
-      "pv": 290,
+      "pv": 190,
       "mats": 3,
-      "riposte": 24,
+      "riposte": 20,
       "butin": 9,
       "regle": "franc_bord"
     },
@@ -247,9 +247,9 @@
       "nom": "Frégate royale",
       "rang": "escorte",
       "hullClass": 3,
-      "pv": 375,
+      "pv": 240,
       "mats": 3,
-      "riposte": 29,
+      "riposte": 24,
       "butin": 12,
       "regle": "riposte"
     },
@@ -258,9 +258,9 @@
       "nom": "Vaisseau de ligne",
       "rang": "vaisseau",
       "hullClass": 1,
-      "pv": 490,
+      "pv": 310,
       "mats": 3,
-      "riposte": 35,
+      "riposte": 29,
       "butin": 16,
       "regle": "cuirasse"
     }
@@ -268,7 +268,7 @@
   "regles": {
     "lest": {
       "nom": "Lourdement lestée",
-      "texte": "Une volée de moins de trois hommes ne l'entame pas."
+      "texte": "Un homme seul ne l'entame pas."
     },
     "franc_bord": {
       "nom": "Franc-bord haut",
@@ -303,12 +303,6 @@
       "prix": 9
     },
     {
-      "id": "seaux",
-      "nom": "Seaux de cuir",
-      "texte": "+1 largage par prise.",
-      "prix": 5
-    },
-    {
       "id": "caronades",
       "nom": "Caronades",
       "texte": "+4 aux dégâts de chaque volée.",
@@ -325,6 +319,12 @@
       "nom": "Hune renforcée",
       "texte": "Un tir au gréement abat un mât même sous le seuil.",
       "prix": 8
+    },
+    {
+      "id": "double_fond",
+      "nom": "Double fond",
+      "texte": "+1 homme à la relève de chaque tour.",
+      "prix": 9
     }
   ],
   "quarts": {
