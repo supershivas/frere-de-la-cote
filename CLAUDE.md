@@ -115,7 +115,14 @@ doit pas être le seul chemin.
   pas** jouer : ce sont eux dont il faut expliquer le refus.
 - **Les cartes arrivent, elles n'apparaissent pas** : la relève vole depuis la
   droite, décalée d'une carte à l'autre. On compte les hommes reçus sans lire
-  un chiffre.
+  un chiffre. La marque `neuve` est un ÉVÉNEMENT, pas un état : elle est
+  oubliée après le rendu et retirée du DOM à la fin de l'animation — sinon la
+  distribution repartait à chaque homme touché.
+- **La carte Feu fume**, en boucle : c'est la seule carte qui ne sert à rien,
+  il faut le voir de loin.
+- **Les conditions sont UNE cible de 44 px** — météo, règle de la prise,
+  reliques — qui les ouvre toutes. Trois puces de 17 px de haut étaient trois
+  cibles qu'un pouce rate, et l'audit mobile les relevait.
 - **La zone de dépôt est sous le nôtre**, et n'existe que pendant le geste.
   Les deux se répondent : sa carte à elle, notre cible à nous.
 - **L'horizon est posé sur les navires** — `startOcean(canvas, { horizon })`,

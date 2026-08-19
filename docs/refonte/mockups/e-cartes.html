@@ -392,6 +392,7 @@ function carteVue(c, rang = 0, neuve = false) {
       el('span', { text: feu ? 'feu' : (q.bord === 'babord' ? 'bâ' : 'tri') }),
       el('span', { class: 'c-bout', text: feu ? '' : (q.bout === 'avant' ? 'AV' : 'AR') }),
     ]),
+    feu ? el('span', { class: 'c-fumee' }) : null,
     c.grade ? el('span', { class: 'c-grade', text: '★'.repeat(c.grade) }) : null,
     c.blesse ? el('span', { class: 'c-etat', text: 'bl.' }) : null,
     el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
@@ -401,6 +402,10 @@ function carteVue(c, rang = 0, neuve = false) {
       attrs: { style: `background:${feu ? '#6b3a10' : ROLE_FOND[c.role]}` },
     }),
   ]);
+  // La classe s'enlève dès que l'animation est finie : un marqueur qui reste
+  // après coup est un état qui ment, et le jour où quelque chose le relit,
+  // l'animation repart.
+  if (neuve) n.addEventListener('animationend', () => n.classList.remove('neuve'), { once: true });
   return n;
 }
 function secouer(n) {
@@ -411,19 +416,19 @@ function secouer(n) {
 // jouent pas, ils sont là et ils changent une règle — donc ils doivent être
 // visibles en permanence, et s'expliquer au doigt.
 function etatMajor() {
+  // Seuls les officiers EMBARQUÉS s'affichent : trois carrés vides en
+  // permanence, c'était trois cibles tactiles pour rien — et sous les 44 px,
+  // parce qu'il fallait les faire tenir. À bord, ils prennent la place qu'il
+  // faut pour qu'un pouce les trouve.
+  if (!P.officiers.length) return null;
   const zone = el('div', { class: 'etat-major' });
-  for (let i = 0; i < C.OFFICIERS_MAX; i++) {
-    const id = P.officiers[i];
-    const o = id ? CONTENU.officiers.find((x) => x.id === id) : null;
+  for (const id of P.officiers) {
+    const o = CONTENU.officiers.find((x) => x.id === id);
+    if (!o) continue;
     const n = el('button', {
-      class: `officier${o ? '' : ' vide'}`, text: o ? o.nom.replace(/^(Le |La |L')/, '')[0] : '·',
-      attrs: { type: 'button', 'aria-label': o ? `${o.nom} — ${o.texte}` : 'place d’officier libre' },
-      on: {
-        click: () => bulleSur(n, o
-          ? `<div class="b-nom">${o.nom}</div><div>${o.titre}</div><div class="b-quoi">${o.texte}</div>`
-          : '<div class="b-nom">Place libre</div><div class="b-quoi">Un officier s’engage au partage. '
-            + 'Il ne se joue pas : il est là, et il change une règle. Trois au plus.</div>'),
-      },
+      class: 'officier', text: o.nom.replace(/^(Le |La |L')/, '')[0],
+      attrs: { type: 'button', 'aria-label': `${o.nom} — ${o.texte}` },
+      on: { click: () => bulleSur(n, `<div class="b-nom">${o.nom}</div><div>${o.titre}</div><div class="b-quoi">${o.texte}</div>`) },
     });
     zone.appendChild(n);
   }
@@ -440,7 +445,6 @@ function ecranChasse() {
       el('div', { class: 'rb-quoi', text: `Prendre ${p.nom}` }),
       el('div', { class: 'rb-rang', text: `tour ${P.tour}${P.encrasse ? ` · ${CONTENU.bords[P.encrasse].nom} recharge` : ` · ${p.rang}`}` }),
     ]),
-    etatMajor(),
     el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
     el('button', { class: 'btn-level-3 rouage', text: '⚙', attrs: { type: 'button', 'aria-label': 'aide et réglages' }, on: { click: ouvrirAide } }),
   ]));
@@ -474,32 +478,36 @@ function ecranChasse() {
       el('div', { class: 'coque prise' }, [el('canvas', { attrs: { id: 'c-prise' } })]),
     ]),
   ]);
-  // Chaque pastille S'EXPLIQUE AU CLIC : météo, règle de prise, relique.
-  // Un modificateur qu'on subit sans pouvoir en lire l'effet n'est pas une
-  // règle du jeu, c'est du bruit.
-  const past = el('div', { class: 'pastilles' });
-  const pastille = (cls, texte, titre, corps) => {
-    const n = el('button', {
-      class: `pastille ${cls}`, text: texte,
-      attrs: { type: 'button' },
-      on: { click: () => bulleSur(n, `<div class="b-nom">${titre}</div><div class="b-quoi">${corps}</div>`) },
-    });
-    past.appendChild(n);
-  };
+  // LES CONDITIONS : météo, règle de la prise, reliques. Une seule cible de
+  // 44 px qui les ouvre toutes — trois puces de 17 px de haut étaient trois
+  // cibles qu'un pouce rate, et l'audit mobile les relevait.
+  const conditions = [];
   if (P.meteo) {
     const m = P.meteo.mods.damageMult || 1;
-    pastille('', `${P.meteo.icon} ${P.meteo.name_fr}${m !== 1 ? ` ×${m}` : ''}`, P.meteo.name_fr,
-      `${P.meteo.desc_fr || ''} ${m === 1 ? 'Elle ne change rien à tes volées.'
-        : m < 1 ? `Tes volées perdent ${Math.round((1 - m) * 100)} % : la mer gêne le pointage.`
-          : `Tes volées gagnent ${Math.round((m - 1) * 100)} % : la mer porte le tir.`}`);
+    conditions.push({
+      chip: `${P.meteo.icon} ${P.meteo.name_fr}${m !== 1 ? ` ×${m}` : ''}`, cls: '',
+      titre: `${P.meteo.icon} ${P.meteo.name_fr}`,
+      corps: `${P.meteo.desc_fr || ''} ${m === 1 ? 'Elle ne change rien à tes volées.'
+        : m < 1 ? `<b>Tes volées perdent ${Math.round((1 - m) * 100)} %</b> : la mer gêne le pointage.`
+          : `<b>Tes volées gagnent ${Math.round((m - 1) * 100)} %</b> : la mer porte le tir.`}`,
+    });
   }
-  if (p.regle) pastille('regle', `⚑ ${CONTENU.regles[p.regle].nom}`, CONTENU.regles[p.regle].nom,
-    `${CONTENU.regles[p.regle].texte} C'est la particularité de ce navire-là ; un autre en aura une autre.`);
+  if (p.regle) conditions.push({
+    chip: `⚑ ${CONTENU.regles[p.regle].nom}`, cls: 'regle', titre: `⚑ ${CONTENU.regles[p.regle].nom}`,
+    corps: `${CONTENU.regles[p.regle].texte} C'est la particularité de ce navire-là ; un autre en aura une autre.`,
+  });
   for (const id of P.reliques) {
     const r = CONTENU.reliques.find((x) => x.id === id);
-    if (r) pastille('relique', `✦ ${r.nom}`, r.nom, r.texte);
+    if (r) conditions.push({ chip: `✦ ${r.nom}`, cls: 'relique', titre: `✦ ${r.nom}`, corps: r.texte });
   }
-  mer.appendChild(past);
+  const past = el('button', {
+    class: 'pastilles', attrs: { type: 'button', 'aria-label': 'conditions de la chasse' },
+    on: { click: () => bulleSur(past, conditions.map((c) => `<div class="b-nom">${c.titre}</div><div class="b-quoi">${c.corps}</div>`).join('<hr>'), 6000) },
+  }, conditions.map((c) => el('span', { class: `pastille ${c.cls}`, text: c.chip })));
+  if (conditions.length) mer.appendChild(past);
+
+  const major = etatMajor();
+  if (major) mer.appendChild(major);
 
   // SA CARTE : l'intention n'est pas un bandeau de plus en travers de l'écran,
   // c'est une carte — même facture que les nôtres, teinte sombre — posée sous
@@ -849,6 +857,10 @@ function rendre() {
   const s = ecran === 'partage' ? ecranPartage() : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse();
   r.appendChild(s);
   if (ecran === 'chasse') { calibrerCartes(); peindreCoques(); brancherGeste(s); }
+  // La distribution est un ÉVÉNEMENT, pas un état : une fois les cartes
+  // arrivées, on oublie qui venait d'arriver. Sans cet oubli, l'animation
+  // repartait à chaque rendu — c'est-à-dire à chaque homme touché.
+  neuves = [];
 }
 
 initFx();

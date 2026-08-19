@@ -1234,8 +1234,10 @@
 .screen.ecran-cartes .e-mats .bas { color: #6b4a26; }
 
 .screen.ecran-cartes .pastilles {
-  position: absolute; z-index: 2; left: 0; bottom: 54px;
-  display: flex; flex-wrap: wrap; gap: 3px; max-width: 62%;
+  position: absolute; z-index: 2; left: 0; bottom: 46px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 3px;
+  max-width: 62%; min-height: 44px; padding: 4px 2px;
+  background: none; border: 0; cursor: help;
 }
 .screen.ecran-cartes .pastille {
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: 3px;
@@ -1307,19 +1309,23 @@
 .ecran-cartes-bulle .b-nom { font-family: var(--font-title); font-size: 13px; color: var(--gold-light); }
 .ecran-cartes-bulle .b-quoi { color: var(--text-primary); }
 .ecran-cartes-bulle .b-refus { color: var(--hp); }
+.ecran-cartes-bulle hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
 .ecran-cartes-bulle::after {
   content: ''; position: absolute; bottom: -6px; left: var(--fleche, 50%); margin-left: -6px;
   border: 6px solid transparent; border-top-color: var(--gold-dark);
 }
 
-/* --- l'état-major : les officiers, toujours à l'écran -------------------- */
-.screen.ecran-cartes .etat-major { display: flex; gap: 4px; flex: 0 0 auto; }
-.screen.ecran-cartes .officier {
-  width: 26px; height: 26px; min-height: 0; padding: 0; border-radius: 5px;
-  border: 1px solid var(--gold-dark); background: linear-gradient(180deg, #3d2817, #241608);
-  font-family: var(--font-title); font-size: 13px; color: var(--gold-light); cursor: help;
+/* --- l'état-major : les officiers embarqués, dans la bande de mer -------- */
+.screen.ecran-cartes .etat-major {
+  position: absolute; z-index: 3; right: 2px; top: 2px;
+  display: flex; flex-direction: column; gap: 4px;
 }
-.screen.ecran-cartes .officier.vide { border-style: dashed; opacity: .35; color: var(--text-muted); }
+.screen.ecran-cartes .officier {
+  width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 6px;
+  border: 1px solid var(--gold-dark); background: linear-gradient(180deg, #3d2817, #241608);
+  font-family: var(--font-title); font-size: 18px; color: var(--gold-light); cursor: help;
+  box-shadow: 0 2px 5px rgba(0,0,0,.5);
+}
 
 /* --- le tableau : le compte de la volée, avant qu'on la tire ---
    Il garde sa taille : le mou vertical va à la mer, qui est peinte, et non à
@@ -1451,6 +1457,27 @@
 }
 .screen.ecran-cartes .carte .c-grade {
   position: absolute; top: 18px; left: 3px; font-size: 8px; color: #8a6a1a; letter-spacing: -1px;
+}
+
+/* --- la carte Feu fume ---------------------------------------------------
+   Elle est la seule carte qui ne sert à rien, et il faut qu'on le voie de
+   loin : trois volutes qui montent en boucle par-dessus le carton. */
+@keyframes fumer {
+  0%   { transform: translate(0, 4px) scale(.7); opacity: 0; }
+  30%  { opacity: .55; }
+  100% { transform: translate(6px, -26px) scale(1.5); opacity: 0; }
+}
+.screen.ecran-cartes .carte .c-fumee { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.screen.ecran-cartes .carte .c-fumee::before,
+.screen.ecran-cartes .carte .c-fumee::after {
+  content: ''; position: absolute; bottom: 26px; left: 34%;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, rgba(226,215,196,.85), rgba(140,128,110,0) 68%);
+  animation: fumer 2.6s ease-out infinite;
+}
+.screen.ecran-cartes .carte .c-fumee::after { left: 52%; animation-delay: 1.1s; animation-duration: 3.1s; }
+@media (prefers-reduced-motion: reduce) {
+  .screen.ecran-cartes .carte .c-fumee { display: none; }
 }
 
 /* --- la distribution : on VOIT les hommes monter sur le pont ------------
