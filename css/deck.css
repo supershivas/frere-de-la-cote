@@ -1342,9 +1342,22 @@
 .screen.ecran-cartes .tableau.annule { border-left-color: var(--text-muted); }
 .screen.ecran-cartes .tb-tete { display: flex; align-items: baseline; gap: 6px; }
 .screen.ecran-cartes .tb-cible { font-family: var(--font-title); font-size: 14px; color: var(--gold-light); }
-.screen.ecran-cartes .tb-total {
-  margin-left: auto; font-family: var(--font-body); font-weight: 700; font-size: 21px; color: var(--gold);
+/* Les DEUX monnaies, côte à côte, au moment du choix : ce que la volée
+   enlève à la coque, et ce qu'elle coûte à la cargaison. Écrit à deux
+   endroits différents, le prix n'existait pas pour le joueur. */
+.screen.ecran-cartes .tb-prix { margin-left: auto; display: flex; align-items: baseline; gap: 8px; }
+.screen.ecran-cartes .tb-degats { font-family: var(--font-body); font-weight: 700; font-size: 21px; color: var(--gold); }
+.screen.ecran-cartes .tb-gate { font-family: var(--font-body); font-weight: 700; font-size: 15px; color: var(--hp); }
+.screen.ecran-cartes .tb-sauf { font-family: var(--font-body); font-size: 10px; color: var(--success); }
+.screen.ecran-cartes .e-cargo { color: var(--gold); }
+.screen.ecran-cartes .occasion {
+  position: absolute; z-index: 3; left: 0; right: 0; top: 50%; transform: translateY(-50%);
+  text-align: center; font-family: var(--font-title); font-size: 11px; color: #241608;
+  background: linear-gradient(180deg, #f1c40f, #d4a017); padding: 4px 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.5); animation: occasion 2.4s ease-in-out infinite;
 }
+@keyframes occasion { 0%, 100% { opacity: .92; } 50% { opacity: 1; box-shadow: 0 2px 16px rgba(241,196,15,.6); } }
+@media (prefers-reduced-motion: reduce) { .screen.ecran-cartes .occasion { animation: none; } }
 .screen.ecran-cartes .tb-detail {
   font-size: 9px; color: var(--text-secondary); line-height: 1.4; margin-top: 2px;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
@@ -1548,11 +1561,27 @@
 }
 @media (prefers-reduced-motion: reduce) { .copeau, .boufee, .fumee { display: none; } }
 
-/* --- boulet : un projectile qu'on suit des yeux --- */
+/* --- boulet : un projectile qu'on suit des yeux -------------------------
+   Noir et minuscule sur une mer sombre, il était invisible. Il est clair,
+   cerné, et surtout il traîne de la fumée : c'est le sillage qu'on suit. */
 .boulet {
-  position: fixed; z-index: 45; width: 9px; height: 9px; border-radius: 50%;
-  background: radial-gradient(circle at 32% 32%, #6a6a6a, #141414 70%);
-  box-shadow: 0 0 5px rgba(0,0,0,.7); pointer-events: none;
+  position: fixed; z-index: 46; width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff6d8 0%, #d8c9a4 38%, #4a4038 78%, #1a1512 100%);
+  box-shadow: 0 0 10px rgba(255,226,150,.85), 0 0 3px rgba(0,0,0,.9);
+  pointer-events: none; will-change: transform;
+}
+.boulet-sillage {
+  position: fixed; z-index: 45; width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(226,216,196,.5); pointer-events: none;
+  animation: sillage .6s ease-out forwards;
+}
+@keyframes sillage {
+  from { opacity: .55; transform: scale(.7); }
+  to   { opacity: 0; transform: scale(2.6); }
+}
+.copeau { position: fixed; z-index: 45; border-radius: 1px; pointer-events: none; will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+  .boulet-sillage, .copeau { display: none; }
 }
 
 /* --- le partage --- */
@@ -1614,7 +1643,10 @@
 .screen.ecran-cartes .chart .terre { fill: #3a3021; stroke: #6b5a3a; stroke-width: 1.2px; }
 .screen.ecran-cartes .chart .cote { fill: none; stroke: #6b5a3a; stroke-width: 1.4px; }
 .screen.ecran-cartes .chart .route {
-  stroke: var(--gold-dark); stroke-width: 1.4px; stroke-dasharray: 4 4; opacity: .85;
+  fill: none; stroke: var(--gold-dark); stroke-width: 1.4px; stroke-dasharray: 4 4; opacity: .7;
+}
+.screen.ecran-cartes .chart .route.visee {
+  stroke: var(--gold-light); stroke-width: 2.4px; opacity: 1; stroke-dasharray: 5 3;
 }
 .screen.ecran-cartes .epingle {
   position: absolute; width: 44px; height: 44px; min-height: 44px; padding: 0;
@@ -1628,6 +1660,10 @@
 .screen.ecran-cartes .epingle[disabled] { cursor: default; }
 .screen.ecran-cartes .epingle[disabled] .pt { opacity: .5; }
 .screen.ecran-cartes .epingle.vu .pt { background: #8a7a5a; }
+.screen.ecran-cartes .epingle.visee .pt {
+  width: 18px; height: 18px; background: #fff3c4;
+  box-shadow: 0 0 0 3px rgba(13,9,8,.7), 0 0 16px var(--gold-light);
+}
 .screen.ecran-cartes .epingle.ouverte .pt {
   width: 15px; height: 15px; background: var(--gold-light);
   box-shadow: 0 0 0 3px rgba(13,9,8,.65), 0 0 12px var(--gold-glow);
@@ -1637,7 +1673,11 @@
   width: 15px; height: 15px; background: #e6d9bd; box-shadow: 0 0 0 3px rgba(13,9,8,.7);
 }
 @keyframes battement { 0%,100% { transform: scale(1); } 50% { transform: scale(1.22); } }
-@media (prefers-reduced-motion: reduce) { .screen.ecran-cartes .epingle.ouverte .pt { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .screen.ecran-cartes .epingle.visee .pt {
+  width: 18px; height: 18px; background: #fff3c4;
+  box-shadow: 0 0 0 3px rgba(13,9,8,.7), 0 0 16px var(--gold-light);
+}
+.screen.ecran-cartes .epingle.ouverte .pt { animation: none; } }
 .screen.ecran-cartes .epingle .nom {
   position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
   font-family: var(--font-title); font-size: 9px; color: var(--text-primary);
@@ -1653,6 +1693,10 @@
 .screen.ecran-cartes .cap .c-ou { font-family: var(--font-title); font-size: 14px; color: var(--gold-light); }
 .screen.ecran-cartes .cap .c-quoi { font-size: 9px; color: var(--text-secondary); line-height: 1.45; }
 .screen.ecran-cartes .cap .c-quoi b { color: var(--text-primary); }
+.screen.ecran-cartes .cap .partir {
+  display: block; width: 100%; min-height: 46px; margin-top: 6px;
+  font-size: 14px; border-radius: 8px;
+}
 
 /* --- §17.3 — LE TUTORIEL -------------------------------------------------
    Un projecteur sur ce qu'il faut regarder, une phrase, et rien d'autre. Il

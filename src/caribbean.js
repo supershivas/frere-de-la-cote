@@ -127,6 +127,89 @@ export function reachableFrom(id, act) {
     .slice(0, 4);
 }
 
+// --- La route, et pourquoi elle n'est pas droite -------------------------
+//
+// Deux escales séparées par une île ne se rejoignent pas en ligne droite : on
+// contourne. Tracer le segment direct faisait passer les routes AU TRAVERS
+// d'Hispaniola et de Cuba, ce qui donnait une carte fausse — et une carte
+// fausse n'apprend pas la mer qu'on prétend faire apprendre.
+//
+// Ce n'est pas de la navigation : c'est le trait le plus court qui reste sur
+// l'eau. On essaie la ligne droite ; si elle mord la terre, on l'écarte
+// perpendiculairement, d'un cran puis d'un autre, des deux côtés, et l'on
+// garde le premier écart qui passe.
+
+function dansPolygone(pt, poly) {
+  let dedans = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = [poly[i].x, poly[i].y];
+    const [xj, yj] = [poly[j].x, poly[j].y];
+    if ((yi > pt.y) !== (yj > pt.y) && pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi) + xi) dedans = !dedans;
+  }
+  return dedans;
+}
+
+// LES TERRES, RÉTRÉCIES. Les côtes sont tracées grossièrement — une douzaine
+// de points par île — et la plupart des escales sont des ports, donc SUR le
+// trait. Testées telles quelles, presque toutes les routes « mordaient la
+// terre » et partaient en boucles absurdes pour contourner une île qu'elles
+// ne faisaient que longer. On les érode vers leur centre : ce qui reste est
+// l'intérieur des terres, celui qu'une route n'a effectivement pas le droit
+// de traverser.
+const EROSION = 0.82;
+const TERRES = () => coastlines().filter((c) => c.closed).map((c) => {
+  const n = c.points.length;
+  const cx = c.points.reduce((s2, p) => s2 + p.x, 0) / n;
+  const cy = c.points.reduce((s2, p) => s2 + p.y, 0) / n;
+  return c.points.map((p) => ({ x: cx + (p.x - cx) * EROSION, y: cy + (p.y - cy) * EROSION }));
+});
+
+function surLaTerre(pt, terres) {
+  return terres.some((poly) => dansPolygone(pt, poly));
+}
+
+// Une courbe quadratique échantillonnée, en fractions de carte (0..1).
+function courbe(a, b, ctrl, n = 24) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, u = 1 - t;
+    pts.push({
+      x: u * u * a.x + 2 * u * t * ctrl.x + t * t * b.x,
+      y: u * u * a.y + 2 * u * t * ctrl.y + t * t * b.y,
+    });
+  }
+  return pts;
+}
+
+export function routeEntre(a, b) {
+  const terres = TERRES();
+  const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  const dx = b.x - a.x, dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len;   // la perpendiculaire au segment
+
+  // On ne teste que le LARGE : les extrémités sont des ports, et un port est
+  // sur la côte — donc dans le polygone, à la résolution grossière où ces
+  // côtes sont tracées. Exiger que la route entière évite la terre revenait à
+  // n'accepter aucune route et à toujours retomber sur la ligne droite.
+  const propre = (pts) => !pts.slice(2, -2).some((p) => surLaTerre(p, terres));
+  const droite = courbe(a, b, mid);
+  if (propre(droite)) return droite;
+
+  // On s'écarte par crans, alternativement d'un bord et de l'autre, et l'on
+  // garde LE PREMIER écart qui reste sur l'eau — donc le plus petit. Au-delà
+  // d'un cinquième de la carte, ce n'est plus un contournement mais une
+  // boucle : on rend la droite, moins fausse qu'un détour absurde.
+  for (let k = 0.02; k <= 0.2; k += 0.02) {
+    for (const sens of [1, -1]) {
+      const ctrl = { x: mid.x + nx * k * sens, y: mid.y + ny * k * sens };
+      const pts = courbe(a, b, ctrl);
+      if (propre(pts)) return pts;
+    }
+  }
+  return droite;
+}
+
 // §10.3: every node asks a question, none is a vending machine. The cost is
 // stated up front so the choice is informed.
 export function nodeCost(place, run) {

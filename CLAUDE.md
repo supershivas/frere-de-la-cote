@@ -148,6 +148,15 @@ sert `tools/mobile-audit.mjs`.
   distribution repartait à chaque homme touché.
 - **La carte Feu fume**, en boucle : c'est la seule carte qui ne sert à rien,
   il faut le voir de loin.
+- **Une route de mer contourne la terre.** `routeEntre(a, b)` (dans
+  `src/caribbean.js`) rend la courbe la plus courte qui reste sur l'eau. Deux
+  précautions, toutes deux payées d'un détour absurde à l'écran : les côtes
+  sont **érodées** avant le test, parce qu'un port est sur le trait de côte et
+  que sans cela aucune route ne passait ; et l'on garde **le premier** écart
+  qui passe, donc le plus petit.
+- **Le cap se valide par un bouton.** Toucher une escale vise et dit ce qu'on y
+  trouve ; c'est le bouton nommé qui part. « Touche encore pour confirmer »
+  n'était écrit nulle part avant d'avoir visé.
 - **Les conditions sont UNE cible de 44 px** — météo, règle de la prise,
   reliques — qui les ouvre toutes. Trois puces de 17 px de haut étaient trois
   cibles qu'un pouce rate, et l'audit mobile les relevait.
@@ -281,13 +290,15 @@ fois un homme sélectionné, plus aucune touche n'en sélectionnait un second, e
 rien ne le signalait — la carte s'illuminait bien au premier appui. La capture
 se prend au franchissement du seuil (8 px), pas avant.
 
-**9. Ne jamais mesurer ce qu'on est en train de transformer.** Deux fois le
+**9. Ne jamais tirer une valeur STABLE d'une entrée qui BOUGE.** Trois fois le
 même bug. Le canvas d'une coque était dimensionné d'après la hauteur de son
 parent, laquelle venait du canvas : à chaque repeinte les navires
 rétrécissaient d'un cran. Et le paquet de cartes en cours de glissement était
 repositionné d'après des `getBoundingClientRect()` relus à chaque
-`pointermove`, donc déjà transformés : les cartes tremblaient. On mesure une
-fois, au début du geste, et on garde la mesure.
+`pointermove`, donc déjà transformés : les cartes tremblaient. Et la forme des
+nuages était tirée de leur abscisse, laquelle dérive : les bourgeons se
+retiraient au sort soixante fois par seconde et le ciel clignotait. Une forme
+vient d'une graine, une mesure se prend une fois — jamais de ce qui change.
 
 **10. On pioche avec `pop()` : la fin du tableau est le DESSUS du paquet.**
 La carte Feu du brûlot était posée avec `unshift`, donc au fond de la pioche :
@@ -322,6 +333,11 @@ le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
 - **« est-ce que choisir compte ? »** — les mêmes mains, sur les mêmes
   graines, jouées par un capitaine appliqué et par un maladroit. Le maladroit
   doit perdre nettement.
+- **« ménager la cargaison paie, et coûte des tours »** — le test le plus
+  important du dépôt. Deux façons de chasser la même prise : vite, ou proprement.
+  Il échoue si l'une des deux domine l'autre, et c'est bien le point : tant
+  qu'une seule ligne de jeu est optimale, le joueur exécute un calcul, il ne
+  choisit rien.
 - **« ménager la cargaison paie, et coûte des tours »** — le test le plus
   important du dépôt. Deux façons de chasser la même prise : vite, ou proprement.
   Il échoue si l'une des deux domine l'autre, et c'est bien le point : tant

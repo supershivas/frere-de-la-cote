@@ -38,7 +38,7 @@
 
 import * as C from './src/cartes.js';
 import * as Voy from './src/voyage.js';
-import { coastlines, places } from './src/caribbean.js';
+import { coastlines, places, routeEntre } from './src/caribbean.js';
 import { getGeneratedShip, drawGrid } from './src/sprites.js';
 import { startOcean, randomOceanScene } from './src/ocean.js';
 import { initFx, fxExplosion, fxBroadside, fxFloatText } from './src/fx.js';
@@ -71,6 +71,7 @@ const P = C.nouvellePartie(CONTENU);
 const V = Voy.nouveauVoyage();
 let ecran = 'carte';
 let trouve = null;        // ce qu'une épave vient de rendre
+let viseeCarte = null;    // l'escale visée, en attente de confirmation
 let rencontre = null;     // la rencontre en cours
 let mot = '';            // la dernière chose qui s'est passée, en une ligne
 let occupe = false;      // une animation est en cours : les gestes sont sourds
@@ -312,22 +313,36 @@ function bouffee(x, y, sens, taille = 1) {
   ).onfinish = () => d.remove();
 }
 
-function boulet(a, b, duree = 420) {
+// LE BOULET. Il était noir, de neuf pixels, et traversait une mer sombre en
+// quatre dixièmes de seconde : personne ne le voyait jamais. Il est maintenant
+// clair, plus gros, plus lent, et il laisse une traînée de fumée derrière lui —
+// c'est la traînée qu'on suit des yeux, pas la bille.
+function boulet(a, b, duree = 620) {
   return new Promise((fini) => {
     const d = el('div', { class: 'boulet' });
     document.body.appendChild(d);
-    const arc = Math.min(60, Math.abs(b.x - a.x) * 0.22);
+    const arc = Math.min(70, Math.abs(b.x - a.x) * 0.26);
     const t0 = performance.now();
+    let dernier = 0;
     const pas = (t) => {
       const k = Math.min(1, (t - t0) / duree);
       const x = a.x + (b.x - a.x) * k;
       const y = a.y + (b.y - a.y) * k - Math.sin(k * Math.PI) * arc;
-      d.style.transform = `translate(${x - 4}px, ${y - 4}px)`;
+      d.style.transform = `translate(${x - 7}px, ${y - 7}px)`;
+      // Une bouffée tous les 40 ms : le sillage dit d'où il vient et où il va.
+      if (t - dernier > 40 && k < 0.95) {
+        dernier = t;
+        const f = el('div', { class: 'boulet-sillage' });
+        f.style.transform = `translate(${x - 5}px, ${y - 5}px)`;
+        document.body.appendChild(f);
+        setTimeout(() => f.remove(), 620);
+      }
       if (k < 1) requestAnimationFrame(pas); else { d.remove(); fini(); }
     };
     requestAnimationFrame(pas);
   });
 }
+
 async function tir(deId, versId, sens, texte, ton, { cible = 'coque' } = {}) {
   const ports = bouches(deId, sens);
   const cv = document.getElementById(versId);
@@ -346,7 +361,7 @@ async function tir(deId, versId, sens, texte, ton, { cible = 'coque' } = {}) {
 
   await Promise.all(ports.map((pt, i) => attendre(i * 45).then(() => boulet(pt, {
     x: b.x + (Math.random() - 0.5) * 22, y: b.y + (Math.random() - 0.5) * 16,
-  }, 360 + i * 20))));
+  }, 520 + i * 30))));
 
   fxExplosion(b.x, b.y, { scale: 1.1 });
   copeaux(b.x, b.y, cible === 'greement' ? 8 : 12,
@@ -429,21 +444,41 @@ function tableau() {
     return t;
   }
   const r = C.evaluer(P, P.selection);
-  const cible = r.cible === 'greement' ? 'Tir au gréement' : r.cible === 'radoub' ? 'Radoub' : 'Tir à la coque';
+
+  // CE QUE LA VOLÉE FAIT, EN UNE PHRASE ET DEUX CHIFFRES.
+  //
+  // Le joueur lisait « Tir à la coque · 24 » et n'avait aucune raison de jouer
+  // autre chose que le plus gros chiffre — parce que le PRIX de ce chiffre (la
+  // cargaison trouée) était écrit ailleurs, en petit. Les deux monnaies se
+  // lisent maintenant au même endroit, au moment du choix.
+  const MANIERES = {
+    coque: { nom: 'À la coque', dit: 'les boulets entrent dans le bordé — et dans la cargaison' },
+    greement: { nom: 'Au gréement', dit: 'rien à la coque, rien de gâté : on lui coupe son coup' },
+    abordage: { nom: 'À l’abordage', dit: 'on saute à bord : les dégâts portent, la cargaison est intacte' },
+    radoub: { nom: 'Au radoub', dit: 'personne ne tire : on répare' },
+  };
+  const m = MANIERES[r.cible] || MANIERES.coque;
   t.appendChild(el('div', { class: 'tb-tete' }, [
-    el('span', { class: 'tb-cible', text: cible }),
-    el('span', { class: 'tb-total', text: r.cible === 'coque' ? String(r.degats) : (r.cible === 'greement' ? (r.abat ? 'un mât' : 'rien') : '+12') }),
+    el('span', { class: 'tb-cible', text: m.nom }),
+    el('span', { class: 'tb-prix' }, [
+      el('span', { class: 'tb-degats', text: r.cible === 'greement' ? (r.abat ? 'un mât' : '—') : `${r.degats} ⚔` }),
+      r.gate > 0
+        ? el('span', { class: 'tb-gate', text: `−${r.gate} 💰` })
+        : el('span', { class: 'tb-sauf', text: r.cible === 'radoub' ? '+12 ⛑' : 'cargaison sauve' }),
+    ]),
   ]));
-  const detail = r.lignes.filter((l) => l.points !== 0 || l.note)
-    .map((l) => `<b>${l.quoi}</b>${l.points ? ` ${l.points > 0 ? '+' : ''}${l.points}` : ''}`).join(' · ');
-  t.appendChild(el('div', { class: 'tb-detail', html: detail || '—' }));
+  t.appendChild(el('div', { class: 'tb-detail', text: m.dit }));
+
   const reste = Math.max(0, P.prise.pv - r.degats);
+  const cargo = Math.max(0, P.prise.butin - r.gate);
   t.appendChild(el('div', {
     class: 'tb-geste',
     html: r.cible === 'greement'
       ? (r.abat ? 'un mât tombe : <b>son coup n’aura pas lieu</b>' : `il faut ${r.seuil} de puissance pour abattre un mât`)
-      : r.cible === 'radoub' ? 'il ne tire pas, il répare'
-        : (reste === 0 ? '<b>cette volée la prend</b>' : `il lui resterait ${reste}`),
+      : r.cible === 'radoub' ? 'une volée d’un seul charpentier répare et jette un Feu'
+        : (reste === 0
+          ? (r.cible === 'abordage' ? '<b>elle est à toi, entière</b>' : '<b>coulée : on ne repêche que ce qui flotte</b>')
+          : `il resterait : coque ${reste} · cargaison ${cargo} 💰`),
   }));
   return t;
 }
@@ -463,7 +498,14 @@ function bulleSur(cible, html, duree = 3200) {
   const marge = 6;
   const x = Math.max(marge, Math.min(window.innerWidth - l.width - marge, r.left + r.width / 2 - l.width / 2));
   bulle.style.left = `${x}px`;
-  bulle.style.top = `${Math.max(marge, r.top - l.height - 10)}px`;
+  // Elle se pose AU-DESSUS DU TABLEAU, jamais dessus : le tableau est
+  // précisément ce qu'on lit pendant qu'on choisit ses hommes, et une bulle
+  // d'aide qui recouvre le compte de la volée explique une chose en cachant
+  // l'autre.
+  const tab = document.querySelector('.ecran-cartes .tableau');
+  const plafond = tab ? tab.getBoundingClientRect().top - 8 : window.innerHeight;
+  const bas = Math.min(r.top - 10, plafond);
+  bulle.style.top = `${Math.max(marge, bas - l.height)}px`;
   bulle.style.setProperty('--fleche', `${r.left + r.width / 2 - x}px`);
   requestAnimationFrame(() => bulle && bulle.classList.add('vue'));
   clearTimeout(bulleT);
@@ -850,6 +892,7 @@ function brancherGeste(scene) {
 async function tirer() {
   if (occupe || P.fini || !P.selection.length) return;
   occupe = true;
+  fermerBulle();   // une bulle d'aide ouverte recouvrait le tir qu'elle explique
   const r = C.jouer(P);
   rendre();
 
@@ -962,6 +1005,7 @@ function ecranCarte() {
   const s = el('div', { class: 'screen ecran-cartes' });
   const ouvertes = Voy.escales(V);
   const h = Voy.ici(V);
+  const vise = viseeCarte && ouvertes.some((o) => o.id === viseeCarte) ? viseeCarte : null;
 
   s.appendChild(el('div', { class: 'ruban' }, [
     el('div', { class: 'rb-txt' }, [
@@ -998,18 +1042,38 @@ function ecranCarte() {
     path.setAttribute('class', cote.closed ? 'terre' : 'cote');
     svg.appendChild(path);
   }
+  // Les routes CONTOURNENT LA TERRE. Un trait droit passait au travers
+  // d'Hispaniola : une carte fausse n'apprend pas la mer qu'elle prétend
+  // apprendre.
   for (const e of ouvertes) {
-    const l = document.createElementNS(NS, 'line');
-    l.setAttribute('x1', h.x * 100); l.setAttribute('y1', h.y * 100);
-    l.setAttribute('x2', e.x * 100); l.setAttribute('y2', e.y * 100);
-    l.setAttribute('class', 'route');
-    svg.appendChild(l);
+    const pts = routeEntre(h, e);
+    const path = document.createElementNS(NS, 'path');
+    path.setAttribute('d', pts.map((p, i) => `${i ? 'L' : 'M'}${(p.x * 100).toFixed(2)},${(p.y * 100).toFixed(2)}`).join(' '));
+    path.setAttribute('class', `route${e.id === vise ? ' visee' : ''}`);
+    path.dataset.vers = e.id;
+    svg.appendChild(path);
   }
   chart.appendChild(svg);
 
+  // LE CAP SE VALIDE PAR UN BOUTON. « Touche encore pour confirmer » n'était
+  // écrit nulle part avant d'avoir visé, et rien à l'écran ne le laissait
+  // deviner : le joueur touchait une escale, lisait ce qu'elle était, et
+  // restait là. Viser reste sans engagement ; partir est un ordre nommé.
+  const choisie = vise ? ouvertes.find((o) => o.id === vise) : null;
+  const esc = choisie ? (Voy.ESCALES[choisie.type] || Voy.ESCALES.chasse) : null;
   const cap = el('div', { class: 'cap' }, [
-    el('div', { class: 'c-ou', text: h.name }),
-    el('div', { class: 'c-quoi', html: `${h.note} <br>Touche une escale pour savoir ce qu’on y trouve, puis mets le cap.` }),
+    el('div', { class: 'c-ou', text: choisie ? `${choisie.name} — ${esc.nom}` : h.name }),
+    el('div', {
+      class: 'c-quoi',
+      html: choisie ? `${choisie.note}<br><b>${esc.quoi}</b>`
+        : `${h.note}<br>Touche une escale pour savoir ce qu’on y trouve.`,
+    }),
+    choisie
+      ? el('button', {
+        class: 'btn-level-1 partir', text: `Mettre le cap sur ${choisie.name}`,
+        attrs: { type: 'button' }, on: { click: () => { viseeCarte = null; aborder(choisie); } },
+      })
+      : null,
   ]);
 
   for (const place of places()) {
@@ -1019,36 +1083,25 @@ function ecranCarte() {
     const q = cadre(place);
     if (q.x < -0.06 || q.x > 1.06 || q.y < -0.06 || q.y > 1.06) continue;   // hors cadre
     const n = el('button', {
-      class: `epingle lbl-${place.label || 's'}${ouverte ? ' ouverte' : ''}${estIci ? ' ici' : ''}${vu ? ' vu' : ''}`,
+      class: `epingle lbl-${place.label || 's'}${ouverte ? ' ouverte' : ''}${estIci ? ' ici' : ''}${vu ? ' vu' : ''}${place.id === vise ? ' visee' : ''}`,
       attrs: {
         type: 'button', style: `left:${q.x * 100}%; top:${q.y * 100}%`,
         'aria-label': `${place.name} — ${place.note}`, ...(ouverte ? {} : { disabled: '' }),
       },
-      on: {
-        click: () => {
-          if (!ouverte) return;
-          const esc = Voy.ESCALES[place.type] || Voy.ESCALES.chasse;
-          if (cap.dataset.vise === place.id) { aborder(place); return; }
-          // Premier appui : viser, et l'écran dit exactement ce que ça ferait.
-          // Second appui : confirmer. Jamais d'engagement à la première touche.
-          cap.dataset.vise = place.id;
-          for (const autre of chart.querySelectorAll('.epingle .nom.vise')) autre.remove();
-          if (!estIci) n.appendChild(el('span', { class: 'nom vise', text: place.name }));
-          cap.querySelector('.c-ou').textContent = `${place.name} — ${esc.nom}`;
-          cap.querySelector('.c-quoi').innerHTML = `${place.note}<br><b>${esc.quoi}</b><br>`
-            + `<b>Touche encore pour y mettre le cap.</b>`;
-        },
-      },
+      // Toucher une escale VISE, et rien de plus : le bouton du bas est le
+      // seul ordre. Première touche = viser, seconde = confirmer, c'est la
+      // règle de tout l'écran (§2).
+      on: { click: () => { if (ouverte) { viseeCarte = place.id; rendre(); } } },
     }, [
       el('span', { class: 'pt' }),
-      // Seuls le lieu où l'on est et celui qu'on vise portent leur nom. Quatre
-      // escales voisines nommées d'un coup, dans un coin d'Hispaniola, c'était
-      // quatre étiquettes l'une par-dessus l'autre : la carte devenait un mur
-      // de texte, et le panneau du bas dit déjà le nom de ce qu'on vise.
-      estIci ? el('span', { class: 'nom', text: place.name }) : null,
+      // Seuls le lieu où l'on est et celui qu'on vise portent leur nom :
+      // quatre escales voisines nommées d'un coup, dans un coin d'Hispaniola,
+      // c'était quatre étiquettes l'une par-dessus l'autre.
+      (estIci || place.id === vise) ? el('span', { class: 'nom', text: place.name }) : null,
     ]);
     chart.appendChild(n);
   }
+
   s.appendChild(chart);
   s.appendChild(cap);
   return s;

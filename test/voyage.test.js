@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { suite, test, assert, equal, empty } from './harness.js';
 import * as V from '../src/voyage.js';
 import { placeById, places, legDistance } from '../src/caribbean.js';
+import * as C2 from '../src/caribbean.js';
 
 const CONTENU = JSON.parse(readFileSync(new URL('../data/equipage.json', import.meta.url), 'utf8'));
 const rngFor = (seed) => {
@@ -55,6 +56,44 @@ test('sailing advances the act when the place belongs to a later one', () => {
   if (!suivant) return;
   V.cingler(v, suivant.id);
   equal(v.acte, 2, 'l’acte n’a pas suivi le lieu');
+});
+
+test('a sea route never crosses the heart of an island', () => {
+  // Le trait droit passait au travers d'Hispaniola et de Cuba. Une carte
+  // fausse n'apprend pas la mer qu'elle prétend faire apprendre.
+  const { routeEntre, coastlines } = C2;
+  const coeurs = coastlines().filter((c) => c.closed).map((c) => {
+    const n = c.points.length;
+    return {
+      x: c.points.reduce((s, p) => s + p.x, 0) / n,
+      y: c.points.reduce((s, p) => s + p.y, 0) / n,
+    };
+  });
+  const bad = [];
+  const v = V.nouveauVoyage();
+  for (const e of V.escales(v)) {
+    const route = routeEntre(placeById(v.lieu), e);
+    for (const coeur of coeurs) {
+      // Aucun point de la route ne doit tomber à moins de 2 % du centre d'une
+      // île : c'est le cœur des terres, pas une côte qu'on longe.
+      if (route.some((p) => Math.hypot(p.x - coeur.x, p.y - coeur.y) < 0.02)) {
+        bad.push(`${v.lieu} → ${e.id} traverse le centre d'une île`);
+      }
+    }
+  }
+  empty(bad, 'routes across land');
+});
+
+test('a coastal hop stays straight', () => {
+  // Contourner ce qu'on longe donnait des boucles absurdes : deux escales
+  // voisines sur la même côte se rejoignent tout droit.
+  const { routeEntre } = C2;
+  const a = placeById('tortue'), b = placeById('port_margot');
+  const route = routeEntre(a, b);
+  const mid = route[Math.floor(route.length / 2)];
+  const droit = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  assert(Math.hypot(mid.x - droit.x, mid.y - droit.y) < 0.02,
+    'un saut le long de la côte fait un détour');
 });
 
 suite('voyage — ce qu’on trouve');

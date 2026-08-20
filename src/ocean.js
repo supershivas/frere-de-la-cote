@@ -103,7 +103,7 @@ export function startOcean(canvas, { horizon: fraction = 0.13 } = {}) {
     for (const c of clouds) {
       c.x += c.sp * 0.5;
       if (c.x > 1.2) c.x = -0.2;
-      drawCloud(ctx, c.x * w, c.y * horizon, c.sc, s.cloud);
+      drawCloud(ctx, c.x * w, c.y * horizon, c.sc, s.cloud, c.seed);
     }
 
     // Horizon decor.
@@ -169,46 +169,46 @@ export function stopOcean() { if (raf) cancelAnimationFrame(raf); raf = null; }
 //
 // Ce qui fait qu'un nuage est un nuage : une BASE PLATE — l'air se condense à
 // une altitude, la même pour tout le nuage — et un dessus en bourgeons de
-// tailles inégales. L'ancien dessin alignait quatre ellipses de hauteurs
-// voisines : on lisait quatre bulles, jamais un nuage. Le ventre est aussi
-// légèrement plus gris que le sommet, parce que la lumière tombe d'en haut.
-function drawCloud(ctx, x, y, sc, alpha) {
+// tailles inégales, plus clairs au sommet qu'au ventre.
+//
+// LA FORME VIENT DE `seed`, JAMAIS DE `x`. Tirée de la position, elle se
+// recalculait à chaque image puisque le nuage dérive : les bourgeons
+// changeaient de taille soixante fois par seconde et le ciel clignotait. Un
+// nuage doit garder sa forme et ne déplacer qu'elle.
+function drawCloud(ctx, x, y, sc, alpha, seed = 0) {
   if (alpha < 0.03) return;
-  // Chaque nuage tire sa forme de sa propre position : deux nuages voisins
-  // n'ont pas le même profil, et le même nuage garde le sien d'une image à
-  // l'autre (rien d'aléatoire par frame, sinon il grouille).
-  const h = (n) => { const v = Math.sin((x * 0.013 + n * 12.9898)) * 43758.5453; return v - Math.floor(v); };
+  const h = (n) => {
+    const v = Math.sin((seed + 1) * 12.9898 + n * 78.233) * 43758.5453;
+    return v - Math.floor(v);
+  };
   const base = y + 9 * sc;
-  const bourgeons = [
-    [-30, -1, 11], [-17, -8, 16], [-2, -14, 20], [13, -9, 17], [27, -3, 12], [37, 1, 8],
-  ];
+  const bourgeons = [[-30, -1, 11], [-17, -8, 16], [-2, -14, 20], [13, -9, 17], [27, -3, 12], [37, 1, 8]];
 
   ctx.save();
-  // Le ventre, à plat sur la base.
-  ctx.fillStyle = `rgba(196,206,218,${0.42 * alpha})`;
+  // Le ventre, à plat sur la base : c'est lui qui dit « nuage » et pas « bulle ».
+  ctx.fillStyle = `rgba(188,199,212,${0.34 * alpha})`;
   ctx.beginPath();
-  ctx.ellipse(x, base, 40 * sc, 5.5 * sc, 0, 0, 7);
+  ctx.ellipse(x + 2 * sc, base, 38 * sc, 5 * sc, 0, 0, 7);
   ctx.fill();
 
-  // Les bourgeons, du plus sombre au plus clair : l'empilement donne le volume.
   bourgeons.forEach(([dx, dy, r], i) => {
     const j = h(i);
-    const rr = r * (0.82 + j * 0.42) * sc;
-    const cx = x + dx * sc * (0.94 + j * 0.12);
-    const cy = base + (dy * sc * (0.85 + j * 0.35)) - rr * 0.35;
-    ctx.fillStyle = `rgba(${226 + j * 18},${233 + j * 15},${240 + j * 12},${(0.30 + j * 0.16) * alpha})`;
+    const rr = r * (0.84 + j * 0.36) * sc;
+    const cx = x + dx * sc * (0.95 + j * 0.1);
+    const cy = base + dy * sc * (0.88 + j * 0.3) - rr * 0.32;
+    ctx.fillStyle = `rgba(${222 + Math.round(j * 20)},${230 + Math.round(j * 16)},${238 + Math.round(j * 12)},${(0.26 + j * 0.14) * alpha})`;
     ctx.beginPath();
-    ctx.ellipse(cx, cy, rr, rr * (0.74 + j * 0.16), 0, 0, 7);
+    ctx.ellipse(cx, cy, rr, rr * (0.76 + j * 0.14), 0, 0, 7);
     ctx.fill();
   });
 
-  // Une lisière claire sur le dessus : c'est là que le soleil frappe.
-  ctx.fillStyle = `rgba(255,255,255,${0.20 * alpha})`;
+  // La lisière au soleil, sur les bourgeons du milieu seulement.
+  ctx.fillStyle = `rgba(255,255,255,${0.16 * alpha})`;
   bourgeons.slice(1, 4).forEach(([dx, dy, r], i) => {
-    const j = h(i + 3);
-    const rr = r * (0.6 + j * 0.3) * sc;
+    const j = h(i + 10);
+    const rr = r * (0.55 + j * 0.25) * sc;
     ctx.beginPath();
-    ctx.ellipse(x + dx * sc, base + dy * sc - rr * 0.9, rr, rr * 0.5, 0, 0, 7);
+    ctx.ellipse(x + dx * sc, base + dy * sc - rr * 1.05, rr, rr * 0.46, 0, 0, 7);
     ctx.fill();
   });
   ctx.restore();
