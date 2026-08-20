@@ -34,7 +34,7 @@
       "quand": [
         "argent_perou"
       ],
-      "texte": "Elle porte de l'argent. Un boulet dans sa coque et c'est notre part qui coule."
+      "texte": "Ce navire porte de l'argent. Un boulet dans la coque, et c'est notre part qui coule."
     },
     {
       "moment": "ouverture",
@@ -66,7 +66,7 @@
       "quand": [
         "sur_lest"
       ],
-      "texte": "Elle est haute sur l'eau. Il n'y a rien dedans."
+      "texte": "La prise est haute sur l'eau. Il n'y a rien dedans."
     },
     {
       "moment": "ouverture",
@@ -74,7 +74,7 @@
       "quand": [
         "sur_lest"
       ],
-      "texte": "Sur lest. La prendre nous coûtera plus qu'elle ne rapporte."
+      "texte": "Sur lest. La prendre coûtera plus que la cargaison ne rapporte."
     },
     {
       "moment": "ouverture",
@@ -122,7 +122,7 @@
       "quand": [
         "nuit"
       ],
-      "texte": "Il fait noir comme dans un four. On saura ce qu'elle vaut quand on sera dessus."
+      "texte": "Il fait noir comme dans un four. On saura ce que vaut la prise une fois dessus."
     },
     {
       "moment": "ouverture",
@@ -146,7 +146,7 @@
       "quand": [
         "aube"
       ],
-      "texte": "Le jour se lève sur elle avant qu'elle nous voie. C'est une faveur."
+      "texte": "Le jour se lève sur la prise avant que nos voiles soient vues. C'est une faveur."
     },
     {
       "moment": "ouverture",
@@ -154,7 +154,7 @@
       "quand": [
         "crepuscule"
       ],
-      "texte": "Encore une heure de jour. Après, elle nous glissera entre les doigts."
+      "texte": "Encore une heure de jour. Après, la prise nous glisse entre les doigts."
     },
     {
       "moment": "ouverture",
@@ -194,7 +194,7 @@
       "quand": [
         "vent_a_elle"
       ],
-      "texte": "Elle a le vent. Tant qu'elle a sa mâture, c'est elle qui décide de la distance."
+      "texte": "Le navire adverse a le vent. Tant que sa mâture tient, c'est lui qui décide de la distance."
     },
     {
       "moment": "ouverture",
@@ -202,7 +202,7 @@
       "quand": [
         "vent_a_nous"
       ],
-      "texte": "Le vent est pour nous. Elle ne nous échappera qu'en nous coulant."
+      "texte": "Le vent est pour nous. La prise n'échappera qu'en nous coulant."
     },
     {
       "moment": "ouverture",
@@ -306,7 +306,7 @@
       "quand": [
         "et_surchargee"
       ],
-      "texte": "Basse sur l'eau. Elle ne fuira pas — mais elle coulera d'un rien."
+      "texte": "Basse sur l'eau. Ce navire ne fuira pas — mais il coule d'un rien."
     },
     {
       "moment": "ouverture",
@@ -314,7 +314,7 @@
       "quand": [
         "et_avariee"
       ],
-      "texte": "Elle sort d'un combat. Quelqu'un l'a déjà entamée pour nous."
+      "texte": "Ce navire sort d'un combat. Quelqu'un l'a entamé pour nous."
     },
     {
       "moment": "ouverture",
@@ -322,7 +322,7 @@
       "quand": [
         "et_neuve"
       ],
-      "texte": "Coque neuve. Elle encaissera."
+      "texte": "Coque neuve. Ce bordé-là encaisse."
     },
     {
       "moment": "ouverture",
@@ -330,7 +330,7 @@
       "quand": [
         "post_fuit"
       ],
-      "texte": "Elle met toute sa toile. Deux hommes à la manœuvre, ou on la regarde partir."
+      "texte": "Le navire adverse met toute sa toile. Deux hommes à la manœuvre, ou on le regarde partir."
     },
     {
       "moment": "ouverture",
@@ -338,7 +338,7 @@
       "quand": [
         "post_fuit"
       ],
-      "texte": "Elle court. C'est qu'elle a quelque chose à perdre."
+      "texte": "Ce navire court. C'est qu'il a quelque chose à perdre."
     },
     {
       "moment": "ouverture",
@@ -346,7 +346,7 @@
       "quand": [
         "post_vient"
       ],
-      "texte": "Elle vient sur nous. Gardez les hommes aux pièces."
+      "texte": "Le navire adverse vient sur nous. Gardez les hommes aux pièces."
     },
     {
       "moment": "ouverture",
@@ -354,7 +354,7 @@
       "quand": [
         "post_attendait"
       ],
-      "texte": "Ses sabords sont déjà ouverts. Elle nous attendait."
+      "texte": "Les sabords d'en face sont déjà ouverts. On nous attendait."
     },
     {
       "moment": "ouverture",
@@ -370,7 +370,7 @@
       "quand": [
         "pav_aucun"
       ],
-      "texte": "Elle ne montre rien. Nous non plus, après tout."
+      "texte": "Ce navire ne montre rien. Nous non plus, après tout."
     },
     {
       "moment": "ouverture",
@@ -498,7 +498,7 @@
       "quand": [
         "brume"
       ],
-      "texte": "On l'entend plus qu'on ne la voit. Tout ce qu'on sait d'elle est faux."
+      "texte": "On entend la prise plus qu'on ne la voit. Tout ce qu'on en sait est faux."
     },
     {
       "moment": "ouverture",
@@ -506,7 +506,7 @@
       "quand": [
         "navire_fantome"
       ],
-      "texte": "Personne à sa barre. Personne. Et elle tient sa route."
+      "texte": "Personne à la barre d'en face. Personne. Et le navire tient sa route."
     },
     {
       "moment": "ouverture",
@@ -522,7 +522,7 @@
       "quand": [
         "traine_prise"
       ],
-      "texte": "Elle remorque une prise. Deux butins d'un coup, si on est rapides."
+      "texte": "Ce navire remorque une prise. Deux butins d'un coup, si on est rapides."
     },
     {
       "moment": "ouverture",
@@ -530,7 +530,7 @@
       "quand": [
         "vous_etes_la_proie"
       ],
-      "texte": "Ce n'est pas nous qui chassons. C'est elle."
+      "texte": "Ce n'est pas nous qui chassons. C'est le navire d'en face."
     },
     {
       "moment": "ouverture",
@@ -558,7 +558,7 @@
       "moment": "ouverture",
       "voix": "coudray",
       "quand": [],
-      "texte": "Elle est là. À vous de dire ce qu'on en fait."
+      "texte": "La prise est là. À vous de dire ce qu'on en fait."
     },
     {
       "moment": "ouverture",
@@ -584,7 +584,7 @@
       "quand": [
         "ennemi_demate"
       ],
-      "texte": "Son gréement est à l'eau. Elle ne va plus nulle part."
+      "texte": "Le gréement d'en face est à l'eau. Ce navire ne va plus nulle part."
     },
     {
       "moment": "bascule",
@@ -600,7 +600,7 @@
       "quand": [
         "ennemi_demate"
       ],
-      "texte": "Elle est à nous. Reste à monter dessus."
+      "texte": "La prise est à nous. Reste à monter dessus."
     },
     {
       "moment": "bascule",
@@ -624,7 +624,7 @@
       "quand": [
         "ennemi_coque_basse"
       ],
-      "texte": "Elle prend l'eau. Encore un boulet là-dedans et il n'y aura plus rien à vendre."
+      "texte": "La coque prend l'eau. Encore un boulet là-dedans et il n'y aura plus rien à vendre."
     },
     {
       "moment": "bascule",
@@ -688,7 +688,7 @@
       "quand": [
         "bord_a_bord"
       ],
-      "texte": "Collés. Maintenant c'est elle ou nous, il n'y a plus de troisième issue."
+      "texte": "Collés. Maintenant c'est ce navire ou nous, il n'y a plus de troisième issue."
     },
     {
       "moment": "bascule",
@@ -696,7 +696,7 @@
       "quand": [
         "elle_amene"
       ],
-      "texte": "Elle amène son pavillon. Ou elle fait semblant."
+      "texte": "Le pavillon d'en face descend. Ou l'on fait semblant."
     },
     {
       "moment": "bascule",
@@ -720,7 +720,7 @@
       "quand": [
         "elle_fuit_encore"
       ],
-      "texte": "Elle nous distance. Encore un tour et on la perd."
+      "texte": "La prise nous distance. Encore un tour et on la perd."
     },
     {
       "moment": "bascule",
@@ -752,7 +752,7 @@
       "quand": [
         "ouragan"
       ],
-      "texte": "Laissez-la ! Ce n'est plus elle l'ennemi, c'est la mer !"
+      "texte": "Laissez la prise ! L'ennemi n'est plus ce navire, c'est la mer !"
     },
     {
       "moment": "bascule",
@@ -806,7 +806,7 @@
       "quand": [
         "prise"
       ],
-      "texte": "Elle est à nous ! Ouvrez les cales, que je voie ce qu'on a gagné !"
+      "texte": "La prise est à nous ! Ouvrez les cales, que je voie ce qu'on a gagné !"
     },
     {
       "moment": "denouement",
@@ -822,7 +822,7 @@
       "quand": [
         "prise"
       ],
-      "texte": "Elle est prise. Il me manque quatre hommes pour le dire tout à fait joyeusement."
+      "texte": "La prise est faite. Il me manque quatre hommes pour le dire tout à fait joyeusement."
     },
     {
       "moment": "denouement",
@@ -830,7 +830,7 @@
       "quand": [
         "prise"
       ],
-      "texte": "Sa coque est saine. Elle vaudra son prix au port."
+      "texte": "La coque est saine. Ce navire vaudra son prix au port."
     },
     {
       "moment": "denouement",
@@ -855,7 +855,7 @@
       "quand": [
         "coulee"
       ],
-      "texte": "Elle coule. Et tout ce qu'elle portait avec elle."
+      "texte": "La prise coule. Et toute la cargaison avec."
     },
     {
       "moment": "denouement",
@@ -871,7 +871,7 @@
       "quand": [
         "coulee"
       ],
-      "texte": "Elle s'en va par l'avant. C'était rapide, au moins."
+      "texte": "La prise s'en va par l'avant. C'était rapide, au moins."
     },
     {
       "moment": "denouement",
@@ -879,7 +879,7 @@
       "quand": [
         "coulee"
       ],
-      "texte": "Personne à repêcher. Ils sont partis avec elle."
+      "texte": "Personne à repêcher. Ils sont partis avec le navire."
     },
     {
       "moment": "denouement",
@@ -887,7 +887,7 @@
       "quand": [
         "coulee"
       ],
-      "texte": "Coulée. La poudre n'était pas perdue, elle n'a juste rien rapporté."
+      "texte": "Coulée. La poudre n'était pas perdue — mais elle n'a rien rapporté."
     },
     {
       "moment": "denouement",
@@ -904,7 +904,7 @@
       "quand": [
         "elle_echappe"
       ],
-      "texte": "Elle nous a semé. Le vent était pour elle depuis le début."
+      "texte": "La prise nous a semés. Le vent était pour ce navire depuis le début."
     },
     {
       "moment": "denouement",
@@ -992,7 +992,7 @@
       "quand": [
         "nous_sombrons"
       ],
-      "texte": "La mer a eu le dernier mot. Elle l'a toujours."
+      "texte": "La mer a eu le dernier mot. La mer l'a toujours."
     },
     {
       "moment": "denouement",
@@ -1102,7 +1102,7 @@
       "quand": [
         "vent_a_elle"
       ],
-      "texte": "Elle est au vent. On tirera de plus loin qu'on voudrait."
+      "texte": "Ce navire est au vent. On tirera de plus loin qu'on voudrait."
     },
     {
       "moment": "ouverture",
@@ -1110,7 +1110,7 @@
       "quand": [
         "vent_a_nous"
       ],
-      "texte": "Le vent nous pousse dessus. Elle est à nous si on ne la casse pas."
+      "texte": "Le vent nous pousse dessus. La prise est à nous si on ne la casse pas."
     },
     {
       "moment": "ouverture",
@@ -1198,7 +1198,7 @@
       "quand": [
         "et_surchargee"
       ],
-      "texte": "Elle est chargée à ras. Elle ne fuira pas — mais visez haut, ou tout coule."
+      "texte": "Ce navire est chargé à ras. Il ne fuira pas — mais visez haut, ou tout coule."
     },
     {
       "moment": "ouverture",
@@ -1222,7 +1222,7 @@
       "quand": [
         "post_vient"
       ],
-      "texte": "Elle vient droit sur nous. Soit elle est sûre d'elle, soit elle est folle."
+      "texte": "Ce navire vient droit sur nous. Ou son capitaine est sûr de lui, ou il est fou."
     },
     {
       "moment": "ouverture",
@@ -1262,7 +1262,7 @@
       "quand": [
         "pav_faux"
       ],
-      "texte": "Ce pavillon flotte mal. Il n'est pas à elle."
+      "texte": "Ce pavillon flotte mal. Il n'est pas à ce navire."
     },
     {
       "moment": "ouverture",

@@ -16,7 +16,7 @@ version de ce plan, avec tout l'état du chantier « trois échelles », est dan
 
 | | Où | État |
 |---|---|---|
-| Les règles du combat en cartes | `src/cartes.js` | pures, sans dé, 161 vérifications |
+| Les règles du combat en cartes | `src/cartes.js` | pures, sans dé, 163 vérifications |
 | Le contenu (hommes, prises, intentions, reliques, officiers) | `data/equipage.json` | ajouter un homme ne demande aucune ligne de code |
 | La progression sur la carte | `src/voyage.js` + `src/caribbean.js` | escales, actes, épaves, rencontres — 9 vérifications |
 | L'écran jouable | `docs/refonte/mockups/e-cartes.html` | seul écran du dépôt que `mobile-audit` valide sur trois téléphones |
@@ -69,6 +69,7 @@ qui ne choisissait rien gagnait aussi souvent qu'un joueur appliqué.
 | Un mât perdu l'était pour toujours : démâter devenait la seule tactique | Le regréement en deux tours |
 | Un charpentier dans chaque volée soignait plus que la prise n'enlevait | Il ne répare que **seul** |
 | Une main de cinq laissait des tours sans un coup jouable | Un homme qui tire seul n'encrasse pas son bord |
+| « La volée la plus forte » était toujours la bonne réponse : un calcul, pas un choix | La cargaison — chaque point de coque coûte du butin, l'abordage n'en coûte aucun |
 
 ---
 

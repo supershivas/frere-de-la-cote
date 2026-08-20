@@ -89,12 +89,12 @@ function relever(combien) {
    grain. C'est décoratif, mais c'est la seule chose qui dise « ce navire
    flotte » plutôt que « ce navire est collé au fond de l'écran ». */
 const HOULE = {
-  calme: { amp: 1, gite: 0.25, periode: 6.5 },
-  brise: { amp: 2, gite: 0.5, periode: 5 },
-  vent_fort: { amp: 4, gite: 1.1, periode: 3.4 },
-  brume: { amp: 1.5, gite: 0.4, periode: 6 },
-  grain: { amp: 5, gite: 1.5, periode: 2.8 },
-  tempete: { amp: 7, gite: 2.2, periode: 2.2 },
+  calme: { amp: 1, gite: 0.2, periode: 7 },
+  brise: { amp: 3, gite: 0.7, periode: 5.4 },
+  vent_fort: { amp: 8, gite: 2.2, periode: 3.6 },
+  brume: { amp: 2, gite: 0.5, periode: 6.2 },
+  grain: { amp: 12, gite: 3.4, periode: 2.9 },
+  tempete: { amp: 18, gite: 5, periode: 2.4 },
 };
 const houle = () => HOULE[P.meteo && P.meteo.id] || HOULE.brise;
 
@@ -124,6 +124,10 @@ function peindreCoque(cv, spec, facing, { matsAbattus = 0, feu = 0, px = 3 } = {
   ctx.drawImage(off, 0, 0);
   cv.dataset.eau = String((eau + 1) * px);
   cv.dataset.pont = String(Math.round((eau - 3) * px));
+  // LES SABORDS, relevés dans la grille elle-même. Le générateur les marque
+  // d'un caractère ('p') : on note où ils sont, en pixels du canvas, pour que
+  // la fumée et les boulets partent de là et pas d'un point moyen inventé.
+  sabordsDe(cv, grille, px, facing, eau);
   if (feu > 0) allumer(cv, feu, px, eau, facing);
 }
 
@@ -136,10 +140,38 @@ function greeVerte(grille, abattus, eau) {
   return grille.map((ligne, y) => (y < coupe ? '.'.repeat(ligne.length) : ligne));
 }
 
-// Le feu : quelques pixels chauds sur le pont, animés par le rendu suivant.
-// Il n'y a pas de boucle d'animation dédiée — la teinte change à chaque
-// repeinte, c'est-à-dire à chaque tour, et ça suffit à le rendre vivant.
+// LE FEU FUME EN CONTINU. Peint dans le canvas, il ne bougeait qu'à la
+// repeinte — c'est-à-dire une fois par tour : un incendie figé. La braise
+// reste peinte (elle appartient à la coque), la fumée est un panache de DOM
+// qui monte tant que le navire brûle.
 let braise = 0;
+let panache = null;
+function fumerEnContinu() {
+  clearInterval(panache);
+  const feux = () => [
+    { id: 'c-nous', f: P.nous.pv / P.nous.max },
+    { id: 'c-prise', f: P.prise ? P.prise.pv / P.prise.max : 1 },
+  ].filter((x) => x.f < 0.4 && document.getElementById(x.id));
+  panache = setInterval(() => {
+    if (ecran !== 'chasse') return;
+    for (const { id, f } of feux()) {
+      const cv = document.getElementById(id);
+      const r = cv.getBoundingClientRect();
+      const gros = f < 0.2 ? 1.5 : 1;
+      const d = el('div', { class: 'fumee' });
+      const x = r.left + r.width * (0.35 + Math.random() * 0.3);
+      const y = r.top + r.height * 0.68;
+      d.style.left = `${x}px`; d.style.top = `${y}px`;
+      d.style.width = d.style.height = `${(9 + Math.random() * 7) * gros}px`;
+      document.body.appendChild(d);
+      d.animate(
+        [{ transform: 'translate(0,0) scale(.5)', opacity: .55 },
+          { transform: `translate(${(Math.random() - 0.3) * 26}px, -${52 * gros}px) scale(${2.4 * gros})`, opacity: 0 }],
+        { duration: 1800 + Math.random() * 900, easing: 'ease-out' },
+      ).onfinish = () => d.remove();
+    }
+  }, 340);
+}
 function allumer(cv, force, px, eau, facing) {
   const ctx = cv.getContext('2d');
   const pont = (eau - 5) * px;
@@ -157,6 +189,33 @@ function allumer(cv, force, px, eau, facing) {
     const x = Math.round((0.3 + ((i * 0.17 + braise * 0.1) % 0.4)) * largeur);
     ctx.fillRect(x, pont - (10 + i * 3) * px, px * 3, px * 2);
   }
+}
+
+const SABORDS = new Map();
+function sabordsDe(cv, grille, px, facing, eau) {
+  const cols = grille[0].length;
+  const pts = [];
+  for (let y = 0; y <= eau; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (grille[y][x] !== 'p') continue;
+      const vx = facing === 1 ? x : cols - 1 - x;
+      pts.push({ x: (vx + 0.5) * px, y: (y + 0.5) * px });
+    }
+  }
+  SABORDS.set(cv.id, pts);
+}
+
+// Les sabords en coordonnées d'écran, pour un tir donné. On prend ceux du
+// côté qui tire — un boulet ne sort pas par la poupe.
+function bouches(id, sens) {
+  const cv = document.getElementById(id);
+  const pts = SABORDS.get(id) || [];
+  if (!cv || !pts.length) return [centre(id, sens === 1 ? 0.82 : 0.18, 0.42)];
+  const r = cv.getBoundingClientRect();
+  const kx = r.width / cv.width, ky = r.height / cv.height;
+  const ecran = pts.map((p) => ({ x: r.left + p.x * kx, y: r.top + p.y * ky }));
+  ecran.sort((a, b) => (sens === 1 ? b.x - a.x : a.x - b.x));
+  return ecran.slice(0, Math.max(1, Math.min(4, Math.ceil(ecran.length / 2))));
 }
 
 const specNous = () => ({
@@ -217,6 +276,42 @@ function centre(id, dx = 0.5, dy = 0.45) {
   const r = n.getBoundingClientRect();
   return { x: r.left + r.width * dx, y: r.top + r.height * dy };
 }
+// DES ÉCLATS. Un boulet dans un bordé de chêne n'ouvre pas un trou net : il
+// arrache des copeaux, qui volent plus loin que la fumée. C'est ce qui dit
+// « la coque a pris » plutôt que « quelque chose a explosé ».
+function copeaux(x, y, n = 10, teintes = ['#b98a4b', '#8a6234', '#e6d9bd', '#5a3d25']) {
+  for (let i = 0; i < n; i++) {
+    const d = el('div', { class: 'copeau' });
+    const ang = (Math.PI * (0.15 + Math.random() * 0.7)) * (Math.random() < 0.5 ? 1 : -1) + Math.PI;
+    const dist = 22 + Math.random() * 46;
+    const dx = Math.cos(ang) * dist, dy = -Math.abs(Math.sin(ang)) * dist * 0.7 + 12;
+    d.style.left = `${x}px`; d.style.top = `${y}px`;
+    d.style.background = teintes[i % teintes.length];
+    d.style.width = `${2 + Math.random() * 3}px`;
+    d.style.height = `${1 + Math.random() * 2}px`;
+    document.body.appendChild(d);
+    d.animate(
+      [{ transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy + 26}px) rotate(${Math.random() * 540 - 270}deg)`, opacity: 0 }],
+      { duration: 420 + Math.random() * 320, easing: 'cubic-bezier(.2,.7,.4,1)' },
+    ).onfinish = () => d.remove();
+  }
+}
+
+// Une bouffée qui sort d'un sabord : elle part vers l'extérieur, s'étale et
+// monte. Plusieurs sabords, décalés, font une bordée.
+function bouffee(x, y, sens, taille = 1) {
+  const d = el('div', { class: 'boufee' });
+  d.style.left = `${x - 7 * taille}px`; d.style.top = `${y - 7 * taille}px`;
+  d.style.width = d.style.height = `${14 * taille}px`;
+  document.body.appendChild(d);
+  d.animate(
+    [{ transform: 'translate(0,0) scale(.4)', opacity: .95 },
+      { transform: `translate(${sens * 26 * taille}px, -${10 * taille}px) scale(${2.6 * taille})`, opacity: 0 }],
+    { duration: 620 + Math.random() * 260, easing: 'ease-out' },
+  ).onfinish = () => d.remove();
+}
+
 function boulet(a, b, duree = 420) {
   return new Promise((fini) => {
     const d = el('div', { class: 'boulet' });
@@ -233,15 +328,31 @@ function boulet(a, b, duree = 420) {
     requestAnimationFrame(pas);
   });
 }
-async function tir(deId, versId, sens, texte, ton) {
-  const a = centre(deId, sens === 1 ? 0.82 : 0.18, 0.42);
-  const b = centre(versId, 0.5, 0.45);
-  fxBroadside(a.x, a.y, sens, { scale: 1 });
-  await attendre(140);
-  await boulet(a, b);
-  fxExplosion(b.x, b.y, { scale: 1.15 });
+async function tir(deId, versId, sens, texte, ton, { cible = 'coque' } = {}) {
+  const ports = bouches(deId, sens);
+  const cv = document.getElementById(versId);
+  const r = cv ? cv.getBoundingClientRect() : null;
+  // Le point d'impact suit ce qu'on vise : le gréement en haut, la coque à la
+  // flottaison. Un boulet qui abat un mât ne doit pas frapper la cale.
+  const b = r
+    ? { x: r.left + r.width * (0.42 + Math.random() * 0.2), y: r.top + r.height * (cible === 'greement' ? 0.16 : 0.72) }
+    : centre(versId, 0.5, 0.45);
+
+  // Toutes les bouches tirent, décalées de quelques millisecondes : c'est ce
+  // décalage qui fait entendre une bordée plutôt qu'un coup.
+  ports.forEach((pt, i) => setTimeout(() => bouffee(pt.x, pt.y, sens, 1), i * 55));
+  fxBroadside(ports[0].x, ports[0].y, sens, { scale: 0.9 });
+  await attendre(120 + ports.length * 30);
+
+  await Promise.all(ports.map((pt, i) => attendre(i * 45).then(() => boulet(pt, {
+    x: b.x + (Math.random() - 0.5) * 22, y: b.y + (Math.random() - 0.5) * 16,
+  }, 360 + i * 20))));
+
+  fxExplosion(b.x, b.y, { scale: 1.1 });
+  copeaux(b.x, b.y, cible === 'greement' ? 8 : 12,
+    cible === 'greement' ? ['#e6d9bd', '#cbb894', '#8a6234'] : ['#b98a4b', '#8a6234', '#5a3d25', '#e6d9bd']);
   if (texte) fxFloatText(b.x, b.y - 26, texte, ton);
-  await attendre(260);
+  await attendre(280);
 }
 
 /* ------------------------------------------------------------ phylactères */
@@ -384,6 +495,55 @@ function aideDe(c) {
 /* ---------------------------------------------------------------- la main */
 const ROLE_FOND = { canonnier: '#7b241c', gabier: '#1a5276', abordeur: '#9c640c', charpentier: '#186a3b' };
 
+// LE POSTE, DESSINÉ. Une coque vue de dessus, proue en haut, coupée en quatre
+// par l'axe et par le maître-bau ; le quart de l'homme est allumé à la couleur
+// de son bord. Un dessin se lit sans traduction — « BÂ · AV » demandait au
+// joueur d'apprendre un code avant de pouvoir jouer.
+function posteVu(q) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 34 42');
+  const forme = 'M17 1 C24 8 30 15 30 25 C30 34 25 40 17 41 C9 40 4 34 4 25 C4 15 10 8 17 1 Z';
+  const coque = document.createElementNS(NS, 'path');
+  coque.setAttribute('d', forme);
+  coque.setAttribute('class', 'coque-fil');
+  svg.appendChild(coque);
+
+  // Le quart allumé, découpé par un masque à la forme de la coque : le
+  // remplissage ne déborde jamais du bordé.
+  const id = `q${q.bord}-${q.bout}`;
+  const clip = document.createElementNS(NS, 'clipPath');
+  clip.setAttribute('id', id);
+  const cp = document.createElementNS(NS, 'path');
+  cp.setAttribute('d', forme);
+  clip.appendChild(cp);
+  svg.appendChild(clip);
+
+  const r = document.createElementNS(NS, 'rect');
+  // bâbord = gauche du dessin (on regarde le navire de dessus, proue en haut)
+  r.setAttribute('x', q.bord === 'babord' ? 0 : 17);
+  r.setAttribute('y', q.bout === 'avant' ? 0 : 21);
+  r.setAttribute('width', 17);
+  r.setAttribute('height', 21);
+  r.setAttribute('class', 'quart on');
+  r.setAttribute('clip-path', `url(#${id})`);
+  svg.appendChild(r);
+
+  for (const d of ['M17 2 L17 40', 'M5 21 L29 21']) {
+    const l = document.createElementNS(NS, 'path');
+    l.setAttribute('d', d); l.setAttribute('class', 'axe');
+    svg.appendChild(l);
+  }
+  const cadre = document.createElementNS(NS, 'path');
+  cadre.setAttribute('d', forme);
+  cadre.setAttribute('fill', 'none');
+  cadre.setAttribute('stroke', '#241608');
+  cadre.setAttribute('stroke-width', '1.6');
+  svg.appendChild(cadre);
+
+  return el('span', { class: 'c-poste' }, [svg]);
+}
+
 function carteVue(c, rang = 0, neuve = false) {
   const feu = C.estFeu(c);
   const pris = P.selection.includes(c);
@@ -417,14 +577,12 @@ function carteVue(c, rang = 0, neuve = false) {
       },
     },
   }, [
-    el('span', { class: 'c-bord' }, [
-      el('span', { text: feu ? 'feu' : (q.bord === 'babord' ? 'bâ' : 'tri') }),
-      el('span', { class: 'c-bout', text: feu ? '' : (q.bout === 'avant' ? 'AV' : 'AR') }),
-    ]),
-    feu ? el('span', { class: 'c-fumee' }) : null,
     c.grade ? el('span', { class: 'c-grade', text: '★'.repeat(c.grade) }) : null,
-    c.blesse ? el('span', { class: 'c-etat', text: 'bl.' }) : null,
+    c.blesse ? el('span', { class: 'c-etat', text: 'blessé' }) : null,
+    feu ? el('span', { class: 'c-fumee' }) : null,
     el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
+    feu ? null : posteVu(q),
+    el('span', { class: 'c-ou', text: feu ? '' : q.nom }),
     el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c, P)) }),
     el('span', {
       class: 'c-role', text: feu ? 'encombre' : CONTENU.roles[c.role].court,
@@ -516,7 +674,7 @@ function ecranChasse() {
     conditions.push({
       chip: `${P.meteo.icon} ${P.meteo.name_fr}${m !== 1 ? ` ×${m}` : ''}`, cls: '',
       titre: `${P.meteo.icon} ${P.meteo.name_fr}`,
-      corps: `${P.meteo.desc_fr || ''} ${m === 1 ? 'Elle ne change rien à tes volées.'
+      corps: `${P.meteo.desc_fr || ''} ${m === 1 ? 'Aucun effet sur tes volées.'
         : m < 1 ? `<b>Tes volées perdent ${Math.round((1 - m) * 100)} %</b> : la mer gêne le pointage.`
           : `<b>Tes volées gagnent ${Math.round((m - 1) * 100)} %</b> : la mer porte le tir.`}`,
     });
@@ -550,8 +708,8 @@ function ecranChasse() {
     class: `sa-carte${p.tirAnnule ? ' annulee' : ''}`,
     attrs: { role: 'button', tabindex: '0', 'aria-label': `${a.nom} — ${a.texte}` },
     on: { click: () => bulleSur(saCarte, `<div class="b-nom">${a.nom}</div>`
-      + `<div class="b-quoi">${p.tirAnnule ? 'Le mât abattu emporte son tir : elle ne fera rien ce tour-ci.' : a.texte}</div>`
-      + `<div>Elle joue cette carte à la fin de ton tour, pas avant.</div>`) },
+      + `<div class="b-quoi">${p.tirAnnule ? `Le mât abattu emporte le tir : ${p.nom} ne fera rien ce tour-ci.` : a.texte}</div>`
+      + `<div>${p.nom} joue cette carte à la fin de ton tour, pas avant.</div>`) },
   }, [
     el('div', { class: 'sa-tete' }, [el('span', { text: p.tirAnnule ? 'emporté' : 'sa carte' })]),
     el('div', { class: 'sa-nom', text: a.nom }),
@@ -702,7 +860,8 @@ async function tirer() {
   } else {
     await tir('c-nous', 'c-prise', 1,
       r.cible === 'greement' ? (r.abat ? 'un mât !' : 'dans les voiles') : `−${r.degats}`,
-      r.cible === 'greement' ? '' : 'dmg');
+      r.cible === 'greement' ? '' : 'dmg', { cible: r.cible });
+    if (r.gate > 0) fxFloatText(centre('c-prise', 0.5, 0.8).x, centre('c-prise', 0.5, 0.8).y, `−${r.gate} 💰`, '');
   }
   peindreCoques();
   rendre();
@@ -1141,7 +1300,10 @@ function calibrerCartes() {
   const s = document.querySelector('.screen.ecran-cartes');
   s.style.setProperty('--carte-l', `${large}px`);
   s.style.setProperty('--jeu-gap', `${gap}px`);
-  s.style.setProperty('--carte-h', `${Math.round(large * 1.62)}px`);
+  // Le rapport hauteur/largeur tient compte de ce qu'il y a DEDANS : un nom
+  // sur deux lignes, le schéma de poste, son libellé, la valeur et le métier.
+  // À 1,62 la valeur passait sous le bord de la carte.
+  s.style.setProperty('--carte-h', `${Math.round(large * 2.0)}px`);
 }
 
 function rendre() {
@@ -1163,6 +1325,7 @@ function rendre() {
 
 initFx();
 rendre();
+fumerEnContinu();
 window.addEventListener('resize', () => { if (!tuto.fini) tutoRendre(); });
 
 // L'HORIZON EST POSÉ SUR LES NAVIRES, pas sur une fraction devinée : on le

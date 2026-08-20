@@ -70,6 +70,18 @@ aucun homme du bord libre n'est en main, le bord encrassé reprend le service.
 Sans elles, le joueur passait des tours entiers sans un coup à jouer — et un
 tour perdu n'est pas une décision.
 
+**LA CARGAISON — combien il en restera.** Chaque point de dégâts à la coque
+coûte une part de butin : un boulet troue aussi ce qu'on vient prendre. Le
+gréement n'en coûte aucun, et **l'abordage** non plus — deux abordeurs sur une
+coque déjà basse sautent à bord, les dégâts portent sans rien gâter, et une
+prise abordée rapporte 30 % de plus.
+
+C'est la réponse à « je joue toujours la volée la plus forte » : la plus forte
+est aussi la plus chère. Mesuré sur la barque — le capitaine pressé rapporte
+7 💰 en 9 tours, le soigneux 11 💰 en 11 tours, et ni l'un ni l'autre ne domine.
+Deux monnaies qui ne se convertissent pas l'une dans l'autre, c'est ce qui
+fait qu'il y a une décision plutôt qu'un calcul (§5).
+
 **LES OFFICIERS — les jokers.** Trois au plus à l'état-major, engagés au
 partage. Ils ne se jouent pas : ils sont là et ils **changent une règle** (le
 Bosco pousse chaque canonnier, le Maître voilier abaisse le seuil du gréement,
@@ -147,6 +159,18 @@ sert `tools/mobile-audit.mjs`.
 - **Les cartes ont une largeur fixe**, calculée pour la main pleine. En
   `flex: 1` elles s'élargissaient à mesure qu'on en jouait : la main changeait
   de forme sous le pouce.
+- **Le poste est un DESSIN, pas une abréviation** : une coque vue de dessus,
+  proue en haut, coupée en quatre, le quart de l'homme allumé à la couleur de
+  son bord. « BÂ · AV » demandait d'apprendre un code avant de pouvoir jouer.
+- **Un boulet fait trois choses distinctes, et on doit les distinguer** : la
+  bouffée sort du sabord (relevé dans la grille du navire, pas inventé) et part
+  vers l'extérieur ; les copeaux volent loin et retombent ; la fumée d'incendie
+  monte lentement et **ne s'arrête pas** tant que la coque brûle. Peinte dans
+  le canvas, elle ne bougeait qu'à la repeinte — un incendie figé.
+- **On ne dit jamais « elle » de l'adversaire.** Un pronom sans antécédent à
+  l'écran ne dit pas de quoi on parle : le navire ? la prise ? la cargaison ?
+  la mer ? On nomme la chose — « le navire adverse », « la prise », « la
+  coque », ou son nom propre.
 
 ## 2. Les deux contraintes qui priment sur le reste
 
@@ -281,7 +305,7 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 170 vérifications, zéro dépendance
+node test/run.js          # 172 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
@@ -298,6 +322,11 @@ le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
 - **« est-ce que choisir compte ? »** — les mêmes mains, sur les mêmes
   graines, jouées par un capitaine appliqué et par un maladroit. Le maladroit
   doit perdre nettement.
+- **« ménager la cargaison paie, et coûte des tours »** — le test le plus
+  important du dépôt. Deux façons de chasser la même prise : vite, ou proprement.
+  Il échoue si l'une des deux domine l'autre, et c'est bien le point : tant
+  qu'une seule ligne de jeu est optimale, le joueur exécute un calcul, il ne
+  choisit rien.
 
 Dans `voyage.test.js` : on part toujours du même coin, on ne saute pas d'un
 bout de la mer à l'autre, et **chaque escale dit ce qu'elle est avant qu'on y

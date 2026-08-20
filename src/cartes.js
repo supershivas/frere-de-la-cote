@@ -12,6 +12,12 @@
 //   faut alterner. C'est le verbe du jeu, et c'est ce qui empêche de rejouer
 //   la même main deux fois.
 //
+//   LA CARGAISON. Un boulet dans la coque troue aussi ce qu'il y a dedans :
+//   chaque point de dégâts à la coque coûte du butin. Tirer au gréement n'en
+//   coûte aucun, et un ABORDAGE non plus. C'est ce qui empêche « la volée la
+//   plus forte » d'être toujours la bonne réponse : la plus forte est la plus
+//   chère, et prendre un navire intact demande de le ménager.
+//
 //   L'AVANT / L'ARRIÈRE dit SUR QUOI on tire. Une volée à dominante arrière
 //   frappe la coque : ce sont les dégâts. Une volée à dominante avant monte
 //   dans le gréement : elle n'entame pas la coque, elle ABAT UN MÂT — et un
@@ -34,6 +40,8 @@
 // se lisent au pouce ; sept qui se partagent 375 px ne se lisent pas.
 export const MAIN_MAX = 3;
 export const SEUIL_GREEMENT = 26;   // en dessous, le tir passe dans les voiles
+export const COUT_CARGAISON = 12;   // points de coque qui gâtent une part de butin
+export const SEUIL_ABORDAGE = 0.5;  // sous cette part de coque, on peut sauter à bord
 
 const FEU = { id: 'feu', nom: 'Feu', role: 'feu', quart: null, valeur: 0 };
 export const estFeu = (c) => c.role === 'feu';
@@ -72,6 +80,11 @@ export function valeur(c, P = null) {
 export function visee(P, cartes) {
   const hommes = cartes.filter((c) => !estFeu(c));
   if (!hommes.length) return 'coque';
+  // L'ABORDAGE : deux abordeurs, sur une coque déjà basse. On saute à bord —
+  // les dégâts portent, mais pas un boulet ne touche la cargaison.
+  const prise = P.prise;
+  const bas = prise && prise.pv <= prise.max * (P.reliques.includes('grappins') ? 0.7 : SEUIL_ABORDAGE);
+  if (bas && hommes.filter((c) => c.role === 'abordeur').length >= 2) return 'abordage';
   const tousAvant = hommes.every((c) => boutDe(P.contenu, c) === 'avant');
   const gabier = hommes.some((c) => c.role === 'gabier');
   return tousAvant && gabier ? 'greement' : 'coque';
@@ -91,7 +104,7 @@ export function evaluer(P, cartes) {
   const lignes = [];
   const cible = visee(P, cartes);
   const prise = P.prise;
-  const bas = prise ? prise.pv <= prise.max * (P.reliques.includes('grappins') ? 0.7 : 0.5) : false;
+  const bas = prise ? prise.pv <= prise.max * (P.reliques.includes('grappins') ? 0.7 : SEUIL_ABORDAGE) : false;
 
   // LE CHARPENTIER TRAVAILLE SEUL. Une volée d'un seul charpentier répare ;
   // accompagné, il n'est qu'un homme de plus qui ne tire pas. Sans cette
@@ -138,8 +151,8 @@ export function evaluer(P, cartes) {
   if (aOfficier(P, 'aumonier') && hommes.length >= 3) {
     synergies.push('Plein équipage'); lignes.push({ quoi: 'L’Aumônier', note: 'trois hommes à la manœuvre', points: 8 }); total += 8;
   }
-  if (hommes.filter((c) => c.role === 'abordeur').length >= 2 && bas) {
-    synergies.push('Abordage'); lignes.push({ quoi: 'Abordage', note: 'deux abordeurs sur une coque basse', points: 14 }); total += 14;
+  if (cible === 'abordage') {
+    synergies.push('Abordage'); lignes.push({ quoi: 'Abordage', note: 'à bord — la cargaison est épargnée', points: 14 }); total += 14;
   }
   if (P.reliques.includes('caronades')) { lignes.push({ quoi: 'Caronades', note: null, points: 4 }); total += 4; }
 
@@ -178,10 +191,14 @@ export function evaluer(P, cartes) {
     && (total >= seuil || P.reliques.includes('hune'))
     && prise && prise.mats > 0;
 
+  // Ce que la volée coûte en butin. Seul le canon dans la coque gâte la
+  // cargaison : le gréement et l'abordage ne coûtent rien.
+  const gate = cible === 'coque' ? Math.floor(total / COUT_CARGAISON) : 0;
+
   return {
     cible, lignes, synergies,
-    total, seuil,
-    degats: cible === 'coque' ? total : 0,
+    total, seuil, gate,
+    degats: cible === 'coque' || cible === 'abordage' ? total : 0,
     abat,
     bord: bordDeLaVolee(P, cartes),
   };
@@ -303,7 +320,14 @@ export function jouer(P) {
   const prise = P.prise;
   const evenements = [];
 
-  if (r.degats > 0) { prise.pv = Math.max(0, prise.pv - r.degats); evenements.push({ type: 'coque', degats: r.degats }); }
+  if (r.degats > 0) {
+    prise.pv = Math.max(0, prise.pv - r.degats);
+    evenements.push({ type: r.cible === 'abordage' ? 'abordage' : 'coque', degats: r.degats });
+  }
+  if (r.gate > 0) {
+    prise.butin = Math.max(0, prise.butin - r.gate);
+    evenements.push({ type: 'cargaison', perdu: r.gate });
+  }
   if (r.cible === 'greement') {
     if (r.abat) {
       prise.mats -= 1;
@@ -346,7 +370,16 @@ export function jouer(P) {
   }
   P.selection = [];
 
-  if (prise.pv <= 0) { P.fini = 'prise'; P.butin += prise.butin; P.prisesFaites += 1; }
+  if (prise.pv <= 0) {
+    // PRISE À L'ABORDAGE : on la garde entière, avec sa cargaison et son
+    // équipage. Coulée au canon, on ne repêche que ce qui flotte.
+    prise.abordee = r.cible === 'abordage';
+    const prime = prise.abordee ? Math.round(prise.butin * 0.3) : 0;
+    P.fini = 'prise';
+    P.butin += prise.butin + prime;
+    prise.prime = prime;
+    P.prisesFaites += 1;
+  }
   return { ...r, evenements };
 }
 
@@ -433,7 +466,13 @@ export function meilleureVolee(P, { viser = 'degats', max = MAIN_MAX } = {}) {
     const bords = new Set(cartes.filter((c) => !estFeu(c)).map((c) => bordDe(P.contenu, c)));
     if (bords.size > 1) continue;
     const r = evaluer(P, cartes);
-    const note = viser === 'greement' && r.abat ? 1000 + r.total : r.degats;
+    // `viser` dit ce qu'on cherche : les dégâts bruts, un mât, ou la prise la
+    // moins abîmée. Les trois ne donnent pas la même volée — c'est justement
+    // ce qui fait qu'il y a un choix.
+    const note = viser === 'greement' ? (r.abat ? 1000 + r.total : -1)
+      : viser === 'abordage' ? (r.cible === 'abordage' ? 1000 + r.degats : r.degats - r.gate * 10)
+        : viser === 'butin' ? r.degats - r.gate * 10
+          : r.degats;
     if (!best || note > best.note) best = { ...r, cartes, note };
   }
   return best;

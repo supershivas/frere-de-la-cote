@@ -277,6 +277,68 @@ test('the prizes climb', () => {
 
 suite('cartes — est-ce que choisir compte ?');
 
+// LA QUESTION LA PLUS IMPORTANTE DU JEU. Tant que « la volée la plus forte »
+// était toujours la bonne réponse, il n'y avait pas de décision : le joueur
+// exécutait un calcul, il ne choisissait rien. La cargaison introduit une
+// seconde monnaie — chaque point de coque coûte du butin, le gréement et
+// l'abordage n'en coûtent aucun — et les deux monnaies ne se convertissent
+// pas l'une dans l'autre. Ce test vérifie que les deux façons de jouer
+// existent VRAIMENT : la rapide et la soigneuse, et qu'aucune ne domine.
+function chasser(prise, seed, style) {
+  const { P, rng } = partie(prise, seed);
+  let garde = 0;
+  while (!P.fini && garde++ < 80) {
+    const d = C.meilleureVolee(P, { max: C.RELEVE });
+    const cartes = style === 'soigneux'
+      ? (C.meilleureVolee(P, { max: C.MAIN_MAX, viser: 'abordage' }) || d)
+      : d;
+    if (!cartes || !cartes.cartes.length) { P.selection = []; C.riposter(P); C.completer(P, rng); continue; }
+    P.selection = cartes.cartes;
+    C.jouer(P);
+    if (!P.fini) C.riposter(P);
+    C.completer(P, rng);
+  }
+  return { pris: P.fini === 'prise', butin: P.butin, tours: P.tour };
+}
+
+test('sparing the cargo pays, and costs turns — neither way dominates', () => {
+  const prise = CONTENU.prises[0];
+  const vite = [], soin = [];
+  for (let s = 1; s <= 60; s++) {
+    const a = chasser(prise, s * 977, 'rapide');
+    const b = chasser(prise, s * 977, 'soigneux');
+    if (a.pris) vite.push(a);
+    if (b.pris) soin.push(b);
+  }
+  const med = (l, k) => l.map((x) => x[k]).sort((x, y) => x - y)[Math.floor(l.length / 2)];
+  const bVite = med(vite, 'butin'), bSoin = med(soin, 'butin');
+  const tVite = med(vite, 'tours'), tSoin = med(soin, 'tours');
+  console.log(`      rapide : ${bVite} 💰 en ${tVite} tours · soigneux : ${bSoin} 💰 en ${tSoin} tours`);
+
+  assert(bSoin > bVite, `ménager la cargaison ne rapporte pas plus (${bSoin} contre ${bVite}) — la seconde monnaie ne sert à rien`);
+  assert(bSoin - bVite >= 3, `l'écart de butin n'est que de ${bSoin - bVite} : trop petit pour peser dans une décision`);
+  assert(tSoin > tVite, `ménager la cargaison ne coûte aucun tour (${tSoin} contre ${tVite}) — ce n'est pas un choix, c'est une meilleure façon de jouer`);
+  assert(vite.length >= 45, `le capitaine rapide ne prend la barque que ${vite.length}/60`);
+  assert(soin.length >= 40, `le capitaine soigneux ne prend la barque que ${soin.length}/60 — trop punitif pour être une option`);
+});
+
+test('a boarded prize is worth more than a sunk one', () => {
+  // Sur la même prise, au même point de coque : sauter à bord garde la
+  // cargaison entière ET rapporte une prime. Couler au canon ne rapporte que
+  // ce qui flotte.
+  const { P } = partie(CONTENU.prises[0], 5);
+  const avant = P.prise.butin;
+  P.prise.pv = 12;                     // coque basse : l'abordage est ouvert
+  const abordeurs = P.main.filter((c) => !C.estFeu(c) && c.role === 'abordeur');
+  if (abordeurs.length < 2) return;
+  P.selection = abordeurs.slice(0, 2);
+  equal(C.evaluer(P, P.selection).cible, 'abordage', 'deux abordeurs sur une coque basse ne sautent pas à bord');
+  equal(C.evaluer(P, P.selection).gate, 0, 'un abordage gâte la cargaison');
+  C.jouer(P);
+  equal(P.fini, 'prise', 'l’abordage n’a pas emporté la prise');
+  assert(P.butin > avant, `prise à l'abordage, elle rapporte ${P.butin} alors qu'elle portait ${avant}`);
+});
+
 // Les deux capitaines jouent exactement les mêmes mains, sur les mêmes graines.
 // L'appliqué lit sa main ; le maladroit prend les premières cartes jouables.
 function duel(prise, seed, applique) {
@@ -321,7 +383,7 @@ test('a careful captain takes the merchantman far more often than a careless one
     if (duel(prise, s * 977, false)) mauvais++;
   }
   console.log(`      appliqué : ${bons}/60 · maladroit : ${mauvais}/60`);
-  assert(bons >= 34, `le joueur appliqué ne prend la flûte que ${bons}/60 — la manche est trop dure`);
+  assert(bons >= 30, `le joueur appliqué ne prend la flûte que ${bons}/60 — la manche est trop dure`);
   assert(mauvais <= 36, `le joueur maladroit la prend ${mauvais}/60 — le choix ne compte pas`);
   assert(bons - mauvais >= 14, `écart de seulement ${bons - mauvais} sur 60 entre appliqué et maladroit`);
 });

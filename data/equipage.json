@@ -17,7 +17,7 @@
       "nom": "abordeur",
       "court": "abord.",
       "verbe": "compte double sous la moitié",
-      "aide": "Inutile tant que la coque tient. Sous la moitié, sa valeur compte double."
+      "aide": "Inutile tant que la coque tient. Sous la moitié, sa valeur compte double — et deux abordeurs ensemble sautent à bord : les dégâts portent sans gâter la cargaison."
     },
     "charpentier": {
       "nom": "charpentier",
@@ -133,7 +133,7 @@
       "role": "canonnier",
       "quart": "br",
       "valeur": 13,
-      "prix": 5
+      "prix": 15
     },
     {
       "id": "gohier",
@@ -141,7 +141,7 @@
       "role": "canonnier",
       "quart": "tr",
       "valeur": 13,
-      "prix": 5
+      "prix": 15
     },
     {
       "id": "coudray",
@@ -149,7 +149,7 @@
       "role": "gabier",
       "quart": "ba",
       "valeur": 4,
-      "prix": 4
+      "prix": 12
     },
     {
       "id": "toussaint",
@@ -157,7 +157,7 @@
       "role": "charpentier",
       "quart": "ba",
       "valeur": 0,
-      "prix": 3
+      "prix": 9
     },
     {
       "id": "ravenel",
@@ -165,7 +165,7 @@
       "role": "abordeur",
       "quart": "ta",
       "valeur": 9,
-      "prix": 5
+      "prix": 15
     },
     {
       "id": "kermarrec",
@@ -173,7 +173,7 @@
       "role": "abordeur",
       "quart": "ba",
       "valeur": 9,
-      "prix": 5
+      "prix": 15
     },
     {
       "id": "lozac_h",
@@ -181,7 +181,7 @@
       "role": "gabier",
       "quart": "ta",
       "valeur": 4,
-      "prix": 4
+      "prix": 12
     },
     {
       "id": "quemeneur",
@@ -189,7 +189,7 @@
       "role": "canonnier",
       "quart": "ba",
       "valeur": 11,
-      "prix": 4
+      "prix": 12
     },
     {
       "id": "le_dref",
@@ -197,7 +197,7 @@
       "role": "abordeur",
       "quart": "tr",
       "valeur": 8,
-      "prix": 4
+      "prix": 12
     },
     {
       "id": "morvan",
@@ -205,7 +205,7 @@
       "role": "canonnier",
       "quart": "ta",
       "valeur": 11,
-      "prix": 4
+      "prix": 12
     }
   ],
   "prises": [
@@ -217,7 +217,7 @@
       "pv": 110,
       "mats": 2,
       "riposte": 12,
-      "butin": 4,
+      "butin": 14,
       "regle": null
     },
     {
@@ -225,10 +225,10 @@
       "nom": "Flûte marchande",
       "rang": "marchand",
       "hullClass": 4,
-      "pv": 145,
+      "pv": 150,
       "mats": 2,
-      "riposte": 15,
-      "butin": 6,
+      "riposte": 16,
+      "butin": 20,
       "regle": "lest"
     },
     {
@@ -239,7 +239,7 @@
       "pv": 190,
       "mats": 3,
       "riposte": 20,
-      "butin": 9,
+      "butin": 28,
       "regle": "franc_bord"
     },
     {
@@ -250,7 +250,7 @@
       "pv": 240,
       "mats": 3,
       "riposte": 24,
-      "butin": 12,
+      "butin": 36,
       "regle": "riposte"
     },
     {
@@ -261,26 +261,26 @@
       "pv": 310,
       "mats": 3,
       "riposte": 29,
-      "butin": 16,
+      "butin": 48,
       "regle": "cuirasse"
     }
   ],
   "regles": {
     "lest": {
       "nom": "Lourdement lestée",
-      "texte": "Un homme seul ne l'entame pas."
+      "texte": "Lourdement lestée : un homme seul ne l'entame pas."
     },
     "franc_bord": {
       "nom": "Franc-bord haut",
-      "texte": "Sa muraille est haute : un tir à la coque perd le tiers."
+      "texte": "Muraille haute : un tir à la coque perd le tiers."
     },
     "riposte": {
       "nom": "Riposte vive",
-      "texte": "Elle riposte même après avoir perdu un mât."
+      "texte": "La riposte part même après la perte d'un mât."
     },
     "cuirasse": {
       "nom": "Bordé doublé",
-      "texte": "Les dix premiers points de chaque volée ne portent pas."
+      "texte": "Bordé doublé : les dix premiers points de chaque volée ne portent pas."
     }
   },
   "reliques": [
@@ -288,43 +288,43 @@
       "id": "longue_vue",
       "nom": "Longue-vue",
       "texte": "+1 carte en main.",
-      "prix": 6
+      "prix": 18
     },
     {
       "id": "grappins",
       "nom": "Grappins neufs",
       "texte": "Les abordeurs comptent double dès 70 %.",
-      "prix": 6
+      "prix": 18
     },
     {
       "id": "ecouvillons",
       "nom": "Écouvillons neufs",
       "texte": "Un bord encrassé se dégage en un tour de moins.",
-      "prix": 9
+      "prix": 27
     },
     {
       "id": "caronades",
       "nom": "Caronades",
       "texte": "+4 aux dégâts de chaque volée.",
-      "prix": 8
+      "prix": 24
     },
     {
       "id": "quille",
       "nom": "Quille carénée",
       "texte": "Les Feux ne reviennent plus dans ta pioche.",
-      "prix": 7
+      "prix": 21
     },
     {
       "id": "hune",
       "nom": "Hune renforcée",
       "texte": "Un tir au gréement abat un mât même sous le seuil.",
-      "prix": 8
+      "prix": 24
     },
     {
       "id": "double_fond",
       "nom": "Double fond",
       "texte": "+1 homme à la relève de chaque tour.",
-      "prix": 9
+      "prix": 27
     }
   ],
   "quarts": {
@@ -401,42 +401,49 @@
     {
       "id": "bordee",
       "nom": "Bordée",
-      "texte": "Elle tire au but.",
+      "texte": "Tous les sabords d'un bord tirent ensemble, à hauteur de flottaison.",
       "effet": "canon",
       "force": 1.0
     },
     {
       "id": "demi_bordee",
       "nom": "Demi-bordée",
-      "texte": "Un seul pont tire.",
+      "texte": "Un seul pont donne. Le reste recharge.",
       "effet": "canon",
       "force": 0.6
     },
     {
+      "id": "enfilade",
+      "nom": "Tir d'enfilade",
+      "texte": "Le navire se place par le travers et balaie le pont de La Tortue.",
+      "effet": "canon",
+      "force": 1.8
+    },
+    {
       "id": "mitraille",
       "nom": "Mitraille",
-      "texte": "Elle blesse ton meilleur homme en main : −2 jusqu'à la fin de la prise.",
+      "texte": "Des clous et de la ferraille dans les gueules : ton meilleur homme en main est blessé (−2 jusqu'à la fin de la prise).",
       "effet": "mitraille",
       "force": 0.3
     },
     {
       "id": "brulot",
       "nom": "Brûlot",
-      "texte": "Une carte Feu entre dans ta pioche.",
+      "texte": "Une barque en feu poussée vers ta coque : une carte Feu entre au-dessus de ta pioche.",
       "effet": "brulot",
       "force": 0.2
     },
     {
       "id": "virement",
       "nom": "Virement de bord",
-      "texte": "Elle vire : c'est ton autre bord qui se retrouve à recharger.",
+      "texte": "Le navire vire : c'est ton autre bord qui se retrouve à recharger.",
       "effet": "virement",
       "force": 0
     },
     {
       "id": "radoub_ennemi",
       "nom": "Radoub",
-      "texte": "Ses charpentiers colmatent.",
+      "texte": "Les charpentiers du bord adverse colmatent sous la flottaison.",
       "effet": "radoub",
       "force": 0
     }
@@ -447,14 +454,14 @@
   "intentions_deck": [
     "bordee",
     "mitraille",
-    "bordee",
     "demi_bordee",
+    "enfilade",
     "bordee",
     "brulot",
-    "bordee",
+    "demi_bordee",
     "virement",
     "bordee",
-    "demi_bordee"
+    "radoub_ennemi"
   ],
   "officiers": [
     {
@@ -462,49 +469,49 @@
       "nom": "Le Bosco",
       "titre": "maître d'équipage",
       "texte": "Chaque canonnier de la volée compte +2.",
-      "prix": 7
+      "prix": 21
     },
     {
       "id": "maitre_canonnier",
       "nom": "Le Maître canonnier",
       "titre": "chef de pièce",
       "texte": "Une bordée (deux canonniers) rapporte 10 de plus.",
-      "prix": 8
+      "prix": 24
     },
     {
       "id": "chirurgien",
       "nom": "Le Chirurgien",
       "titre": "barbier de bord",
       "texte": "Un homme blessé ne perd plus qu'un point au lieu de deux.",
-      "prix": 6
+      "prix": 18
     },
     {
       "id": "maitre_voilier",
       "nom": "Le Maître voilier",
       "titre": "gabier en chef",
       "texte": "Un tir au gréement abat un mât dès 20 de puissance.",
-      "prix": 8
+      "prix": 24
     },
     {
       "id": "quartier_maitre",
       "nom": "Le Quartier-maître",
       "titre": "partage et discipline",
       "texte": "+1 homme à la relève de chaque tour.",
-      "prix": 9
+      "prix": 27
     },
     {
       "id": "aumonier",
       "nom": "L'Aumônier",
       "titre": "il compte les morts",
       "texte": "Une volée de trois hommes rapporte 8 de plus.",
-      "prix": 7
+      "prix": 21
     },
     {
       "id": "pilote",
       "nom": "Le Pilote côtier",
       "titre": "il connaît les fonds",
       "texte": "La météo ne diminue plus jamais tes dégâts.",
-      "prix": 7
+      "prix": 21
     }
   ]
 }
