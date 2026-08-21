@@ -1543,45 +1543,52 @@
   box-shadow: 0 0 18px rgba(241,196,15,.35);
 }
 
-/* --- ce que fait un boulet : de la fumée, du bois, et un trou -------------
-   Trois choses distinctes, et il faut les distinguer à l'œil : la BOUFFÉE sort
-   du sabord et part vers l'extérieur, les COPEAUX volent loin et retombent,
-   la FUMÉE d'incendie monte lentement et ne s'arrête pas.               */
-.copeau {
-  position: fixed; z-index: 45; pointer-events: none; border-radius: 1px;
-  box-shadow: 0 0 1px rgba(0,0,0,.6);
-}
-.boufee {
-  position: fixed; z-index: 44; pointer-events: none; border-radius: 50%;
-  background: radial-gradient(circle at 40% 38%, rgba(250,246,235,.95), rgba(196,190,176,.5) 55%, rgba(150,145,134,0) 78%);
-}
-.fumee {
-  position: fixed; z-index: 43; pointer-events: none; border-radius: 50%;
-  background: radial-gradient(circle at 42% 40%, rgba(96,90,84,.75), rgba(60,56,52,.35) 60%, rgba(40,38,36,0) 80%);
-}
-@media (prefers-reduced-motion: reduce) { .copeau, .boufee, .fumee { display: none; } }
+/* --- ce qui vole : boulets, copeaux, fumée -------------------------------
 
-/* --- boulet : un projectile qu'on suit des yeux -------------------------
-   Noir et minuscule sur une mer sombre, il était invisible. Il est clair,
-   cerné, et surtout il traîne de la fumée : c'est le sillage qu'on suit. */
-.boulet {
-  position: fixed; z-index: 46; width: 14px; height: 14px; border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #fff6d8 0%, #d8c9a4 38%, #4a4038 78%, #1a1512 100%);
-  box-shadow: 0 0 10px rgba(255,226,150,.85), 0 0 3px rgba(0,0,0,.9);
-  pointer-events: none; will-change: transform;
+   TOUT EST POSÉ DANS LA BANDE DE MER, en `position: absolute`. En `fixed` sur
+   le corps de page, le repère d'un élément dépend de ses ancêtres : mesuré, un
+   boulet à `translate(96px, 341px)` était rapporté à y = 1008 — un écran plus
+   bas, invisible à chaque tir. Le décor où une chose vole est le seul repère
+   qu'on contrôle.                                                            */
+
+.screen.ecran-cartes .mer .boulet,
+.screen.ecran-cartes .mer .boulet-sillage,
+.screen.ecran-cartes .mer .copeau,
+.screen.ecran-cartes .mer .boufee,
+.screen.ecran-cartes .mer .fumee { position: absolute; pointer-events: none; }
+
+.screen.ecran-cartes .mer .boulet {
+  z-index: 6; width: 16px; height: 16px; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff8e2 0%, #e8d9b4 34%, #6a5c4a 72%, #201a15 100%);
+  box-shadow: 0 0 12px rgba(255,226,150,.95), 0 0 4px rgba(0,0,0,.9);
+  will-change: transform;
 }
-.boulet-sillage {
-  position: fixed; z-index: 45; width: 10px; height: 10px; border-radius: 50%;
-  background: rgba(226,216,196,.5); pointer-events: none;
-  animation: sillage .6s ease-out forwards;
+.screen.ecran-cartes .mer .boulet-sillage {
+  z-index: 5; width: 12px; height: 12px; border-radius: 50%;
+  background: radial-gradient(circle at 45% 45%, rgba(236,228,210,.55), rgba(180,172,158,0) 72%);
+  animation: sillage .62s ease-out forwards;
 }
 @keyframes sillage {
-  from { opacity: .55; transform: scale(.7); }
-  to   { opacity: 0; transform: scale(2.6); }
+  from { opacity: .6; transform: scale(.7); }
+  to   { opacity: 0; transform: scale(2.8); }
 }
-.copeau { position: fixed; z-index: 45; border-radius: 1px; pointer-events: none; will-change: transform; }
+.screen.ecran-cartes .mer .copeau { z-index: 6; border-radius: 1px; will-change: transform; }
+
+/* La fumée est UNE MASSE au contour irrégulier — les quatre rayons de bord
+   sont tirés par bouffée — et non un cercle parfait de plus. */
+/* Les lobes sont peints DANS le même élément — une seule surface, donc aucun
+   recouvrement visible — et le flou les soude en une masse. */
+.screen.ecran-cartes .mer .boufee {
+  z-index: 5; --coeur: rgba(250,247,238,.98); --bord: rgba(224,218,204,.72);
+  filter: blur(2.5px);
+}
+.screen.ecran-cartes .mer .fumee {
+  z-index: 4; --coeur: rgba(88,82,76,.9); --bord: rgba(66,61,56,.5);
+  filter: blur(3px);
+}
 @media (prefers-reduced-motion: reduce) {
-  .boulet-sillage, .copeau { display: none; }
+  .screen.ecran-cartes .mer .boulet-sillage,
+  .screen.ecran-cartes .mer .copeau { display: none; }
 }
 
 /* --- le partage --- */

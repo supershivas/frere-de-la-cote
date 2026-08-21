@@ -165,52 +165,60 @@ export function startOcean(canvas, { horizon: fraction = 0.13 } = {}) {
 export function stopOcean() { if (raf) cancelAnimationFrame(raf); raf = null; }
 
 // ---------- decor drawing ----------
-// Un cumulus, pas quatre ellipses en file.
+// UN NUAGE EST UNE SEULE FORME, PAS UNE GRAPPE DE RONDS.
 //
-// Ce qui fait qu'un nuage est un nuage : une BASE PLATE — l'air se condense à
-// une altitude, la même pour tout le nuage — et un dessus en bourgeons de
-// tailles inégales, plus clairs au sommet qu'au ventre.
+// C'était le défaut, et il tenait à la façon de peindre, pas au dessin : six
+// ellipses remplies chacune de son côté, en semi-transparent, laissent voir
+// tous leurs recouvrements — on lit six bulles empilées. Ici les bosses sont
+// des arcs d'UN SEUL chemin, fermé sur une base plate et rempli d'un coup :
+// les recouvrements disparaissent, il ne reste qu'une silhouette.
 //
-// LA FORME VIENT DE `seed`, JAMAIS DE `x`. Tirée de la position, elle se
-// recalculait à chaque image puisque le nuage dérive : les bourgeons
-// changeaient de taille soixante fois par seconde et le ciel clignotait. Un
-// nuage doit garder sa forme et ne déplacer qu'elle.
-function drawCloud(ctx, x, y, sc, alpha, seed = 0) {
-  if (alpha < 0.03) return;
+// La forme vient de `seed`, jamais de `x` : tirée de la position, elle se
+// recalculait à chaque image puisque le nuage dérive, et le ciel clignotait.
+function cheminNuage(ctx, x, y, sc, seed) {
   const h = (n) => {
     const v = Math.sin((seed + 1) * 12.9898 + n * 78.233) * 43758.5453;
     return v - Math.floor(v);
   };
-  const base = y + 9 * sc;
-  const bourgeons = [[-30, -1, 11], [-17, -8, 16], [-2, -14, 20], [13, -9, 17], [27, -3, 12], [37, 1, 8]];
-
-  ctx.save();
-  // Le ventre, à plat sur la base : c'est lui qui dit « nuage » et pas « bulle ».
-  ctx.fillStyle = `rgba(188,199,212,${0.34 * alpha})`;
+  // Un cumulus a une base plate — l'air se condense à une altitude, la même
+  // pour tout le nuage — et un dessus en bourgeons inégaux.
+  const base = y + 8 * sc;
+  const bosses = [[-32, 9], [-20, 15], [-7, 20], [7, 18], [20, 13], [32, 8]];
   ctx.beginPath();
-  ctx.ellipse(x + 2 * sc, base, 38 * sc, 5 * sc, 0, 0, 7);
+  ctx.moveTo(x - 42 * sc, base);
+  bosses.forEach(([dx, r], i) => {
+    const j = h(i);
+    const rr = r * (0.82 + j * 0.4) * sc;
+    const cx = x + dx * sc * (0.96 + j * 0.08);
+    const cy = base - rr * (0.22 + h(i + 20) * 0.34);
+    ctx.arc(cx, cy, rr, Math.PI, 0, false);
+  });
+  ctx.lineTo(x + 42 * sc, base);
+  ctx.closePath();
+}
+
+function drawCloud(ctx, x, y, sc, alpha, seed = 0) {
+  if (alpha < 0.03) return;
+  const base = y + 8 * sc;
+  ctx.save();
+  cheminNuage(ctx, x, y, sc, seed);
+
+  // Rempli UNE fois, d'un dégradé vertical : sommet au soleil, ventre gris.
+  const g = ctx.createLinearGradient(0, base - 34 * sc, 0, base + 2 * sc);
+  g.addColorStop(0, `rgba(255,255,255,${0.92 * alpha})`);
+  g.addColorStop(0.55, `rgba(238,242,247,${0.82 * alpha})`);
+  g.addColorStop(1, `rgba(178,190,204,${0.72 * alpha})`);
+  ctx.fillStyle = g;
   ctx.fill();
 
-  bourgeons.forEach(([dx, dy, r], i) => {
-    const j = h(i);
-    const rr = r * (0.84 + j * 0.36) * sc;
-    const cx = x + dx * sc * (0.95 + j * 0.1);
-    const cy = base + dy * sc * (0.88 + j * 0.3) - rr * 0.32;
-    ctx.fillStyle = `rgba(${222 + Math.round(j * 20)},${230 + Math.round(j * 16)},${238 + Math.round(j * 12)},${(0.26 + j * 0.14) * alpha})`;
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, rr, rr * (0.76 + j * 0.14), 0, 0, 7);
-    ctx.fill();
-  });
-
-  // La lisière au soleil, sur les bourgeons du milieu seulement.
-  ctx.fillStyle = `rgba(255,255,255,${0.16 * alpha})`;
-  bourgeons.slice(1, 4).forEach(([dx, dy, r], i) => {
-    const j = h(i + 10);
-    const rr = r * (0.55 + j * 0.25) * sc;
-    ctx.beginPath();
-    ctx.ellipse(x + dx * sc, base + dy * sc - rr * 1.05, rr, rr * 0.46, 0, 0, 7);
-    ctx.fill();
-  });
+  // Le ventre, à l'intérieur du même contour : c'est l'ombre qui donne le
+  // volume, et elle ne peut pas déborder puisqu'on découpe sur la silhouette.
+  ctx.clip();
+  const o = ctx.createLinearGradient(0, base - 12 * sc, 0, base + 2 * sc);
+  o.addColorStop(0, 'rgba(150,164,182,0)');
+  o.addColorStop(1, `rgba(138,152,170,${0.5 * alpha})`);
+  ctx.fillStyle = o;
+  ctx.fillRect(x - 46 * sc, base - 14 * sc, 92 * sc, 18 * sc);
   ctx.restore();
 }
 

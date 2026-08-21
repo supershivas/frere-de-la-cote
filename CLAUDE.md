@@ -148,6 +148,12 @@ sert `tools/mobile-audit.mjs`.
   distribution repartait à chaque homme touché.
 - **La carte Feu fume**, en boucle : c'est la seule carte qui ne sert à rien,
   il faut le voir de loin.
+- **La flottaison suit les vagues, pas la coque.** Le canvas d'un navire est
+  recadré à la ligne d'eau, ce qui donnait un bord inférieur parfaitement
+  droit : on voyait la coupe de la coque. Ce bord est mangé en creux et en
+  bosses (`destination-out`), la mer animée qui est derrière remonte dans les
+  creux, et une frange d'écume — bornée aux pixels du navire par
+  `source-atop` — dit que la coque entre dans l'eau.
 - **Une route de mer contourne la terre.** `routeEntre(a, b)` (dans
   `src/caribbean.js`) rend la courbe la plus courte qui reste sur l'eau. Deux
   précautions, toutes deux payées d'un détour absurde à l'écran : les côtes
@@ -242,7 +248,7 @@ entre eux ; les hommes, si.
 
 ---
 
-## 4. Les onze règles qui ont chacune coûté un bug
+## 4. Les treize règles qui ont chacune coûté un bug
 
 **1. Aucune entropie dans la résolution.** `src/cartes.js` ne doit jamais
 contenir `Math.random`, `Date.now` ni `crypto` — un test échoue s'ils y
@@ -306,7 +312,23 @@ elle n'arrivait jamais en main. L'effet le plus visible de la prise était
 invisible, et rien ne le signalait. Un test tire maintenant la carte pour
 vérifier qu'elle arrive.
 
-**11. Dans le fichier autonome, tous les modules partagent une portée.** Une
+**11. Ce qui vole appartient au DÉCOR, pas à la page.** Les boulets, les
+copeaux et la fumée étaient posés sur `document.body` en `position: fixed`.
+Mesuré : un boulet dont la transformation disait `translate(96px, 341px)` était
+rapporté par le navigateur à y = 1008 — un écran plus bas, donc invisible, à
+chaque tir, depuis le premier jour. Le repère d'un élément fixé dépend de ses
+ancêtres (`transform`, `filter`, `contain`…) : c'est une hypothèse qu'on ne
+contrôle pas. Tout ce qui vole est désormais posé DANS la bande de mer, en
+coordonnées relatives à elle.
+
+**12. Une masse translucide se peint EN UNE FOIS.** Six ellipses semi-
+transparentes empilées laissent voir tous leurs recouvrements : on lit six
+bulles, jamais un nuage ni une bouffée de poudre. Un nuage est un seul chemin
+fermé (base plate, bosses en arcs) rempli d'un coup ; une bouffée est un seul
+élément dont les lobes sont des dégradés du même `background`. La règle vaut
+partout où de la fumée, de la brume ou de l'écume se superpose.
+
+**13. Dans le fichier autonome, tous les modules partagent une portée.** Une
 `const scene` dans la maquette et une `let scene` dans `src/ocean.js` donnent
 une page blanche et une ligne en console. `tools/bundle-mockup.mjs` échoue
 maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
