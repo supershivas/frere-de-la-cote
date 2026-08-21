@@ -98,8 +98,25 @@ export function bordDeLaVolee(P, cartes) {
 // Le compte complet d'une volée : le total ET d'où vient chaque point. Le
 // détail n'est pas décoratif — c'est ce qui rend le tour lisible avant qu'on
 // le joue.
+// LE COMPTE D'UNE VOLÉE, SUR DEUX AXES.
+//
+//   LA POUDRE, c'est ce que les hommes valent : la somme de leurs valeurs.
+//   LA FUREUR, c'est ce que leur entente vaut : elle part à 1, chaque synergie
+//   en ajoute, TOUTES LES FUREURS S'ADDITIONNENT, et la somme multiplie la
+//   poudre UNE SEULE FOIS.
+//
+//     total = poudre × fureur
+//
+// Deux axes plutôt qu'un seul tas de points, parce qu'ils ne se remplacent pas :
+// trois bons canonniers sans entente font une grosse poudre et une petite
+// fureur ; une volée bien assortie d'hommes médiocres fait l'inverse. Le
+// joueur voit ce qu'il construit, et le détail dit de quel côté vient chaque
+// gain — d'où les lignes qui portent l'un OU l'autre.
+//
+// La météo et les règles de prise, elles, agissent sur le RÉSULTAT, après la
+// multiplication : elles ne changent ni ce que valent les hommes ni ce que
+// vaut leur entente, elles disent ce qui arrive au boulet une fois parti.
 export function evaluer(P, cartes) {
-  const contenu = P.contenu;
   const hommes = cartes.filter((c) => !estFeu(c));
   const lignes = [];
   const cible = visee(P, cartes);
@@ -116,52 +133,66 @@ export function evaluer(P, cartes) {
   const synergies = [];
 
   const canonniers = repare ? [] : hommes.filter((c) => c.role === 'canonnier');
+  const gabiers = repare ? [] : hommes.filter((c) => c.role === 'gabier');
   const meilleurCanon = canonniers.length ? Math.max(...canonniers.map((c) => valeur(c, P))) : 0;
 
-  let total = 0;
   if (repare) {
     for (const c of cartes) {
-      lignes.push({ quoi: estFeu(c) ? 'Feu' : c.nom, note: estFeu(c) ? 'jeté par-dessus bord' : 'au radoub', points: 0 });
+      lignes.push({ quoi: estFeu(c) ? 'Feu' : c.nom, note: estFeu(c) ? 'jeté par-dessus bord' : 'au radoub', poudre: 0 });
     }
-    lignes.push({ quoi: 'Radoub', note: '+12 à La Tortue, un Feu jeté', points: 0 });
-    return { cible: 'radoub', lignes, synergies: ['Radoub'], total: 0, degats: 0, abat: false, repare, bord: bordDeLaVolee(P, cartes) };
+    lignes.push({ quoi: 'Radoub', note: '+12 à La Tortue, un Feu jeté', poudre: 0 });
+    return {
+      cible: 'radoub', lignes, synergies: ['Radoub'],
+      poudre: 0, fureur: 1, total: 0, degats: 0, gate: 0, abat: false, repare,
+      bord: bordDeLaVolee(P, cartes),
+    };
   }
+
+  /* --- LA POUDRE : ce que les hommes valent ----------------------------- */
+  let poudre = 0;
   for (const c of cartes) {
-    if (estFeu(c)) { lignes.push({ quoi: 'Feu', note: 'encombre la volée', points: 0 }); continue; }
+    if (estFeu(c)) { lignes.push({ quoi: 'Feu', note: 'encombre la volée', poudre: 0 }); continue; }
     const v = valeur(c, P);
-    if (c.role === 'charpentier') { lignes.push({ quoi: c.nom, note: 'ne tire pas — il ne répare que seul', points: 0 }); continue; }
+    if (c.role === 'charpentier') { lignes.push({ quoi: c.nom, note: 'ne tire pas — il ne répare que seul', poudre: 0 }); continue; }
     if (c.role === 'gabier') {
       const g = meilleurCanon || v;
-      lignes.push({ quoi: c.nom, note: meilleurCanon ? 'réglage de tir' : 'sans canonnier, il ne règle rien', points: g });
-      total += g; continue;
+      lignes.push({ quoi: c.nom, note: meilleurCanon ? 'réglage de tir' : 'sans canonnier, il ne règle rien', poudre: g });
+      poudre += g; continue;
     }
     if (c.role === 'abordeur') {
       const g = bas ? v * 2 : v;
-      lignes.push({ quoi: c.nom, note: bas ? 'à l’abordage, compte double' : 'attend que la coque cède', points: g });
-      total += g; continue;
+      lignes.push({ quoi: c.nom, note: bas ? 'à l’abordage, compte double' : 'attend que la coque cède', poudre: g });
+      poudre += g; continue;
     }
     const bosco = aOfficier(P, 'bosco') ? 2 : 0;
-    lignes.push({ quoi: c.nom, note: bosco ? 'le Bosco le pousse' : null, points: v + bosco });
-    total += v + bosco;
+    lignes.push({ quoi: c.nom, note: bosco ? 'le Bosco le pousse' : null, poudre: v + bosco });
+    poudre += v + bosco;
   }
+  if (P.reliques.includes('caronades')) { lignes.push({ quoi: 'Caronades', note: null, poudre: 6 }); poudre += 6; }
 
-  const maitre = aOfficier(P, 'maitre_canonnier') ? 10 : 0;
-  if (canonniers.length >= 3) { synergies.push('Bordée pleine'); lignes.push({ quoi: 'Bordée pleine', note: 'trois canonniers', points: 24 + maitre }); total += 24 + maitre; }
-  else if (canonniers.length >= 2) { synergies.push('Bordée'); lignes.push({ quoi: 'Bordée', note: 'deux canonniers', points: 10 + maitre }); total += 10 + maitre; }
-  if (aOfficier(P, 'aumonier') && hommes.length >= 3) {
-    synergies.push('Plein équipage'); lignes.push({ quoi: 'L’Aumônier', note: 'trois hommes à la manœuvre', points: 8 }); total += 8;
-  }
-  if (cible === 'abordage') {
-    synergies.push('Abordage'); lignes.push({ quoi: 'Abordage', note: 'à bord — la cargaison est épargnée', points: 14 }); total += 14;
-  }
-  if (P.reliques.includes('caronades')) { lignes.push({ quoi: 'Caronades', note: null, points: 4 }); total += 4; }
+  /* --- LA FUREUR : ce que leur entente vaut ----------------------------- */
+  let fureur = 1;
+  const ajoute = (f, quoi, note) => { fureur += f; lignes.push({ quoi, note, fureur: f }); };
 
+  const bordee = canonniers.length >= 2;
+  if (canonniers.length >= 3) { synergies.push('Bordée pleine'); ajoute(2, 'Bordée pleine', 'trois canonniers'); }
+  else if (bordee) { synergies.push('Bordée'); ajoute(1, 'Bordée', 'deux canonniers'); }
+  if (gabiers.length && canonniers.length) { synergies.push('Réglage'); ajoute(0.5, 'Réglage', 'un gabier règle le tir'); }
+  if (cible === 'abordage') { synergies.push('Abordage'); ajoute(1.5, 'Abordage', 'à bord — la cargaison est épargnée'); }
+  if (bordee && aOfficier(P, 'maitre_canonnier')) ajoute(0.5, 'Le Maître canonnier', 'la bordée est tenue');
+  if (aOfficier(P, 'aumonier') && hommes.length >= 3) { synergies.push('Plein équipage'); ajoute(0.5, 'L’Aumônier', 'trois hommes à la manœuvre'); }
+
+  // LA MULTIPLICATION, UNE SEULE FOIS. Les fureurs se sont additionnées entre
+  // elles ; c'est leur somme qui porte la poudre.
+  let total = Math.round(poudre * fureur);
+
+  /* --- ce qui arrive au boulet une fois parti --------------------------- */
   let mm = P.meteo && P.meteo.mods ? (P.meteo.mods.damageMult || 1) : 1;
   if (mm < 1 && aOfficier(P, 'pilote')) mm = 1;
   if (mm !== 1) {
     const avant = total;
     total = Math.round(total * mm);
-    lignes.push({ quoi: P.meteo.name_fr, note: mm < 1 ? 'la mer gêne le pointage' : 'la mer porte le tir', points: total - avant });
+    lignes.push({ quoi: P.meteo.name_fr, note: mm < 1 ? 'la mer gêne le pointage' : 'la mer porte le tir', total: total - avant });
   }
 
   // Les règles de prise agissent sur le RÉSULTAT, pas sur le barème : elles
@@ -171,18 +202,17 @@ export function evaluer(P, cartes) {
   // jouait jusqu'à cinq hommes, il annulait presque toutes les volées une fois
   // le plafond descendu à trois.
   if (regle === 'lest' && hommes.length < 2) {
-    lignes.push({ quoi: 'Lourdement lestée', note: 'un homme seul ne l’entame pas', points: -total });
+    lignes.push({ quoi: 'Lourdement lestée', note: 'un homme seul ne l’entame pas', total: -total });
     total = 0;
   }
   if (regle === 'cuirasse' && total > 0) {
     const perdu = Math.min(10, total);
-    lignes.push({ quoi: 'Bordé doublé', note: 'les dix premiers points ne portent pas', points: -perdu });
+    lignes.push({ quoi: 'Bordé doublé', note: 'les dix premiers points ne portent pas', total: -perdu });
     total -= perdu;
   }
-
   if (regle === 'franc_bord' && cible === 'coque' && total > 0) {
     const perdu = Math.round(total * 0.3);
-    lignes.push({ quoi: 'Franc-bord haut', note: 'sa muraille encaisse le tiers', points: -perdu });
+    lignes.push({ quoi: 'Franc-bord haut', note: 'sa muraille encaisse le tiers', total: -perdu });
     total -= perdu;
   }
 
@@ -197,7 +227,7 @@ export function evaluer(P, cartes) {
 
   return {
     cible, lignes, synergies,
-    total, seuil, gate,
+    poudre, fureur, total, seuil, gate,
     degats: cible === 'coque' || cible === 'abordage' ? total : 0,
     abat,
     bord: bordDeLaVolee(P, cartes),

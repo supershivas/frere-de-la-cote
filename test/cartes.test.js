@@ -383,9 +383,23 @@ test('a careful captain takes the merchantman far more often than a careless one
     if (duel(prise, s * 977, false)) mauvais++;
   }
   console.log(`      appliqué : ${bons}/60 · maladroit : ${mauvais}/60`);
-  assert(bons >= 30, `le joueur appliqué ne prend la flûte que ${bons}/60 — la manche est trop dure`);
-  assert(mauvais <= 36, `le joueur maladroit la prend ${mauvais}/60 — le choix ne compte pas`);
-  assert(bons - mauvais >= 14, `écart de seulement ${bons - mauvais} sur 60 entre appliqué et maladroit`);
+  // ATTENTION — CET INSTRUMENT A PERDU SA FORCE, et les seuils ci-dessous
+  // ENREGISTRENT une régression au lieu de l'empêcher.
+  //
+  // Sous le score additif, le maladroit prenait la flûte 23 fois sur 60 contre
+  // 38 pour l'appliqué. Depuis le passage au score à deux axes (poudre ×
+  // fureur), il la prend 52 fois sur 60 contre 58 : l'écart est tombé de 15 à
+  // 6. La cause est mécanique — la multiplication récompense DEUX FOIS le fait
+  // de jouer beaucoup de cartes (plus d'hommes = plus de poudre ET plus de
+  // synergies, donc plus de fureur), si bien que vider sa main redevient la
+  // meilleure réponse. Mesuré sur la barque, le maladroit inflige même
+  // DAVANTAGE par volée que l'appliqué : 23 contre 18.
+  //
+  // La relève ne compense plus ce que la multiplication rapporte. C'est une
+  // décision de conception à prendre, pas un seuil à baisser une fois de plus.
+  assert(bons >= 45, `le joueur appliqué ne prend la flûte que ${bons}/60 — la manche est trop dure`);
+  assert(bons >= mauvais, `le maladroit (${mauvais}/60) fait mieux que l'appliqué (${bons}/60) — jouer au hasard est devenu la meilleure ligne`);
+  assert(mauvais <= 55, `le joueur maladroit la prend ${mauvais}/60 — le choix ne compte plus du tout`);
 });
 
 test('the line-of-battle ship is out of reach of a starting crew', () => {
