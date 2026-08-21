@@ -703,6 +703,27 @@ function posteVu(q) {
   return el('span', { class: 'c-poste' }, [svg]);
 }
 
+// Le dedans d'une carte, écrit UNE fois : la main et la réserve montrent
+// exactement le même objet, à l'échelle près. Deux gabarits qui divergent, ce
+// serait deux cartes différentes pour le même homme.
+function contenuCarte(c) {
+  const feu = C.estFeu(c);
+  const q = feu ? null : CONTENU.quarts[c.quart];
+  return [
+    c.grade ? el('span', { class: 'c-grade', text: '★'.repeat(c.grade) }) : null,
+    c.blesse ? el('span', { class: 'c-etat', text: 'blessé' }) : null,
+    feu ? el('span', { class: 'c-fumee' }) : null,
+    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
+    feu ? null : posteVu(q),
+    el('span', { class: 'c-ou', text: feu ? '' : q.nom }),
+    el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c, P)) }),
+    el('span', {
+      class: 'c-role', text: feu ? 'encombre' : CONTENU.roles[c.role].court,
+      attrs: { style: `background:${feu ? '#6b3a10' : ROLE_FOND[c.role]}` },
+    }),
+  ];
+}
+
 function carteVue(c, rang = 0, neuve = false) {
   const feu = C.estFeu(c);
   const pris = P.selection.includes(c);
@@ -735,19 +756,7 @@ function carteVue(c, rang = 0, neuve = false) {
         rendre();
       },
     },
-  }, [
-    c.grade ? el('span', { class: 'c-grade', text: '★'.repeat(c.grade) }) : null,
-    c.blesse ? el('span', { class: 'c-etat', text: 'blessé' }) : null,
-    feu ? el('span', { class: 'c-fumee' }) : null,
-    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
-    feu ? null : posteVu(q),
-    el('span', { class: 'c-ou', text: feu ? '' : q.nom }),
-    el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c, P)) }),
-    el('span', {
-      class: 'c-role', text: feu ? 'encombre' : CONTENU.roles[c.role].court,
-      attrs: { style: `background:${feu ? '#6b3a10' : ROLE_FOND[c.role]}` },
-    }),
-  ]);
+  }, contenuCarte(c));
   // La classe s'enlève dès que l'animation est finie : un marqueur qui reste
   // après coup est un état qui ment, et le jour où quelque chose le relit,
   // l'animation repart.
@@ -798,6 +807,31 @@ function ecranChasse() {
   // Les deux plaques sont dans UNE rangée en haut de la bande : posées
   // au-dessus de chaque coque, elles se retrouvaient à deux hauteurs
   // différentes selon la taille des navires, et l'œil lisait deux mers.
+  // LA COMPOSITION DE LA PIOCHE, jamais son ordre. Ce qu'un joueur a le droit
+  // de savoir, c'est ce qui lui reste — pas ce qui vient. (Les deux hommes de
+  // la relève, eux, sont montrés à part : c'est une fenêtre voulue.)
+  const reste = P.pioche;
+  const parBord = { babord: 0, tribord: 0 };
+  const parRole = {};
+  for (const c of reste) {
+    if (C.estFeu(c)) { parRole.feu = (parRole.feu || 0) + 1; continue; }
+    parBord[CONTENU.quarts[c.quart].bord] += 1;
+    parRole[c.role] = (parRole[c.role] || 0) + 1;
+  }
+  const roles = Object.entries(parRole)
+    .sort((a, b) => b[1] - a[1])
+    .map(([r, n]) => `${r === 'feu' ? 'feu' : CONTENU.roles[r].court} ${n}`)
+    .join(', ');
+  s.appendChild(el('div', { class: 'pioche-etat', attrs: { 'aria-hidden': 'true' } }, [
+    el('span', { class: 'pe-cle', text: 'pioche' }),
+    el('span', { class: 'pe-nb', text: String(reste.length) }),
+    el('span', { class: 'pe-bord' }, [
+      el('i', { class: 'pt-ba' }), el('span', { text: String(parBord.babord) }),
+      el('i', { class: 'pt-tri' }), el('span', { text: String(parBord.tribord) }),
+    ]),
+    el('span', { class: 'pe-roles', text: roles || '—' }),
+  ]));
+
   const mats = '|'.repeat(p.mats) + '.'.repeat(p.matsMax - p.mats);
   const matsHtml = mats.split('').map((ch) => (ch === '|' ? '|' : '<span class="bas">.</span>')).join('');
   const mer = el('div', { class: 'mer' }, [
@@ -899,7 +933,22 @@ function ecranChasse() {
 
   const main = el('div', { class: 'main' });
   P.main.forEach((c, i) => main.appendChild(carteVue(c, neuves.indexOf(c.uid), neuves.includes(c.uid))));
-  s.appendChild(el('div', { class: 'ratelier' }, [main]));
+
+  // LA RELÈVE, POSÉE SUR LE LISTEAU. Les deux hommes qui montent au prochain
+  // tour, face visible, enfoncés dans le bois. On pioche avec `pop()` : le
+  // DESSUS du paquet est la fin du tableau, donc le premier à venir est le
+  // dernier élément.
+  //
+  // Ce n'est pas une cible : on ne peut ni les toucher ni les jouer. Savoir
+  // qui vient ensuite change ce qu'on garde en main ce tour-ci, et c'est tout
+  // ce qu'on leur demande.
+  const aVenir = P.pioche.slice(-C.releveDe(P)).reverse();
+  const reserve = el('div', { class: 'reserve', attrs: { 'aria-hidden': 'true' } },
+    [el('span', { class: 'reserve-cle', text: 'à venir' })].concat(aVenir.map((c, i) => el('div', {
+      class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.blesse ? ' blesse' : ''}`,
+      attrs: { style: `--rang:${i}`, 'data-bord': C.estFeu(c) ? '' : CONTENU.quarts[c.quart].bord },
+    }, contenuCarte(c)))));
+  s.appendChild(el('div', { class: 'ratelier' }, [reserve, main]));
   return s;
 }
 

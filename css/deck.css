@@ -1161,6 +1161,31 @@
   font-size: 16px; line-height: 1; border-radius: 6px;
 }
 
+/* --- la composition de la pioche : ce qui reste, jamais ce qui vient ------
+   Un bandeau, pas un bouton : il n'y a rien à toucher. Les deux pastilles de
+   bord reprennent EXACTEMENT les rouges et verts des cartes — un rond rouge
+   d'une autre nuance serait un troisième code à apprendre.               */
+.screen.ecran-cartes .pioche-etat {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
+  padding: 3px 8px; min-height: 22px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 5px;
+  font-family: var(--font-body); font-size: 10px; color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden;
+}
+.screen.ecran-cartes .pe-cle { text-transform: uppercase; letter-spacing: 1px; font-size: 8.5px; color: var(--text-muted); }
+.screen.ecran-cartes .pe-nb { font-weight: 700; color: var(--text-primary); font-size: 12px; }
+.screen.ecran-cartes .pe-bord { display: inline-flex; align-items: center; gap: 3px; }
+.screen.ecran-cartes .pe-bord i {
+  width: 9px; height: 9px; border-radius: 50%; display: inline-block;
+  box-shadow: inset 0 -1px 1px rgba(0,0,0,.45);
+}
+.screen.ecran-cartes .pe-bord .pt-ba { background: #b93a2c; }
+.screen.ecran-cartes .pe-bord .pt-tri { background: #24875a; margin-left: 5px; }
+.screen.ecran-cartes .pe-roles {
+  margin-left: auto; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text-muted);
+}
+
 /* --- la mer : deux coques posées sur UNE ligne de flottaison --- */
 .screen.ecran-cartes .mer {
   position: relative; flex: 1 1 auto;
@@ -1411,7 +1436,10 @@
 .screen.ecran-cartes .ratelier {
   flex: 0 0 auto; position: relative;
   margin: 0 -7px -7px;           /* le bois va d'un bord à l'autre */
-  padding: 22px 7px 10px;
+  /* Le râtelier ménage AU-DESSUS des cartes en main la hauteur exacte de la
+     réserve : sans cela les deux hommes à venir se posaient par-dessus la
+     main, et l'on ne savait plus lesquels étaient jouables. */
+  padding: calc(var(--carte-h, 112px) * .7 + 12px) 7px 10px;
   /* Du chêne huilé : des lames verticales, un fil irrégulier, une lumière qui
      tombe d'en haut. Le sol des cartes doit se lire comme une matière, sinon
      elles flottent encore. */
@@ -1535,13 +1563,60 @@
   .screen.ecran-cartes .carte .c-fumee { display: none; }
 }
 
+/* --- la relève posée sur le listeau --------------------------------------
+   Les deux hommes qui montent au prochain tour, face visible, plus petits et
+   ENFONCÉS DANS LE BOIS : une ombre portée par-dessus leur haut, pas sous
+   elles. Elles ne sont pas des cibles — `pointer-events: none` — parce que
+   savoir qui vient ne donne aucun ordre à donner.                          */
+.screen.ecran-cartes .reserve {
+  position: absolute; right: 9px; top: 5px; z-index: 2;
+  display: flex; align-items: flex-end; gap: 3px; pointer-events: none;
+}
+/* La lèvre de bois qui passe DEVANT le haut des cartes : c'est elle qui les
+   enfonce. Une ombre seule les laissait posées dessus. */
+.screen.ecran-cartes .reserve::after {
+  content: ''; position: absolute; left: -5px; right: -5px; top: 0; height: 7px;
+  background: linear-gradient(180deg, #6b4a26, #4a3116 60%, #2f2010);
+  border-radius: 2px;
+  box-shadow: 0 3px 5px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,220,160,.22);
+}
+.screen.ecran-cartes .reserve-cle {
+  align-self: center; margin-right: 4px; padding-bottom: 4px;
+  font-family: var(--font-body); font-size: 7.5px; letter-spacing: 1.2px;
+  text-transform: uppercase; color: #a5844c; white-space: nowrap;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+}
+.screen.ecran-cartes .carte.mini {
+  width: calc(var(--carte-l, 62px) * .7); height: calc(var(--carte-h, 112px) * .7);
+  flex: 0 0 auto; cursor: default; border-radius: 5px;
+  transform: translateY(6px) rotate(calc(var(--rang, 0) * 1.5deg - .75deg));
+  /* Enfoncée : le bois lui passe DEVANT en haut, et son ombre tombe vers le
+     bas au lieu de la faire flotter. */
+  box-shadow:
+    inset 0 5px 7px -3px rgba(20,12,4,.75),
+    0 2px 3px rgba(0,0,0,.5);
+  filter: brightness(.9) saturate(.92);
+  transition: none;
+}
+.screen.ecran-cartes .carte.mini::after { border-radius: 4px; }
+.screen.ecran-cartes .carte.mini .c-nom { font-size: 10px; padding-top: 5px; }
+.screen.ecran-cartes .carte.mini .c-poste { width: 20px; height: 24px; margin-top: 2px; }
+.screen.ecran-cartes .carte.mini .c-ou { font-size: 6px; letter-spacing: .1px; }
+.screen.ecran-cartes .carte.mini .c-val { font-size: 17px; }
+.screen.ecran-cartes .carte.mini .c-role { font-size: 6px; padding: 2px 0; margin-top: 2px; }
+.screen.ecran-cartes .carte.mini .c-grade,
+.screen.ecran-cartes .carte.mini .c-etat { font-size: 6px; top: 2px; }
+
 /* --- la distribution : on VOIT les hommes monter sur le pont ------------
    Une carte qui apparaît est un changement d'état ; une carte qui arrive est
    un geste. La relève vient de la droite, décalée d'une carte à l'autre, pour
    qu'on compte les hommes qu'on reçoit sans avoir à lire un chiffre.        */
+/* Les hommes relevés arrivent DE LA RÉSERVE : depuis la droite, en haut, à
+   l'échelle réduite où ils étaient posés. Le geste raconte le même trajet que
+   celui qu'on voit sur le listeau. */
 @keyframes distribuer {
-  from { transform: translate(90px, 26px) rotate(14deg) scale(.86); opacity: 0; }
-  60%  { opacity: 1; }
+  from { transform: translate(120px, -34px) scale(.7) rotate(6deg); opacity: 0; }
+  35%  { opacity: 1; }
   to   { transform: none; opacity: 1; }
 }
 .screen.ecran-cartes .carte.neuve {

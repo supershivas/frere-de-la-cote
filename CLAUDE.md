@@ -148,6 +148,13 @@ sert `tools/mobile-audit.mjs`.
   distribution repartait à chaque homme touché.
 - **La carte Feu fume**, en boucle : c'est la seule carte qui ne sert à rien,
   il faut le voir de loin.
+- **La pioche dit sa COMPOSITION, jamais son ordre** : un bandeau sous le
+  ruban donne ce qui reste — combien, par bord, par métier. Ce qu'un joueur a
+  le droit de savoir, c'est ce qui lui reste, pas ce qui vient.
+- **La relève est visible** : les deux hommes du prochain tour, face visible,
+  à 0,7× et enfoncés dans le listeau du râtelier. C'est une fenêtre voulue sur
+  l'ordre, et la seule. Ni le bandeau ni la réserve ne se touchent — c'est de
+  l'information, pas une cible.
 - **La flottaison est un NIVEAU, pas un trait.** Le navire est peint entier,
   œuvres vives comprises, et posé dans un conteneur `.flot` qui coupe à la
   ligne d'eau. La coupe ne bouge pas — c'est la mer — et c'est la coque qui
