@@ -1165,15 +1165,18 @@
    Un bandeau, pas un bouton : il n'y a rien à toucher. Les deux pastilles de
    bord reprennent EXACTEMENT les rouges et verts des cartes — un rond rouge
    d'une autre nuance serait un troisième code à apprendre.               */
+/* Posée SUR LE BOIS, à gauche du listeau : l'état du paquet appartient au
+   râtelier, pas au ruban. Elle occupe la place qui était vide à côté de la
+   réserve, et les deux informations de pioche se lisent ensemble. */
 .screen.ecran-cartes .pioche-etat {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 6px;
-  padding: 3px 8px; min-height: 22px;
-  background: var(--bg-panel); border: 1px solid var(--border); border-radius: 5px;
-  font-family: var(--font-body); font-size: 10px; color: var(--text-secondary);
-  white-space: nowrap; overflow: hidden;
+  position: absolute; left: 9px; top: 8px; right: calc(var(--carte-l, 62px) * 1.55 + 34px);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 3px 6px;
+  font-family: var(--font-body); font-size: 10px; color: #cbb08a;
+  text-shadow: 0 1px 2px rgba(0,0,0,.7);
+  pointer-events: none;
 }
-.screen.ecran-cartes .pe-cle { text-transform: uppercase; letter-spacing: 1px; font-size: 8.5px; color: var(--text-muted); }
-.screen.ecran-cartes .pe-nb { font-weight: 700; color: var(--text-primary); font-size: 12px; }
+.screen.ecran-cartes .pe-cle { text-transform: uppercase; letter-spacing: 1.2px; font-size: 8px; color: #a5844c; }
+.screen.ecran-cartes .pe-nb { font-weight: 700; color: #f3e7c8; font-size: 13px; }
 .screen.ecran-cartes .pe-bord { display: inline-flex; align-items: center; gap: 3px; }
 .screen.ecran-cartes .pe-bord i {
   width: 9px; height: 9px; border-radius: 50%; display: inline-block;
@@ -1182,8 +1185,7 @@
 .screen.ecran-cartes .pe-bord .pt-ba { background: #b93a2c; }
 .screen.ecran-cartes .pe-bord .pt-tri { background: #24875a; margin-left: 5px; }
 .screen.ecran-cartes .pe-roles {
-  margin-left: auto; overflow: hidden; text-overflow: ellipsis;
-  color: var(--text-muted);
+  flex: 1 1 100%; font-size: 9px; color: #a5936f; line-height: 1.2;
 }
 
 /* --- la mer : deux coques posées sur UNE ligne de flottaison --- */
@@ -1218,47 +1220,10 @@
 /* Les coques sont RECADRÉES à leur ligne de flottaison (le canvas s'arrête à
    l'eau), donc les aligner par le bas les aligne par la flottaison — quelles
    que soient leurs tailles de grille. */
-/* `.flot` est le niveau de la mer : il coupe, et il ne bouge pas. Le navire
-   bobe DEDANS — il s'enfonce sous la coupe et en ressort, si bien qu'une part
-   de la coque est réellement cachée puis découverte. Auparavant la découpe
-   était peinte dans le canvas et bougeait avec lui : le navire et sa ligne
-   d'eau se déplaçaient ensemble, ce qui est exactement ce qu'une flottaison
-   ne fait jamais. */
-.screen.ecran-cartes .flot { position: relative; overflow: hidden; width: 100%; }
 .screen.ecran-cartes .coque canvas {
   display: block; margin: 0 auto; max-width: 100%; height: auto; image-rendering: pixelated;
   transform-origin: 50% 100%;
   animation: houle var(--periode, 4s) ease-in-out infinite;
-}
-
-/* La bande de vagues, par-dessus la coupe : deux trains d'ondes qui défilent à
-   des vitesses différentes, plus une frange d'écume. C'est ce qui fait que la
-   coque entre dans l'eau au lieu d'être posée sur une arête. */
-.screen.ecran-cartes .vagues {
-  position: absolute; left: 0; right: 0; bottom: calc(var(--pied) - 13px); height: 26px;
-  pointer-events: none; z-index: 3;
-  background-repeat: repeat-x, repeat-x;
-  background-size: 96px 26px, 64px 20px;
-  background-position: 0 4px, 0 11px;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='26'%3E%3Cpath d='M0 11 q12 -7 24 0 t24 0 t24 0 t24 0 V26 H0 Z' fill='%231b3a4b'/%3E%3Cpath d='M0 11 q12 -7 24 0 t24 0 t24 0 t24 0' fill='none' stroke='%23cfe2ee' stroke-opacity='.30' stroke-width='1.2'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='20'%3E%3Cpath d='M0 8 q8 -5 16 0 t16 0 t16 0 t16 0 V20 H0 Z' fill='%23143040' fill-opacity='.85'/%3E%3C/svg%3E");
-  animation: vaguer var(--vitesse, 11s) linear infinite;
-}
-@keyframes vaguer {
-  from { background-position: 0 4px, 0 11px; }
-  to   { background-position: -96px 4px, 64px 11px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .screen.ecran-cartes .vagues { animation: none; }
-}
-@keyframes houle {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  25% { transform: translateY(calc(var(--amp, 2px) * -1)) rotate(calc(var(--gite, .6deg) * -1)); }
-  75% { transform: translateY(var(--amp, 2px)) rotate(var(--gite, .6deg)); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .screen.ecran-cartes .coque canvas { animation: none; }
 }
 
 .screen.ecran-cartes .etiq {
@@ -1363,6 +1328,11 @@
 .ecran-cartes-bulle.vue { opacity: 1; transform: none; }
 .ecran-cartes-bulle .b-nom { font-family: var(--font-title); font-size: 13px; color: var(--gold-light); }
 .ecran-cartes-bulle .b-quoi { color: var(--text-primary); }
+.ecran-cartes-bulle .b-poste { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.ecran-cartes-bulle .b-poste .c-poste { width: 28px; height: 34px; flex: 0 0 auto; }
+.ecran-cartes-bulle .b-poste .coque-fil { fill: #cbb894; stroke: #241608; stroke-width: 1.6; }
+.ecran-cartes-bulle .b-poste .quart.on { fill: var(--feu, #a5342a); }
+.ecran-cartes-bulle .b-poste .axe { stroke: #241608; stroke-width: 1; opacity: .55; }
 .ecran-cartes-bulle .b-refus { color: var(--hp); }
 .ecran-cartes-bulle hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
 .ecran-cartes-bulle::after {
@@ -1466,21 +1436,47 @@
 .screen.ecran-cartes .carte {
   flex: 0 0 var(--carte-l, 62px);
   width: var(--carte-l, 62px); height: var(--carte-h, 112px);
-  background: linear-gradient(168deg, #f3e8cd 0%, #e4d5b1 55%, #cdb98f 100%);
-  color: #241608; border: 1px solid #241608; border-radius: 7px;
-  padding: 2px 0 3px; display: flex; flex-direction: column; align-items: center;
+  color: var(--encre, #f7efd8);
+  background: var(--metier, #6b5a3a);
+  border: 2px solid #1c1109;
+  /* Le bord du navire court à GAUCHE sur toute la hauteur : ce côté-là n'est
+     pas arrondi, c'est une tranche, pas un coin. */
+  border-radius: 0 7px 7px 0;
+  padding: 3px 3px 4px 9px;
+  display: flex; flex-direction: column; align-items: center;
   cursor: grab; user-select: none; position: relative; overflow: hidden;
-  box-shadow: 0 2px 3px rgba(0,0,0,.45), 0 6px 10px rgba(0,0,0,.28);
+  box-shadow: 0 0 0 1px rgba(243,231,200,.18), 0 2px 3px rgba(0,0,0,.5), 0 6px 10px rgba(0,0,0,.3);
   transition: transform .18s cubic-bezier(.2,.9,.25,1.1), box-shadow .18s var(--ease-fast), filter .18s;
   will-change: transform;
 }
-/* Le grain du carton, et une lumière rasante venue d'en haut à gauche : sans
-   relief, une carte est un rectangle, pas un objet. */
+
+/* LE MÉTIER EST LA COULEUR DE LA CARTE ENTIÈRE. En bandeau de pied, il fallait
+   descendre l'œil jusqu'en bas d'une carte de 60 px pour savoir à qui l'on
+   avait affaire ; en fond, il se reconnaît du coin de l'œil, à distance de
+   bras, sans lire un mot. */
+.screen.ecran-cartes .carte[data-role="canonnier"]   { --metier: #7b241c; --encre: #f7efd8; }
+.screen.ecran-cartes .carte[data-role="gabier"]      { --metier: #1a5276; --encre: #f7efd8; }
+.screen.ecran-cartes .carte[data-role="abordeur"]    { --metier: #b3760f; --encre: #120b06; }
+.screen.ecran-cartes .carte[data-role="charpentier"] { --metier: #186a3b; --encre: #f7efd8; }
+
+/* LE BORD : une tranche pleine de 5 px, à gauche, sur toute la hauteur. */
+.screen.ecran-cartes .carte::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; z-index: 2;
+  background: var(--feu-bord, #6b5a3a);
+  box-shadow: inset -1px 0 0 rgba(0,0,0,.45);
+}
+.screen.ecran-cartes .carte[data-bord="babord"]  { --feu-bord: #b93a2c; }
+.screen.ecran-cartes .carte[data-bord="tribord"] { --feu-bord: #1f7a4a; }
+
+/* Le grain du carton et la lumière rasante, EN MULTIPLY par-dessus la couleur
+   de métier : sans eux, le fond est un aplat d'imprimerie, pas du papier. */
 .screen.ecran-cartes .carte::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 6px;
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  mix-blend-mode: multiply;
   background:
-    linear-gradient(135deg, rgba(255,255,255,.34), rgba(255,255,255,0) 42%),
-    radial-gradient(120% 90% at 50% 120%, rgba(60,40,16,.22), transparent 60%);
+    repeating-linear-gradient(102deg, rgba(255,255,255,0) 0 2px, rgba(90,80,64,.10) 2px 3px),
+    repeating-linear-gradient(9deg, rgba(255,255,255,0) 0 3px, rgba(90,80,64,.07) 3px 4px),
+    linear-gradient(146deg, #ffffff 0%, #ffffff 34%, #e6dfd0 66%, #b9b1a0 100%);
 }
 .screen.ecran-cartes .carte:active { cursor: grabbing; }
 .screen.ecran-cartes .carte.prise-en-main {
@@ -1488,58 +1484,50 @@
   box-shadow: 0 0 0 2px var(--gold-light), 0 14px 20px rgba(0,0,0,.55);
   z-index: 5;
 }
+/* Un homme qu'on ne peut pas jouer se DÉSATURE — il ne s'efface pas. Sous
+   0,55 d'opacité, sa valeur cessait d'être lisible, et une carte qu'on ne
+   peut pas lire ne dit plus pourquoi elle est refusée. */
 .screen.ecran-cartes .carte.muet {
-  opacity: .4; filter: grayscale(.75) brightness(.8);
+  opacity: .6; filter: saturate(.3) brightness(.82);
   box-shadow: 0 1px 2px rgba(0,0,0,.4); transform: translateY(4px);
 }
 
 .screen.ecran-cartes .carte .c-nom {
-  font-family: var(--font-title); font-size: 14px; line-height: 1; text-align: center;
-  width: 100%; padding: 3px 2px 0; word-break: break-word; letter-spacing: .2px;
+  font-family: var(--font-title); font-size: 10.5px; line-height: 1.02; text-align: center;
+  width: 100%; padding: 1px 11px 0 1px; word-break: break-word; letter-spacing: .2px;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  opacity: .92;
+}
+.screen.ecran-cartes .c-niveau {
+  font-family: var(--font-body); font-size: 7px; letter-spacing: .3px;
+  text-align: center; width: 100%; opacity: .62;
+}
+.screen.ecran-cartes .c-niveau.grade { opacity: 1; font-weight: 700; }
+
+/* Le chevron : ▲ on tire au gréement, ▼ on tire à la coque. */
+.screen.ecran-cartes .c-chev {
+  position: absolute; top: 2px; right: 4px; z-index: 2;
+  font-size: 10px; line-height: 1; opacity: .75;
 }
 
-/* LE POSTE EST UN SCHÉMA, PAS UNE ABRÉVIATION. Une coque vue de dessus,
-   coupée en quatre, le quart de l'homme allumé. « BÂ · AV » demandait au
-   joueur de retenir un code ; un dessin se lit sans traduction, et la couleur
-   allumée est celle du bord — bâbord rouge, tribord vert, les vrais feux de
-   position. La proue pointe vers le haut : c'est l'avant. */
-.screen.ecran-cartes .c-poste {
-  width: 30px; height: 36px; margin: 3px auto 0; flex: 0 0 auto;
-  position: relative;
-}
-.screen.ecran-cartes .c-poste svg { display: block; width: 100%; height: 100%; }
-.screen.ecran-cartes .c-poste .coque-fil { fill: #cbb894; stroke: #241608; stroke-width: 1.6; }
-.screen.ecran-cartes .c-poste .quart { fill: transparent; }
-.screen.ecran-cartes .c-poste .quart.on { fill: var(--feu, #a5342a); }
-.screen.ecran-cartes .c-poste .axe { stroke: #241608; stroke-width: 1; opacity: .55; }
-.screen.ecran-cartes .carte[data-bord="babord"] .c-poste { --feu: #b93a2c; }
-.screen.ecran-cartes .carte[data-bord="tribord"] .c-poste { --feu: #1f7a4a; }
-.screen.ecran-cartes .c-ou {
-  font-size: 8px; line-height: 1.08; text-transform: uppercase; letter-spacing: .3px;
-  text-align: center; width: 100%; padding: 2px 1px 0; color: #4a3116; font-weight: 700;
-}
-
+/* LA VALEUR, la chose la plus lisible de la carte. Contrastes mesurés sur les
+   quatre fonds : brique 8,7:1 · bleu 7,3:1 · ocre 5,1:1 · vert 5,8:1. */
 .screen.ecran-cartes .carte .c-val {
-  font-family: var(--font-body); font-size: 26px; font-weight: 700; margin-top: auto; line-height: 1;
-  text-shadow: 0 1px 0 rgba(255,255,255,.5);
+  font-family: var(--font-body); font-size: 34px; font-weight: 700;
+  margin: auto 0; line-height: 1; letter-spacing: -1px;
+  text-shadow: 0 2px 3px rgba(0,0,0,.35);
 }
-.screen.ecran-cartes .carte .c-role {
-  font-size: 8.5px; text-transform: uppercase; letter-spacing: .3px;
-  width: 100%; text-align: center; padding: 3px 0; margin-top: 3px;
-  color: #f5f5dc; overflow: hidden; white-space: nowrap;
-}
+
 .screen.ecran-cartes .carte.feu {
-  background: linear-gradient(168deg, #542a17, #2a1408); color: #f0d0a0; border-color: var(--warning);
+  --metier: #3a1c0c; --encre: #f0d0a0; --feu-bord: #8a4a14;
+  border-color: var(--warning);
 }
-.screen.ecran-cartes .carte.feu .c-nom { color: #f0d0a0; }
-.screen.ecran-cartes .carte.feu .c-ou { color: #c89a5a; }
-.screen.ecran-cartes .carte.blesse .c-val { color: #a5342a; }
+.screen.ecran-cartes .carte.feu .c-nom { opacity: 1; }
+.screen.ecran-cartes .carte.blesse .c-val { color: #ffd7cf; }
+.screen.ecran-cartes .carte[data-role="abordeur"].blesse .c-val { color: #4a1008; }
 .screen.ecran-cartes .carte .c-etat {
-  position: absolute; top: 3px; right: 4px; font-size: 8.5px; color: #a5342a; font-weight: 700;
-}
-.screen.ecran-cartes .carte .c-grade {
-  position: absolute; top: 3px; left: 4px; font-size: 9px; color: #8a6a1a; letter-spacing: -1px;
+  position: absolute; top: 2px; left: 8px; z-index: 2;
+  font-size: 7.5px; font-weight: 700; opacity: .95;
 }
 
 /* --- la carte Feu fume ---------------------------------------------------
@@ -1550,7 +1538,7 @@
   30%  { opacity: .55; }
   100% { transform: translate(6px, -26px) scale(1.5); opacity: 0; }
 }
-.screen.ecran-cartes .carte .c-fumee { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.screen.ecran-cartes .carte .c-fumee { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
 .screen.ecran-cartes .carte .c-fumee::before,
 .screen.ecran-cartes .carte .c-fumee::after {
   content: ''; position: absolute; bottom: 26px; left: 34%;
@@ -1565,9 +1553,8 @@
 
 /* --- la relève posée sur le listeau --------------------------------------
    Les deux hommes qui montent au prochain tour, face visible, plus petits et
-   ENFONCÉS DANS LE BOIS : une ombre portée par-dessus leur haut, pas sous
-   elles. Elles ne sont pas des cibles — `pointer-events: none` — parce que
-   savoir qui vient ne donne aucun ordre à donner.                          */
+   ENFONCÉS DANS LE BOIS. Elles ne sont pas des cibles — `pointer-events: none` —
+   parce que savoir qui vient ne donne aucun ordre à donner. */
 .screen.ecran-cartes .reserve {
   position: absolute; right: 9px; top: 5px; z-index: 2;
   display: flex; align-items: flex-end; gap: 3px; pointer-events: none;
@@ -1575,7 +1562,7 @@
 /* La lèvre de bois qui passe DEVANT le haut des cartes : c'est elle qui les
    enfonce. Une ombre seule les laissait posées dessus. */
 .screen.ecran-cartes .reserve::after {
-  content: ''; position: absolute; left: -5px; right: -5px; top: 0; height: 7px;
+  content: ''; position: absolute; left: -5px; right: -5px; top: 0; height: 7px; z-index: 3;
   background: linear-gradient(180deg, #6b4a26, #4a3116 60%, #2f2010);
   border-radius: 2px;
   box-shadow: 0 3px 5px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,220,160,.22);
@@ -1588,32 +1575,24 @@
 }
 .screen.ecran-cartes .carte.mini {
   width: calc(var(--carte-l, 62px) * .7); height: calc(var(--carte-h, 112px) * .7);
-  flex: 0 0 auto; cursor: default; border-radius: 5px;
+  flex: 0 0 auto; cursor: default;
   transform: translateY(6px) rotate(calc(var(--rang, 0) * 1.5deg - .75deg));
-  /* Enfoncée : le bois lui passe DEVANT en haut, et son ombre tombe vers le
-     bas au lieu de la faire flotter. */
-  box-shadow:
-    inset 0 5px 7px -3px rgba(20,12,4,.75),
-    0 2px 3px rgba(0,0,0,.5);
+  box-shadow: inset 0 5px 7px -3px rgba(20,12,4,.75), 0 2px 3px rgba(0,0,0,.5);
   filter: brightness(.9) saturate(.92);
   transition: none;
+  border-width: 1.5px; padding-left: 7px;
 }
-.screen.ecran-cartes .carte.mini::after { border-radius: 4px; }
-.screen.ecran-cartes .carte.mini .c-nom { font-size: 10px; padding-top: 5px; }
-.screen.ecran-cartes .carte.mini .c-poste { width: 20px; height: 24px; margin-top: 2px; }
-.screen.ecran-cartes .carte.mini .c-ou { font-size: 6px; letter-spacing: .1px; }
-.screen.ecran-cartes .carte.mini .c-val { font-size: 17px; }
-.screen.ecran-cartes .carte.mini .c-role { font-size: 6px; padding: 2px 0; margin-top: 2px; }
-.screen.ecran-cartes .carte.mini .c-grade,
-.screen.ecran-cartes .carte.mini .c-etat { font-size: 6px; top: 2px; }
+.screen.ecran-cartes .carte.mini::before { width: 4px; }
+.screen.ecran-cartes .carte.mini .c-nom { font-size: 7.5px; padding-right: 8px; letter-spacing: 0; }
+.screen.ecran-cartes .carte.mini .c-niveau { font-size: 6px; }
+.screen.ecran-cartes .carte.mini .c-chev { font-size: 8px; top: 1px; right: 3px; }
+.screen.ecran-cartes .carte.mini .c-val { font-size: 23px; }
+.screen.ecran-cartes .carte.mini .c-etat { font-size: 6px; top: 1px; left: 6px; }
 
-/* --- la distribution : on VOIT les hommes monter sur le pont ------------
+/* --- la distribution : on VOIT les hommes monter sur le pont --------------
    Une carte qui apparaît est un changement d'état ; une carte qui arrive est
-   un geste. La relève vient de la droite, décalée d'une carte à l'autre, pour
-   qu'on compte les hommes qu'on reçoit sans avoir à lire un chiffre.        */
-/* Les hommes relevés arrivent DE LA RÉSERVE : depuis la droite, en haut, à
-   l'échelle réduite où ils étaient posés. Le geste raconte le même trajet que
-   celui qu'on voit sur le listeau. */
+   un geste. Les hommes relevés arrivent DE LA RÉSERVE : depuis la droite, en
+   haut, à l'échelle réduite où ils étaient posés. */
 @keyframes distribuer {
   from { transform: translate(120px, -34px) scale(.7) rotate(6deg); opacity: 0; }
   35%  { opacity: 1; }

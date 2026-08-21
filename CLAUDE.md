@@ -121,7 +121,13 @@ redressent : on voit partir une volée, pas trois cartes en parallèle. Les
 flèches du clavier doublent le geste — un geste raccourcit un ordre, il ne
 doit pas être le seul chemin.
 
-### Le tutoriel ne prend jamais la main
+### Le tutoriel dort
+
+`TUTORIEL_OUVERT = false` dans la maquette : les sept étapes, leurs conditions
+et le projecteur restent en place, seule l'entrée est fermée. Il sera repris en
+temps voulu ; ce qui suit décrit ce qu'il fait quand on le rallume.
+
+
 
 Sept étapes, un projecteur sur ce qu'il faut regarder, une phrase dite par un
 homme de l'équipage. **Aucune touche n'est bloquée, aucune action n'est
@@ -148,27 +154,21 @@ sert `tools/mobile-audit.mjs`.
   distribution repartait à chaque homme touché.
 - **La carte Feu fume**, en boucle : c'est la seule carte qui ne sert à rien,
   il faut le voir de loin.
-- **La pioche dit sa COMPOSITION, jamais son ordre** : un bandeau sous le
-  ruban donne ce qui reste — combien, par bord, par métier. Ce qu'un joueur a
-  le droit de savoir, c'est ce qui lui reste, pas ce qui vient.
+- **La pioche dit sa COMPOSITION, jamais son ordre** : posée sur le bois du
+  râtelier, à gauche de la réserve, elle donne ce qui reste — combien, par
+  bord, par métier. Ce qu'un joueur a le droit de savoir, c'est ce qui lui
+  reste, pas ce qui vient. Les deux informations de paquet se lisent au même
+  endroit.
 - **La relève est visible** : les deux hommes du prochain tour, face visible,
   à 0,7× et enfoncés dans le listeau du râtelier. C'est une fenêtre voulue sur
   l'ordre, et la seule. Ni le bandeau ni la réserve ne se touchent — c'est de
   l'information, pas une cible.
-- **La flottaison est un NIVEAU, pas un trait.** Le navire est peint entier,
-  œuvres vives comprises, et posé dans un conteneur `.flot` qui coupe à la
-  ligne d'eau. La coupe ne bouge pas — c'est la mer — et c'est la coque qui
-  s'y enfonce et en ressort avec la houle : une part du bordé disparaît
-  vraiment, puis se découvre. Peinte dans le canvas, la découpe se déplaçait
-  avec le navire, ce qu'une flottaison ne fait jamais.
-  Deux conséquences mesurées : on coupe **deux rangs au-dessus** de la ligne
-  d'eau réelle, sinon les bordés vert-de-gris de l'œuvre vive réapparaissent
-  au-dessus des crêtes dès que le navire monte ; et l'amplitude du roulis
-  reste **sous la demi-hauteur de la bande de vagues**, pour la même raison.
-- **Une seule surface d'eau, d'un bord à l'autre.** Une bande de vagues par
-  navire se lisait comme deux rubans posés sur la mer. La mer est continue :
-  une bande unique traverse la scène, et les deux coques y entrent sur la
-  même ligne.
+- **La flottaison ne se montre pas.** `drawGrid` coupe la coque à la ligne
+  d'eau, et l'on s'arrête là : seul le MOUVEMENT des navires dit qu'ils
+  flottent. Trois tentatives pour la rendre visible ont été essayées et
+  retirées — un bord mangé en creux et en bosses, une frange d'écume, puis un
+  train d'ondes traversant toute la scène avec les coques s'y enfonçant. Les
+  trois se remarquaient plus que la mer elle-même. **Ne pas les reconstruire.**
 - **Un boulet est une bille de fonte** : petite, noire, mate. Grosse et dorée,
   elle ressemblait à une bulle de savon. Ce qui la rend visible sur une mer
   sombre, c'est son cerne clair et son sillage, pas sa taille.
@@ -198,6 +198,23 @@ sert `tools/mobile-audit.mjs`.
 - **Les cartes ont une largeur fixe**, calculée pour la main pleine. En
   `flex: 1` elles s'élargissaient à mesure qu'on en jouait : la main changeait
   de forme sous le pouce.
+- **Le métier est la COULEUR DE LA CARTE ENTIÈRE**, pas un bandeau en pied :
+  canonnier brique, gabier bleu, abordeur ocre, charpentier vert, avec le grain
+  du carton par-dessus en `multiply` pour que ça reste du papier. En bandeau de
+  pied, il fallait descendre l'œil jusqu'en bas d'une carte de 60 px pour
+  savoir à qui l'on avait affaire.
+- **Le bord est une tranche pleine de 5 px à gauche**, sur toute la hauteur,
+  sans coin arrondi de ce côté — bâbord rouge, tribord vert.
+- **La valeur est la chose la plus lisible de la carte.** Contrastes mesurés
+  sur les quatre fonds : brique 8,7:1 · bleu 7,3:1 · ocre 5,1:1 · vert 5,8:1.
+  L'ocre demandé (#9c640c) ne pouvait atteindre 4,5:1 avec AUCUNE encre —
+  4,24 au mieux, avec du noir pur — il a fallu l'éclaircir à #b3760f.
+- **Un homme injouable se DÉSATURE, il ne s'efface pas** : sous 0,55
+  d'opacité sa valeur cesse d'être lisible, et une carte qu'on ne peut pas
+  lire ne dit plus pourquoi elle est refusée.
+- **Le schéma de coque ne vit que dans l'infobulle** : sur la carte, il
+  disputait la place à la valeur. L'avant et l'arrière tiennent dans un
+  chevron — ▲ on tire haut, ▼ on tire bas.
 - **Le poste est un DESSIN, pas une abréviation** : une coque vue de dessus,
   proue en haut, coupée en quatre, le quart de l'homme allumé à la couleur de
   son bord. « BÂ · AV » demandait d'apprendre un code avant de pouvoir jouer.

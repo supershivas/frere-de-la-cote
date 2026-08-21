@@ -115,28 +115,22 @@ function peindreCoque(cv, spec, facing, { matsAbattus = 0, feu = 0, px = 3 } = {
   const cols = grille[0].length, rows = grille.length;
   const eau = g.waterY != null ? g.waterY : rows - 1;
 
-  // On peint la coque ENTIÈRE, œuvres vives comprises : quelques rangs sous la
-  // flottaison. C'est ce qui permet au navire de s'enfoncer et de ressortir —
-  // il faut qu'il y ait quelque chose à cacher.
-  const sousEau = 5;
-  const bas = Math.min(rows - 1, eau + sousEau);
-
+  // ON NE MONTRE PAS LA FLOTTAISON. Ni bande de vagues, ni découpe dessinée,
+  // ni œuvres vives : `drawGrid` coupe la coque à la ligne d'eau et l'on
+  // s'arrête là. Tout ce qui a été tenté pour la rendre visible — un bord
+  // mangé en creux, une frange d'écume, un train d'ondes par-dessus — se
+  // remarquait plus que la mer elle-même. Il ne reste que le MOUVEMENT des
+  // navires, qui suffit à dire qu'ils flottent.
   const off = document.createElement('canvas');
   off.width = cols * px; off.height = rows * px;
-  drawGrid(off, greeVerte(grille, matsAbattus, eau), { color: g.palette, flag: '', facing });
+  drawGrid(off, greeVerte(grille, matsAbattus, eau), { color: g.palette, flag: '', facing, waterRow: eau });
 
-  cv.width = cols * px; cv.height = (bas + 1) * px;
+  cv.width = cols * px; cv.height = (eau + 1) * px;
   const ctx = cv.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(off, 0, 0);
 
-  // La ligne d'eau NOMINALE, en pixels du canvas. C'est elle que le conteneur
-  // `.flot` viendra couper : la découpe est fixe, le navire bouge dedans.
-  // On coupe DEUX RANGS AU-DESSUS de la flottaison réelle. Les bordés sous
-  // l'eau sont peints en vert-de-gris ; coupés pile à la ligne d'eau, ils
-  // réapparaissaient au-dessus des crêtes dès que le navire montait sur la
-  // houle, et l'on voyait une bande verte flotter sur la mer.
-  cv.dataset.flottaison = String(Math.max(1, eau - 2) * px);
+  cv.dataset.flottaison = String((eau + 1) * px);
   cv.dataset.eau = String((eau + 1) * px);
   cv.dataset.pont = String(Math.round((eau - 3) * px));
   // LES SABORDS, relevés dans la grille elle-même. Le générateur les marque
@@ -279,13 +273,6 @@ function peindreCoques() {
   for (const id of ['c-nous', 'c-prise']) {
     const cv = document.getElementById(id);
     if (!cv) continue;
-    // La coupe se cale sur la flottaison NOMINALE, à l'échelle où le canvas
-    // est réellement affiché. Le navire bobe au-delà : il s'enfonce sous la
-    // coupe, il en ressort, et une partie de la coque disparaît vraiment.
-    const flot = cv.parentElement;
-    const rendu = cv.getBoundingClientRect().height || cv.height;
-    const part = Number(cv.dataset.flottaison || cv.height) / cv.height;
-    if (flot && flot.classList.contains('flot')) flot.style.height = `${Math.round(rendu * part)}px`;
     cv.style.setProperty('--amp', `${h.amp}px`);
     cv.style.setProperty('--gite', `${h.gite}deg`);
     cv.style.setProperty('--periode', `${h.periode + (id === 'c-prise' ? 0.7 : 0)}s`);
@@ -645,14 +632,17 @@ function aideDe(c) {
   const q = CONTENU.quarts[c.quart];
   const r = CONTENU.roles[c.role];
   const permis = C.peutJouer(P, c);
+  // LE SCHÉMA DE COQUE NE VIT PLUS QUE LÀ. Sur la carte, il disputait la
+  // place à la valeur ; dans la bulle, il a le temps d'être regardé.
   return `<div class="b-nom">${c.nom}</div>`
-    + `<div><b>${r.nom}</b> · ${q.nom} · valeur ${C.valeur(c, P)}${c.blesse ? ' (blessé)' : ''}${c.grade ? ` (gradé ${'★'.repeat(c.grade)})` : ''}</div>`
+    + `<div class="b-poste">${posteVu(q).outerHTML}`
+    + `<span><b>${r.nom}</b><br>${q.nom}<br>valeur ${C.valeur(c, P)}`
+    + `${c.blesse ? ' (blessé)' : ''}${c.grade ? ` · gradé ${'★'.repeat(c.grade)}` : ''}</span></div>`
     + `<div class="b-quoi">${r.aide}</div>`
     + (permis.ok ? '' : `<div class="b-refus">${permis.pourquoi}</div>`);
 }
 
 /* ---------------------------------------------------------------- la main */
-const ROLE_FOND = { canonnier: '#7b241c', gabier: '#1a5276', abordeur: '#9c640c', charpentier: '#186a3b' };
 
 // LE POSTE, DESSINÉ. Une coque vue de dessus, proue en haut, coupée en quatre
 // par l'axe et par le maître-bau ; le quart de l'homme est allumé à la couleur
@@ -710,17 +700,20 @@ function contenuCarte(c) {
   const feu = C.estFeu(c);
   const q = feu ? null : CONTENU.quarts[c.quart];
   return [
-    c.grade ? el('span', { class: 'c-grade', text: '★'.repeat(c.grade) }) : null,
     c.blesse ? el('span', { class: 'c-etat', text: 'blessé' }) : null,
     feu ? el('span', { class: 'c-fumee' }) : null,
-    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
-    feu ? null : posteVu(q),
-    el('span', { class: 'c-ou', text: feu ? '' : q.nom }),
-    el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c, P)) }),
-    el('span', {
-      class: 'c-role', text: feu ? 'encombre' : CONTENU.roles[c.role].court,
-      attrs: { style: `background:${feu ? '#6b3a10' : ROLE_FOND[c.role]}` },
+    // L'AVANT ET L'ARRIÈRE, en un chevron : ▲ on tire haut, ▼ on tire bas.
+    // Le libellé « bâbord avant » disait deux fois ce que la bande de bord et
+    // ce chevron disent déjà, et il fallait le lire.
+    feu ? null : el('span', {
+      class: 'c-chev', text: q.bout === 'avant' ? '▲' : '▼',
+      attrs: { 'aria-hidden': 'true' },
     }),
+    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
+    feu ? null : el('span', { class: `c-niveau${c.grade ? ' grade' : ''}`, text: `niv. ${c.grade || 0}` }),
+    // LA VALEUR est la chose la plus lisible de la carte : c'est le seul
+    // chiffre dont le joueur a besoin pour composer une volée.
+    el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c, P)) }),
   ];
 }
 
@@ -733,7 +726,7 @@ function carteVue(c, rang = 0, neuve = false) {
     class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}${c.blesse ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}${neuve ? ' neuve' : ''}`,
     attrs: {
       type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`,
-      'data-bord': feu ? '' : q.bord,
+      'data-bord': feu ? '' : q.bord, 'data-role': feu ? 'feu' : c.role,
       'aria-label': feu ? 'Feu — encombre la main'
         : `${c.nom}, ${c.role}, ${q.nom}, valeur ${C.valeur(c)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
     },
@@ -807,31 +800,6 @@ function ecranChasse() {
   // Les deux plaques sont dans UNE rangée en haut de la bande : posées
   // au-dessus de chaque coque, elles se retrouvaient à deux hauteurs
   // différentes selon la taille des navires, et l'œil lisait deux mers.
-  // LA COMPOSITION DE LA PIOCHE, jamais son ordre. Ce qu'un joueur a le droit
-  // de savoir, c'est ce qui lui reste — pas ce qui vient. (Les deux hommes de
-  // la relève, eux, sont montrés à part : c'est une fenêtre voulue.)
-  const reste = P.pioche;
-  const parBord = { babord: 0, tribord: 0 };
-  const parRole = {};
-  for (const c of reste) {
-    if (C.estFeu(c)) { parRole.feu = (parRole.feu || 0) + 1; continue; }
-    parBord[CONTENU.quarts[c.quart].bord] += 1;
-    parRole[c.role] = (parRole[c.role] || 0) + 1;
-  }
-  const roles = Object.entries(parRole)
-    .sort((a, b) => b[1] - a[1])
-    .map(([r, n]) => `${r === 'feu' ? 'feu' : CONTENU.roles[r].court} ${n}`)
-    .join(', ');
-  s.appendChild(el('div', { class: 'pioche-etat', attrs: { 'aria-hidden': 'true' } }, [
-    el('span', { class: 'pe-cle', text: 'pioche' }),
-    el('span', { class: 'pe-nb', text: String(reste.length) }),
-    el('span', { class: 'pe-bord' }, [
-      el('i', { class: 'pt-ba' }), el('span', { text: String(parBord.babord) }),
-      el('i', { class: 'pt-tri' }), el('span', { text: String(parBord.tribord) }),
-    ]),
-    el('span', { class: 'pe-roles', text: roles || '—' }),
-  ]));
-
   const mats = '|'.repeat(p.mats) + '.'.repeat(p.matsMax - p.mats);
   const matsHtml = mats.split('').map((ch) => (ch === '|' ? '|' : '<span class="bas">.</span>')).join('');
   const mer = el('div', { class: 'mer' }, [
@@ -853,21 +821,9 @@ function ecranChasse() {
         ]),
       ]),
     ]),
-    // `.flot` coupe à la flottaison ; le navire bouge DEDANS. La découpe est
-    // fixe — c'est le niveau de la mer — et c'est la coque qui s'y enfonce et
-    // en ressort. La bande de vagues passe par-dessus la coupe : sans elle on
-    // verrait un bord net, et un bord net n'est pas une mer.
     el('div', { class: 'flotte' }, [
-      el('div', { class: 'coque nous' }, [
-        el('div', { class: 'flot' }, [el('canvas', { attrs: { id: 'c-nous' } })]),
-      ]),
-      el('div', { class: 'coque prise' }, [
-        el('div', { class: 'flot' }, [el('canvas', { attrs: { id: 'c-prise' } })]),
-      ]),
-      // UNE SEULE surface d'eau, d'un bord à l'autre. Une bande par navire se
-      // lisait comme deux rubans posés sur la mer ; la mer est continue, et
-      // les deux coques y entrent sur la même ligne.
-      el('div', { class: 'vagues' }),
+      el('div', { class: 'coque nous' }, [el('canvas', { attrs: { id: 'c-nous' } })]),
+      el('div', { class: 'coque prise' }, [el('canvas', { attrs: { id: 'c-prise' } })]),
     ]),
   ]);
   // LES CONDITIONS : météo, règle de la prise, reliques. Une seule cible de
@@ -934,6 +890,31 @@ function ecranChasse() {
   const main = el('div', { class: 'main' });
   P.main.forEach((c, i) => main.appendChild(carteVue(c, neuves.indexOf(c.uid), neuves.includes(c.uid))));
 
+  // LA COMPOSITION DE LA PIOCHE, jamais son ordre. Ce qu'un joueur a le droit
+  // de savoir, c'est ce qui lui reste — pas ce qui vient. (Les deux hommes de
+  // la relève, eux, sont montrés à part : c'est une fenêtre voulue.)
+  const reste = P.pioche;
+  const parBord = { babord: 0, tribord: 0 };
+  const parRole = {};
+  for (const c of reste) {
+    if (C.estFeu(c)) { parRole.feu = (parRole.feu || 0) + 1; continue; }
+    parBord[CONTENU.quarts[c.quart].bord] += 1;
+    parRole[c.role] = (parRole[c.role] || 0) + 1;
+  }
+  const roles = Object.entries(parRole)
+    .sort((a, b) => b[1] - a[1])
+    .map(([r, n]) => `${r === 'feu' ? 'feu' : CONTENU.roles[r].court} ${n}`)
+    .join(', ');
+  const piocheEtat = el('div', { class: 'pioche-etat', attrs: { 'aria-hidden': 'true' } }, [
+    el('span', { class: 'pe-cle', text: 'pioche' }),
+    el('span', { class: 'pe-nb', text: String(reste.length) }),
+    el('span', { class: 'pe-bord' }, [
+      el('i', { class: 'pt-ba' }), el('span', { text: String(parBord.babord) }),
+      el('i', { class: 'pt-tri' }), el('span', { text: String(parBord.tribord) }),
+    ]),
+    el('span', { class: 'pe-roles', text: roles || '—' }),
+  ]);
+
   // LA RELÈVE, POSÉE SUR LE LISTEAU. Les deux hommes qui montent au prochain
   // tour, face visible, enfoncés dans le bois. On pioche avec `pop()` : le
   // DESSUS du paquet est la fin du tableau, donc le premier à venir est le
@@ -946,9 +927,13 @@ function ecranChasse() {
   const reserve = el('div', { class: 'reserve', attrs: { 'aria-hidden': 'true' } },
     [el('span', { class: 'reserve-cle', text: 'à venir' })].concat(aVenir.map((c, i) => el('div', {
       class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.blesse ? ' blesse' : ''}`,
-      attrs: { style: `--rang:${i}`, 'data-bord': C.estFeu(c) ? '' : CONTENU.quarts[c.quart].bord },
+      attrs: {
+        style: `--rang:${i}`,
+        'data-bord': C.estFeu(c) ? '' : CONTENU.quarts[c.quart].bord,
+        'data-role': C.estFeu(c) ? 'feu' : c.role,
+      },
     }, contenuCarte(c)))));
-  s.appendChild(el('div', { class: 'ratelier' }, [reserve, main]));
+  s.appendChild(el('div', { class: 'ratelier' }, [piocheEtat, reserve, main]));
   return s;
 }
 
@@ -1422,8 +1407,12 @@ function ouvrirAide() {
    Chaque étape dit OÙ regarder (`quoi`, un sélecteur) et QUAND elle est finie
    (`fait`, une condition relue à chaque rendu). Une étape dont la condition
    est déjà vraie est sautée : on n'explique pas ce qui est déjà acquis. */
+// LE TUTORIEL DORT. Il sera repris en temps voulu : le code, les sept étapes
+// et leurs conditions restent en place, seule l'entrée est fermée. Mettre
+// `TUTORIEL_OUVERT` à `true` le rallume tel quel.
+const TUTORIEL_OUVERT = false;
 const CLE_TUTO = 'fdlc-cartes-tuto-fait';
-const tuto = { i: -1, fini: false, halo: null, boite: null };
+const tuto = { i: -1, fini: !TUTORIEL_OUVERT, halo: null, boite: null };
 
 const ETAPES = [
   {
@@ -1475,6 +1464,7 @@ const ETAPES = [
 ];
 
 function tutoLancer() {
+  if (!TUTORIEL_OUVERT) return;
   try { if (localStorage.getItem(CLE_TUTO)) { tuto.fini = true; return; } } catch { /* mode privé */ }
   if (new URLSearchParams(location.search).has('sansTuto')) { tuto.fini = true; return; }
   if (tuto.i >= 0) return;
