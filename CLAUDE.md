@@ -148,12 +148,29 @@ sert `tools/mobile-audit.mjs`.
   distribution repartait à chaque homme touché.
 - **La carte Feu fume**, en boucle : c'est la seule carte qui ne sert à rien,
   il faut le voir de loin.
-- **La flottaison suit les vagues, pas la coque.** Le canvas d'un navire est
-  recadré à la ligne d'eau, ce qui donnait un bord inférieur parfaitement
-  droit : on voyait la coupe de la coque. Ce bord est mangé en creux et en
-  bosses (`destination-out`), la mer animée qui est derrière remonte dans les
-  creux, et une frange d'écume — bornée aux pixels du navire par
-  `source-atop` — dit que la coque entre dans l'eau.
+- **La flottaison est un NIVEAU, pas un trait.** Le navire est peint entier,
+  œuvres vives comprises, et posé dans un conteneur `.flot` qui coupe à la
+  ligne d'eau. La coupe ne bouge pas — c'est la mer — et c'est la coque qui
+  s'y enfonce et en ressort avec la houle : une part du bordé disparaît
+  vraiment, puis se découvre. Peinte dans le canvas, la découpe se déplaçait
+  avec le navire, ce qu'une flottaison ne fait jamais.
+  Deux conséquences mesurées : on coupe **deux rangs au-dessus** de la ligne
+  d'eau réelle, sinon les bordés vert-de-gris de l'œuvre vive réapparaissent
+  au-dessus des crêtes dès que le navire monte ; et l'amplitude du roulis
+  reste **sous la demi-hauteur de la bande de vagues**, pour la même raison.
+- **Une seule surface d'eau, d'un bord à l'autre.** Une bande de vagues par
+  navire se lisait comme deux rubans posés sur la mer. La mer est continue :
+  une bande unique traverse la scène, et les deux coques y entrent sur la
+  même ligne.
+- **Un boulet est une bille de fonte** : petite, noire, mate. Grosse et dorée,
+  elle ressemblait à une bulle de savon. Ce qui la rend visible sur une mer
+  sombre, c'est son cerne clair et son sillage, pas sa taille.
+- **Un impact n'est pas une explosion.** Un boulet dans un bordé de chêne ne
+  fait pas de boule de feu : un choc clair très bref, une masse de poussière
+  terreuse, et surtout **du bois qui vole**. C'est le bois qui dit que la
+  coque a pris ; la fumée seule dit « quelque chose a explosé ». Et il frappe
+  **le bordé**, entre le pont et l'eau — repères relevés à la peinture
+  (`dataset.pont`, `dataset.flottaison`), jamais un pourcentage de l'image.
 - **Une route de mer contourne la terre.** `routeEntre(a, b)` (dans
   `src/caribbean.js`) rend la courbe la plus courte qui reste sur l'eau. Deux
   précautions, toutes deux payées d'un détour absurde à l'écran : les côtes

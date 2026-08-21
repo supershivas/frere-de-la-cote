@@ -1174,7 +1174,8 @@
      restent alignées entre elles par `align-items: flex-end`, donc la ligne de
      flottaison reste commune, et les navires ne sont pas collés au bas de la
      bande. */
-  flex: 1 1 auto; min-height: 0; padding-bottom: 56px;
+  flex: 1 1 auto; min-height: 0; position: relative;
+  --pied: 56px; padding-bottom: var(--pied);
   display: flex; align-items: flex-end; justify-content: space-between; gap: 4px;
 }
 /* La ligne d'horizon est tracée : sans elle, deux coques de tailles
@@ -1192,10 +1193,39 @@
 /* Les coques sont RECADRÉES à leur ligne de flottaison (le canvas s'arrête à
    l'eau), donc les aligner par le bas les aligne par la flottaison — quelles
    que soient leurs tailles de grille. */
+/* `.flot` est le niveau de la mer : il coupe, et il ne bouge pas. Le navire
+   bobe DEDANS — il s'enfonce sous la coupe et en ressort, si bien qu'une part
+   de la coque est réellement cachée puis découverte. Auparavant la découpe
+   était peinte dans le canvas et bougeait avec lui : le navire et sa ligne
+   d'eau se déplaçaient ensemble, ce qui est exactement ce qu'une flottaison
+   ne fait jamais. */
+.screen.ecran-cartes .flot { position: relative; overflow: hidden; width: 100%; }
 .screen.ecran-cartes .coque canvas {
   display: block; margin: 0 auto; max-width: 100%; height: auto; image-rendering: pixelated;
   transform-origin: 50% 100%;
   animation: houle var(--periode, 4s) ease-in-out infinite;
+}
+
+/* La bande de vagues, par-dessus la coupe : deux trains d'ondes qui défilent à
+   des vitesses différentes, plus une frange d'écume. C'est ce qui fait que la
+   coque entre dans l'eau au lieu d'être posée sur une arête. */
+.screen.ecran-cartes .vagues {
+  position: absolute; left: 0; right: 0; bottom: calc(var(--pied) - 13px); height: 26px;
+  pointer-events: none; z-index: 3;
+  background-repeat: repeat-x, repeat-x;
+  background-size: 96px 26px, 64px 20px;
+  background-position: 0 4px, 0 11px;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='26'%3E%3Cpath d='M0 11 q12 -7 24 0 t24 0 t24 0 t24 0 V26 H0 Z' fill='%231b3a4b'/%3E%3Cpath d='M0 11 q12 -7 24 0 t24 0 t24 0 t24 0' fill='none' stroke='%23cfe2ee' stroke-opacity='.30' stroke-width='1.2'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='20'%3E%3Cpath d='M0 8 q8 -5 16 0 t16 0 t16 0 t16 0 V20 H0 Z' fill='%23143040' fill-opacity='.85'/%3E%3C/svg%3E");
+  animation: vaguer var(--vitesse, 11s) linear infinite;
+}
+@keyframes vaguer {
+  from { background-position: 0 4px, 0 11px; }
+  to   { background-position: -96px 4px, 64px 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen.ecran-cartes .vagues { animation: none; }
 }
 @keyframes houle {
   0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -1555,18 +1585,22 @@
 .screen.ecran-cartes .mer .boulet-sillage,
 .screen.ecran-cartes .mer .copeau,
 .screen.ecran-cartes .mer .boufee,
-.screen.ecran-cartes .mer .fumee { position: absolute; pointer-events: none; }
+.screen.ecran-cartes .mer .fumee,
+.screen.ecran-cartes .mer .poussiere { position: absolute; pointer-events: none; }
 
+/* Un boulet est une bille de fonte : petite, noire, mate. Grosse et dorée,
+   elle ressemblait à une bulle de savon. Ce qui la rend visible sur une mer
+   sombre, ce n'est pas sa taille — c'est son cerne clair et son sillage. */
 .screen.ecran-cartes .mer .boulet {
-  z-index: 6; width: 16px; height: 16px; border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #fff8e2 0%, #e8d9b4 34%, #6a5c4a 72%, #201a15 100%);
-  box-shadow: 0 0 12px rgba(255,226,150,.95), 0 0 4px rgba(0,0,0,.9);
+  z-index: 6; width: 7px; height: 7px; border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, #4a453f 0%, #1c1917 55%, #0b0a09 100%);
+  box-shadow: 0 0 0 1px rgba(238,232,216,.55), 0 0 6px rgba(0,0,0,.75);
   will-change: transform;
 }
 .screen.ecran-cartes .mer .boulet-sillage {
-  z-index: 5; width: 12px; height: 12px; border-radius: 50%;
-  background: radial-gradient(circle at 45% 45%, rgba(236,228,210,.55), rgba(180,172,158,0) 72%);
-  animation: sillage .62s ease-out forwards;
+  z-index: 5; width: 7px; height: 7px; border-radius: 50%;
+  background: radial-gradient(circle at 45% 45%, rgba(226,218,202,.4), rgba(180,172,158,0) 72%);
+  animation: sillage .5s ease-out forwards;
 }
 @keyframes sillage {
   from { opacity: .6; transform: scale(.7); }
@@ -1585,6 +1619,18 @@
 .screen.ecran-cartes .mer .fumee {
   z-index: 4; --coeur: rgba(88,82,76,.9); --bord: rgba(66,61,56,.5);
   filter: blur(3px);
+}
+/* La poussière d'un impact : plus sale et plus terreuse que la poudre, parce
+   qu'elle est faite de bois pulvérisé autant que de fumée. */
+.screen.ecran-cartes .mer .poussiere {
+  z-index: 6; --coeur: rgba(146,126,102,.92); --bord: rgba(96,82,66,.5);
+  filter: blur(2.5px);
+}
+/* Le choc : bref, clair, sans couleur de feu. Un boulet n'enflamme rien. */
+.screen.ecran-cartes .mer .choc {
+  position: absolute; z-index: 7; width: 26px; height: 26px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,250,238,.95) 0%, rgba(226,214,190,.5) 45%, rgba(200,190,170,0) 72%);
+  pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .screen.ecran-cartes .mer .boulet-sillage,

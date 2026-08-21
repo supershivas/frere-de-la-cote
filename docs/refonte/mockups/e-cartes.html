@@ -41,7 +41,7 @@ import * as Voy from './src/voyage.js';
 import { coastlines, places, routeEntre } from './src/caribbean.js';
 import { getGeneratedShip, drawGrid } from './src/sprites.js';
 import { startOcean, randomOceanScene } from './src/ocean.js';
-import { initFx, fxExplosion, fxBroadside, fxFloatText } from './src/fx.js';
+import { initFx, fxFloatText } from './src/fx.js';
 
 const el = (tag, o = {}, kids = []) => {
   const n = document.createElement(tag);
@@ -115,54 +115,28 @@ function peindreCoque(cv, spec, facing, { matsAbattus = 0, feu = 0, px = 3 } = {
   const cols = grille[0].length, rows = grille.length;
   const eau = g.waterY != null ? g.waterY : rows - 1;
 
+  // On peint la coque ENTIÈRE, œuvres vives comprises : quelques rangs sous la
+  // flottaison. C'est ce qui permet au navire de s'enfoncer et de ressortir —
+  // il faut qu'il y ait quelque chose à cacher.
+  const sousEau = 5;
+  const bas = Math.min(rows - 1, eau + sousEau);
+
   const off = document.createElement('canvas');
   off.width = cols * px; off.height = rows * px;
-  drawGrid(off, greeVerte(grille, matsAbattus, eau), { color: g.palette, flag: '', facing, waterRow: eau });
+  drawGrid(off, greeVerte(grille, matsAbattus, eau), { color: g.palette, flag: '', facing });
 
-  cv.width = cols * px; cv.height = (eau + 1) * px;
+  cv.width = cols * px; cv.height = (bas + 1) * px;
   const ctx = cv.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(off, 0, 0);
-  // LA FLOTTAISON SUIT LES VAGUES, PAS LA COQUE. Le canvas est recadré à la
-  // ligne d'eau, ce qui donnait un bord inférieur parfaitement droit : on
-  // voyait la coupe de la coque, pas la mer. On mange ce bord en creux et en
-  // bosses, `destination-out` : la mer animée qui est DERRIÈRE remonte dans
-  // les creux, et c'est elle qui dessine la flottaison.
-  const houleDe = phaseHoule(cv.id);
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.beginPath();
-  ctx.moveTo(0, cv.height);
-  const creux = 2.2 * px;
-  for (let x = 0; x <= cv.width; x += 2) {
-    const u = x / Math.max(1, cv.width);
-    const y = cv.height - creux
-      + Math.sin(u * Math.PI * 5 + houleDe) * creux * 0.55
-      + Math.sin(u * Math.PI * 11 + houleDe * 1.7) * creux * 0.28;
-    ctx.lineTo(x, y);
-  }
-  ctx.lineTo(cv.width, cv.height);
-  ctx.closePath();
-  ctx.fill();
-  ctx.globalCompositeOperation = 'source-over';
 
-  // Une frange d'écume juste au-dessus de la découpe : c'est ce qui dit que la
-  // coque entre dans l'eau au lieu d'être posée dessus. `source-atop` la
-  // limite aux pixels DÉJÀ peints — sinon elle courait sur toute la largeur du
-  // canvas, y compris là où il n'y a pas de navire.
-  ctx.globalCompositeOperation = 'source-atop';
-  ctx.strokeStyle = 'rgba(236,244,250,.5)';
-  ctx.lineWidth = Math.max(1, px * 0.7);
-  ctx.beginPath();
-  for (let x = 0; x <= cv.width; x += 2) {
-    const u = x / Math.max(1, cv.width);
-    const y = cv.height - creux
-      + Math.sin(u * Math.PI * 5 + houleDe) * creux * 0.55
-      + Math.sin(u * Math.PI * 11 + houleDe * 1.7) * creux * 0.28;
-    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-  ctx.globalCompositeOperation = 'source-over';
-
+  // La ligne d'eau NOMINALE, en pixels du canvas. C'est elle que le conteneur
+  // `.flot` viendra couper : la découpe est fixe, le navire bouge dedans.
+  // On coupe DEUX RANGS AU-DESSUS de la flottaison réelle. Les bordés sous
+  // l'eau sont peints en vert-de-gris ; coupés pile à la ligne d'eau, ils
+  // réapparaissaient au-dessus des crêtes dès que le navire montait sur la
+  // houle, et l'on voyait une bande verte flotter sur la mer.
+  cv.dataset.flottaison = String(Math.max(1, eau - 2) * px);
   cv.dataset.eau = String((eau + 1) * px);
   cv.dataset.pont = String(Math.round((eau - 3) * px));
   // LES SABORDS, relevés dans la grille elle-même. Le générateur les marque
@@ -305,6 +279,13 @@ function peindreCoques() {
   for (const id of ['c-nous', 'c-prise']) {
     const cv = document.getElementById(id);
     if (!cv) continue;
+    // La coupe se cale sur la flottaison NOMINALE, à l'échelle où le canvas
+    // est réellement affiché. Le navire bobe au-delà : il s'enfonce sous la
+    // coupe, il en ressort, et une partie de la coque disparaît vraiment.
+    const flot = cv.parentElement;
+    const rendu = cv.getBoundingClientRect().height || cv.height;
+    const part = Number(cv.dataset.flottaison || cv.height) / cv.height;
+    if (flot && flot.classList.contains('flot')) flot.style.height = `${Math.round(rendu * part)}px`;
     cv.style.setProperty('--amp', `${h.amp}px`);
     cv.style.setProperty('--gite', `${h.gite}deg`);
     cv.style.setProperty('--periode', `${h.periode + (id === 'c-prise' ? 0.7 : 0)}s`);
@@ -414,6 +395,35 @@ function bouffee(pts, sens, taille = 1) {
   });
 }
 
+// L'IMPACT. Un boulet dans un bordé de chêne ne fait pas une boule de feu
+// orange : il fait un choc clair très bref, une masse de poussière sale qui
+// s'ouvre vers l'extérieur, et surtout du BOIS QUI VOLE. C'est le bois qui
+// dit que la coque a pris ; la fumée seule dit « quelque chose a explosé ».
+function impact(pt, cible = 'coque') {
+  const greement = cible === 'greement';
+  // Le choc : un éclat de lumière très court, pas une explosion.
+  const f = poser('choc');
+  const o = dansLaMer(pt);
+  f.style.left = `${o.x}px`; f.style.top = `${o.y}px`;
+  f.animate([
+    { transform: 'translate(-50%,-50%) scale(.3)', opacity: .95 },
+    { transform: 'translate(-50%,-50%) scale(1.5)', opacity: 0 },
+  ], { duration: 180, easing: 'ease-out' }).onfinish = () => f.remove();
+
+  // La poussière : une seule masse, sale, qui s'ouvre et retombe.
+  volute('poussiere', pt, {
+    largeur: greement ? 34 : 46, hauteur: greement ? 30 : 34,
+    vers: (Math.random() - 0.5) * 18, monte: greement ? -18 : -10,
+    duree: 1400, lobes: 5, graine: Math.random() * 100,
+  });
+
+  // Le bois. Beaucoup, et de la couleur de ce qui a été touché : du bordé
+  // sombre et du chêne clair pour la coque, de la toile et de l'espar pour
+  // le gréement.
+  copeaux(pt, greement ? 12 : 20,
+    greement ? ['#e6d9bd', '#cbb894', '#8a6234', '#f0e6cc'] : ['#b98a4b', '#8a6234', '#5a3d25', '#e6d9bd', '#3a2712']);
+}
+
 // LE BOULET. Il était noir, minuscule, et rapporté hors de l'écran : personne
 // ne l'a jamais vu. Il est clair, plus gros, plus lent, et il traîne un
 // sillage — c'est le sillage qu'on suit des yeux, pas la bille.
@@ -447,8 +457,20 @@ async function tir(deId, versId, sens, texte, ton, { cible = 'coque' } = {}) {
   const r = cv ? cv.getBoundingClientRect() : null;
   // Le point d'impact suit ce qu'on vise : le gréement en haut, la coque à la
   // flottaison. Un boulet qui abat un mât ne doit pas frapper la cale.
+  // OÙ LE BOULET FRAPPE. À la coque, c'est le bordé entre le pont et l'eau —
+  // pas le milieu de l'image, qui tombait dans les voiles. On se sert des
+  // repères relevés à la peinture : `pont` et `flottaison`, en pixels du
+  // canvas, ramenés à l'échelle d'affichage.
+  const ech = cv && r ? r.height / cv.height : 1;
+  const pont = cv ? Number(cv.dataset.pont || 0) * ech : 0;
+  const flot = cv ? Number(cv.dataset.flottaison || cv.height) * ech : 0;
   const b = r
-    ? { x: r.left + r.width * (0.42 + Math.random() * 0.2), y: r.top + r.height * (cible === 'greement' ? 0.16 : 0.72) }
+    ? {
+      x: r.left + r.width * (0.36 + Math.random() * 0.28),
+      y: cible === 'greement'
+        ? r.top + r.height * 0.14
+        : r.top + pont + (flot - pont) * (0.35 + Math.random() * 0.45),
+    }
     : centre(versId, 0.5, 0.45);
 
   // Toutes les bouches tirent, décalées de quelques millisecondes : c'est ce
@@ -460,9 +482,7 @@ async function tir(deId, versId, sens, texte, ton, { cible = 'coque' } = {}) {
     x: b.x + (Math.random() - 0.5) * 22, y: b.y + (Math.random() - 0.5) * 16,
   }, 520 + i * 30))));
 
-  fxExplosion(b.x, b.y, { scale: 1.1 });
-  copeaux(b, cible === 'greement' ? 8 : 12,
-    cible === 'greement' ? ['#e6d9bd', '#cbb894', '#8a6234'] : ['#b98a4b', '#8a6234', '#5a3d25', '#e6d9bd']);
+  impact(b, cible);
   if (texte) fxFloatText(b.x, b.y - 26, texte, ton);
   await attendre(280);
 }
@@ -799,9 +819,21 @@ function ecranChasse() {
         ]),
       ]),
     ]),
+    // `.flot` coupe à la flottaison ; le navire bouge DEDANS. La découpe est
+    // fixe — c'est le niveau de la mer — et c'est la coque qui s'y enfonce et
+    // en ressort. La bande de vagues passe par-dessus la coupe : sans elle on
+    // verrait un bord net, et un bord net n'est pas une mer.
     el('div', { class: 'flotte' }, [
-      el('div', { class: 'coque nous' }, [el('canvas', { attrs: { id: 'c-nous' } })]),
-      el('div', { class: 'coque prise' }, [el('canvas', { attrs: { id: 'c-prise' } })]),
+      el('div', { class: 'coque nous' }, [
+        el('div', { class: 'flot' }, [el('canvas', { attrs: { id: 'c-nous' } })]),
+      ]),
+      el('div', { class: 'coque prise' }, [
+        el('div', { class: 'flot' }, [el('canvas', { attrs: { id: 'c-prise' } })]),
+      ]),
+      // UNE SEULE surface d'eau, d'un bord à l'autre. Une bande par navire se
+      // lisait comme deux rubans posés sur la mer ; la mer est continue, et
+      // les deux coques y entrent sur la même ligne.
+      el('div', { class: 'vagues' }),
     ]),
   ]);
   // LES CONDITIONS : météo, règle de la prise, reliques. Une seule cible de
@@ -1020,12 +1052,19 @@ async function tirer() {
     // Un effet qui n'atterrit nulle part n'existe pas pour le joueur : le
     // brûlot et la mitraille frappent NOTRE bord, donc le texte monte de
     // NOTRE navire, après un boulet parti du sien.
-    const a = centre('c-prise', 0.18, 0.42);
-    const b = centre('c-nous', 0.5, 0.45);
-    fxBroadside(a.x, a.y, -1, { scale: 0.8 });
+    const cvN = document.getElementById('c-nous');
+    const rN = cvN ? cvN.getBoundingClientRect() : null;
+    const echN = cvN && rN ? rN.height / cvN.height : 1;
+    const a = bouches('c-prise', -1);
+    const b = rN
+      ? { x: rN.left + rN.width * 0.5,
+        y: rN.top + Number(cvN.dataset.pont || 0) * echN
+          + (Number(cvN.dataset.flottaison || cvN.height) - Number(cvN.dataset.pont || 0)) * echN * 0.5 }
+      : centre('c-nous', 0.5, 0.45);
+    bouffee(a, -1, 0.9);
     await attendre(120);
-    await boulet(a, b, 380);
-    fxExplosion(b.x, b.y, { scale: 0.9 });
+    await boulet(a[0], b, 520);
+    impact(b, 'coque');
     fxFloatText(b.x, b.y - 26, rip.intention.nom, 'dmg');
     await attendre(620);
   }
