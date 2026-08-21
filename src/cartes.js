@@ -12,11 +12,12 @@
 //   faut alterner. C'est le verbe du jeu, et c'est ce qui empêche de rejouer
 //   la même main deux fois.
 //
-//   LA CARGAISON. Un boulet dans la coque troue aussi ce qu'il y a dedans :
-//   chaque point de dégâts à la coque coûte du butin. Tirer au gréement n'en
-//   coûte aucun, et un ABORDAGE non plus. C'est ce qui empêche « la volée la
-//   plus forte » d'être toujours la bonne réponse : la plus forte est la plus
-//   chère, et prendre un navire intact demande de le ménager.
+//   LA RÉSISTANCE. Une prise annonce AVANT l'engagement la PRESSION qu'il
+//   faut lui mettre pour qu'elle amène son pavillon. C'est un seuil, comme
+//   une ante : on a QUATRE bordées pour l'atteindre, et trois rechargements
+//   pour améliorer sa main sans tirer. La rareté n'est plus dans la relève,
+//   elle est dans le nombre de coups — quatre volées pour 210 points de
+//   pression, ce n'est pas la même main que quatre volées pour 90.
 //
 //   L'AVANT / L'ARRIÈRE dit SUR QUOI on tire. Une volée à dominante arrière
 //   frappe la coque : ce sont les dégâts. Une volée à dominante avant monte
@@ -40,8 +41,20 @@
 // se lisent au pouce ; sept qui se partagent 375 px ne se lisent pas.
 export const MAIN_MAX = 3;
 export const SEUIL_GREEMENT = 26;   // en dessous, le tir passe dans les voiles
-export const COUT_CARGAISON = 12;   // points de coque qui gâtent une part de butin
 export const SEUIL_ABORDAGE = 0.5;  // sous cette part de coque, on peut sauter à bord
+
+// LA RENCONTRE EST UNE ANTE : quatre bordées pour atteindre la résistance de
+// la prise, trois rechargements pour se refaire une main entre deux. Ces deux
+// chiffres SONT le jeu — c'est d'eux que vient la rareté, et c'est pour ça
+// qu'ils sont écrits ici et pas dans les données.
+export const BORDEES = 4;
+export const RECHARGEMENTS = 3;
+
+// Deux verbes qui vivaient dans la relève et n'auraient eu nulle part où
+// aller sans elle : ils achètent maintenant des COUPS, la seule ressource de
+// la rencontre. Un objet qui ne change plus aucune règle n'est qu'un texte.
+export const bordeesDe = (P) => BORDEES + (P.reliques.includes('double_fond') ? 1 : 0);
+export const rechargementsDe = (P) => RECHARGEMENTS + (aOfficier(P, 'quartier_maitre') ? 1 : 0);
 
 const FEU = { id: 'feu', nom: 'Feu', role: 'feu', quart: null, valeur: 0 };
 export const estFeu = (c) => c.role === 'feu';
@@ -81,7 +94,7 @@ export function visee(P, cartes) {
   const hommes = cartes.filter((c) => !estFeu(c));
   if (!hommes.length) return 'coque';
   // L'ABORDAGE : deux abordeurs, sur une coque déjà basse. On saute à bord —
-  // les dégâts portent, mais pas un boulet ne touche la cargaison.
+  // les dégâts portent, et c'est ce qui pousse le plus fort du jeu.
   const prise = P.prise;
   const bas = prise && prise.pv <= prise.max * (P.reliques.includes('grappins') ? 0.7 : SEUIL_ABORDAGE);
   if (bas && hommes.filter((c) => c.role === 'abordeur').length >= 2) return 'abordage';
@@ -143,7 +156,7 @@ export function evaluer(P, cartes) {
     lignes.push({ quoi: 'Radoub', note: '+12 à La Tortue, un Feu jeté', poudre: 0 });
     return {
       cible: 'radoub', lignes, synergies: ['Radoub'],
-      poudre: 0, fureur: 1, total: 0, degats: 0, gate: 0, abat: false, repare,
+      poudre: 0, fureur: 1, total: 0, pression: 0, degats: 0, abat: false, repare,
       bord: bordDeLaVolee(P, cartes),
     };
   }
@@ -178,7 +191,7 @@ export function evaluer(P, cartes) {
   if (canonniers.length >= 3) { synergies.push('Bordée pleine'); ajoute(2, 'Bordée pleine', 'trois canonniers'); }
   else if (bordee) { synergies.push('Bordée'); ajoute(1, 'Bordée', 'deux canonniers'); }
   if (gabiers.length && canonniers.length) { synergies.push('Réglage'); ajoute(0.5, 'Réglage', 'un gabier règle le tir'); }
-  if (cible === 'abordage') { synergies.push('Abordage'); ajoute(1.5, 'Abordage', 'à bord — la cargaison est épargnée'); }
+  if (cible === 'abordage') { synergies.push('Abordage'); ajoute(1.5, 'Abordage', 'à bord — le pavillon tombe vite'); }
   if (bordee && aOfficier(P, 'maitre_canonnier')) ajoute(0.5, 'Le Maître canonnier', 'la bordée est tenue');
   if (aOfficier(P, 'aumonier') && hommes.length >= 3) { synergies.push('Plein équipage'); ajoute(0.5, 'L’Aumônier', 'trois hommes à la manœuvre'); }
 
@@ -221,13 +234,13 @@ export function evaluer(P, cartes) {
     && (total >= seuil || P.reliques.includes('hune'))
     && prise && prise.mats > 0;
 
-  // Ce que la volée coûte en butin. Seul le canon dans la coque gâte la
-  // cargaison : le gréement et l'abordage ne coûtent rien.
-  const gate = cible === 'coque' ? Math.floor(total / COUT_CARGAISON) : 0;
-
+  // TOUTE volée met de la PRESSION, quelle que soit sa cible : c'est le seul
+  // compteur qui décide de la fin. Seules la coque et l'abordage entament en
+  // plus le bordé — tirer au gréement pousse autant et n'abîme rien.
   return {
     cible, lignes, synergies,
-    poudre, fureur, total, seuil, gate,
+    poudre, fureur, total, seuil,
+    pression: total,
     degats: cible === 'coque' || cible === 'abordage' ? total : 0,
     abat,
     bord: bordDeLaVolee(P, cartes),
@@ -256,22 +269,17 @@ export function nouvellePartie(contenu) {
     encrasse: null, encrasseTours: 0,
     pioche: [], main: [], defausse: [], selection: [],
     meteo: null, fini: null, journal: [], tour: 1,
+    pression: 0, bordees: BORDEES, rechargements: RECHARGEMENTS,
   };
 }
 
 export const tailleMain = (P) => 5 + (P.reliques.includes('longue_vue') ? 1 : 0);
 
-// LA RELÈVE : on ne remplit pas la main, on relève DEUX hommes par tour.
-//
-// C'est la seule chose qui fasse du choix un choix. Tant que la main se
-// remplissait à ras bord entre deux volées, jouer cinq cartes était toujours
-// la meilleure réponse et il n'y avait rien à décider : mesuré, un joueur qui
-// prenait les cinq premières cartes jouables gagnait aussi souvent qu'un
-// joueur qui cherchait la meilleure volée. Avec une relève de deux, brûler
-// trois hommes maintenant, c'est tirer à un seul le tour prochain.
-export const RELEVE = 2;
-export const releveDe = (P) => RELEVE + (P.reliques.includes('double_fond') ? 1 : 0)
-  + (aOfficier(P, 'quartier_maitre') ? 1 : 0);
+// LA MAIN SE REMPLIT À RAS, après chaque bordée comme après chaque
+// rechargement. La rareté ne vient plus du nombre d'hommes qu'on reçoit — elle
+// vient du nombre de COUPS : quatre bordées, trois rechargements, et la
+// résistance de la prise en face. La relève de deux et sa constante RELEVE
+// sont supprimées ; c'est le seuil qui fait maintenant la décision.
 
 export function engager(P, defPrise, meteo, rng) {
   // La suite d'intentions est TIRÉE à l'engagement (génération) puis figée :
@@ -285,8 +293,13 @@ export function engager(P, defPrise, meteo, rng) {
   P.prise = {
     ...defPrise, pv: defPrise.pv, max: defPrise.pv,
     mats: defPrise.mats, matsMax: defPrise.mats,
+    resistance: defPrise.resistance,
     intentions: ints, i: 0, annonce: ints[0], tirAnnule: false, regreement: 0,
   };
+  // Les deux compteurs de la rencontre, annoncés avant qu'on engage.
+  P.pression = 0;
+  P.bordees = bordeesDe(P);
+  P.rechargements = rechargementsDe(P);
   P.meteo = meteo || null;
   P.nous.pv = P.nous.max;
   P.encrasse = null; P.encrasseTours = 0;
@@ -295,14 +308,15 @@ export function engager(P, defPrise, meteo, rng) {
   for (const c of P.equipage) c.blesse = false;
   P.main = []; P.defausse = []; P.selection = [];
   P.fini = null; P.journal = [];
-  completer(P, rng, tailleMain(P));
+  completer(P, rng);
   return true;
 }
 
-// `combien` : la relève ordinaire vaut RELEVE ; l'engagement remplit la main.
+// On remplit la main à ras. `combien` ne sert plus qu'à en donner moins que
+// tout — la partie, elle, appelle toujours sans argument.
 export function completer(P, rng, combien = null) {
-  if (combien == null) combien = releveDe(P);
-  const cible = Math.min(tailleMain(P), P.main.length + combien);
+  const cible = combien == null ? tailleMain(P)
+    : Math.min(tailleMain(P), P.main.length + combien);
   while (P.main.length < cible) {
     if (!P.pioche.length) {
       if (!P.defausse.length) break;
@@ -354,10 +368,10 @@ export function jouer(P) {
     prise.pv = Math.max(0, prise.pv - r.degats);
     evenements.push({ type: r.cible === 'abordage' ? 'abordage' : 'coque', degats: r.degats });
   }
-  if (r.gate > 0) {
-    prise.butin = Math.max(0, prise.butin - r.gate);
-    evenements.push({ type: 'cargaison', perdu: r.gate });
-  }
+  // LA PRESSION MONTE À CHAQUE VOLÉE, quelle qu'en soit la cible : c'est elle
+  // que le joueur regarde, et c'est elle qui décide.
+  P.pression += r.pression;
+  P.bordees -= 1;
   if (r.cible === 'greement') {
     if (r.abat) {
       prise.mats -= 1;
@@ -400,17 +414,48 @@ export function jouer(P) {
   }
   P.selection = [];
 
-  if (prise.pv <= 0) {
-    // PRISE À L'ABORDAGE : on la garde entière, avec sa cargaison et son
-    // équipage. Coulée au canon, on ne repêche que ce qui flotte.
-    prise.abordee = r.cible === 'abordage';
-    const prime = prise.abordee ? Math.round(prise.butin * 0.3) : 0;
-    P.fini = 'prise';
-    P.butin += prise.butin + prime;
-    prise.prime = prime;
-    P.prisesFaites += 1;
-  }
+  if (r.cible === 'abordage') prise.abordee = true;
+
+  // LES TROIS FINS. On regarde la PRESSION d'abord : une prise qui amène son
+  // pavillon se rend entière, même si le même boulet l'aurait envoyée par le
+  // fond. Coulée, on ne repêche que ce qui flotte.
+  if (P.pression >= prise.resistance) denouement(P, 'prise');
+  else if (prise.pv <= 0) denouement(P, 'coulee');
   return { ...r, evenements };
+}
+
+// Les trois dénouements en un seul endroit. Deux sont des victoires et ne
+// diffèrent que par le butin ; la troisième ne rend rien.
+const PART_COULEE = 0.3;
+function denouement(P, fin) {
+  const prise = P.prise;
+  P.fini = fin;
+  if (fin === 'echec') { prise.prime = 0; prise.gagne = 0; return; }
+  const prime = fin === 'prise' && prise.abordee ? Math.round(prise.butin * 0.3) : 0;
+  const gagne = fin === 'prise' ? prise.butin + prime : Math.round(prise.butin * PART_COULEE);
+  prise.prime = prime;
+  prise.gagne = gagne;
+  P.butin += gagne;
+  P.prisesFaites += 1;
+}
+
+// LE RECHARGEMENT : on renvoie de un à trois hommes au fond et on en reprend
+// autant, SANS TIRER. La prise ne riposte pas — c'est un tour qu'on prend sur
+// son propre compteur, pas sur le sien. Trois pour la rencontre entière.
+export function recharger(P, rng) {
+  if (P.fini) return { ok: false, pourquoi: 'La prise est jouée.' };
+  if (!P.selection.length) return { ok: false, pourquoi: 'Personne à renvoyer.' };
+  if (P.rechargements <= 0) return { ok: false, pourquoi: 'Plus un grain de poudre à réserver.' };
+  const renvoyes = P.selection.slice();
+  for (const c of renvoyes) {
+    const i = P.main.indexOf(c);
+    if (i >= 0) P.main.splice(i, 1);
+    if (!estFeu(c)) P.defausse.push(c);
+  }
+  P.selection = [];
+  P.rechargements -= 1;
+  completer(P, rng);
+  return { ok: true, renvoyes: renvoyes.length };
 }
 
 // La riposte, séparée de la volée : l'interface joue les deux tirs l'un APRÈS
@@ -473,14 +518,14 @@ export function riposter(P) {
   if (P.encrasseTours > 0) P.encrasseTours -= 1; else P.encrasse = null;
   P.tour += 1;
   if (P.nous.pv <= 0) P.fini = 'naufrage';
+  // Plus une bordée à tirer : la prise force de voiles et s'échappe. C'est la
+  // seule fin qui ne rend rien — d'où le prix d'un rechargement mal dépensé.
+  else if (!P.fini && P.bordees <= 0) denouement(P, 'echec');
   return res;
 }
 
-// Il n'y a plus de largage. Larguer demandait un second geste et une seconde
-// zone de dépôt en bas de l'écran, là où les cartes reposent : deux cibles
-// pour deux ordres, sur la largeur d'un pouce. La rareté vient désormais de la
-// seule relève, et une volée d'un seul homme faible fait le même office —
-// elle coûte un tour, ce qui est exactement ce que coûtait un largage.
+// Il n'y a plus de largage : le RECHARGEMENT en tient lieu, et il a un
+// compteur écrit sur le ruban plutôt qu'un coût caché dans la relève.
 
 // La meilleure volée jouable de la main. Sert à l'aide et — surtout — aux
 // tests : si un joueur appliqué ne fait pas nettement mieux qu'un joueur qui
@@ -500,9 +545,11 @@ export function meilleureVolee(P, { viser = 'degats', max = MAIN_MAX } = {}) {
     // moins abîmée. Les trois ne donnent pas la même volée — c'est justement
     // ce qui fait qu'il y a un choix.
     const note = viser === 'greement' ? (r.abat ? 1000 + r.total : -1)
-      : viser === 'abordage' ? (r.cible === 'abordage' ? 1000 + r.degats : r.degats - r.gate * 10)
-        : viser === 'butin' ? r.degats - r.gate * 10
-          : r.degats;
+      : viser === 'abordage' ? (r.cible === 'abordage' ? 1000 + r.pression : r.pression)
+        // « butin » cherche la pression qui n'abîme pas : à pression égale,
+        // celle qui laisse la coque entière et ne risque pas de la couler.
+        : viser === 'butin' ? r.pression - r.degats * 0.5
+          : r.pression;
     if (!best || note > best.note) best = { ...r, cartes, note };
   }
   return best;

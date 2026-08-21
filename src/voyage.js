@@ -72,6 +72,7 @@ export function priseDe(V, place, contenu, rng) {
   return {
     ...base,
     nom: est ? 'L’Almirante' : NOMS[Math.floor(rng() * NOMS.length)],
+    resistance: Math.round(base.resistance * dur),
     pv: Math.round(base.pv * dur),
     riposte: Math.round(base.riposte * dur),
     butin: base.butin + (est ? 12 : Math.floor(V.etapes / 2)),

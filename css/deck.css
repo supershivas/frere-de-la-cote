@@ -1155,6 +1155,19 @@
   text-transform: uppercase; letter-spacing: .6px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* LES DEUX COMPTEURS DE LA RENCONTRE, à gauche du butin : les bordées qu'il
+   reste à tirer et les rechargements à dépenser. C'est la ressource du jeu —
+   elle se lit sans quitter le ruban des yeux. */
+.screen.ecran-cartes .rb-coups {
+  flex: 0 0 auto; display: flex; gap: 4px;
+  font-family: var(--font-body); font-size: 12px; font-weight: 700;
+}
+.screen.ecran-cartes .rb-coup {
+  padding: 2px 5px; border-radius: 4px; letter-spacing: .5px;
+  background: rgba(20, 14, 8, .55); border: 1px solid #4a3a26; color: var(--gold-light, #e8c877);
+}
+.screen.ecran-cartes .rb-coup.bas { color: #ffb08a; border-color: #7a3a22; }
+.screen.ecran-cartes .rb-coup.vide { color: var(--text-muted); opacity: .55; }
 .screen.ecran-cartes .rb-butin { font-family: var(--font-title); font-size: 15px; color: var(--gold); }
 .screen.ecran-cartes .rouage {
   flex: 0 0 auto; width: 44px; height: 44px; min-height: 44px; padding: 0;
@@ -1214,6 +1227,17 @@
 .screen.ecran-cartes .coque {
   position: relative; flex: 0 1 auto; min-width: 0;
   display: flex; flex-direction: column; justify-content: flex-end;
+  /* LE NIVEAU DE LA MER NE BOUGE PAS, LES NAVIRES OUI. Le bas de cette boîte
+     EST la ligne d'eau : ce qui descend dessous est coupé net, si bien qu'un
+     navire qui plonge montre moins de coque et qu'un navire qui se soulève en
+     montre plus. C'est le seul aveu de flottaison du jeu — aucune vague n'est
+     dessinée, et les trois tentatives pour en dessiner une ont été retirées.
+     Les navires ne montent JAMAIS au-dessus de leur ligne d'eau : ils s'y
+     enfoncent et remontent. Monter aurait demandé de la marge en haut de cette
+     boîte, et cette marge poussait les mâts hors de la bande de mer, où ils
+     étaient coupés. La petite marge qui reste ne sert qu'au roulis. */
+  overflow: hidden;
+  padding-top: 8px;
 }
 .screen.ecran-cartes .coque.nous { width: 40%; }
 .screen.ecran-cartes .coque.prise { width: 48%; }
@@ -1222,8 +1246,25 @@
    que soient leurs tailles de grille. */
 .screen.ecran-cartes .coque canvas {
   display: block; margin: 0 auto; max-width: 100%; height: auto; image-rendering: pixelated;
-  transform-origin: 50% 100%;
+  /* Le pivot est SOUS la quille, pas au centre : un navire tangue autour de sa
+     flottaison. Au centre, il pivotait comme une aiguille de boussole. */
+  transform-origin: 50% 92%;
   animation: houle var(--periode, 4s) ease-in-out infinite;
+  animation-delay: var(--decalage, 0s);
+  will-change: transform;
+}
+/* LA HOULE : le pilonnement et le tangage sont en QUADRATURE — un quart de
+   période d'écart, comme sur l'eau. En phase, les deux se confondaient en un
+   simple balancement de métronome. */
+@keyframes houle {
+  0%   { transform: translateY(0) rotate(0deg); }
+  25%  { transform: translateY(calc(var(--amp, 3px) * .5)) rotate(var(--gite, .7deg)); }
+  50%  { transform: translateY(var(--amp, 3px)) rotate(0deg); }
+  75%  { transform: translateY(calc(var(--amp, 3px) * .5)) rotate(calc(var(--gite, .7deg) * -1)); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen.ecran-cartes .coque canvas { animation: none; }
 }
 
 .screen.ecran-cartes .etiq {
@@ -1246,6 +1287,21 @@
   background: linear-gradient(90deg, var(--hp-dark), var(--hp));
 }
 .screen.ecran-cartes .jauge.notre i { background: linear-gradient(90deg, #6b8f3a, #9acd32); }
+/* LA JAUGE DE PRESSION SE REMPLIT VERS LA RÉSISTANCE : c'est la barre que le
+   joueur regarde, la seule qui décide de la fin. Elle est plus haute que les
+   autres, et la coque passe dessous, fine — elle ne dit plus qu'un risque,
+   celui de l'envoyer par le fond avant qu'elle ait amené son pavillon.
+   Elle s'appelle `bordage` et non `coque` : `.coque` est DÉJÀ la boîte d'un
+   navire dans la bande de mer, et une jauge qui en portait le nom héritait de
+   sa marge haute de 22 px — une barre de 4 px haute de 26, sans une erreur. */
+.screen.ecran-cartes .jauge.pression { height: 11px; }
+.screen.ecran-cartes .jauge.pression i {
+  background: linear-gradient(90deg, #8a6a1e, var(--gold-light, #e8c877));
+  box-shadow: 0 0 6px rgba(232, 200, 119, .45);
+}
+.screen.ecran-cartes .jauge.bordage { height: 4px; margin-top: 3px; }
+.screen.ecran-cartes .e-fort { font-family: var(--font-body); font-weight: 700; font-size: 11px; color: var(--gold-light, #e8c877); }
+.screen.ecran-cartes .e-chif.menu { font-size: 8px; opacity: .7; }
 .screen.ecran-cartes .etiq .e-chif {
   display: flex; justify-content: space-between; gap: 4px;
   font-family: var(--font-body); font-size: 9px; color: var(--text-secondary); margin-top: 1px;
@@ -1371,8 +1427,10 @@
    enlève à la coque, et ce qu'elle coûte à la cargaison. Écrit à deux
    endroits différents, le prix n'existait pas pour le joueur. */
 .screen.ecran-cartes .tb-prix { margin-left: auto; display: flex; align-items: baseline; gap: 8px; }
-.screen.ecran-cartes .tb-degats { font-family: var(--font-body); font-weight: 700; font-size: 21px; color: var(--gold); }
-.screen.ecran-cartes .tb-gate { font-family: var(--font-body); font-weight: 700; font-size: 15px; color: var(--hp); }
+/* LA PRESSION est le gros chiffre du tableau : c'est elle qui décide. Ce que
+   la volée entame en passant se lit à côté, plus petit. */
+.screen.ecran-cartes .tb-pression { font-family: var(--font-body); font-weight: 700; font-size: 21px; color: var(--gold-light, #e8c877); }
+.screen.ecran-cartes .tb-degats { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--hp); }
 .screen.ecran-cartes .tb-sauf { font-family: var(--font-body); font-size: 10px; color: var(--success); }
 .screen.ecran-cartes .e-cargo { color: var(--gold); }
 .screen.ecran-cartes .occasion {
@@ -1464,19 +1522,41 @@
   background: linear-gradient(146deg, #ffffff 0%, #ffffff 46%, #efe9dd 76%, #d5cdbc 100%);
 }
 
-/* LE MÉTIER EST LE SYMBOLE, gros, en crème. Sa PLACE dit l'avant et l'arrière :
-   en haut pour l'avant, en bas pour l'arrière — la position porte
-   l'information, il n'y a pas de chevron à décoder par-dessus. */
-.screen.ecran-cartes .carte .c-metier {
-  position: absolute; left: 5px; z-index: 2;
-  width: 38%; max-width: 30px; aspect-ratio: 1;
-  color: var(--encre, #f7efd8); opacity: .95;
-  display: flex; align-items: center; justify-content: center;
+/* LA CARTE PORTE DEUX COULEURS, PAS UNE. Le fond est le bord — l'enseigne,
+   celle qui décide si deux hommes tirent ensemble. Le BANDEAU est le métier,
+   dans sa propre couleur, sur toute la largeur, avec le glyphe crème dedans.
+   Un seul aplat ne disait qu'une des deux choses ; il en fallait deux.
+
+   Et sa POSITION dit l'avant et l'arrière : collé en haut, collé en bas. Il
+   touche le bord de la carte et en épouse les coins arrondis de ce côté-là. */
+.screen.ecran-cartes .carte .c-bandeau {
+  position: absolute; left: 0; right: 0; z-index: 2;
+  height: 26%;
+  background: var(--metier, #6b5a3a);
+  /* L'ENCRE DU BANDEAU SUIT SA COULEUR, elle n'est pas crème par principe.
+     Mesurés sur crème #fdf6e3, deux des quatre métiers demandés tombent
+     sous 4,5:1 — l'ocre à 2,73 et le vert à 3,68 — et un glyphe qu'on ne
+     distingue pas du fond ne dit plus quel métier c'est. Les deux bandeaux
+     clairs prennent donc une encre sombre (6,3:1 et 4,5:1), comme une
+     couleur rouge sur une carte à jouer. Les quatre couleurs de bandeau,
+     elles, sont exactement celles qui ont été demandées. */
+  color: var(--encre-metier, #fdf6e3);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.28);
 }
-.screen.ecran-cartes .carte .c-metier svg { width: 100%; height: 100%; display: block;
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,.4)); }
-.screen.ecran-cartes .carte .c-metier.avant   { top: 5px; }
-.screen.ecran-cartes .carte .c-metier.arriere { bottom: 5px; }
+.screen.ecran-cartes .carte .c-bandeau.avant   { top: 0; border-radius: 4px 4px 0 0; }
+.screen.ecran-cartes .carte .c-bandeau.arriere { bottom: 0; border-radius: 0 0 4px 4px; }
+.screen.ecran-cartes .carte .c-bandeau svg {
+  /* Le glyphe se mesure sur la HAUTEUR du bandeau, pas sur la largeur de la
+     carte : mesuré en largeur, il poussait le nom hors du bandeau. */
+  height: 54%; width: auto; display: block; flex: 0 0 auto;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.45));
+}
+.screen.ecran-cartes .carte[data-role="canonnier"]   { --metier: #b8442f; }
+.screen.ecran-cartes .carte[data-role="gabier"]      { --metier: #2b6f9e; }
+.screen.ecran-cartes .carte[data-role="abordeur"]    { --metier: #c98a1e; --encre-metier: #1a1206; }
+.screen.ecran-cartes .carte[data-role="charpentier"] { --metier: #3f8f5c; --encre-metier: #0e1a12; }
 
 .screen.ecran-cartes .carte:active { cursor: grabbing; }
 .screen.ecran-cartes .carte.prise-en-main {
@@ -1492,29 +1572,35 @@
   box-shadow: 0 1px 2px rgba(0,0,0,.4); transform: translateY(4px);
 }
 
-/* LA VALEUR occupe le centre et fait 40 % de la hauteur de la carte. */
+/* LA VALEUR occupe le centre DU CHAMP LIBRE — les 74 % que le bandeau laisse —
+   et fait 40 % de la hauteur de la carte. La marge la recentre dans ce qui
+   reste, sinon elle était centrée sur la carte entière et frôlait le bandeau. */
 .screen.ecran-cartes .carte .c-val {
   font-family: var(--font-body); font-weight: 700;
   font-size: calc(var(--carte-h, 90px) * .4);
   line-height: 1; letter-spacing: -1px; z-index: 1;
   text-shadow: 0 2px 3px rgba(0,0,0,.4);
 }
+.screen.ecran-cartes .carte:has(.c-bandeau.avant)   .c-val { margin-top: 26%; }
+.screen.ecran-cartes .carte:has(.c-bandeau.arriere) .c-val { margin-bottom: 26%; }
+.screen.ecran-cartes .carte:has(.c-bandeau.arriere) .c-niveau { top: 3px; }
 
-/* Le nom est de la saveur : petit, discret, en pied. */
+/* Le nom est de la saveur, pas une décision : très petit, dans le bandeau,
+   sous le glyphe. */
 .screen.ecran-cartes .carte .c-nom {
-  position: absolute; left: 3px; right: 3px; bottom: 2px; z-index: 2;
-  font-family: var(--font-title); font-size: 8.5px; line-height: 1; text-align: center;
-  letter-spacing: .2px; opacity: .78;
+  font-family: var(--font-title); font-size: 6.5px; line-height: 1; text-align: center;
+  letter-spacing: .2px; opacity: .9; max-width: 100%; padding: 0 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+
 /* Le niveau, en étoiles, et seulement s'il y en a un. */
 .screen.ecran-cartes .c-niveau {
-  position: absolute; top: 3px; right: 4px; z-index: 2;
+  position: absolute; top: calc(26% + 3px); right: 4px; z-index: 3;
   font-size: 8px; line-height: 1; letter-spacing: -.5px; color: var(--gold-light, #e8c877);
 }
 
 .screen.ecran-cartes .carte.feu {
-  --enseigne: #3a1c0c; --encre: #f0d0a0; --feu-bord: #8a4a14;
+  --enseigne: #3a1c0c; --encre: #f0d0a0; --feu-bord: #8a4a14; --metier: #8a3c10;
   border-color: var(--warning);
 }
 .screen.ecran-cartes .carte.feu .c-nom { opacity: 1; }
@@ -1553,6 +1639,11 @@
    Les deux hommes qui montent au prochain tour, face visible, plus petits et
    ENFONCÉS DANS LE BOIS. Elles ne sont pas des cibles — `pointer-events: none` —
    parce que savoir qui vient ne donne aucun ordre à donner. */
+/* LE RÂTELIER S'ARME QUAND LA VOLÉE DESCEND : c'est lui la cible du
+   rechargement, il n'y a pas de seconde zone de dépôt. */
+.screen.ecran-cartes .ratelier.recharge {
+  box-shadow: inset 0 0 0 2px var(--gold-light, #e8c877), 0 -4px 14px rgba(232,200,119,.25);
+}
 .screen.ecran-cartes .reserve {
   position: absolute; right: 9px; top: 5px; z-index: 2;
   display: flex; align-items: flex-end; gap: 3px; pointer-events: none;
@@ -1580,9 +1671,9 @@
   transition: none;
   border-width: 1.5px;
 }
-.screen.ecran-cartes .carte.mini .c-nom { font-size: 6.5px; letter-spacing: 0; }
-.screen.ecran-cartes .carte.mini .c-niveau { font-size: 6px; top: 2px; right: 2px; }
-.screen.ecran-cartes .carte.mini .c-metier { max-width: 18px; left: 3px; }
+.screen.ecran-cartes .carte.mini .c-nom { font-size: 5.5px; letter-spacing: 0; }
+.screen.ecran-cartes .carte.mini .c-niveau { font-size: 6px; right: 2px; }
+.screen.ecran-cartes .carte.mini .c-nom { font-size: 5px; }
 .screen.ecran-cartes .carte.mini .c-val { font-size: calc(var(--carte-h, 90px) * .28); }
 .screen.ecran-cartes .carte.mini .c-etat { font-size: 6px; }
 
@@ -1710,7 +1801,10 @@
   background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;
 }
 .screen.ecran-cartes .verdict h2 { font-family: var(--font-title); font-size: 19px; color: var(--gold); margin: 0 0 5px; }
-.screen.ecran-cartes .verdict p { font-size: 11px; color: var(--text-secondary); line-height: 1.55; margin: 0; }
+.screen.ecran-cartes .verdict p { font-size: 11px; color: var(--text-primary); line-height: 1.55; margin: 0; }
+/* Une prise échappée ne se dit pas en or : le titre passe au rouge éteint. */
+.screen.ecran-cartes .verdict.rate h2 { color: #e0937f; }
+.screen.ecran-cartes .verdict .v-suite { color: var(--text-secondary); margin-top: 5px; font-style: italic; }
 
 /* --- l'aide, derrière la roue crantée --- */
 .ecran-cartes.aide-boite { padding: var(--space-md); max-height: 84vh; overflow-y: auto; display: block; height: auto; }

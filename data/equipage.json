@@ -17,7 +17,7 @@
       "nom": "abordeur",
       "court": "abord.",
       "verbe": "compte double sous la moitié",
-      "aide": "Inutile tant que la coque tient. Sous la moitié, sa valeur compte double — et deux abordeurs ensemble sautent à bord : les dégâts portent sans gâter la cargaison."
+      "aide": "Inutile tant que la coque tient. Sous la moitié, sa valeur compte double — et deux abordeurs ensemble sautent à bord : c'est ce qui met le plus de pression."
     },
     "charpentier": {
       "nom": "charpentier",
@@ -214,6 +214,7 @@
       "nom": "Barque longue",
       "rang": "petite prise",
       "hullClass": 6,
+      "resistance": 90,
       "pv": 110,
       "mats": 2,
       "riposte": 12,
@@ -225,6 +226,7 @@
       "nom": "Flûte marchande",
       "rang": "marchand",
       "hullClass": 4,
+      "resistance": 140,
       "pv": 150,
       "mats": 2,
       "riposte": 16,
@@ -236,6 +238,7 @@
       "nom": "Galion d'argent",
       "rang": "gros porteur",
       "hullClass": 2,
+      "resistance": 210,
       "pv": 190,
       "mats": 3,
       "riposte": 20,
@@ -247,6 +250,7 @@
       "nom": "Frégate royale",
       "rang": "escorte",
       "hullClass": 3,
+      "resistance": 300,
       "pv": 240,
       "mats": 3,
       "riposte": 24,
@@ -258,6 +262,7 @@
       "nom": "Vaisseau de ligne",
       "rang": "vaisseau",
       "hullClass": 1,
+      "resistance": 420,
       "pv": 310,
       "mats": 3,
       "riposte": 29,
@@ -305,7 +310,7 @@
     {
       "id": "caronades",
       "nom": "Caronades",
-      "texte": "+4 aux dégâts de chaque volée.",
+      "texte": "+6 de poudre à chaque volée.",
       "prix": 24
     },
     {
@@ -323,7 +328,7 @@
     {
       "id": "double_fond",
       "nom": "Double fond",
-      "texte": "+1 homme à la relève de chaque tour.",
+      "texte": "+1 bordée dans chaque rencontre.",
       "prix": 27
     }
   ],
@@ -475,7 +480,7 @@
       "id": "maitre_canonnier",
       "nom": "Le Maître canonnier",
       "titre": "chef de pièce",
-      "texte": "Une bordée (deux canonniers) rapporte 10 de plus.",
+      "texte": "Une bordée (deux canonniers) porte +0,5 de fureur.",
       "prix": 24
     },
     {
@@ -496,14 +501,14 @@
       "id": "quartier_maitre",
       "nom": "Le Quartier-maître",
       "titre": "partage et discipline",
-      "texte": "+1 homme à la relève de chaque tour.",
+      "texte": "+1 rechargement dans chaque rencontre.",
       "prix": 27
     },
     {
       "id": "aumonier",
       "nom": "L'Aumônier",
       "titre": "il compte les morts",
-      "texte": "Une volée de trois hommes rapporte 8 de plus.",
+      "texte": "Une volée de trois hommes porte +0,5 de fureur.",
       "prix": 21
     },
     {

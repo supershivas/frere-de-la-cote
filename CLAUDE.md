@@ -35,18 +35,20 @@ bloquait le chantier est tranché : cette question-là est fermée.
    l'Île de la Tortue et on met le cap sur une escale voisine : une prise, un
    port, une épave, une rencontre. Chaque escale **dit ce qu'elle est avant
    qu'on y aille**.
-2. **Une prise** (`data/equipage.json → prises`) a une coque, des mâts, une
-   riposte, et parfois une **règle** qui casse une habitude.
-3. Elle **annonce son coup un tour à l'avance**, écrit en toutes lettres sur
+2. **Une prise** annonce d'abord sa **RÉSISTANCE** : la pression qu'il faut lui
+   mettre pour qu'elle amène son pavillon. C'est l'ante du jeu. On a **quatre
+   bordées** pour l'atteindre et **trois rechargements** pour se refaire une
+   main sans tirer ; la main se remplit **à ras** après chacun.
+3. Elle a aussi une coque, des mâts, une riposte, et parfois une **règle** qui
+   casse une habitude.
+4. Elle **annonce son coup un tour à l'avance**, écrit en toutes lettres sur
    une carte d'intention. Rien n'est caché, rien n'est tiré au dé.
-4. **Une main** de cinq hommes. On en choisit jusqu'à trois, ils tirent
+5. **Une main** de cinq hommes. On en choisit jusqu'à trois, ils tirent
    ensemble. La prise riposte avec le coup qu'elle avait annoncé.
-5. Sa coque à zéro → **le partage** : recrues, reliques, officiers,
-   promotion. La Tortue à zéro → la chasse est rompue.
-
-Une prise se joue en **cinq à huit tours**. Le théâtre s'ouvre par actes :
-l'acte 1 longe Hispaniola, l'acte 2 atteint la Jamaïque et Cuba, l'acte 3 la
-Terre-Ferme, où la flotte des Indes passait vraiment.
+6. **Les trois fins.** Résistance atteinte → **la prise**, butin plein. Coque à
+   zéro avant → **coulée**, on ne repêche que 30 %. Plus une bordée → **elle
+   s'échappe**, et l'on n'a rien. Les deux premières sont des victoires ; seul
+   le butin diffère. La Tortue à zéro → la chasse est rompue.
 
 ### Les trois choses qui font la décision
 
@@ -62,29 +64,32 @@ qu'un gabier en est — elle n'entame alors pas la coque, elle abat un mât, et
 un mât qui tombe **emporte le coup annoncé**. Il se regrée en deux tours.
 C'est le seul échange du jeu : des dégâts contre un répit.
 
-**LA RELÈVE — combien.** Cinq cartes en main, **trois au plus dans une volée**,
-et on relève **deux hommes par tour**. Brûler trois hommes maintenant, c'est
-tirer à un seul le tour prochain. Sans cette rareté, jouer tout ce qu'on a
-était toujours la bonne réponse et il n'y avait rien à décider — c'est mesuré,
-§5.
+**LA RELÈVE — combien de coups.** Cinq cartes en main, **trois au plus dans
+une volée**, la main refaite **à ras** après chaque bordée. La rareté n'est pas
+dans le nombre d'hommes qu'on reçoit, elle est dans le nombre de **coups** :
+quatre bordées contre une résistance annoncée. Une relève de deux hommes par
+tour faisait la même chose de façon détournée, et le joueur ne voyait jamais le
+compte ; ici les deux compteurs sont sur le ruban.
 
-Deux soupapes vont avec le rechargement, et toutes deux viennent d'une main
-devenue petite : **un homme qui tire seul n'encrasse pas son bord**, et si
-aucun homme du bord libre n'est en main, le bord encrassé reprend le service.
-Sans elles, le joueur passait des tours entiers sans un coup à jouer — et un
-tour perdu n'est pas une décision.
+Deux soupapes vont avec le rechargement des canons, et toutes deux viennent
+d'une main devenue petite : **un homme qui tire seul n'encrasse pas son bord**,
+et si aucun homme du bord libre n'est en main, le bord encrassé reprend le
+service. Sans elles, le joueur passait des tours entiers sans un coup à jouer —
+et un tour perdu n'est pas une décision.
 
-**LA CARGAISON — combien il en restera.** Chaque point de dégâts à la coque
-coûte une part de butin : un boulet troue aussi ce qu'on vient prendre. Le
-gréement n'en coûte aucun, et **l'abordage** non plus — deux abordeurs sur une
-coque déjà basse sautent à bord, les dégâts portent sans rien gâter, et une
-prise abordée rapporte 30 % de plus.
+**LE RECHARGEMENT — quand renoncer à tirer.** Trois par rencontre. On tire la
+volée vers le **bas** : ces hommes-là repartent au fond du paquet, on en reprend
+autant, et la prise **ne riposte pas**. C'est la seconde monnaie, et elle ne se
+convertit pas dans la première : dépenser un rechargement, c'est parier qu'une
+meilleure main rapportera plus que le coup qu'on ne tire pas. Mesuré sur la
+flûte, un capitaine qui s'en sert la prend **51 fois sur 60** contre **16** pour
+celui qui les garde — c'est le test le plus important du dépôt (§5).
 
-C'est la réponse à « je joue toujours la volée la plus forte » : la plus forte
-est aussi la plus chère. Mesuré sur la barque — le capitaine pressé rapporte
-7 💰 en 9 tours, le soigneux 11 💰 en 11 tours, et ni l'un ni l'autre ne domine.
-Deux monnaies qui ne se convertissent pas l'une dans l'autre, c'est ce qui
-fait qu'il y a une décision plutôt qu'un calcul (§5).
+**LE GRÉEMENT — pousser sans abîmer.** Une volée au gréement met **autant de
+pression** qu'une volée à la coque et n'entame rien : c'est le seul moyen de
+faire céder une grosse prise sans l'envoyer par le fond, là où sa résistance
+dépasse sa coque. L'abordage pousse plus fort encore, et une prise abordée qui
+se rend rapporte 30 % de plus.
 
 **LES OFFICIERS — les jokers.** Trois au plus à l'état-major, engagés au
 partage. Ils ne se jouent pas : ils sont là et ils **changent une règle** (le
@@ -118,7 +123,14 @@ largage — un tour.
 |---|---|
 | toucher un homme | il rejoint la volée, et une bulle dit ce qu'il fait |
 | pousser la volée vers le haut | la **zone de dépôt s'ouvre sous La Tortue** ; lâcher dedans, la volée part |
+| tirer la volée vers le bas | **rechargement** : ces hommes repartent au fond, on en reprend autant, la prise ne riposte pas |
 | monter puis redescendre | on renonce, la volée est défaite |
+
+Le geste descendant n'a **pas de seconde zone de dépôt** : le râtelier lui-même
+s'allume, parce qu'il n'y a pas de place sous les cartes pour poser une cible et
+que deux zones sur la largeur d'un pouce se rateraient l'une l'autre. Il résiste
+sur 44 px — la même mesure que la cible tactile minimale — parce qu'un
+rechargement coûte une ressource et ne doit pas arriver en reposant le pouce.
 
 Dès le début du glissement les cartes **se regroupent** en paquet et se
 redressent : on voit partir une volée, pas trois cartes en parallèle. Les
@@ -147,8 +159,10 @@ sert `tools/mobile-audit.mjs`.
   bandeau de tête, nom, grand chiffre, pied — en noir et rouge, posée à plat
   sous son navire. Un rectangle horizontal avec du texte dedans n'est pas une
   carte, c'est une boîte de plus à lire.
-- **Tout s'explique à l'appui, jamais au survol** : une bulle ancrée
-  au-dessus de ce qu'on touche — un homme, sa carte à elle, la météo, la règle
+- **Tout s'explique à l'appui, jamais au survol** : une bulle ancrée **juste**
+  au-dessus de ce qu'on touche — remontée au-dessus du tableau pour ne rien
+  recouvrir, elle se retrouvait à 200 px de la carte qu'elle expliquait, et
+  n'était plus une bulle mais un second tableau — — un homme, sa carte à elle, la météo, la règle
   de la prise, une relique, un officier. Y compris les hommes qu'on **ne peut
   pas** jouer : ce sont eux dont il faut expliquer le refus.
 - **Les cartes arrivent, elles n'apparaissent pas** : la relève vole depuis la
@@ -158,18 +172,36 @@ sert `tools/mobile-audit.mjs`.
   distribution repartait à chaque homme touché.
 - **La carte Feu fume**, en boucle : c'est la seule carte qui ne sert à rien,
   il faut le voir de loin.
+- **La jauge de PRESSION est la barre qu'on regarde** : elle se REMPLIT vers la
+  résistance annoncée, avec le chiffre en toutes lettres. La coque passe en
+  seconde ligne, plus fine — elle ne dit plus qu'un risque, celui d'envoyer la
+  prise par le fond avant qu'elle ait amené son pavillon. Sa classe CSS est
+  `.jauge.bordage` et non `.jauge.coque` : `.coque` est DÉJÀ la boîte d'un
+  navire dans la bande de mer, et la jauge qui en portait le nom héritait de sa
+  marge haute de 22 px — une barre de 4 px haute de 26, sans une erreur levée.
+- **Les deux compteurs de la rencontre sont sur le ruban** — `⚔ 4` et `↻ 3` —
+  à gauche du butin. C'est la ressource du jeu : elle ne se lit pas dans un
+  sous-menu.
 - **La pioche dit sa COMPOSITION, jamais son ordre** : posée sur le bois du
   râtelier, à gauche de la réserve, elle donne ce qui reste — combien, par
   bord, par métier. Ce qu'un joueur a le droit de savoir, c'est ce qui lui
   reste, pas ce qui vient. Les deux informations de paquet se lisent au même
   endroit.
-- **La relève est visible** : les deux hommes du prochain tour, face visible,
+- **Ce qui vient est visible** : les deux prochains hommes de la pioche, face
+  visible,
   à 0,7× et enfoncés dans le listeau du râtelier. C'est une fenêtre voulue sur
   l'ordre, et la seule. Ni le bandeau ni la réserve ne se touchent — c'est de
   l'information, pas une cible.
-- **La flottaison ne se montre pas.** `drawGrid` coupe la coque à la ligne
-  d'eau, et l'on s'arrête là : seul le MOUVEMENT des navires dit qu'ils
-  flottent. Trois tentatives pour la rendre visible ont été essayées et
+- **La flottaison ne se montre pas, la HOULE si.** `drawGrid` coupe la coque à
+  la ligne d'eau ; le bas de la boîte `.coque` EST cette ligne, et il est en
+  `overflow: hidden`. Les navires s'y **enfoncent et remontent** — jamais
+  au-dessus, sinon leurs mâts sortaient de la bande de mer et se faisaient
+  couper — si bien qu'on voit plus ou moins de bordé selon la houle, sans
+  qu'une seule vague soit dessinée. Le pilonnement et le tangage sont en
+  **quadrature**, un quart de période d'écart : en phase, les deux se
+  confondaient en un balancement de métronome. L'amplitude se compte en rangs
+  de coque (3 px le rang), plafonnée à cinq — au-delà, il ne restait qu'une
+  mâture posée sur l'eau. Trois tentatives pour la rendre visible ont été essayées et
   retirées — un bord mangé en creux et en bosses, une frange d'écume, puis un
   train d'ondes traversant toute la scène avec les coques s'y enfonçant. Les
   trois se remarquaient plus que la mer elle-même. **Ne pas les reconstruire.**
@@ -202,18 +234,27 @@ sert `tools/mobile-audit.mjs`.
 - **Les cartes ont une largeur fixe**, calculée pour la main pleine. En
   `flex: 1` elles s'élargissaient à mesure qu'on en jouait : la main changeait
   de forme sous le pouce.
-- **Le BORD porte le fond, le MÉTIER porte le symbole.** C'est le bord qui
+- **La carte porte DEUX couleurs, pas une.** Le fond dit le bord, le bandeau
+  dit le métier. Un seul aplat ne pouvait dire qu'une des deux choses.
+- **Le BORD porte le fond, le MÉTIER porte le bandeau.** C'est le bord qui
   décide si deux hommes tirent ensemble, donc c'est lui qu'on doit voir en
   premier : il est l'enseigne, comme une couleur aux cartes à jouer, et il n'en
   existe que deux — bâbord `#6e2a22`, tribord `#1d4a37`, sourds, du carton
   teinté et pas du plastique. L'inverse avait été essayé (métier en fond, bord
   en tranche de 5 px) : la tranche se perdait dans le fond de métier.
-- **Le métier est un GLYPHE dessiné en SVG** — boulet, voile, haches croisées,
-  planche — en crème, gros, sur le côté gauche. Pas un emoji : un emoji change
-  de forme et de couleur d'un téléphone à l'autre.
-- **L'avant et l'arrière se disent par la PLACE du glyphe** : en haut pour
-  l'avant, en bas pour l'arrière. La position porte l'information ; le chevron
-  ▲/▼ qui la doublait était un second code à apprendre pour la même chose.
+- **Le métier est un BANDEAU PLEIN**, toute la largeur, 26 % de la hauteur,
+  dans sa propre couleur — canonnier `#b8442f`, gabier `#2b6f9e`, abordeur
+  `#c98a1e`, charpentier `#3f8f5c` — avec un **glyphe SVG crème** au centre :
+  boulet, voile, haches croisées, planche. Pas un emoji : un emoji change de
+  forme et de couleur d'un téléphone à l'autre. Le glyphe se dimensionne sur la
+  HAUTEUR du bandeau ; mesuré sur la largeur de la carte, il poussait le nom
+  dehors.
+- **L'avant et l'arrière se disent par la PLACE du bandeau** : collé en haut
+  pour l'avant, collé en bas pour l'arrière, épousant les coins arrondis de ce
+  côté-là. La position porte l'information ; le chevron ▲/▼ qui la doublait
+  était un second code à apprendre pour la même chose.
+- **Une main se lit alors comme des jetons** : deux fonds, quatre couleurs de
+  bandeau, deux positions, et pas un mot à lire.
 - **La carte est au rapport 1 pour 1,45**, la proportion d'une carte à jouer.
   À 1 pour 2,5 elle était une lame, et le centre restait vide entre le haut et
   le pied. La valeur occupe ce centre et fait 40 % de la hauteur ; le nom passe
@@ -394,7 +435,7 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 172 vérifications, zéro dépendance
+node test/run.js          # 178 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
@@ -411,16 +452,14 @@ le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
 - **« est-ce que choisir compte ? »** — les mêmes mains, sur les mêmes
   graines, jouées par un capitaine appliqué et par un maladroit. Le maladroit
   doit perdre nettement.
-- **« ménager la cargaison paie, et coûte des tours »** — le test le plus
-  important du dépôt. Deux façons de chasser la même prise : vite, ou proprement.
-  Il échoue si l'une des deux domine l'autre, et c'est bien le point : tant
-  qu'une seule ligne de jeu est optimale, le joueur exécute un calcul, il ne
-  choisit rien.
-- **« ménager la cargaison paie, et coûte des tours »** — le test le plus
-  important du dépôt. Deux façons de chasser la même prise : vite, ou proprement.
-  Il échoue si l'une des deux domine l'autre, et c'est bien le point : tant
-  qu'une seule ligne de jeu est optimale, le joueur exécute un calcul, il ne
-  choisit rien.
+- **« le rechargement est la vraie seconde monnaie »** — le test le plus
+  important du dépôt. Les mêmes mains, sur les mêmes graines : un capitaine qui
+  dépense ses trois rechargements contre un qui les garde. Mesuré, l'écart est
+  de 8 prises sur 60 sur la barque et de **35 sur la flûte**. Il échoue si
+  l'écart se referme, et c'est bien le point : tant qu'une seule ligne de jeu
+  est optimale, le joueur exécute un calcul, il ne choisit rien.
+- **« les trois fins »** — résistance atteinte, coque à zéro, quatre bordées
+  tirées. Chacune rend un butin différent, et seule la première rend tout.
 
 Dans `voyage.test.js` : on part toujours du même coin, on ne saute pas d'un
 bout de la mer à l'autre, et **chaque escale dit ce qu'elle est avant qu'on y
@@ -428,13 +467,21 @@ aille**. Le jour où l'un des trois cesse d'être vrai, la carte redevient une
 liste de nœuds.
 
 **Un seuil qui casse là est une décision à prendre, pas un test à assouplir.**
-C'est ce test qui a écrit la moitié des règles ci-dessus : il a montré qu'avec
-une main qui se remplit à ras bord, jouer tout ce qu'on a est toujours la
-bonne réponse (d'où la relève) ; qu'un tir au gréement à la majorité partait
+C'est ce test qui a écrit la moitié des règles ci-dessus : il a montré qu'un
+tir au gréement à la majorité partait
 par accident une fois sur deux (d'où « tous à l'avant, et un gabier ») ; qu'un
 mât perdu définitivement faisait du démâtage la seule tactique du jeu (d'où le
 regréement) ; et qu'un charpentier glissé dans chaque volée rendait plus de
 coque que la prise n'en enlevait (d'où « il ne répare que seul »).
+
+C'est lui, encore, qui a tranché la structure. Sous le score additif, l'écart
+entre le capitaine appliqué et le maladroit était de 15 prises sur 60 ; le
+passage au score à deux axes (poudre × fureur) l'a fait tomber à 6, parce que
+la multiplication récompense DEUX FOIS le fait de jouer beaucoup de cartes. La
+relève de deux ne compensait plus ce que la multiplication rapportait. La
+structure à seuil l'a rouvert à **40** : avec quatre bordées seulement pour
+atteindre une résistance annoncée, une main mal lue ne se rattrape pas au tour
+suivant — il n'y a pas de tour suivant.
 
 Pour ce que les tests de données ne voient pas :
 

@@ -87,24 +87,105 @@ test('the side that just fired has to reload — when they were several', () => 
   if (encore) equal(C.peutJouer(P, encore).ok, false, 'a fouled side can still fire');
 });
 
-test('the hand is relieved three at a time, never refilled', () => {
-  // C'est la seule chose qui fasse du choix un choix : brûler cinq hommes
-  // maintenant, c'est tirer à deux le tour prochain. Tant que la main se
-  // remplissait à ras bord, jouer cinq cartes était toujours la bonne réponse
-  // et il n'y avait rien à décider — mesuré, et corrigé par la relève.
+test('the encounter is an ante: four broadsides, three reloads, a full hand', () => {
+  // LA STRUCTURE DU JEU, en un test. La rareté n'est plus dans le nombre
+  // d'hommes qu'on reçoit — la main se remplit à ras — elle est dans le nombre
+  // de COUPS : quatre bordées pour atteindre la résistance annoncée, et trois
+  // rechargements pour se refaire une main sans tirer. Une relève de deux
+  // faisait la même chose de façon détournée, et le joueur ne voyait jamais le
+  // compte : ici les deux compteurs sont sur le ruban.
   const { P, rng } = partie(CONTENU.prises[1], 13);
+  equal(P.bordees, C.BORDEES, 'la rencontre ne commence pas à quatre bordées');
+  equal(P.rechargements, C.RECHARGEMENTS, 'la rencontre ne commence pas à trois rechargements');
+  equal(P.pression, 0, 'la pression ne part pas de zéro');
+  assert(P.prise.resistance > 0, 'la prise n’annonce aucune résistance');
   equal(P.main.length, C.tailleMain(P), 'la main d’engagement n’est pas pleine');
+
   P.selection = P.main.filter((c) => C.peutJouer(P, c).ok).slice(0, C.MAIN_MAX);
-  const joues = P.selection.length;
-  C.jouer(P); C.riposter(P);
-  const avant = P.main.length;
-  C.completer(P, rng);
-  equal(P.main.length, Math.min(C.tailleMain(P), avant + C.RELEVE),
-    `la relève a rendu ${P.main.length - avant} hommes au lieu de ${C.RELEVE}`);
-  if (joues > C.RELEVE) {
-    assert(P.main.length < C.tailleMain(P),
-      'une volée pleine n’a rien coûté à la main du tour suivant');
+  const r = C.jouer(P);
+  equal(P.bordees, C.BORDEES - 1, 'une volée n’a pas coûté de bordée');
+  equal(P.pression, r.pression, 'la volée n’a pas mis sa pression au compteur');
+  C.riposter(P); C.completer(P, rng);
+  equal(P.main.length, C.tailleMain(P), 'la main ne se remplit pas à ras entre deux bordées');
+});
+
+test('a reload swaps men without firing, and the prize does not answer', () => {
+  const { P, rng } = partie(CONTENU.prises[1], 21);
+  const avantPv = P.nous.pv, avantTour = P.tour, avantBordees = P.bordees;
+  P.selection = P.main.slice(0, 3);
+  const renvoyes = P.selection.slice();
+  const ok = C.recharger(P, rng);
+  assert(ok.ok, `le rechargement a été refusé : ${ok.pourquoi}`);
+  equal(P.rechargements, C.RECHARGEMENTS - 1, 'le rechargement n’a rien coûté');
+  equal(P.bordees, avantBordees, 'un rechargement a mangé une bordée');
+  equal(P.nous.pv, avantPv, 'la prise a riposté à un rechargement');
+  equal(P.tour, avantTour, 'un rechargement a fait passer un tour');
+  equal(P.main.length, C.tailleMain(P), 'la main n’a pas été refaite à ras');
+  equal(P.pression, 0, 'un rechargement a mis de la pression');
+  empty(renvoyes.filter((c) => P.main.includes(c)), 'des hommes renvoyés sont restés en main');
+});
+
+test('a reload is refused once the powder is spent', () => {
+  // RÈGLE 5 : un ordre impossible se refuse À VOIX HAUTE.
+  const { P, rng } = partie(CONTENU.prises[0], 33);
+  for (let i = 0; i < C.RECHARGEMENTS; i++) { P.selection = P.main.slice(0, 1); C.recharger(P, rng); }
+  P.selection = P.main.slice(0, 1);
+  const r = C.recharger(P, rng);
+  equal(r.ok, false, 'un quatrième rechargement est passé');
+  assert(r.pourquoi, 'le refus ne dit pas pourquoi');
+});
+
+test('the quartermaster and the false bottom buy shots, not nothing', () => {
+  // Ces deux-là achetaient un homme de relève. La relève supprimée, ils
+  // seraient devenus deux textes sans verbe — un objet qui ne change aucune
+  // règle n'est qu'un homme de plus. Ils achètent maintenant des COUPS, la
+  // seule ressource de la rencontre.
+  const { P } = partie(CONTENU.prises[0], 3);
+  equal(P.bordees, C.BORDEES, 'la rencontre nue ne part pas à quatre bordées');
+  equal(P.rechargements, C.RECHARGEMENTS, 'la rencontre nue ne part pas à trois rechargements');
+
+  const Q = C.nouvellePartie(CONTENU);
+  Q.officiers.push('quartier_maitre');
+  Q.reliques.push('double_fond');
+  C.engager(Q, CONTENU.prises[0], METEO.brise, rngFor(3));
+  equal(Q.bordees, C.BORDEES + 1, 'le double fond n’ajoute pas de bordée');
+  equal(Q.rechargements, C.RECHARGEMENTS + 1, 'le quartier-maître n’ajoute pas de rechargement');
+});
+
+test('the three endings, and only the first pays in full', () => {
+  // Deux victoires et une fuite. Amener le pavillon rend la cargaison entière ;
+  // couler la prise n'en rend que ce qui flotte ; ne pas y arriver en quatre
+  // bordées ne rend rien du tout. C'est ce qui donne son prix à un
+  // rechargement mal dépensé.
+  const pavillon = () => {
+    const { P } = partie(CONTENU.prises[0], 5);
+    P.pression = P.prise.resistance - 1;
+    P.selection = P.main.filter((c) => C.peutJouer(P, c).ok).slice(0, C.MAIN_MAX);
+    C.jouer(P);
+    return P;
+  };
+  const A = pavillon();
+  equal(A.fini, 'prise', 'la résistance atteinte n’a pas fait amener le pavillon');
+  assert(A.butin >= A.prise.butin, `une prise rendue ne rapporte que ${A.butin} sur ${A.prise.butin}`);
+
+  const { P: B } = partie(CONTENU.prises[2], 5);   // galion : sa coque cède avant sa résistance
+  B.prise.pv = 1;
+  B.selection = B.main.filter((c) => C.peutJouer(B, c).ok).slice(0, C.MAIN_MAX);
+  C.jouer(B);
+  equal(B.fini, 'coulee', 'une coque à zéro sous la résistance n’a pas coulé la prise');
+  assert(B.butin > 0 && B.butin < B.prise.butin,
+    `coulée, elle rend ${B.butin} au lieu d’une part de ${B.prise.butin}`);
+
+  const { P: D, rng } = partie(CONTENU.prises[4], 5);   // vaisseau : hors de portée en quatre coups
+  let garde = 0;
+  while (!D.fini && garde++ < 12) {
+    const v = C.meilleureVolee(D);
+    D.selection = v ? v.cartes : [];
+    if (D.selection.length) C.jouer(D);
+    if (!D.fini) { C.riposter(D); C.completer(D, rng); }
   }
+  equal(D.fini, 'echec', `le vaisseau n’a pas échappé en quatre bordées (${D.fini})`);
+  equal(D.butin, 0, 'une prise échappée a quand même rapporté');
 });
 
 test('one man alone does not foul his side, and a stuck hand always has a shot', () => {
@@ -269,6 +350,7 @@ test('the prizes climb', () => {
   for (let i = 1; i < CONTENU.prises.length; i++) {
     const a = CONTENU.prises[i - 1], b = CONTENU.prises[i];
     if (b.pv <= a.pv) bad.push(`${b.id} (coque)`);
+    if (b.resistance <= a.resistance) bad.push(`${b.id} (résistance)`);
     if (b.riposte <= a.riposte) bad.push(`${b.id} (riposte)`);
     if (b.butin <= a.butin) bad.push(`${b.id} (butin)`);
   }
@@ -279,64 +361,84 @@ suite('cartes — est-ce que choisir compte ?');
 
 // LA QUESTION LA PLUS IMPORTANTE DU JEU. Tant que « la volée la plus forte »
 // était toujours la bonne réponse, il n'y avait pas de décision : le joueur
-// exécutait un calcul, il ne choisissait rien. La cargaison introduit une
-// seconde monnaie — chaque point de coque coûte du butin, le gréement et
-// l'abordage n'en coûtent aucun — et les deux monnaies ne se convertissent
-// pas l'une dans l'autre. Ce test vérifie que les deux façons de jouer
-// existent VRAIMENT : la rapide et la soigneuse, et qu'aucune ne domine.
-function chasser(prise, seed, style) {
+// exécutait un calcul, il ne choisissait rien.
+//
+// Sous la structure à seuil, la seconde monnaie n'est plus la cargaison — elle
+// est le RECHARGEMENT. Quatre bordées pour atteindre la résistance annoncée,
+// trois rechargements pour se refaire une main : dépenser un rechargement,
+// c'est parier qu'une meilleure main rapportera plus que le coup qu'on ne tire
+// pas. Ce test mesure que le pari existe vraiment, et qu'il est gros.
+function chasser(prise, seed, recharge) {
   const { P, rng } = partie(prise, seed);
   let garde = 0;
-  while (!P.fini && garde++ < 80) {
-    const d = C.meilleureVolee(P, { max: C.RELEVE });
-    const cartes = style === 'soigneux'
-      ? (C.meilleureVolee(P, { max: C.MAIN_MAX, viser: 'abordage' }) || d)
-      : d;
-    if (!cartes || !cartes.cartes.length) { P.selection = []; C.riposter(P); C.completer(P, rng); continue; }
-    P.selection = cartes.cartes;
+  while (!P.fini && garde++ < 30) {
+    const v = C.meilleureVolee(P);
+    const reste = (P.prise.resistance - P.pression) / Math.max(1, P.bordees);
+    // On ne recharge pas « quand la main est laide » : on recharge quand elle
+    // ne tient pas le RYTHME qu'il reste à tenir. C'est la résistance annoncée
+    // qui rend la décision calculable — c'est tout l'objet de l'annoncer.
+    if (recharge && P.rechargements > 0 && (!v || v.pression < reste * 0.75)) {
+      const garder = new Set((v && v.cartes) || []);
+      P.selection = P.main.filter((c) => !garder.has(c)).slice(0, C.MAIN_MAX);
+      if (P.selection.length) { C.recharger(P, rng); continue; }
+      P.selection = [];
+    }
+    if (!v || !v.cartes.length) { P.selection = []; C.riposter(P); C.completer(P, rng); continue; }
+    P.selection = v.cartes;
     C.jouer(P);
-    if (!P.fini) C.riposter(P);
-    C.completer(P, rng);
+    if (!P.fini) { C.riposter(P); C.completer(P, rng); }
   }
-  return { pris: P.fini === 'prise', butin: P.butin, tours: P.tour };
+  return { pris: P.fini === 'prise', butin: P.butin };
 }
 
-test('sparing the cargo pays, and costs turns — neither way dominates', () => {
-  const prise = CONTENU.prises[0];
-  const vite = [], soin = [];
-  for (let s = 1; s <= 60; s++) {
-    const a = chasser(prise, s * 977, 'rapide');
-    const b = chasser(prise, s * 977, 'soigneux');
-    if (a.pris) vite.push(a);
-    if (b.pris) soin.push(b);
+test('the reload is the real second currency — spending it decides the flute', () => {
+  // Les deux capitaines jouent les mêmes mains sur les mêmes graines et
+  // tirent la même volée ; l'un se sert de ses trois rechargements, l'autre
+  // les garde. Si l'écart est petit, les rechargements sont un décor et la
+  // rencontre n'a qu'un seul axe.
+  for (const [i, seuil] of [[0, 3], [1, 20]]) {
+    const prise = CONTENU.prises[i];
+    let avec = 0, sans = 0, bAvec = 0, bSans = 0;
+    for (let s = 1; s <= 60; s++) {
+      const a = chasser(prise, s * 977, true);
+      const b = chasser(prise, s * 977, false);
+      if (a.pris) avec++; if (b.pris) sans++;
+      bAvec += a.butin; bSans += b.butin;
+    }
+    console.log(`      ${prise.id} — avec rechargements : ${avec}/60 · sans : ${sans}/60`);
+    assert(avec >= sans + seuil,
+      `${prise.id} : les rechargements ne pèsent que ${avec - sans} prises sur 60 — ils ne décident de rien`);
+    assert(bAvec > bSans, `${prise.id} : recharger ne rapporte pas plus de butin`);
+    assert(sans > 0, `${prise.id} : sans rechargement, la manche est injouable (${sans}/60)`);
   }
-  const med = (l, k) => l.map((x) => x[k]).sort((x, y) => x - y)[Math.floor(l.length / 2)];
-  const bVite = med(vite, 'butin'), bSoin = med(soin, 'butin');
-  const tVite = med(vite, 'tours'), tSoin = med(soin, 'tours');
-  console.log(`      rapide : ${bVite} 💰 en ${tVite} tours · soigneux : ${bSoin} 💰 en ${tSoin} tours`);
-
-  assert(bSoin > bVite, `ménager la cargaison ne rapporte pas plus (${bSoin} contre ${bVite}) — la seconde monnaie ne sert à rien`);
-  assert(bSoin - bVite >= 3, `l'écart de butin n'est que de ${bSoin - bVite} : trop petit pour peser dans une décision`);
-  assert(tSoin > tVite, `ménager la cargaison ne coûte aucun tour (${tSoin} contre ${tVite}) — ce n'est pas un choix, c'est une meilleure façon de jouer`);
-  assert(vite.length >= 45, `le capitaine rapide ne prend la barque que ${vite.length}/60`);
-  assert(soin.length >= 40, `le capitaine soigneux ne prend la barque que ${soin.length}/60 — trop punitif pour être une option`);
 });
 
-test('a boarded prize is worth more than a sunk one', () => {
-  // Sur la même prise, au même point de coque : sauter à bord garde la
-  // cargaison entière ET rapporte une prime. Couler au canon ne rapporte que
-  // ce qui flotte.
+test('a prize that strikes her colours pays more than one sent to the bottom', () => {
+  // Deux victoires, deux butins. Amener le pavillon rend la cargaison entière,
+  // et l'abordage y ajoute une prime : deux abordeurs sur une coque basse
+  // poussent le plus fort du jeu. Coulée au canon, on ne repêche que ce qui
+  // flotte.
   const { P } = partie(CONTENU.prises[0], 5);
-  const avant = P.prise.butin;
-  P.prise.pv = 12;                     // coque basse : l'abordage est ouvert
+  const porte = P.prise.butin;
+  P.prise.pv = 12;                            // coque basse : l'abordage est ouvert
+  P.pression = P.prise.resistance - 1;        // un rien suffit à faire tomber le pavillon
   const abordeurs = P.main.filter((c) => !C.estFeu(c) && c.role === 'abordeur');
   if (abordeurs.length < 2) return;
   P.selection = abordeurs.slice(0, 2);
   equal(C.evaluer(P, P.selection).cible, 'abordage', 'deux abordeurs sur une coque basse ne sautent pas à bord');
-  equal(C.evaluer(P, P.selection).gate, 0, 'un abordage gâte la cargaison');
+  equal(C.evaluer(P, P.selection).degats > 0, true, 'un abordage n’entame pas la coque');
   C.jouer(P);
-  equal(P.fini, 'prise', 'l’abordage n’a pas emporté la prise');
-  assert(P.butin > avant, `prise à l'abordage, elle rapporte ${P.butin} alors qu'elle portait ${avant}`);
+  equal(P.fini, 'prise', 'l’abordage n’a pas fait amener le pavillon');
+  assert(P.prise.prime > 0, 'une prise abordée ne rapporte aucune prime');
+  assert(P.butin > porte, `prise à l'abordage, elle rapporte ${P.butin} alors qu'elle portait ${porte}`);
+
+  // La même prise, coulée : une part seulement.
+  const { P: Q } = partie(CONTENU.prises[2], 5);
+  Q.prise.pv = 1;
+  Q.selection = Q.main.filter((c) => C.peutJouer(Q, c).ok).slice(0, C.MAIN_MAX);
+  C.jouer(Q);
+  equal(Q.fini, 'coulee', 'la coque à zéro n’a pas coulé la prise');
+  assert(Q.butin < Q.prise.butin, `coulée, elle rend ${Q.butin} sur ${Q.prise.butin}`);
 });
 
 // Les deux capitaines jouent exactement les mêmes mains, sur les mêmes graines.
@@ -351,12 +453,22 @@ function duel(prise, seed, applique) {
       // sa main (au plus une relève par volée, sinon il tirera à deux le tour
       // suivant), et il monte au gréement quand le coup annoncé coûte plus
       // cher que ce qu'il renonce à infliger.
-      const g = C.meilleureVolee(P, { viser: 'greement', max: C.RELEVE });
-      const d = C.meilleureVolee(P, { max: C.RELEVE });
+      const g = C.meilleureVolee(P, { viser: 'greement' });
+      const d = C.meilleureVolee(P);
       const a = P.prise.annonce;
       const evite = a.effet === 'canon' && !P.prise.tirAnnule
         ? Math.round(P.prise.riposte * a.force * (0.5 + 0.5 * (P.prise.mats / P.prise.matsMax))) : 0;
       cartes = (g && g.abat && evite > (d ? d.degats : 0) + 4) ? g.cartes : (d ? d.cartes : null);
+      // Et il RECHARGE quand sa main ne suit pas le rythme qu'il lui reste à
+      // tenir : c'est le seul usage des trois rechargements, et c'est là que
+      // le maladroit perd la manche sans s'en apercevoir.
+      const reste = (P.prise.resistance - P.pression) / Math.max(1, P.bordees);
+      if (P.rechargements > 0 && (!d || d.pression < reste * 0.75)) {
+        const garder = new Set(cartes || []);
+        P.selection = P.main.filter((c) => !garder.has(c)).slice(0, C.MAIN_MAX);
+        if (P.selection.length) { C.recharger(P, rng); continue; }
+        P.selection = [];
+      }
     } else {
       cartes = [];
       for (const c of P.main) {
@@ -383,20 +495,12 @@ test('a careful captain takes the merchantman far more often than a careless one
     if (duel(prise, s * 977, false)) mauvais++;
   }
   console.log(`      appliqué : ${bons}/60 · maladroit : ${mauvais}/60`);
-  // ATTENTION — CET INSTRUMENT A PERDU SA FORCE, et les seuils ci-dessous
-  // ENREGISTRENT une régression au lieu de l'empêcher.
-  //
-  // Sous le score additif, le maladroit prenait la flûte 23 fois sur 60 contre
-  // 38 pour l'appliqué. Depuis le passage au score à deux axes (poudre ×
-  // fureur), il la prend 52 fois sur 60 contre 58 : l'écart est tombé de 15 à
-  // 6. La cause est mécanique — la multiplication récompense DEUX FOIS le fait
-  // de jouer beaucoup de cartes (plus d'hommes = plus de poudre ET plus de
-  // synergies, donc plus de fureur), si bien que vider sa main redevient la
-  // meilleure réponse. Mesuré sur la barque, le maladroit inflige même
-  // DAVANTAGE par volée que l'appliqué : 23 contre 18.
-  //
-  // La relève ne compense plus ce que la multiplication rapporte. C'est une
-  // décision de conception à prendre, pas un seuil à baisser une fois de plus.
+  // CET INSTRUMENT A RETROUVÉ SA FORCE. Sous le score additif, l'écart était
+  // de 15 prises sur 60 ; le passage au score à deux axes (poudre × fureur) l'a
+  // fait tomber à 6, parce que la multiplication récompense DEUX FOIS le fait de
+  // jouer beaucoup de cartes. La structure à seuil l'a rouvert à 40 : avec
+  // quatre bordées seulement pour atteindre une résistance annoncée, une main
+  // mal lue ne se rattrape plus au tour suivant — il n'y a pas de tour suivant.
   assert(bons >= 45, `le joueur appliqué ne prend la flûte que ${bons}/60 — la manche est trop dure`);
   assert(bons >= mauvais, `le maladroit (${mauvais}/60) fait mieux que l'appliqué (${bons}/60) — jouer au hasard est devenu la meilleure ligne`);
   assert(mauvais <= 55, `le joueur maladroit la prend ${mauvais}/60 — le choix ne compte plus du tout`);
@@ -405,5 +509,5 @@ test('a careful captain takes the merchantman far more often than a careless one
 test('the line-of-battle ship is out of reach of a starting crew', () => {
   let bons = 0;
   for (let s = 1; s <= 40; s++) if (duel(CONTENU.prises[4], s * 613, true)) bons++;
-  assert(bons <= 8, `le vaisseau tombe ${bons}/40 avec l'équipage de départ — la progression n'a rien à vendre`);
+  assert(bons <= 4, `le vaisseau tombe ${bons}/40 avec l'équipage de départ — la progression n'a rien à vendre`);
 });

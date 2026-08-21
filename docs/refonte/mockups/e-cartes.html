@@ -82,8 +82,8 @@ let mot = '';            // la dernière chose qui s'est passée, en une ligne
 let occupe = false;      // une animation est en cours : les gestes sont sourds
 let neuves = [];         // les `uid` relevés au dernier tour, pour l'animation
 
-// La relève, en gardant trace de QUI vient d'arriver : c'est ce qui permet de
-// ne faire voler que les nouvelles cartes.
+// On refait la main à ras en gardant trace de QUI vient d'arriver : c'est ce
+// qui permet de ne faire voler que les nouvelles cartes.
 function relever(combien) {
   const avant = new Set(P.main.map((c) => c.uid));
   C.completer(P, rng, combien);
@@ -94,13 +94,18 @@ function relever(combien) {
    L'amplitude vient de la météo réelle : un calme plat ne berce pas comme un
    grain. C'est décoratif, mais c'est la seule chose qui dise « ce navire
    flotte » plutôt que « ce navire est collé au fond de l'écran ». */
+// L'AMPLITUDE SE COMPTE EN RANGS DE COQUE, pas en pixels choisis à l'œil : un
+// navire est peint à 3 px par rang, si bien qu'un enfoncement de 6 px cache
+// deux rangs de bordé et se VOIT. À 2 px, la houle était mathématiquement là
+// et visuellement absente. Le plafond est de cinq rangs : au-delà, la coque
+// disparaissait tout entière et il ne restait qu'une mâture posée sur l'eau.
 const HOULE = {
-  calme: { amp: 1, gite: 0.2, periode: 7 },
-  brise: { amp: 3, gite: 0.7, periode: 5.4 },
-  vent_fort: { amp: 8, gite: 2.2, periode: 3.6 },
-  brume: { amp: 2, gite: 0.5, periode: 6.2 },
-  grain: { amp: 12, gite: 3.4, periode: 2.9 },
-  tempete: { amp: 18, gite: 5, periode: 2.4 },
+  calme: { amp: 2, gite: 0.3, periode: 8 },
+  brise: { amp: 5, gite: 0.9, periode: 5.4 },
+  vent_fort: { amp: 8, gite: 2.4, periode: 3.6 },
+  brume: { amp: 4, gite: 0.6, periode: 6.4 },
+  grain: { amp: 11, gite: 3.4, periode: 2.9 },
+  tempete: { amp: 15, gite: 5, periode: 2.4 },
 };
 const houle = () => HOULE[P.meteo && P.meteo.id] || HOULE.brise;
 
@@ -281,6 +286,9 @@ function peindreCoques() {
     cv.style.setProperty('--amp', `${h.amp}px`);
     cv.style.setProperty('--gite', `${h.gite}deg`);
     cv.style.setProperty('--periode', `${h.periode + (id === 'c-prise' ? 0.7 : 0)}s`);
+    // Les deux navires ne montent pas sur la même vague : un décalage suffit à
+    // ce que la mer ait l'air d'une mer et non d'un plateau qui bascule.
+    cv.style.setProperty('--decalage', id === 'c-prise' ? '-1.3s' : '0s');
   }
 }
 
@@ -560,45 +568,48 @@ function tableau() {
       html: mot || 'Une <b>volée</b>, c’est le groupe d’hommes que tu envoies tirer <b>ensemble</b> : '
         + 'jusqu’à trois, tous du <b>même bord</b>. Touche-les pour les y mettre.',
     }));
-    t.appendChild(el('div', { class: 'tb-geste', text: `relève : ${C.releveDe(P)} hommes par tour · trois au plus par volée` }));
+    const reste = Math.max(0, P.prise.resistance - P.pression);
+    t.appendChild(el('div', {
+      class: 'tb-geste',
+      text: `encore ${reste} de pression en ${P.bordees} bordée${P.bordees > 1 ? 's' : ''} · ${P.rechargements} rechargement${P.rechargements > 1 ? 's' : ''}`,
+    }));
     return t;
   }
   const r = C.evaluer(P, P.selection);
 
-  // CE QUE LA VOLÉE FAIT, EN UNE PHRASE ET DEUX CHIFFRES.
-  //
-  // Le joueur lisait « Tir à la coque · 24 » et n'avait aucune raison de jouer
-  // autre chose que le plus gros chiffre — parce que le PRIX de ce chiffre (la
-  // cargaison trouée) était écrit ailleurs, en petit. Les deux monnaies se
-  // lisent maintenant au même endroit, au moment du choix.
+  // CE QUE LA VOLÉE FAIT, EN UNE PHRASE ET DEUX CHIFFRES : la PRESSION qu'elle
+  // met — le seul compteur qui décide de la fin — et ce qu'elle entame en
+  // passant. Les deux se lisent au même endroit, au moment du choix.
   const MANIERES = {
-    coque: { nom: 'À la coque', dit: 'les boulets entrent dans le bordé — et dans la cargaison' },
-    greement: { nom: 'Au gréement', dit: 'rien à la coque, rien de gâté : on lui coupe son coup' },
-    abordage: { nom: 'À l’abordage', dit: 'on saute à bord : les dégâts portent, la cargaison est intacte' },
+    coque: { nom: 'À la coque', dit: 'les boulets entrent dans le bordé : elle pousse et elle abîme' },
+    greement: { nom: 'Au gréement', dit: 'rien à la coque : elle pousse autant, et lui coupe son coup' },
+    abordage: { nom: 'À l’abordage', dit: 'on saute à bord : c’est ce qui pousse le plus fort' },
     radoub: { nom: 'Au radoub', dit: 'personne ne tire : on répare' },
   };
   const m = MANIERES[r.cible] || MANIERES.coque;
   t.appendChild(el('div', { class: 'tb-tete' }, [
     el('span', { class: 'tb-cible', text: m.nom }),
     el('span', { class: 'tb-prix' }, [
-      el('span', { class: 'tb-degats', text: r.cible === 'greement' ? (r.abat ? 'un mât' : '—') : `${r.degats} ⚔` }),
-      r.gate > 0
-        ? el('span', { class: 'tb-gate', text: `−${r.gate} 💰` })
-        : el('span', { class: 'tb-sauf', text: r.cible === 'radoub' ? '+12 ⛑' : 'cargaison sauve' }),
+      el('span', { class: 'tb-pression', text: `+${r.pression} ⚑` }),
+      r.degats > 0
+        ? el('span', { class: 'tb-degats', text: `${r.degats} ⚔ à la coque` })
+        : el('span', { class: 'tb-sauf', text: r.cible === 'radoub' ? '+12 ⛑' : 'coque intacte' }),
     ]),
   ]));
   t.appendChild(el('div', { class: 'tb-detail', text: m.dit }));
 
-  const reste = Math.max(0, P.prise.pv - r.degats);
-  const cargo = Math.max(0, P.prise.butin - r.gate);
+  // Ce que la volée LAISSE : la pression qu'il restera à mettre, et sur quel
+  // nombre de bordées. C'est la seule projection dont le joueur a besoin.
+  const apres = P.pression + r.pression;
+  const manque = Math.max(0, P.prise.resistance - apres);
+  const coque = Math.max(0, P.prise.pv - r.degats);
   t.appendChild(el('div', {
     class: 'tb-geste',
-    html: r.cible === 'greement'
-      ? (r.abat ? 'un mât tombe : <b>son coup n’aura pas lieu</b>' : `il faut ${r.seuil} de puissance pour abattre un mât`)
-      : r.cible === 'radoub' ? 'une volée d’un seul charpentier répare et jette un Feu'
-        : (reste === 0
-          ? (r.cible === 'abordage' ? '<b>elle est à toi, entière</b>' : '<b>coulée : on ne repêche que ce qui flotte</b>')
-          : `il resterait : coque ${reste} · cargaison ${cargo} 💰`),
+    html: r.cible === 'radoub' ? 'une volée d’un seul charpentier répare et jette un Feu'
+      : manque === 0 ? '<b>elle amène son pavillon</b>'
+        : coque === 0 ? '<b>coulée avant de se rendre : on ne repêche que ce qui flotte</b>'
+          : `resterait ${manque} de pression en ${Math.max(0, P.bordees - 1)} bordée${P.bordees - 1 > 1 ? 's' : ''}`
+            + (r.cible === 'greement' && !r.abat ? ` · ${r.seuil} pour un mât` : ''),
   }));
   return t;
 }
@@ -618,14 +629,12 @@ function bulleSur(cible, html, duree = 3200) {
   const marge = 6;
   const x = Math.max(marge, Math.min(window.innerWidth - l.width - marge, r.left + r.width / 2 - l.width / 2));
   bulle.style.left = `${x}px`;
-  // Elle se pose AU-DESSUS DU TABLEAU, jamais dessus : le tableau est
-  // précisément ce qu'on lit pendant qu'on choisit ses hommes, et une bulle
-  // d'aide qui recouvre le compte de la volée explique une chose en cachant
-  // l'autre.
-  const tab = document.querySelector('.ecran-cartes .tableau');
-  const plafond = tab ? tab.getBoundingClientRect().top - 8 : window.innerHeight;
-  const bas = Math.min(r.top - 10, plafond);
-  bulle.style.top = `${Math.max(marge, bas - l.height)}px`;
+  // JUSTE AU-DESSUS DE CE QU'ON TOUCHE, et nulle part ailleurs. Elle était
+  // remontée jusqu'au-dessus du tableau pour ne rien recouvrir : à l'écran,
+  // elle se retrouvait à 200 px de la carte qu'elle expliquait, et il fallait
+  // faire le lien soi-même. Une bulle ancrée loin de son ancre n'est plus une
+  // bulle, c'est un second tableau.
+  bulle.style.top = `${Math.max(marge, r.top - 10 - l.height)}px`;
   bulle.style.setProperty('--fleche', `${r.left + r.width / 2 - x}px`);
   requestAnimationFrame(() => bulle && bulle.classList.add('vue'));
   clearTimeout(bulleT);
@@ -751,15 +760,23 @@ function metierVu(role) {
 function contenuCarte(c) {
   const feu = C.estFeu(c);
   const q = feu ? null : CONTENU.quarts[c.quart];
+  // LE BANDEAU DE MÉTIER : pleine largeur, un quart de la hauteur, sa propre
+  // couleur, le glyphe dedans, et le nom sous le glyphe. Il est COLLÉ au bord
+  // de la carte — en haut pour l'avant, en bas pour l'arrière — et il en
+  // épouse les coins arrondis de ce côté-là. Une main se lit alors comme des
+  // jetons : deux fonds, quatre couleurs de bandeau, deux positions, et pas
+  // un mot à lire.
+  const bandeau = el('span', { class: `c-bandeau ${feu ? 'avant' : q.bout}` }, [
+    feu ? null : metierVu(c.role),
+    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
+  ]);
   return [
     c.blesse ? el('span', { class: 'c-etat', text: 'blessé' }) : null,
     feu ? el('span', { class: 'c-fumee' }) : null,
-    feu ? null : el('span', { class: `c-metier ${q.bout}`, attrs: { 'aria-hidden': 'true' } }, [metierVu(c.role)]),
-    // LA VALEUR occupe le centre : c'est le seul chiffre dont le joueur a
-    // besoin pour composer une volée.
+    bandeau,
+    // LA VALEUR occupe le centre du champ libre : c'est le seul chiffre dont
+    // le joueur a besoin pour composer une volée.
     el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c, P)) }),
-    // Le nom est de la SAVEUR, pas une décision : il passe en pied, petit.
-    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
     // Le niveau ne s'affiche que s'il existe. « niv. 0 » sur douze cartes,
     // c'était douze fois la même information vide.
     !feu && c.grade ? el('span', { class: 'c-niveau', text: '★'.repeat(Math.min(c.grade, 5)) }) : null,
@@ -840,7 +857,13 @@ function ecranChasse() {
   s.appendChild(el('div', { class: 'ruban' }, [
     el('div', { class: 'rb-txt' }, [
       el('div', { class: 'rb-quoi', text: `Prendre ${p.nom}` }),
-      el('div', { class: 'rb-rang', text: `tour ${P.tour}${P.encrasse ? ` · ${CONTENU.bords[P.encrasse].nom} recharge` : ` · ${p.rang}`}` }),
+      el('div', { class: 'rb-rang', text: `${P.encrasse ? `${CONTENU.bords[P.encrasse].nom} recharge` : p.rang}` }),
+    ]),
+    // LES DEUX COMPTEURS DE LA RENCONTRE, à gauche du butin. Ce sont eux la
+    // ressource : quatre bordées à tirer, trois rechargements à dépenser.
+    el('div', { class: 'rb-coups' }, [
+      el('span', { class: `rb-coup${P.bordees <= 1 ? ' bas' : ''}`, text: `⚔ ${P.bordees}` }),
+      el('span', { class: `rb-coup${P.rechargements <= 0 ? ' vide' : ''}`, text: `↻ ${P.rechargements}` }),
     ]),
     el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
     el('button', { class: 'btn-level-3 rouage', text: '⚙', attrs: { type: 'button', 'aria-label': 'aide et réglages' }, on: { click: ouvrirAide } }),
@@ -861,13 +884,19 @@ function ecranChasse() {
           el('span', { class: 'e-mats', text: `main ${P.main.length}/${C.tailleMain(P)}` }),
         ]),
       ]),
+      // LA JAUGE DE PRESSION SE REMPLIT VERS LA RÉSISTANCE : c'est la barre
+      // que le joueur regarde, et le seul compteur qui décide de la fin. La
+      // coque passe en seconde ligne, plus fine — elle ne dit plus que le
+      // risque de l'envoyer par le fond avant qu'elle ait amené son pavillon.
       el('div', { class: 'etiq prise' }, [
         el('div', { class: 'e-nom', text: p.nom }),
-        el('div', { class: 'jauge' }, [el('i', { attrs: { style: `width:${(100 * p.pv) / p.max}%` } })]),
+        el('div', { class: 'jauge pression' }, [el('i', { attrs: { style: `width:${Math.min(100, (100 * P.pression) / p.resistance)}%` } })]),
         el('div', { class: 'e-chif' }, [
-          el('span', { text: `${p.pv} / ${p.max}` }),
+          el('span', { class: 'e-fort', text: `${P.pression} / ${p.resistance}` }),
           el('span', { class: 'e-mats', html: matsHtml }),
         ]),
+        el('div', { class: 'jauge bordage' }, [el('i', { attrs: { style: `width:${(100 * p.pv) / p.max}%` } })]),
+        el('div', { class: 'e-chif menu' }, [el('span', { text: `coque ${p.pv} / ${p.max}` })]),
       ]),
     ]),
     el('div', { class: 'flotte' }, [
@@ -964,15 +993,15 @@ function ecranChasse() {
     el('span', { class: 'pe-roles', text: roles || '—' }),
   ]);
 
-  // LA RELÈVE, POSÉE SUR LE LISTEAU. Les deux hommes qui montent au prochain
-  // tour, face visible, enfoncés dans le bois. On pioche avec `pop()` : le
+  // LES DEUX QUI VIENNENT, POSÉS SUR LE LISTEAU. Face visible, enfoncés dans
+  // le bois. On pioche avec `pop()` : le
   // DESSUS du paquet est la fin du tableau, donc le premier à venir est le
   // dernier élément.
   //
   // Ce n'est pas une cible : on ne peut ni les toucher ni les jouer. Savoir
   // qui vient ensuite change ce qu'on garde en main ce tour-ci, et c'est tout
   // ce qu'on leur demande.
-  const aVenir = P.pioche.slice(-C.releveDe(P)).reverse();
+  const aVenir = P.pioche.slice(-2).reverse();
   const reserve = el('div', { class: 'reserve', attrs: { 'aria-hidden': 'true' } },
     [el('span', { class: 'reserve-cle', text: 'à venir' })].concat(aVenir.map((c, i) => el('div', {
       class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.blesse ? ' blesse' : ''}`,
@@ -991,9 +1020,14 @@ function ecranChasse() {
    pousse vers la zone de dépôt qui s'ouvre sous notre navire, et la volée
    part. Redescendre avant de lâcher défait la volée.
 
-   Il n'y a rien à faire vers le bas : les cartes reposent sur le bois du
-   râtelier, il n'y a pas d'espace sous elles, et une seconde zone de dépôt
-   pour un second ordre demanderait deux cibles sur la largeur d'un pouce.
+   ET VERS LE BAS : LE RECHARGEMENT, en miroir exact. On tire la volée vers le
+   bas et ces hommes-là repartent au fond du paquet ; on en reprend autant, et
+   la prise ne riposte pas. Pas de seconde zone de dépôt pour autant — le
+   râtelier lui-même est la cible, parce qu'il n'y a pas de place sous les
+   cartes pour en poser une, et deux zones sur la largeur d'un pouce se
+   rateraient l'une l'autre. Le geste descendant RÉSISTE (44 px, la même mesure
+   que la cible tactile minimale) : un rechargement coûte une ressource et ne
+   doit pas arriver en reposant le pouce.
 
    Dès le début du glissement les cartes SE REGROUPENT en paquet et se
    redressent : on voit partir une volée, pas trois cartes qui montent en
@@ -1046,7 +1080,9 @@ function brancherGeste(scene) {
         n.style.transition = 'none';
         return { n, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
       });
-      if (depot) depot.classList.add('vu');
+      // La zone de dépôt n'existe que pour le geste QUI MONTE. Ouverte dès le
+      // franchissement du seuil, elle s'affichait aussi pendant qu'on tirait
+      // la volée vers le bas — et proposait le contraire de ce qu'on faisait.
     }
     if (!franchi) return;
 
@@ -1062,12 +1098,21 @@ function brancherGeste(scene) {
       p.n.style.zIndex = String(20 + i);
     });
 
-    const pret = surLeDepot(e.clientX, e.clientY);
+    // On n'est jamais monté et on descend franchement : c'est un rechargement.
+    const recharge = montee > -40 && dy > 44;
+    if (depot) depot.classList.toggle('vu', !recharge && dy < 0);
+    const pret = !recharge && surLeDepot(e.clientX, e.clientY);
     if (depot) depot.classList.toggle('prete', pret);
+    if (ratelier) ratelier.classList.toggle('recharge', recharge && P.rechargements > 0);
     const annule = montee < -40 && dy > montee + 60;
-    if (annule) dire('↩ relâche : la volée est défaite', 'annule');
+    if (recharge) {
+      const n = P.selection.length;
+      dire(P.rechargements > 0
+        ? `↓ relâche : ${n} homme${n > 1 ? 's repartent' : ' repart'} au fond, ${P.rechargements - 1} rechargement${P.rechargements - 1 > 1 ? 's' : ''} après`
+        : '<span class="tb-refus">plus un rechargement à dépenser</span>', 'tire');
+    } else if (annule) dire('↩ relâche : la volée est défaite', 'annule');
     else if (pret) dire('↑ relâche : la volée part', 'tire');
-    else dire('pose la volée sur la zone, sous La Tortue', null);
+    else dire('vers le haut : la volée part · vers le bas : on recharge', null);
   };
   const fin = (e) => {
     if (y0 === null) return;
@@ -1077,8 +1122,10 @@ function brancherGeste(scene) {
     for (const p of paquet) { p.n.style.transition = ''; p.n.style.transform = ''; p.n.style.zIndex = ''; }
     paquet = [];
     if (depot) depot.classList.remove('vu', 'prete');
+    if (ratelier) ratelier.classList.remove('recharge');
     setTimeout(() => { glisse = false; }, 60);
     if (!bougea) { dire(aideTexte, null); return; }
+    if (m > -40 && d > 44) { rechargerVolee(); return; }
     if (surZone) { tirer(); return; }
     // Monté puis redescendu : on renonce.
     if (m < -40 && d > m + 60) { P.selection = []; mot = 'Volée défaite.'; rendre(); return; }
@@ -1096,11 +1143,28 @@ function brancherGeste(scene) {
   scene.addEventListener('keydown', (e) => {
     if (occupe || !P.selection.length) return;
     if (e.key === 'ArrowUp' || e.key === 'Enter') { e.preventDefault(); tirer(); }
-    if (e.key === 'Escape' || e.key === 'ArrowDown') { e.preventDefault(); P.selection = []; rendre(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); rechargerVolee(); }
+    if (e.key === 'Escape') { e.preventDefault(); P.selection = []; rendre(); }
   });
 }
 
 /* ------------------------------------------------------------ le tour */
+// LE RECHARGEMENT : les hommes sélectionnés repartent au fond, on en reprend
+// autant, la prise ne riposte pas. Aucune bordée n'est dépensée — c'est le
+// second compteur du ruban qui paie.
+function rechargerVolee() {
+  if (occupe || P.fini || !P.selection.length) return;
+  fermerBulle();
+  const combien = P.selection.length;
+  const avant = new Set(P.main.map((c) => c.uid));
+  const r = C.recharger(P, rng);
+  if (!r.ok) { mot = `<span class="tb-refus">${r.pourquoi}</span>`; rendre(); return; }
+  // Les hommes repris arrivent comme à la distribution : on les VOIT monter.
+  neuves = P.main.filter((c) => !avant.has(c.uid)).map((c) => c.uid);
+  mot = `${combien} homme${combien > 1 ? 's renvoyés' : ' renvoyé'} au fond — il reste ${P.rechargements} rechargement${P.rechargements > 1 ? 's' : ''}.`;
+  rendre();
+}
+
 async function tirer() {
   if (occupe || P.fini || !P.selection.length) return;
   occupe = true;
@@ -1116,12 +1180,12 @@ async function tirer() {
     await tir('c-nous', 'c-prise', 1,
       r.cible === 'greement' ? (r.abat ? 'un mât !' : 'dans les voiles') : `−${r.degats}`,
       r.cible === 'greement' ? '' : 'dmg', { cible: r.cible });
-    if (r.gate > 0) fxFloatText(centre('c-prise', 0.5, 0.8).x, centre('c-prise', 0.5, 0.8).y, `−${r.gate} 💰`, '');
+    if (r.pression > 0) fxFloatText(centre('c-prise', 0.5, 0.82).x, centre('c-prise', 0.5, 0.82).y, `+${r.pression} ⚑`, '');
   }
   peindreCoques();
   rendre();
 
-  if (P.fini === 'prise') { occupe = false; finPrise(); return; }
+  if (P.fini) { occupe = false; finPrise(); return; }
 
   // 2. PUIS la sienne — jamais les deux en même temps.
   await attendre(180);
@@ -1155,6 +1219,10 @@ async function tirer() {
   peindreCoques();
   occupe = false;
   if (P.fini === 'naufrage') { ecran = 'naufrage'; rendre(); return; }
+  // La riposte peut clore la rencontre elle aussi : plus une bordée à tirer et
+  // la prise force de voiles. Sans ce second passage, la manche restait ouverte
+  // sur un écran où plus rien n'était jouable.
+  if (P.fini) { finPrise(); return; }
   relever();
   rendre();
   ecranCourant()?.focus?.();
@@ -1192,14 +1260,35 @@ function ecranPartage() {
   const s = el('div', { class: 'screen ecran-cartes' });
   s.appendChild(el('div', { class: 'ruban' }, [
     el('div', { class: 'rb-txt' }, [
-      el('div', { class: 'rb-quoi', text: 'Partage du butin' }),
+      el('div', { class: 'rb-quoi', text: P.fini === 'echec' ? 'Rien à partager' : 'Partage du butin' }),
       el('div', { class: 'rb-rang', text: `${P.prisesFaites} prise(s) · La Tortue radoubée` }),
     ]),
     el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
   ]));
-  s.appendChild(el('div', { class: 'verdict' }, [
-    el('h2', { text: 'La prise est à nous' }),
-    el('p', { html: mot || 'On radoube, on recrute, et on repart. Ce qui n’est pas acheté maintenant est perdu.' }),
+  // LES TROIS DÉNOUEMENTS SE DISENT, et se disent DIFFÉREMMENT. « La prise est
+  // à nous » sur une prise échappée était un mensonge que le compteur de butin
+  // démentait deux lignes plus bas.
+  const p = P.prise || {};
+  const VERDICTS = {
+    prise: {
+      titre: p.abordee ? 'Prise à l’abordage' : 'Elle amène son pavillon',
+      dit: `${p.nom} se rend entière : ${p.butin || 0} 💰`
+        + (p.prime ? `, et ${p.prime} 💰 de prime pour l’avoir prise sans la couler.` : '.'),
+    },
+    coulee: {
+      titre: 'Coulée',
+      dit: `${p.nom} s’enfonce avant d’avoir amené : on ne repêche que ${p.gagne || 0} 💰 sur ${p.butin || 0}.`,
+    },
+    echec: {
+      titre: 'Elle s’échappe',
+      dit: `Quatre bordées et ${p.nom} tient encore : elle force de voiles et l’on n’a rien.`,
+    },
+  };
+  const v = VERDICTS[P.fini] || VERDICTS.prise;
+  s.appendChild(el('div', { class: `verdict${P.fini === 'echec' ? ' rate' : ''}` }, [
+    el('h2', { text: v.titre }),
+    el('p', { html: v.dit }),
+    el('p', { class: 'v-suite', html: mot || 'On radoube, on recrute, et on repart. Ce qui n’est pas acheté maintenant est perdu.' }),
   ]));
   const liste = el('div', { class: 'partage' });
   for (const o of offres()) {
@@ -1434,13 +1523,17 @@ function ouvrirAide() {
     abat un mât — et un mât qui tombe <b>emporte le coup qu'elle avait annoncé</b>. Il se regrée en deux tours.</p>
     <h4>Les métiers</h4>
     <ul>${Object.values(CONTENU.roles).map((r) => `<li><b>${r.nom}</b> — ${r.aide}</li>`).join('')}</ul>
-    <h4>La relève</h4>
-    <p>On ne remplit pas sa main : cinq cartes, <b>${C.releveDe(P)} hommes relevés par tour</b>, <b>trois au plus</b>
-    dans une volée. Et un homme qui tire <b>seul</b> ne salit pas son bord — c'est la sortie quand tout
-    le reste recharge.</p>
+    <h4>La rencontre</h4>
+    <p>Chaque prise annonce sa <b>résistance</b> : la pression qu'il faut lui mettre pour qu'elle amène son
+    pavillon. On a <b>quatre bordées</b> pour l'atteindre et <b>trois rechargements</b> pour se refaire une
+    main sans tirer. La main se remplit à ras après chacun.</p>
+    <p>Sa résistance atteinte, elle se rend <b>entière</b>. Sa coque à zéro avant, elle coule et l'on ne
+    repêche que <b>trois dixièmes</b>. Plus une bordée à tirer, elle <b>s'échappe</b> et l'on n'a rien.</p>
     <h4>Les gestes</h4>
     <p>Toucher un homme l'ajoute à la volée. <b>Pousser la volée vers le haut</b>, jusqu'à la zone qui
-    s'ouvre sous La Tortue : elle part. <b>Monter puis redescendre</b> avant de lâcher : on renonce.</p>
+    s'ouvre sous La Tortue : elle part. <b>Tirer la volée vers le bas</b> : ces hommes-là repartent au
+    fond du paquet et l'on en reprend autant — c'est un rechargement. <b>Lâcher entre les deux</b> :
+    on renonce.</p>
     <p style="margin-top:10px;color:var(--text-muted)">Graine ${graine} · pioche ${P.pioche.length} · défausse ${P.defausse.length} · équipage ${P.equipage.length}</p>`;
   b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
   fond.appendChild(b);
@@ -1467,7 +1560,7 @@ const ETAPES = [
   {
     quoi: '.main',
     qui: 'Coudray, maître d’équipage',
-    dit: 'Voilà ta main. Cinq hommes, pas un de plus — et l’on n’en relève que deux par tour.',
+    dit: 'Voilà ta main. Cinq hommes, refaits à ras après chaque bordée — mais tu n’as que quatre bordées.',
     fait: () => P.selection.length > 0,
   },
   {

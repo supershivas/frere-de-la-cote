@@ -64,12 +64,14 @@ qui ne choisissait rien gagnait aussi souvent qu'un joueur appliqué.
 | Ce qui n'allait pas | Ce qu'il a fallu changer |
 |---|---|
 | Deux bords seulement : toute main formait une bonne combinaison | Quatre quarts (bâbord/tribord × avant/arrière) |
-| La main se remplissait à ras bord : jouer tout était toujours optimal | La relève — deux hommes par tour, pas un remplissage |
+| La main se remplissait à ras bord : jouer tout était toujours optimal | D'abord la relève (deux hommes par tour) — puis, la relève ne suffisant plus, **quatre bordées** contre une résistance annoncée |
 | Le tir au gréement partait « à la majorité avant », donc par accident | Tous à l'avant **et** un gabier |
 | Un mât perdu l'était pour toujours : démâter devenait la seule tactique | Le regréement en deux tours |
 | Un charpentier dans chaque volée soignait plus que la prise n'enlevait | Il ne répare que **seul** |
 | Une main de cinq laissait des tours sans un coup jouable | Un homme qui tire seul n'encrasse pas son bord |
-| « La volée la plus forte » était toujours la bonne réponse : un calcul, pas un choix | La cargaison — chaque point de coque coûte du butin, l'abordage n'en coûte aucun |
+| « La volée la plus forte » était toujours la bonne réponse : un calcul, pas un choix | D'abord la cargaison (chaque point de coque coûtait du butin) — remplacée par **le rechargement**, trois par rencontre, qui coûte un coup et pas une pièce |
+| Le score à deux axes (poudre × fureur) récompensait deux fois le fait de jouer beaucoup de cartes : l'écart appliqué/maladroit est tombé de 15 à 6 sur 60 | La structure à seuil l'a rouvert à **40 sur 60** — avec quatre bordées, une main mal lue ne se rattrape pas au tour suivant |
+| Le quartier-maître et le double fond n'achetaient qu'un homme de relève : sans elle, deux textes sans verbe | Ils achètent des **coups** — +1 rechargement, +1 bordée |
 
 ---
 
