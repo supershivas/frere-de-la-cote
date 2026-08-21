@@ -27,7 +27,11 @@ bloquait le chantier est tranché : cette question-là est fermée.
 
 ### La boucle, en une page
 
-1. **La carte** (`src/voyage.js` + `src/caribbean.js`). On part toujours de
+1. **La carte** (`src/voyage.js` + `src/caribbean.js`) — **fermée pour
+   l'instant** : `CARTE_OUVERTE = false` dans la maquette fait entrer
+   directement au combat, parce que c'est le combat qu'on éprouve. Rien n'est
+   supprimé, et `retourAuJeu()` est le seul chemin de retour, pour qu'on n'ait
+   pas six `ecran = 'carte'` à retrouver le jour où elle rouvre. On part de
    l'Île de la Tortue et on met le cap sur une escale voisine : une prise, un
    port, une épave, une rencontre. Chaque escale **dit ce qu'elle est avant
    qu'on y aille**.
@@ -198,23 +202,34 @@ sert `tools/mobile-audit.mjs`.
 - **Les cartes ont une largeur fixe**, calculée pour la main pleine. En
   `flex: 1` elles s'élargissaient à mesure qu'on en jouait : la main changeait
   de forme sous le pouce.
-- **Le métier est la COULEUR DE LA CARTE ENTIÈRE**, pas un bandeau en pied :
-  canonnier brique, gabier bleu, abordeur ocre, charpentier vert, avec le grain
-  du carton par-dessus en `multiply` pour que ça reste du papier. En bandeau de
-  pied, il fallait descendre l'œil jusqu'en bas d'une carte de 60 px pour
-  savoir à qui l'on avait affaire.
-- **Le bord est une tranche pleine de 5 px à gauche**, sur toute la hauteur,
-  sans coin arrondi de ce côté — bâbord rouge, tribord vert.
-- **La valeur est la chose la plus lisible de la carte.** Contrastes mesurés
-  sur les quatre fonds : brique 8,7:1 · bleu 7,3:1 · ocre 5,1:1 · vert 5,8:1.
-  L'ocre demandé (#9c640c) ne pouvait atteindre 4,5:1 avec AUCUNE encre —
-  4,24 au mieux, avec du noir pur — il a fallu l'éclaircir à #b3760f.
+- **Le BORD porte le fond, le MÉTIER porte le symbole.** C'est le bord qui
+  décide si deux hommes tirent ensemble, donc c'est lui qu'on doit voir en
+  premier : il est l'enseigne, comme une couleur aux cartes à jouer, et il n'en
+  existe que deux — bâbord `#6e2a22`, tribord `#1d4a37`, sourds, du carton
+  teinté et pas du plastique. L'inverse avait été essayé (métier en fond, bord
+  en tranche de 5 px) : la tranche se perdait dans le fond de métier.
+- **Le métier est un GLYPHE dessiné en SVG** — boulet, voile, haches croisées,
+  planche — en crème, gros, sur le côté gauche. Pas un emoji : un emoji change
+  de forme et de couleur d'un téléphone à l'autre.
+- **L'avant et l'arrière se disent par la PLACE du glyphe** : en haut pour
+  l'avant, en bas pour l'arrière. La position porte l'information ; le chevron
+  ▲/▼ qui la doublait était un second code à apprendre pour la même chose.
+- **La carte est au rapport 1 pour 1,45**, la proportion d'une carte à jouer.
+  À 1 pour 2,5 elle était une lame, et le centre restait vide entre le haut et
+  le pied. La valeur occupe ce centre et fait 40 % de la hauteur ; le nom passe
+  en pied, petit — c'est de la saveur, pas une décision.
+- **Pas de trame sur le carton.** Deux quadrillages en `repeating-linear-gradient`
+  donnaient du grain à l'arrêt et vibraient dès que la carte bougeait sous le
+  doigt. Un seul dégradé en `multiply`, et rien d'autre.
+- **Un niveau ne s'affiche que s'il existe**, en étoiles. « niv. 0 » sur douze
+  cartes, c'était douze fois la même information vide.
+- **La valeur est la chose la plus lisible de la carte.** Contrastes mesurés de
+  l'encre crème `#f7efd8` sur les deux enseignes : bâbord 9,1:1 · tribord 8,8:1.
 - **Un homme injouable se DÉSATURE, il ne s'efface pas** : sous 0,55
   d'opacité sa valeur cesse d'être lisible, et une carte qu'on ne peut pas
   lire ne dit plus pourquoi elle est refusée.
 - **Le schéma de coque ne vit que dans l'infobulle** : sur la carte, il
-  disputait la place à la valeur. L'avant et l'arrière tiennent dans un
-  chevron — ▲ on tire haut, ▼ on tire bas.
+  disputait la place à la valeur.
 - **Le poste est un DESSIN, pas une abréviation** : une coque vue de dessus,
   proue en haut, coupée en quatre, le quart de l'homme allumé à la couleur de
   son bord. « BÂ · AV » demandait d'apprendre un code avant de pouvoir jouer.

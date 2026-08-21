@@ -69,7 +69,12 @@ let rng = rngPour(graine);
 
 const P = C.nouvellePartie(CONTENU);
 const V = Voy.nouveauVoyage();
-let ecran = 'carte';
+// LA CARTE DES CARAÏBES EST FERMÉE POUR L'INSTANT. On teste les combats, donc
+// on y entre directement : `retourAuJeu()` engage la prise suivante au lieu
+// d'ouvrir la carte. Rien n'est supprimé — `ecranCarte()` et `src/voyage.js`
+// restent entiers, et `CARTE_OUVERTE = true` rallume le tout tel quel.
+const CARTE_OUVERTE = false;
+let ecran = CARTE_OUVERTE ? 'carte' : 'chasse';
 let trouve = null;        // ce qu'une épave vient de rendre
 let viseeCarte = null;    // l'escale visée, en attente de confirmation
 let rencontre = null;     // la rencontre en cours
@@ -490,6 +495,17 @@ function phylactere(moment, etiquettes = []) {
 }
 
 /* --------------------------------------------------------------- prises */
+// Le seul chemin de retour au jeu depuis un écran d'entre-deux : la carte si
+// elle est ouverte, sinon l'escale de chasse la plus proche. Un seul endroit,
+// pour qu'on n'ait pas à retrouver six `ecran = 'carte'` le jour où la carte
+// rouvre.
+function retourAuJeu() {
+  if (CARTE_OUVERTE) { ecran = 'carte'; rendre(); return; }
+  const ouvertes = Voy.escales(V);
+  const cible = ouvertes.find((o) => o.type === 'chasse' || o.type === 'boss') || ouvertes[0];
+  if (!cible) { ecran = 'carte'; rendre(); return; }
+  aborder(cible);
+}
 function engagerPrise(place) {
   const def = Voy.priseDe(V, place, CONTENU, rng);
   const meteo = METEO[METEO_CLES[Math.floor(rng() * METEO_CLES.length)]];
@@ -696,24 +712,57 @@ function posteVu(q) {
 // Le dedans d'une carte, écrit UNE fois : la main et la réserve montrent
 // exactement le même objet, à l'échelle près. Deux gabarits qui divergent, ce
 // serait deux cartes différentes pour le même homme.
+// LE MÉTIER EST UN SYMBOLE, dessiné. Un boulet, une voile, deux haches, une
+// planche : quatre formes qu'on distingue à distance de bras sans lire un mot,
+// là où « canonnier » et « charpentier » commencent tous deux par un c.
+// Dessiné en SVG et non en emoji : un emoji change de forme et de couleur
+// d'un téléphone à l'autre, et arrive en couleurs qui ne sont pas les nôtres.
+const GLYPHES = {
+  // ● le boulet — un disque, l'ombre en creux.
+  canonnier: '<circle cx="12" cy="12" r="8.2"/><circle cx="9.2" cy="9" r="2.4" fill="rgba(0,0,0,.28)"/>',
+  // ▲ la voile — un triangle bordé, ventre au vent.
+  gabier: '<path d="M12 3 L20 20 Q12 16.4 4 20 Z"/>',
+  // ✕ deux haches croisées — les manches en X, les fers aux bouts hauts.
+  abordeur: '<path d="M5.6 3.6 L20.4 19.6 M18.4 3.6 L3.6 19.6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/>'
+    + '<path d="M4.4 2.2 Q9.4 2 9.2 7 Q6.4 5.4 3.2 6.6 Z"/><path d="M19.6 2.2 Q14.6 2 14.8 7 Q17.6 5.4 20.8 6.6 Z"/>',
+  // ▬ la planche — un madrier, deux clous.
+  charpentier: '<rect x="2.6" y="8.4" width="18.8" height="7.2" rx="1.2"/>'
+    + '<circle cx="6.6" cy="12" r="1.05" fill="rgba(0,0,0,.32)"/><circle cx="17.4" cy="12" r="1.05" fill="rgba(0,0,0,.32)"/>',
+};
+function metierVu(role) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('fill', 'currentColor');
+  svg.innerHTML = GLYPHES[role] || '<circle cx="12" cy="12" r="6"/>';
+  return svg;
+}
+
+// Le dedans d'une carte, écrit UNE fois : la main et la réserve montrent
+// exactement le même objet, à l'échelle près. Deux gabarits qui divergent, ce
+// serait deux cartes différentes pour le même homme.
+//
+// LE BORD EST L'ENSEIGNE, comme la couleur d'une carte à jouer : c'est lui qui
+// décide si deux hommes tirent ensemble, donc c'est lui qui porte le FOND de
+// la carte entière. Le métier, lui, est le symbole. L'AVANT ET L'ARRIÈRE se
+// disent par la PLACE du symbole — en haut pour l'avant, en bas pour l'arrière
+// — et par rien d'autre : un chevron en plus aurait été un second code à
+// apprendre pour la même information.
 function contenuCarte(c) {
   const feu = C.estFeu(c);
   const q = feu ? null : CONTENU.quarts[c.quart];
   return [
     c.blesse ? el('span', { class: 'c-etat', text: 'blessé' }) : null,
     feu ? el('span', { class: 'c-fumee' }) : null,
-    // L'AVANT ET L'ARRIÈRE, en un chevron : ▲ on tire haut, ▼ on tire bas.
-    // Le libellé « bâbord avant » disait deux fois ce que la bande de bord et
-    // ce chevron disent déjà, et il fallait le lire.
-    feu ? null : el('span', {
-      class: 'c-chev', text: q.bout === 'avant' ? '▲' : '▼',
-      attrs: { 'aria-hidden': 'true' },
-    }),
-    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
-    feu ? null : el('span', { class: `c-niveau${c.grade ? ' grade' : ''}`, text: `niv. ${c.grade || 0}` }),
-    // LA VALEUR est la chose la plus lisible de la carte : c'est le seul
-    // chiffre dont le joueur a besoin pour composer une volée.
+    feu ? null : el('span', { class: `c-metier ${q.bout}`, attrs: { 'aria-hidden': 'true' } }, [metierVu(c.role)]),
+    // LA VALEUR occupe le centre : c'est le seul chiffre dont le joueur a
+    // besoin pour composer une volée.
     el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c, P)) }),
+    // Le nom est de la SAVEUR, pas une décision : il passe en pied, petit.
+    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
+    // Le niveau ne s'affiche que s'il existe. « niv. 0 » sur douze cartes,
+    // c'était douze fois la même information vide.
+    !feu && c.grade ? el('span', { class: 'c-niveau', text: '★'.repeat(Math.min(c.grade, 5)) }) : null,
   ];
 }
 
@@ -1165,7 +1214,7 @@ function ecranPartage() {
   }
   s.appendChild(liste);
   s.appendChild(el('div', { class: 'suite' }, [
-    el('button', { class: 'btn-level-1', text: 'Reprendre la mer', attrs: { type: 'button' }, on: { click: () => { ecran = 'carte'; rendre(); } } }),
+    el('button', { class: 'btn-level-1', text: 'Reprendre la mer', attrs: { type: 'button' }, on: { click: retourAuJeu } }),
   ]));
   return s;
 }
@@ -1287,7 +1336,7 @@ function ecranEpave() {
   ]));
   s.appendChild(el('div', { class: 'suite' }, [
     el('button', { class: 'btn-level-1', text: 'Reprendre la mer', attrs: { type: 'button' },
-      on: { click: () => { trouve = null; ecran = 'carte'; rendre(); } } }),
+      on: { click: () => { trouve = null; retourAuJeu(); } } }),
   ]));
   return s;
 }
@@ -1304,7 +1353,7 @@ function ecranRencontre() {
   for (const b of rencontre.branches) {
     liste.appendChild(el('button', {
       class: 'offre', attrs: { type: 'button' },
-      on: { click: () => { appliquer(b); rencontre = null; ecran = 'carte'; rendre(); } },
+      on: { click: () => { appliquer(b); rencontre = null; retourAuJeu(); } },
     }, [
       el('div', { class: 'o-txt' }, [
         el('div', { class: 'o-nom', text: b.texte }),
@@ -1528,10 +1577,9 @@ function calibrerCartes() {
   const s = document.querySelector('.screen.ecran-cartes');
   s.style.setProperty('--carte-l', `${large}px`);
   s.style.setProperty('--jeu-gap', `${gap}px`);
-  // Le rapport hauteur/largeur tient compte de ce qu'il y a DEDANS : un nom
-  // sur deux lignes, le schéma de poste, son libellé, la valeur et le métier.
-  // À 1,62 la valeur passait sous le bord de la carte.
-  s.style.setProperty('--carte-h', `${Math.round(large * 2.0)}px`);
+  // 1 pour 1,45 : la proportion d'une carte à jouer. À 1 pour 2,5 la carte
+  // était une lame, et le centre restait vide entre le haut et le pied.
+  s.style.setProperty('--carte-h', `${Math.round(large * 1.45)}px`);
 }
 
 function rendre() {
@@ -1552,7 +1600,7 @@ function rendre() {
 }
 
 initFx();
-rendre();
+if (CARTE_OUVERTE) rendre(); else retourAuJeu();
 fumerEnContinu();
 window.addEventListener('resize', () => { if (!tuto.fini) tutoRendre(); });
 
