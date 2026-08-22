@@ -1409,6 +1409,9 @@
 .screen.ecran-cartes .tb-prix { margin-left: auto; display: flex; align-items: baseline; gap: 8px; }
 /* LA PRESSION est le gros chiffre du tableau : c'est elle qui décide. Ce que
    la volée entame en passant se lit à côté, plus petit. */
+/* LES DEUX AXES, écrits comme ils se calculent : poudre × fureur, puis le
+   produit. Le joueur voit lequel des deux sa volée fait monter. */
+.screen.ecran-cartes .tb-axes { font-family: var(--font-body); font-size: 11px; color: var(--text-secondary); }
 .screen.ecran-cartes .tb-pression { font-family: var(--font-body); font-weight: 700; font-size: 21px; color: var(--gold-light, #e8c877); }
 .screen.ecran-cartes .tb-degats { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--hp); }
 /* Ce que la volée EMPÊCHE, à côté de ce qu'elle met : couper la carte annoncée
@@ -1430,6 +1433,17 @@
   box-shadow: 0 2px 8px rgba(0,0,0,.5); animation: occasion 2.4s ease-in-out infinite;
 }
 @keyframes occasion { 0%, 100% { opacity: .92; } 50% { opacity: 1; box-shadow: 0 2px 16px rgba(241,196,15,.6); } }
+/* UN ORDRE QUI N'A PAS ENCORE SERVI S'ALLUME, et s'éteint après. Deux hommes
+   sur cinq agissent sur ordre, une fois par rencontre : sans cette différence,
+   rien ne disait lesquels attendaient qu'on les touche. */
+.screen.ecran-cartes .officier.ordre {
+  border-color: var(--gold-light, #e8c877);
+  box-shadow: 0 0 0 1px rgba(232,200,119,.5), 0 2px 10px rgba(232,200,119,.35);
+}
+.screen.ecran-cartes .officier.ordre.fait {
+  border-color: var(--gold-dark); box-shadow: 0 2px 8px rgba(0,0,0,.5);
+  opacity: .5; filter: saturate(.4);
+}
 @media (prefers-reduced-motion: reduce) { .screen.ecran-cartes .occasion { animation: none; } }
 .screen.ecran-cartes .tb-detail {
   font-size: 9px; color: var(--text-secondary); line-height: 1.4; margin-top: 2px;
@@ -1557,14 +1571,20 @@
   height: 54%; width: auto; display: block; flex: 0 0 auto;
   filter: drop-shadow(0 1px 0 rgba(255,255,255,.28));
 }
-/* UNE FAMILLE FROIDE ET CLAIRE, qui ne peut être confondue avec aucun fond :
-   ni le rouge ni le vert n'en sont, précisément parce qu'ils appartiennent aux
-   bords. Chaque bandeau se détache de chacun des deux fonds — mesuré, du
-   moins contrasté au plus : violet 3,6:1 sur tribord, pierre 8:1 sur bâbord. */
-.screen.ecran-cartes .carte[data-role="canonnier"]   { --metier: #d9d2c4; }
-.screen.ecran-cartes .carte[data-role="gabier"]      { --metier: #6fa8c9; }
-.screen.ecran-cartes .carte[data-role="abordeur"]    { --metier: #e0a93c; }
-.screen.ecran-cartes .carte[data-role="charpentier"] { --metier: #9b8bbd; }
+/* UNE FAMILLE CLAIRE, qui ne peut être confondue avec aucun fond : ni le rouge
+   ni le vert n'en sont, précisément parce qu'ils appartiennent aux bords.
+   Chaque bandeau se détache de chacun des deux fonds — mesuré, du moins
+   contrasté au plus : violet 3,6:1 sur tribord, pierre 8:1 sur bâbord. Et
+   l'encre sombre tient sur les cinq, de 5,7:1 (violet) à 11,7:1 (pierre).
+
+   CINQ MUNITIONS, CINQ COULEURS. C'est la répétition qui rend les figures
+   lisibles : deux bandeaux de la même couleur côte à côte SONT une paire, et
+   on la voit sans lire un mot. */
+.screen.ecran-cartes .carte[data-role="boulet_rame"]  { --metier: #d9d2c4; }
+.screen.ecran-cartes .carte[data-role="boulet_rouge"] { --metier: #e0a93c; }
+.screen.ecran-cartes .carte[data-role="mitraille"]    { --metier: #6fa8c9; }
+.screen.ecran-cartes .carte[data-role="chaine"]       { --metier: #9b8bbd; }
+.screen.ecran-cartes .carte[data-role="barrique"]     { --metier: #c08b5c; }
 
 .screen.ecran-cartes .carte:active { cursor: grabbing; }
 .screen.ecran-cartes .carte.prise-en-main {

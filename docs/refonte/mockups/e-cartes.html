@@ -26,7 +26,7 @@
      src/sprites.js        les coques, générées à l'exécution
      src/ocean.js          le ciel et la mer animés
      src/fx.js             la fumée, les éclats, les nombres flottants
-     data/equipage.json    l'équipage, les prises, les intentions, les reliques
+     data/equipage.json    les munitions, l'état-major, les prises, les intentions
      data/weather.json     la météo, avec ses vrais modificateurs
      data/phylacteres.json les voix de l'équipage
      css/style.css         l'interface (§17 de css/deck.css pour cet écran)
@@ -532,7 +532,7 @@ function aborder(place) {
       trouve = Voy.trouvaille(P, CONTENU, rng);
       if (trouve) {
         if (trouve.genre === 'relique') P.reliques.push(trouve.def.id);
-        else P.officiers.push(trouve.def.id);
+        else P.hommes.push(trouve.def.id);
       }
       ecran = 'epave'; rendre();
       break;
@@ -549,8 +549,8 @@ function tableau() {
     t.appendChild(el('div', { class: 'tb-tete' }, [el('span', { class: 'tb-cible', text: 'Personne à la manœuvre' })]));
     t.appendChild(el('div', {
       class: 'tb-detail',
-      html: mot || 'Une <b>volée</b>, c’est le groupe d’hommes que tu envoies tirer <b>ensemble</b> : '
-        + 'jusqu’à trois, tous du <b>même bord</b>. Touche-les pour les y mettre.',
+      html: mot || 'Une <b>volée</b>, c’est le groupe de munitions que tu tires <b>ensemble</b> : '
+        + 'jusqu’à trois, toutes du <b>même bord</b>. Assortis-les : deux pareilles font une paire.',
     }));
     const reste = Math.max(0, P.prise.resistance - P.pression);
     t.appendChild(el('div', {
@@ -561,30 +561,39 @@ function tableau() {
   }
   const r = C.evaluer(P, P.selection);
 
-  // CE QUE LA VOLÉE FAIT, EN UNE PHRASE ET DEUX CHIFFRES : la PRESSION qu'elle
-  // met — le seul compteur qui décide de la fin — et ce qu'elle entame en
-  // passant. Les deux se lisent au même endroit, au moment du choix.
-  const MANIERES = {
-    coque: { nom: 'À la coque', dit: 'les boulets entrent dans le bordé : elle pousse et elle abîme' },
-    abordage: { nom: 'À l’abordage', dit: 'on saute à bord : c’est ce qui pousse le plus fort' },
-    radoub: { nom: 'Au radoub', dit: 'personne ne tire : le charpentier jette les Feux par-dessus bord' },
+  // LE TITRE EST LA FIGURE. C'est elle qu'on cherche en composant sa volée, et
+  // c'est elle qu'il faut voir se former : « À la coque » disait la même chose
+  // à chaque tour, donc ne disait rien. Sans figure, on annonce le compte nu.
+  const FIGURES = {
+    triplette: { nom: 'Triplette', dit: 'trois fois la même — fureur +2' },
+    panachee: { nom: 'Panachée', dit: 'trois différentes — fureur +1,5' },
+    paire: { nom: 'Paire', dit: 'deux identiques — fureur +1' },
   };
-  const m = MANIERES[r.cible] || MANIERES.coque;
+  const f = FIGURES[r.figure];
   t.appendChild(el('div', { class: 'tb-tete' }, [
-    el('span', { class: 'tb-cible', text: m.nom }),
+    el('span', { class: 'tb-cible', text: f ? f.nom : 'Volée' }),
     el('span', { class: 'tb-prix' }, [
-      el('span', { class: 'tb-pression', text: `+${r.pression} ⚑` }),
-      // CE QUE LA VOLÉE EMPÊCHE se lit à côté de ce qu'elle met : couper la
-      // carte annoncée est une décision au même titre que le chiffre, et elle
-      // était reléguée en fin de troisième ligne, où elle passait à la coupe.
-      r.annule
-        ? el('span', { class: 'tb-coupe', text: '✕ sa carte' })
-        : r.degats > 0
-          ? el('span', { class: 'tb-degats', text: `${r.degats} ⚔ coque` })
-          : el('span', { class: 'tb-sauf', text: r.cible === 'radoub' ? 'les Feux à l’eau' : 'coque intacte' }),
+      // LES DEUX AXES, ÉCRITS COMME ILS SE CALCULENT : poudre × fureur, et le
+      // produit. Le joueur voit lequel des deux sa volée fait monter.
+      el('span', { class: 'tb-axes', text: `${r.poudre} × ${String(r.fureur).replace('.', ',')}` }),
+      el('span', { class: 'tb-pression', text: `${r.pression} ⚑` }),
     ]),
   ]));
-  t.appendChild(el('div', { class: 'tb-detail', text: m.dit }));
+
+  // CE QUE LES MUNITIONS FONT EN PLUS de leur poudre. Trois effets au plus, et
+  // seulement ceux qui portent : une ligne d'effets qui liste ce qui ne se
+  // passe pas est une ligne à ne pas lire.
+  const fait = [];
+  if (f) fait.push(f.dit);
+  const rouges = P.selection.filter((c) => c.id === 'boulet_rouge' && !c.mouillee).length;
+  if (rouges) fait.push(`${rouges > 1 ? `${rouges} rouges` : 'rouge'} +${String(0.5 * rouges).replace('.', ',')}`);
+  if (r.annule) fait.push('<b>sa carte est coupée</b>');
+  if (r.arme) fait.push('<b>la prochaine volée double sa fureur</b>');
+  if (r.barriques) fait.push(`${r.barriques > 1 ? `${r.barriques} ratées jetées` : 'une ratée jetée'} par-dessus bord`);
+  t.appendChild(el('div', {
+    class: 'tb-detail',
+    html: fait.length ? fait.join(' · ') : 'de la poudre, et rien d’autre',
+  }));
 
   // Ce que la volée LAISSE : la pression qu'il restera à mettre, et sur quel
   // nombre de bordées. C'est la seule projection dont le joueur a besoin.
@@ -593,11 +602,9 @@ function tableau() {
   const coque = Math.max(0, P.prise.pv - r.degats);
   t.appendChild(el('div', {
     class: 'tb-geste',
-    html: r.cible === 'radoub' ? 'une volée d’un seul charpentier répare et jette un Feu'
-      : manque === 0 ? '<b>elle amène son pavillon</b>'
-        : coque === 0 ? '<b>coulée avant de se rendre : on ne repêche que ce qui flotte</b>'
-          : `resterait ${manque} en ${Math.max(0, P.bordees - 1)} bordée${P.bordees - 1 > 1 ? 's' : ''}`
-            + (r.annule ? ' · <b>elle ne jouera pas sa carte</b>' : ` · ${r.degats} à sa coque`),
+    html: manque === 0 ? '<b>elle amène son pavillon</b>'
+      : coque === 0 ? '<b>coulée avant de se rendre : on ne repêche que ce qui flotte</b>'
+        : `resterait ${manque} en ${Math.max(0, P.bordees - 1)} bordée${P.bordees - 1 > 1 ? 's' : ''}`,
   }));
   return t;
 }
@@ -638,79 +645,79 @@ function rendreLeTableau() {
   d.classList.remove('tb-dit-refus');
 }
 
-// Ce qu'un homme fait, EN UNE LIGNE : son nom, son métier et son bord, son
-// verbe. C'est tout ce dont on a besoin pour décider s'il entre dans la volée ;
-// le reste — l'aide longue du métier — vit dans la modale d'aide, où on a le
-// temps de le lire.
+// Ce qu'une munition fait, EN UNE LIGNE : son nom, son bord, sa poudre, son
+// effet. C'est tout ce dont on a besoin pour décider si elle entre dans la
+// volée ; le texte long vit dans la modale d'aide, où on a le temps de le lire.
 function aideDe(c) {
   if (C.estFeu(c)) {
     return '<b>Feu</b> · un incendie à bord · il occupe une place et ne tire pas ; '
-      + 'seul un charpentier, envoyé seul, le jette par-dessus bord.';
+      + 'seule une barrique le jette par-dessus bord.';
   }
   const b = CONTENU.bords[c.bord];
-  const r = CONTENU.roles[c.role];
-  const etat = [c.blesse ? 'blessé −2' : null, c.grade ? `gradé ${'★'.repeat(c.grade)}` : null].filter(Boolean);
-  return `<b>${c.nom}</b> · ${r.nom} ${b.nom}${etat.length ? ` (${etat.join(', ')})` : ''} · ${r.verbe}.`;
+  const EFFETS = {
+    fureur: 'fureur +0,5',
+    annule: 'annule la carte annoncée',
+    chaine: 'la PROCHAINE volée compte double sa fureur',
+    barrique: 'retire une munition ratée de la partie',
+  };
+  const quoi = EFFETS[c.effet] || 'de la poudre, et rien d’autre';
+  return `<b>${c.nom}</b> · ${b.nom} · poudre ${C.poudreDe(c, P)}`
+    + `${c.mouillee ? ' (mouillée)' : ''} · ${quoi}.`;
 }
 
 /* ---------------------------------------------------------------- la main */
 
-// Le dedans d'une carte, écrit UNE fois : la main et la réserve montrent
-// exactement le même objet, à l'échelle près. Deux gabarits qui divergent, ce
-// serait deux cartes différentes pour le même homme.
-// LE MÉTIER EST UN SYMBOLE, dessiné. Un boulet, une voile, deux haches, une
-// planche : quatre formes qu'on distingue à distance de bras sans lire un mot,
-// là où « canonnier » et « charpentier » commencent tous deux par un c.
-// Dessiné en SVG et non en emoji : un emoji change de forme et de couleur
-// d'un téléphone à l'autre, et arrive en couleurs qui ne sont pas les nôtres.
+// LA MUNITION EST UN SYMBOLE, dessiné. Cinq formes qu'on distingue à distance
+// de bras sans lire un mot — c'est ce qui permet de RECONNAÎTRE une figure, et
+// une figure qu'il faut lire pour la voir n'est pas une figure.
+// Dessiné en SVG et non en emoji : un emoji change de forme et de couleur d'un
+// téléphone à l'autre, et arrive en couleurs qui ne sont pas les nôtres.
 const GLYPHES = {
-  // ● le boulet — un disque, l'ombre en creux.
-  canonnier: '<circle cx="12" cy="12" r="8.2"/><circle cx="9.2" cy="9" r="2.4" fill="rgba(0,0,0,.28)"/>',
-  // ▲ la voile — un triangle bordé, ventre au vent.
-  gabier: '<path d="M12 3 L20 20 Q12 16.4 4 20 Z"/>',
-  // ✕ deux haches croisées — les manches en X, les fers aux bouts hauts.
-  abordeur: '<path d="M5.6 3.6 L20.4 19.6 M18.4 3.6 L3.6 19.6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" fill="none"/>'
-    + '<path d="M4.4 2.2 Q9.4 2 9.2 7 Q6.4 5.4 3.2 6.6 Z"/><path d="M19.6 2.2 Q14.6 2 14.8 7 Q17.6 5.4 20.8 6.6 Z"/>',
-  // ▬ la planche — un madrier, deux clous.
-  charpentier: '<rect x="2.6" y="8.4" width="18.8" height="7.2" rx="1.2"/>'
-    + '<circle cx="6.6" cy="12" r="1.05" fill="rgba(0,0,0,.32)"/><circle cx="17.4" cy="12" r="1.05" fill="rgba(0,0,0,.32)"/>',
+  // Le boulet ramé : deux boulets liés par une barre.
+  boulet_rame: '<circle cx="5.4" cy="12" r="4"/><circle cx="18.6" cy="12" r="4"/><rect x="8.4" y="10.6" width="7.2" height="2.8" rx="1"/>',
+  // Le boulet rouge : un boulet et la chaleur qui en sort.
+  boulet_rouge: '<circle cx="12" cy="12.6" r="5.6"/>'
+    + '<path d="M12 1.6 L12 5 M5.6 4.4 L7.6 7 M18.4 4.4 L16.4 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>',
+  // La mitraille : une poignée de ferraille qui s'ouvre en gerbe.
+  mitraille: '<circle cx="12" cy="4.6" r="2.3"/><circle cx="6" cy="11.4" r="2.3"/><circle cx="18" cy="11.4" r="2.3"/>'
+    + '<circle cx="9" cy="19" r="2.3"/><circle cx="16" cy="18.4" r="2.3"/>',
+  // La chaîne : deux maillons qui s'accrochent.
+  chaine: '<rect x="2.4" y="8.2" width="10.4" height="7.6" rx="3.8" fill="none" stroke="currentColor" stroke-width="2.6"/>'
+    + '<rect x="11.2" y="8.2" width="10.4" height="7.6" rx="3.8" fill="none" stroke="currentColor" stroke-width="2.6"/>',
+  // La barrique : un fût, deux cercles de fer.
+  barrique: '<path d="M7.4 3.4 Q4.4 12 7.4 20.6 L16.6 20.6 Q19.6 12 16.6 3.4 Z"/>'
+    + '<path d="M5.4 8.6 L18.6 8.6 M5.4 15.4 L18.6 15.4" stroke="rgba(0,0,0,.34)" stroke-width="1.6" fill="none"/>',
 };
-function metierVu(role) {
+function munitionVue(id) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('fill', 'currentColor');
-  svg.innerHTML = GLYPHES[role] || '<circle cx="12" cy="12" r="6"/>';
+  svg.innerHTML = GLYPHES[id] || '<circle cx="12" cy="12" r="6"/>';
   return svg;
 }
 
 // Le dedans d'une carte, écrit UNE fois : la main et la réserve montrent
 // exactement le même objet, à l'échelle près. Deux gabarits qui divergent, ce
-// serait deux cartes différentes pour le même homme.
+// serait deux cartes différentes pour la même munition.
 //
 // LE BORD EST L'ENSEIGNE, comme la couleur d'une carte à jouer : c'est lui qui
-// décide si deux hommes tirent ensemble, donc c'est lui qui porte le FOND de
-// la carte entière. Le métier, lui, est le bandeau.
-//
-// Le bandeau était COLLÉ EN HAUT ou EN BAS selon que l'homme servait à l'avant
-// ou à l'arrière. L'avant et l'arrière sont retirés : il n'y a plus qu'une
-// position, en haut, et une chose de moins à décoder sur chaque carte.
+// décide ce qui peut tirer ensemble, donc il porte le FOND. La MUNITION est le
+// bandeau : son nom se répète dans le paquet, et c'est cette répétition qui
+// rend les figures reconnaissables d'un coup d'œil.
 function contenuCarte(c) {
   const feu = C.estFeu(c);
   const bandeau = el('span', { class: 'c-bandeau' }, [
-    feu ? null : metierVu(c.role),
+    feu ? null : munitionVue(c.id),
     el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
   ]);
   return [
-    c.blesse ? el('span', { class: 'c-etat', text: 'blessé' }) : null,
+    c.mouillee ? el('span', { class: 'c-etat', text: 'mouillée' }) : null,
     feu ? el('span', { class: 'c-fumee' }) : null,
     bandeau,
-    // LA VALEUR occupe le centre du champ libre : c'est le seul chiffre dont
-    // le joueur a besoin pour composer une volée.
-    el('span', { class: 'c-val', text: feu ? '—' : String(C.valeur(c, P)) }),
-    // Le niveau ne s'affiche que s'il existe. « niv. 0 » sur douze cartes,
-    // c'était douze fois la même information vide.
-    !feu && c.grade ? el('span', { class: 'c-niveau', text: '★'.repeat(Math.min(c.grade, 5)) }) : null,
+    // LA POUDRE occupe le centre du champ libre. Toutes les munitions du même
+    // nom portent le même chiffre : c'est ce qui permet aux figures d'exister.
+    el('span', { class: 'c-val', text: feu ? '—' : String(C.poudreDe(c, P)) }),
   ];
 }
 
@@ -720,12 +727,12 @@ function carteVue(c, rang = 0, neuve = false) {
   const b = feu ? null : CONTENU.bords[c.bord];
   const permis = C.peutJouer(P, c);
   const n = el('button', {
-    class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}${c.blesse ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}${neuve ? ' neuve' : ''}`,
+    class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}${c.mouillee ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}${neuve ? ' neuve' : ''}`,
     attrs: {
       type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`,
-      'data-bord': feu ? '' : c.bord, 'data-role': feu ? 'feu' : c.role,
+      'data-bord': feu ? '' : c.bord, 'data-role': feu ? 'feu' : c.id,
       'aria-label': feu ? 'Feu — encombre la main'
-        : `${c.nom}, ${c.role}, ${b.nom}, valeur ${C.valeur(c)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
+        : `${c.nom}, ${b.nom}, poudre ${C.poudreDe(c, P)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
     },
     on: {
       // Un retour SOUS LE DOIGT, avant même que l'état change : la carte
@@ -765,28 +772,70 @@ function secouer(n) {
   n.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 190 });
 }
 
-// L'ÉTAT-MAJOR : les officiers sont les jokers de la chasse-partie. Ils ne se
-// jouent pas, ils sont là et ils changent une règle — donc ils doivent être
+// L'ÉTAT-MAJOR : cinq hommes nommés au plus. Ils ont quitté le deck — ils ne
+// se jouent plus, ils sont là et chacun change UNE RÈGLE. Donc ils doivent être
 // visibles en permanence, et s'expliquer au doigt.
+//
+// Deux d'entre eux agissent SUR ORDRE, une fois par rencontre : leur bouton
+// s'allume tant qu'ils n'ont pas servi et s'éteint après. Les trois autres
+// n'ont rien à ordonner — leur règle est toujours là.
 function etatMajor() {
-  // Seuls les officiers EMBARQUÉS s'affichent : trois carrés vides en
-  // permanence, c'était trois cibles tactiles pour rien — et sous les 44 px,
-  // parce qu'il fallait les faire tenir. À bord, ils prennent la place qu'il
-  // faut pour qu'un pouce les trouve.
-  if (!P.officiers.length) return null;
+  // Seuls les hommes EMBARQUÉS s'affichent : cinq carrés vides en permanence,
+  // c'était cinq cibles tactiles pour rien — et sous les 44 px, parce qu'il
+  // fallait les faire tenir.
+  if (!P.hommes.length) return null;
   const zone = el('div', { class: 'etat-major' });
-  for (const id of P.officiers) {
-    const o = CONTENU.officiers.find((x) => x.id === id);
-    if (!o) continue;
+  for (const id of P.hommes) {
+    const h = CONTENU.hommes.find((x) => x.id === id);
+    if (!h) continue;
+    const ordre = ORDRES[h.verbe];
+    const fait = ordre ? ordre.fait() : false;
     const n = el('button', {
-      class: 'officier', text: o.nom.replace(/^(Le |La |L')/, '')[0],
-      attrs: { type: 'button', 'aria-label': `${o.nom} — ${o.texte}` },
-      on: { click: () => direDansLeTableau(`<b>${o.nom}</b>, ${o.titre} · ${o.texte}`, { tenir: true }) },
+      class: `officier${ordre ? ' ordre' : ''}${fait ? ' fait' : ''}`,
+      text: h.nom[0],
+      attrs: { type: 'button', 'aria-label': `${h.nom} — ${h.texte}` },
+      on: {
+        click: () => {
+          if (!ordre || fait) { direDansLeTableau(`<b>${h.nom}</b>, ${h.titre} · ${h.texte}`, { tenir: true }); return; }
+          const r = ordre.faire();
+          if (!r.ok) { mot = `<span class="tb-refus">${r.pourquoi}</span>`; secouer(n); }
+          else mot = r.dit;
+          rendre();
+        },
+      },
     });
     zone.appendChild(n);
   }
   return zone;
 }
+
+// LES DEUX ORDRES DE L'ÉTAT-MAJOR. Leur VERBE est une règle et vit dans
+// `src/cartes.js` ; ce qui suit n'est que la façon de le demander.
+const ORDRES = {
+  // Toussaint retire la munition DÉSIGNÉE : il faut donc en avoir choisi une.
+  // C'est un ordre, pas un automatisme — sinon il ferait double emploi avec la
+  // barrique, qui jette la pire toute seule.
+  toussaint: {
+    fait: () => P.toussaintFait,
+    faire: () => {
+      if (P.selection.length !== 1) return { ok: false, pourquoi: 'Touche d’abord LA munition que Toussaint doit retirer.' };
+      const c = P.selection[0];
+      const r = C.toussaint(P, c, rng);
+      return r.ok ? { ok: true, dit: `Toussaint jette ${c.nom} par-dessus bord — elle ne reviendra pas.` } : r;
+    },
+  },
+  // Ozanne remet la volée précédente en main, déjà sélectionnée : il ne la tire
+  // pas lui-même, c'est au joueur de la lâcher, avec la bordée que ça coûte.
+  ozanne: {
+    fait: () => P.ozanneFait,
+    faire: () => {
+      const r = C.ozanne(P);
+      if (!r.ok) return r;
+      neuves = r.volee.map((c) => c.uid);
+      return { ok: true, dit: `Ozanne remet la volée précédente en main : ${r.volee.map((c) => c.nom).join(', ')}.` };
+    },
+  },
+};
 
 /* ---------------------------------------------------------------- l'écran */
 function ecranChasse() {
@@ -881,7 +930,7 @@ function ecranChasse() {
     class: `sa-carte${p.tirAnnule ? ' annulee' : ''}`,
     attrs: { role: 'button', tabindex: '0', 'aria-label': `${a.nom} — ${a.texte}` },
     on: { click: () => direDansLeTableau(`<b>${a.nom}</b> — ${p.tirAnnule
-      ? `les gabiers ont coupé sa manœuvre : ${p.nom} ne fera rien ce tour-ci.`
+      ? `la mitraille a balayé son pont : ${p.nom} ne fera rien ce tour-ci.`
       : `${a.texte} ${p.nom} la joue à la fin de ton tour, pas avant.`}`, { tenir: true }) },
   }, [
     el('div', { class: 'sa-tete' }, [el('span', { text: p.tirAnnule ? 'coupée' : 'sa carte' })]),
@@ -910,15 +959,19 @@ function ecranChasse() {
   // la relève, eux, sont montrés à part : c'est une fenêtre voulue.)
   const reste = P.pioche;
   const parBord = { babord: 0, tribord: 0 };
-  const parRole = {};
+  const parMunition = {};
   for (const c of reste) {
-    if (C.estFeu(c)) { parRole.feu = (parRole.feu || 0) + 1; continue; }
+    if (C.estFeu(c)) { parMunition.feu = (parMunition.feu || 0) + 1; continue; }
     parBord[c.bord] += 1;
-    parRole[c.role] = (parRole[c.role] || 0) + 1;
+    parMunition[c.id] = (parMunition[c.id] || 0) + 1;
   }
-  const roles = Object.entries(parRole)
+  const COURT = { boulet_rame: 'ramé', boulet_rouge: 'rouge', mitraille: 'mitr.', chaine: 'chaîne', barrique: 'barr.', feu: 'feu' };
+  // Les trois plus nombreuses, et rien de plus : la ligne tenait sur deux
+  // lignes et poussait le râtelier vers le bas.
+  const roles = Object.entries(parMunition)
     .sort((a, b) => b[1] - a[1])
-    .map(([r, n]) => `${r === 'feu' ? 'feu' : CONTENU.roles[r].court} ${n}`)
+    .slice(0, 4)
+    .map(([r, n]) => `${COURT[r] || r} ${n}`)
     .join(', ');
   const piocheEtat = el('div', { class: 'pioche-etat', attrs: { 'aria-hidden': 'true' } }, [
     el('span', { class: 'pe-cle', text: 'pioche' }),
@@ -930,24 +983,24 @@ function ecranChasse() {
     el('span', { class: 'pe-roles', text: roles || '—' }),
   ]);
 
-  // LES DEUX QUI VIENNENT, POSÉS SUR LE LISTEAU. Face visible, enfoncés dans
-  // le bois. On pioche avec `pop()` : le
-  // DESSUS du paquet est la fin du tableau, donc le premier à venir est le
-  // dernier élément.
+  // LES DEUX QUI VIENNENT, POSÉS SUR LE LISTEAU. Ce n'est plus donné : c'est
+  // COUDRAY qui l'achète. Sans lui, le listeau est vide — et c'est justement ce
+  // qui fait qu'on voit ce qu'il apporte. On pioche avec `pop()` : le DESSUS du
+  // paquet est la fin du tableau, donc le premier à venir est le dernier élément.
   //
-  // Ce n'est pas une cible : on ne peut ni les toucher ni les jouer. Savoir
-  // qui vient ensuite change ce qu'on garde en main ce tour-ci, et c'est tout
-  // ce qu'on leur demande.
-  const aVenir = P.pioche.slice(-2).reverse();
-  const reserve = el('div', { class: 'reserve', attrs: { 'aria-hidden': 'true' } },
-    [el('span', { class: 'reserve-cle', text: 'à venir' })].concat(aVenir.map((c, i) => el('div', {
-      class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.blesse ? ' blesse' : ''}`,
-      attrs: {
-        style: `--rang:${i}`,
-        'data-bord': C.estFeu(c) ? '' : c.bord,
-        'data-role': C.estFeu(c) ? 'feu' : c.role,
-      },
-    }, contenuCarte(c)))));
+  // Ce n'est pas une cible : on ne peut ni les toucher ni les jouer.
+  const aVenir = C.aVenir(P);
+  const reserve = aVenir.length
+    ? el('div', { class: 'reserve', attrs: { 'aria-hidden': 'true' } },
+      [el('span', { class: 'reserve-cle', text: 'à venir' })].concat(aVenir.map((c, i) => el('div', {
+        class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.mouillee ? ' blesse' : ''}`,
+        attrs: {
+          style: `--rang:${i}`,
+          'data-bord': C.estFeu(c) ? '' : c.bord,
+          'data-role': C.estFeu(c) ? 'feu' : c.id,
+        },
+      }, contenuCarte(c)))))
+    : null;
   s.appendChild(el('div', { class: 'ratelier' }, [piocheEtat, reserve, main]));
   return s;
 }
@@ -1176,22 +1229,20 @@ let lot = null, lotPour = -1;
 function offres() {
   if (lotPour !== P.prisesFaites) {
     lotPour = P.prisesFaites;
-    const dispo = CONTENU.recrues.filter((r) => !P.equipage.some((c) => c.id === r.id));
+    // IL N'Y A PLUS QU'UNE SORTE DE RECRUTEMENT. Les hommes de l'état-major
+    // remplacent à la fois les recrues (qui entraient dans le deck) et les
+    // officiers (qui n'y entraient pas) : deux façons de payer pour deux sortes
+    // d'hommes, c'était une distinction que l'écran ne montrait jamais.
+    const hommes = CONTENU.hommes.filter((h) => !P.hommes.includes(h.id));
     const rel = CONTENU.reliques.filter((r) => !P.reliques.includes(r.id));
     lot = [
-      ...C.melanger(dispo, rng).slice(0, 2).map((r) => ({
-        nom: `Recruter ${r.nom}`, prix: r.prix,
-        det: `${r.role} · ${CONTENU.bords[r.bord].nom} · valeur ${r.valeur}`,
-        acheter: () => C.recruter(P, r),
+      ...C.melanger(hommes, rng).slice(0, 2).map((h) => ({
+        nom: `Engager ${h.nom}`, prix: h.prix,
+        det: `${h.titre} — ${h.texte}`,
+        acheter: () => C.engagerHomme(P, h),
       })),
-      ...C.melanger(rel, rng).slice(0, 1).map((r) => ({ nom: r.nom, prix: r.prix, det: r.texte, acheter: () => C.acheterRelique(P, r) })),
-      ...C.melanger(CONTENU.officiers.filter((o) => !P.officiers.includes(o.id)), rng).slice(0, 2).map((o) => ({
-        nom: `${o.nom}`, prix: o.prix, det: `officier · ${o.titre} — ${o.texte}`,
-        acheter: () => C.engagerOfficier(P, o),
-      })),
+      ...C.melanger(rel, rng).slice(0, 2).map((r) => ({ nom: r.nom, prix: r.prix, det: `relique — ${r.texte}`, acheter: () => C.acheterRelique(P, r) })),
     ];
-    const promu = C.melanger(P.equipage.filter((c) => c.grade < 3 && c.role !== 'charpentier'), rng)[0];
-    if (promu) lot.push({ nom: `Passer ${promu.nom} gradé`, prix: 4, det: `${promu.role} · valeur ${C.valeur(promu)} → ${C.valeur(promu) + 1}`, acheter: () => C.graduer(P, promu) });
   }
   return lot;
 }
@@ -1396,8 +1447,10 @@ function ecranRencontre() {
 function appliquer(b) {
   switch (b.gain) {
     case 'recrue': {
-      const libres = CONTENU.recrues.filter((r) => !P.equipage.some((c) => c.id === r.id));
-      if (libres.length) { P.butin += libres[0].prix; C.recruter(P, libres[0]); mot = `${libres[0].nom} embarque.`; }
+      const libres = CONTENU.hommes.filter((h) => !P.hommes.includes(h.id));
+      if (libres.length && P.hommes.length < C.ETAT_MAJOR_MAX) {
+        P.butin += libres[0].prix; C.engagerHomme(P, libres[0]); mot = `${libres[0].nom} monte à bord.`;
+      } else { P.butin += 6; mot = 'L’état-major est au complet : on prend l’argent. +6 💰'; }
       break;
     }
     // La Tortue n'a plus de points de vie : ce qui la soignait donne du butin.
@@ -1444,16 +1497,18 @@ function ouvrirAide() {
   const b = el('div', { class: 'modal ecran-cartes aide-boite' });
   b.innerHTML = `
     <h3>Comment on tire</h3>
-    <h4>Le bord — avec qui</h4>
-    <p>Chaque homme sert d'un côté du navire : <span class="pion ba">bâbord</span> ou
+    <h4>Le bord — ce qui tire ensemble</h4>
+    <p>Chaque munition est rangée d'un côté du navire : <span class="pion ba">bâbord</span> ou
     <span class="pion tri">tribord</span>, comme les feux de position. <b>Une volée ne mêle pas les deux bords</b> :
     les canons d'un bord tirent ensemble, ceux d'en face regardent la mer.</p>
-    <h4>Le gabier — ce qu'on empêche</h4>
-    <p>La prise annonce sa carte un tour à l'avance. <b>Un gabier dans la volée la coupe</b> : elle
-    n'aura pas lieu. C'est tout ce qu'il faut, et il n'y a rien d'autre à réunir — mais il occupe
-    une des trois places, et c'est là tout son prix.</p>
-    <h4>Les métiers</h4>
-    <ul>${Object.values(CONTENU.roles).map((r) => `<li><b>${r.nom}</b> — ${r.aide}</li>`).join('')}</ul>
+    <h4>Les figures — ce qu'on cherche</h4>
+    <p>Le paquet est fait de munitions <b>qui se répètent</b>, comme les figures d'un jeu de 52 :
+    c'est ce qui permet de les assortir.</p>
+    <ul>${CONTENU.synergies.map((y) => `<li><b>${y.nom}</b> — ${y.texte} : fureur +${String(y.fureur).replace('.', ',')}</li>`).join('')}</ul>
+    <p>La <b>poudre</b> est la somme des munitions, la <b>fureur</b> part à 1 et monte avec les figures.
+    Le compte est <b>poudre × fureur</b>, une seule fois.</p>
+    <h4>Les munitions</h4>
+    <ul>${CONTENU.munitions.map((m) => `<li><b>${m.nom}</b> · poudre ${m.poudre} — ${m.texte}</li>`).join('')}</ul>
     <h4>La rencontre</h4>
     <p>Chaque prise annonce sa <b>résistance</b> : la pression qu'il faut lui mettre pour qu'elle amène son
     pavillon. On a <b>quatre bordées</b> pour l'atteindre et <b>trois rechargements</b> pour se refaire une
@@ -1461,14 +1516,20 @@ function ouvrirAide() {
     <p>Sa résistance atteinte, elle se rend <b>entière</b>. Sa coque à zéro avant, elle coule et l'on ne
     repêche que <b>trois dixièmes</b>. Plus une bordée à tirer, elle <b>s'échappe</b> et l'on n'a rien —
     c'est la seule façon de perdre : <b>La Tortue ne coule pas</b>.</p>
-    <p>Sa carte à elle ne touche pas notre coque, elle touche notre <b>main</b> : un homme blessé, un
-    homme retenu, une carte Feu, un rechargement perdu, de la pression qui retombe.</p>
+    <p>Sa carte à elle ne touche pas notre coque, elle touche notre <b>main</b> : une munition mouillée,
+    une munition arrachée, une carte Feu, un rechargement perdu, de la pression qui retombe. <b>Une
+    mitraille dans ta volée la coupe</b> — c'est le seul moyen de l'empêcher.</p>
+    <h4>L'état-major</h4>
+    <p>Cinq hommes au plus, engagés au port. Ils ne se jouent pas : ils sont là, en haut de la mer, et
+    chacun <b>change une règle</b>. Deux d'entre eux agissent sur ordre, une fois par rencontre — leur
+    initiale s'allume tant qu'ils n'ont pas servi.</p>
+    <ul>${CONTENU.hommes.map((h) => `<li><b>${h.nom}</b>, ${h.titre} — ${h.texte}</li>`).join('')}</ul>
     <h4>Les gestes</h4>
-    <p>Toucher un homme l'ajoute à la volée. <b>Pousser la volée vers le haut</b>, jusqu'à la zone qui
-    s'ouvre sous La Tortue : elle part. <b>Tirer la volée vers le bas</b> : ces hommes-là repartent au
+    <p>Toucher une munition l'ajoute à la volée. <b>Pousser la volée vers le haut</b>, jusqu'à la zone qui
+    s'ouvre sous La Tortue : elle part. <b>Tirer la volée vers le bas</b> : ces munitions-là repartent au
     fond du paquet et l'on en reprend autant — c'est un rechargement. <b>Lâcher entre les deux</b> :
     on renonce.</p>
-    <p style="margin-top:10px;color:var(--text-muted)">Graine ${graine} · pioche ${P.pioche.length} · défausse ${P.defausse.length} · équipage ${P.equipage.length}</p>`;
+    <p style="margin-top:10px;color:var(--text-muted)">Graine ${graine} · pioche ${P.pioche.length} · défausse ${P.defausse.length} · paquet ${P.deck.length}</p>`;
   b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
   fond.appendChild(b);
   document.body.appendChild(fond);
@@ -1494,19 +1555,19 @@ const ETAPES = [
   {
     quoi: '.main',
     qui: 'Coudray, maître d’équipage',
-    dit: 'Voilà ta main. Cinq hommes, refaits à ras après chaque bordée — mais tu n’as que quatre bordées.',
+    dit: 'Voilà ta main. Cinq munitions, refaites à ras après chaque bordée — mais tu n’as que quatre bordées.',
     fait: () => P.selection.length > 0,
   },
   {
     quoi: '.carte:not(.muet)',
     qui: 'Coudray',
-    dit: 'Chaque homme sert d’un bord : <b>bâbord</b> en rouge, <b>tribord</b> en vert. '
-      + 'Touche-en un : les canons de l’autre bord s’éteignent aussitôt, ils ne tirent pas ensemble.',
+    dit: 'Chaque munition est rangée d’un bord : <b>bâbord</b> en rouge, <b>tribord</b> en vert. '
+      + 'Touches-en une : les canons de l’autre bord s’éteignent aussitôt, ils ne tirent pas ensemble.',
     fait: () => P.selection.length > 0,
   },
   {
     quoi: '.tableau',
-    qui: 'Etcheverry, canonnier',
+    qui: 'Etcheverry, chef de pièce',
     dit: 'Le compte est écrit <b>avant</b> qu’on tire. Pas de dé, pas de surprise : ce chiffre-là est celui qui tombera.',
     fait: () => P.tour > 1,
   },
@@ -1524,6 +1585,13 @@ const ETAPES = [
     fait: () => P.tour > 1,
   },
   {
+    quoi: '.main',
+    qui: 'Etcheverry',
+    dit: 'Le paquet est fait de munitions <b>qui se répètent</b>. Deux pareilles font une paire, '
+      + 'trois pareilles une triplette, trois différentes une panachée — et la fureur monte.',
+    fait: () => P.tour > 2,
+  },
+  {
     quoi: '.rb-coups',
     qui: 'Coudray',
     dit: 'Quatre <b>bordées</b> pour l’amener, trois <b>rechargements</b> pour refaire ta main sans tirer. '
@@ -1532,8 +1600,8 @@ const ETAPES = [
   },
   {
     quoi: '.sa-carte',
-    qui: 'Gohier, matelot',
-    dit: 'Elle annonce sa carte un tour à l’avance. Un <b>gabier</b> dans ta volée la coupe : '
+    qui: 'Gohier, bosco',
+    dit: 'Elle annonce sa carte un tour à l’avance. Une <b>mitraille</b> dans ta volée la coupe : '
       + 'elle n’aura pas lieu.',
     fait: () => P.tour > 3,
   },
@@ -1626,6 +1694,14 @@ function rendre() {
   tutoRendre();
 }
 
+// `?major` engage l'état-major complet d'entrée : c'est pour l'audit et pour
+// essayer les verbes, jamais pour jouer. Il vit ici et pas derrière la roue
+// crantée parce qu'il n'appartient pas au jeu.
+if (new URLSearchParams(location.search).has('major')) {
+  P.butin = 999;
+  for (const h of CONTENU.hommes) C.engagerHomme(P, h);
+  P.butin = 0;
+}
 initFx();
 if (CARTE_OUVERTE) rendre(); else retourAuJeu();
 fumerEnContinu();

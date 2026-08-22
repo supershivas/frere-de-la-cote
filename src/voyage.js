@@ -20,7 +20,7 @@ export { START_ID, nodeCost };
 // qu'on y aille : une escale qui ne dirait pas ce qu'elle est serait un pari.
 export const ESCALES = {
   chasse: { nom: 'Une prise', quoi: 'Un navire à prendre. Ce qu’il porte se partage ensuite.' },
-  port: { nom: 'Un port', quoi: 'Radoub complet, recrutement, reliques et officiers.' },
+  port: { nom: 'Un port', quoi: 'On relâche : des hommes pour l’état-major, et des reliques.' },
   epave: { nom: 'Une épave', quoi: 'Ce que la mer a laissé. Gratuit, et sans personne pour le défendre.' },
   evenement: { nom: 'Une rencontre', quoi: 'Une décision à prendre. Rien à combattre.' },
   boss: { nom: 'L’Almirante', quoi: 'Le vaisseau amiral de la flotte des Indes.' },
@@ -84,10 +84,10 @@ export function priseDe(V, place, contenu, rng) {
 // Ce qu'une épave rend : un objet, gratuitement, parmi ceux qu'on n'a pas.
 export function trouvaille(P, contenu, rng) {
   const reliques = contenu.reliques.filter((r) => !P.reliques.includes(r.id));
-  const officiers = contenu.officiers.filter((o) => !P.officiers.includes(o.id));
+  const hommes = contenu.hommes.filter((h) => !P.hommes.includes(h.id));
   const pool = [
     ...reliques.map((r) => ({ genre: 'relique', def: r })),
-    ...(P.officiers.length < 3 ? officiers.map((o) => ({ genre: 'officier', def: o })) : []),
+    ...(P.hommes.length < 5 ? hommes.map((h) => ({ genre: 'homme', def: h })) : []),
   ];
   if (!pool.length) return null;
   return pool[Math.floor(rng() * pool.length)];

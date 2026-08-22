@@ -115,12 +115,12 @@ test('the flagship is the hardest thing on the chart', () => {
   if (!boss) return;
   const amiral = V.priseDe(v, boss, CONTENU, rngFor(3));
   const ordinaire = V.priseDe(v, places().find((p) => p.type === 'chasse' && p.act === 3), CONTENU, rngFor(3));
-  assert(amiral.pv > ordinaire.pv, 'l’Almirante n’est pas plus dure qu’une prise ordinaire');
+  assert(amiral.resistance > ordinaire.resistance, 'l’Almirante n’est pas plus dure qu’une prise ordinaire');
   equal(amiral.nom, 'L’Almirante', 'le vaisseau amiral a perdu son nom');
 });
 
 test('a wreck never hands out the same thing twice', () => {
-  const P = { reliques: [], officiers: [] };
+  const P = { reliques: [], hommes: [] };
   const rng = rngFor(11);
   const vus = new Set();
   for (let i = 0; i < 5; i++) {
@@ -128,8 +128,8 @@ test('a wreck never hands out the same thing twice', () => {
     if (!t) break;
     assert(!vus.has(t.def.id), `${t.def.id} trouvé deux fois`);
     vus.add(t.def.id);
-    (t.genre === 'relique' ? P.reliques : P.officiers).push(t.def.id);
-    if (P.officiers.length > 3) break;
+    (t.genre === 'relique' ? P.reliques : P.hommes).push(t.def.id);
+    if (P.hommes.length >= 5) break;
   }
   assert(vus.size >= 3, 'les épaves ne rendent presque rien');
 });

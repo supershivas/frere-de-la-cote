@@ -1,245 +1,240 @@
 // La chasse-partie en cartes — les règles.
 //
-// LE TOUR : on choisit des hommes dans sa main, ils tirent, la prise riposte
-// avec le coup qu'elle a ANNONCÉ au tour précédent. Rien n'est caché, rien
-// n'est tiré au dé : un tour est un problème fermé.
+// LE TOUR : on choisit des MUNITIONS dans sa main, on tire, puis la prise joue
+// la carte qu'elle a ANNONCÉE au tour précédent. Rien n'est caché, rien n'est
+// tiré au dé : un tour est un problème fermé.
+//
+// LE DECK EST FAIT DE MUNITIONS, PAS D'HOMMES. Cinq munitions, génériques et
+// répétées, comme les figures d'un jeu de 52 : boulet ramé, boulet rouge,
+// mitraille, chaîne, barrique. Chacune existe en plusieurs exemplaires, à
+// bâbord ET à tribord. Un deck fait d'hommes nommés ne pouvait pas former de
+// figures — chaque carte était unique, donc aucune main ne ressemblait à une
+// autre et il n'y avait rien à reconnaître.
+//
+// L'ÉQUIPAGE A QUITTÉ LE DECK. Il est devenu l'ÉTAT-MAJOR : cinq hommes nommés
+// au plus, visibles en permanence, qui ne se jouent jamais et changent chacun
+// UNE RÈGLE. Ils remplacent à la fois les officiers et les recrues d'avant.
 //
 // CE QUI FAIT LE JEU, ET RIEN D'AUTRE :
 //
-//   LE BORD (bâbord / tribord) dit AVEC QUI un homme peut tirer. Une volée ne
+//   LE BORD (bâbord / tribord) dit CE QUI PEUT TIRER ENSEMBLE. Une volée ne
 //   mêle pas les deux bords — les canons d'un même bord tirent ensemble, ceux
-//   d'en face regardent la mer. C'est la seule contrainte de composition, et
-//   elle suffit.
+//   d'en face regardent la mer. C'est la seule contrainte de composition.
+//
+//   LES DEUX AXES D'UNE VOLÉE. La POUDRE est la somme des munitions ; la
+//   FUREUR part à 1 et monte avec les figures — trois fois la même munition,
+//   trois toutes différentes, ou une simple paire. `total = poudre × fureur`.
+//   Les figures portent sur les MUNITIONS, ce qui est possible précisément
+//   parce qu'elles se répètent.
 //
 //   LA RÉSISTANCE. Une prise annonce AVANT l'engagement la PRESSION qu'il
 //   faut lui mettre pour qu'elle amène son pavillon. C'est un seuil, comme
-//   une ante : on a QUATRE bordées pour l'atteindre, et trois rechargements
-//   pour améliorer sa main sans tirer. On ne perd pas en coulant — on n'a plus
-//   de coque — on perd en MANQUANT le seuil.
+//   une ante : QUATRE bordées pour l'atteindre, trois rechargements pour
+//   améliorer sa main sans tirer. On ne perd pas en coulant — on n'a pas de
+//   coque — on perd en MANQUANT le seuil.
 //
-//   LE GABIER ANNULE. La carte que la prise a annoncée ne tombe pas si un
-//   gabier est de la volée. C'est tout ce qui reste du gréement, et c'est
-//   assez : la prise annonce, on décide si l'on paie une place de volée pour
-//   l'empêcher.
+//   LA MITRAILLE ANNULE. La carte que la prise a annoncée ne tombe pas si une
+//   mitraille est de la volée. C'est le seul moyen de l'empêcher, et il coûte
+//   une des trois places.
 //
-// CE QUI A ÉTÉ RETIRÉ, et qu'il ne faut pas reconstruire : l'avant et
-// l'arrière (un homme n'a plus qu'un bord), les mâts et le démâtage,
-// l'encrassement des bords, la météo en combat (elle reste le décor du ciel),
-// les règles de prise, les points de vie de La Tortue et la riposte chiffrée.
-// Chacun était un système de plus à tenir en tête devant un écran de 375 px.
-// La variété doit venir des OFFICIERS et des RELIQUES, pas des règles de base.
-//
-// Pas de multiplicateur global : une volée rend UN chiffre, et le détail dit
-// d'où vient chaque point.
+// CE QUI A ÉTÉ RETIRÉ, et qu'il ne faut pas reconstruire : les métiers, les
+// quarts, l'avant et l'arrière, les valeurs individuelles, la distinction
+// recrue/officier, les mâts et le démâtage, l'encrassement des bords, la météo
+// en combat (elle reste le décor du ciel), les règles de prise, les points de
+// vie de La Tortue et la riposte chiffrée.
 //
 // RÈGLE 1 DU DÉPÔT : aucune entropie ici — pas de tirage, pas d'horloge, pas
 // de source cryptographique. Le battage prend un `rng` en argument parce qu'il
-// relève de la GÉNÉRATION ; la résolution n'en prend jamais. La mitraille vise
-// le meilleur homme en main, pas un homme au hasard : c'est prévisible, donc
+// relève de la GÉNÉRATION ; la résolution n'en prend jamais. Une barrique
+// retire la PIRE munition en main, pas une au hasard : c'est prévisible, donc
 // c'est jouable.
 //
 // RÈGLE 5 : un ordre impossible rend un refus MOTIVÉ (`{ ok: false, pourquoi }`),
 // jamais un silence.
 
-// Trois hommes au plus dans une volée, cinq en main. Des cartes plus grandes
-// se lisent au pouce ; sept qui se partagent 375 px ne se lisent pas.
+// Trois munitions au plus dans une volée, cinq en main. Des cartes plus
+// grandes se lisent au pouce ; sept qui se partagent 375 px ne se lisent pas.
 export const MAIN_MAX = 3;
-// Les écouvillons achètent une PLACE DE PLUS dans la volée. Ils dégageaient un
-// bord encrassé, et l'encrassement n'existe plus : un objet qui ne change
-// aucune règle n'est qu'un texte.
+// Les écouvillons achètent une PLACE DE PLUS dans la volée.
 export const voleeMax = (P) => MAIN_MAX + (P.reliques.includes('ecouvillons') ? 1 : 0);
-export const SEUIL_ABORDAGE = 0.5;  // sous cette part de coque, on peut sauter à bord
 
 // LA RENCONTRE EST UNE ANTE : quatre bordées pour atteindre la résistance de
 // la prise, trois rechargements pour se refaire une main entre deux. Ces deux
-// chiffres SONT le jeu — c'est d'eux que vient la rareté, et c'est pour ça
-// qu'ils sont écrits ici et pas dans les données.
+// chiffres SONT le jeu — c'est d'eux que vient la rareté.
 export const BORDEES = 4;
 export const RECHARGEMENTS = 3;
+export const ETAT_MAJOR_MAX = 5;
 
-// Deux verbes qui vivaient dans la relève et n'auraient eu nulle part où
-// aller sans elle : ils achètent maintenant des COUPS, la seule ressource de
-// la rencontre. Un objet qui ne change plus aucune règle n'est qu'un texte.
 export const bordeesDe = (P) => BORDEES + (P.reliques.includes('double_fond') ? 1 : 0);
-export const rechargementsDe = (P) => RECHARGEMENTS + (aOfficier(P, 'quartier_maitre') ? 1 : 0);
+export const rechargementsDe = () => RECHARGEMENTS;
 
-const FEU = { id: 'feu', nom: 'Feu', role: 'feu', bord: null, valeur: 0 };
-export const estFeu = (c) => c.role === 'feu';
+const FEU = { id: 'feu', nom: 'Feu', poudre: 0, effet: null, bord: null };
+export const estFeu = (c) => c.id === 'feu';
 
-// UN HOMME N'A PLUS QU'UN BORD. Il avait un « quart » — un bord ET un bout,
-// avant ou arrière — et le bout servait à viser le gréement. Le gréement est
-// devenu l'affaire du gabier seul ; il ne restait du quart qu'une moitié.
 // `contenu` reste en premier argument : tout le jeu appelle `bordDe(P.contenu, c)`.
 export const bordDe = (contenu, c) => (estFeu(c) ? null : c.bord);
 export const autreBord = (b) => (b === 'babord' ? 'tribord' : 'babord');
 
-// LES OFFICIERS sont les jokers de la chasse-partie : ils ne se jouent pas,
-// ils sont là et ils changent une règle. Leur nom, leur texte et leur prix
-// sont du contenu (`data/equipage.json`) ; leur VERBE est une règle, donc il
-// vit ici. C'est la seule chose du jeu qui demande une ligne de code pour être
-// ajoutée, et c'est voulu : un officier qui ne changerait aucune règle ne
-// serait qu'un homme de plus.
-export const aOfficier = (P, id) => P.officiers.includes(id);
-export const OFFICIERS_MAX = 3;
+// L'ÉTAT-MAJOR : cinq hommes nommés au plus. Ils ne se jouent pas — ils sont
+// là, et chacun change UNE RÈGLE. Leur nom, leur titre, leur texte et leur
+// prix sont du contenu (`data/equipage.json`) ; leur VERBE est une règle, donc
+// il vit ici. C'est la seule chose du jeu qui demande une ligne de code pour
+// être ajoutée, et c'est voulu : un homme qui ne changerait aucune règle ne
+// serait qu'un texte de plus sur l'écran.
+export const aHomme = (P, id) => P.hommes.includes(id);
 
-export function valeur(c, P = null) {
-  if (estFeu(c)) return 0;
-  const malus = c.blesse ? (P && aOfficier(P, 'chirurgien') ? 1 : 2) : 0;
-  return Math.max(0, (c.valeur || 0) + (c.grade || 0) - malus);
+// CE QUE VAUT UNE MUNITION. Il n'y a plus de valeur individuelle : la poudre
+// d'un boulet ramé est celle de tous les boulets ramés — c'est ce qui permet
+// aux figures d'exister. Une munition MOUILLÉE ne vaut plus rien jusqu'à la
+// fin de la rencontre.
+export function poudreDe(c, P = null) {
+  if (estFeu(c) || c.mouillee) return 0;
+  const base = c.poudre || 0;
+  // Etcheverry est chef de pièce au fourneau : ses boulets rouges comptent double.
+  if (c.id === 'boulet_rouge' && P && aHomme(P, 'etcheverry')) return base * 2;
+  return base;
 }
+// L'ancien nom, gardé le temps que rien ne l'appelle plus.
+export const valeur = poudreDe;
 
 /* ------------------------------------------------------------ la volée */
 
-// Où la volée porte. Il ne reste que deux façons : au canon, dans la coque, ou
-// à l'abordage quand deux abordeurs trouvent une coque déjà basse. Le tir au
-// gréement n'est plus une visée — c'est la seule présence d'un gabier, et elle
-// ne change pas où la volée porte, elle empêche la carte annoncée de tomber.
-export function visee(P, cartes) {
-  const hommes = cartes.filter((c) => !estFeu(c));
-  if (!hommes.length) return 'coque';
-  const prise = P.prise;
-  const bas = prise && prise.pv <= prise.max * (P.reliques.includes('grappins') ? 0.7 : SEUIL_ABORDAGE);
-  if (bas && hommes.filter((c) => c.role === 'abordeur').length >= 2) return 'abordage';
-  return 'coque';
-}
-
-// LE GABIER ANNULE LA CARTE ANNONCÉE. C'est le seul usage du gréement, et il
-// n'a plus ni seuil de puissance ni mât à faire tomber : il est là ou il n'y
-// est pas. Un coup fort doit se construire — ici, il coûte une des trois
-// places de la volée, et c'est tout le prix.
-export const annuleLAnnonce = (P, cartes) =>
-  cartes.some((c) => !estFeu(c) && c.role === 'gabier');
+// LA MITRAILLE ANNULE LA CARTE ANNONCÉE. C'est le seul moyen de l'empêcher, et
+// il coûte une des trois places de la volée : c'est là tout son prix.
+export const annuleLAnnonce = (P, cartes) => cartes.some((c) => c.id === 'mitraille');
 
 export function bordDeLaVolee(P, cartes) {
-
   for (const c of cartes) if (!estFeu(c)) return bordDe(P.contenu, c);
   return null;
 }
 
-// Le compte complet d'une volée : le total ET d'où vient chaque point. Le
-// détail n'est pas décoratif — c'est ce qui rend le tour lisible avant qu'on
-// le joue.
+// LA FIGURE D'UNE VOLÉE. Elle porte sur les MUNITIONS, ce qui n'était possible
+// qu'une fois le deck fait de cartes qui se répètent : avec des hommes tous
+// différents, aucune main ne ressemblait à une autre et il n'y avait rien à
+// reconnaître. Trois fois la même, trois toutes différentes, ou une paire.
+export function figureDe(cartes) {
+  const m = cartes.filter((c) => !estFeu(c));
+  if (m.length < 2) return null;
+  const compte = {};
+  for (const c of m) compte[c.id] = (compte[c.id] || 0) + 1;
+  const pics = Object.values(compte).sort((a, b) => b - a);
+  const distincts = Object.keys(compte).length;
+  if (m.length >= 3 && pics[0] >= 3) return 'triplette';
+  if (m.length >= 3 && distincts === m.length) return 'panachee';
+  if (pics[0] >= 2) return 'paire';
+  return null;
+}
+
 // LE COMPTE D'UNE VOLÉE, SUR DEUX AXES.
 //
-//   LA POUDRE, c'est ce que les hommes valent : la somme de leurs valeurs.
-//   LA FUREUR, c'est ce que leur entente vaut : elle part à 1, chaque synergie
-//   en ajoute, TOUTES LES FUREURS S'ADDITIONNENT, et la somme multiplie la
-//   poudre UNE SEULE FOIS.
+//   LA POUDRE, c'est ce que les munitions valent : la somme de leurs poudres.
+//   LA FUREUR, c'est ce que leur assortiment vaut : elle part à 1, chaque
+//   apport en ajoute, TOUTES LES FUREURS S'ADDITIONNENT, et la somme multiplie
+//   la poudre UNE SEULE FOIS.
 //
 //     total = poudre × fureur
 //
-// Deux axes plutôt qu'un seul tas de points, parce qu'ils ne se remplacent pas :
-// trois bons canonniers sans entente font une grosse poudre et une petite
-// fureur ; une volée bien assortie d'hommes médiocres fait l'inverse. Le
-// joueur voit ce qu'il construit, et le détail dit de quel côté vient chaque
-// gain — d'où les lignes qui portent l'un OU l'autre.
-//
-// La météo et les règles de prise, elles, agissent sur le RÉSULTAT, après la
-// multiplication : elles ne changent ni ce que valent les hommes ni ce que
-// vaut leur entente, elles disent ce qui arrive au boulet une fois parti.
+// Deux axes plutôt qu'un tas de points, parce qu'ils ne se remplacent pas :
+// trois boulets ramés font une grosse poudre et une fureur ordinaire ; une
+// triplette de mitrailles fait l'inverse. Le joueur voit ce qu'il construit, et
+// le détail dit de quel côté vient chaque gain — d'où les lignes qui portent
+// l'un OU l'autre.
 export function evaluer(P, cartes) {
-  const hommes = cartes.filter((c) => !estFeu(c));
+  const munitions = cartes.filter((c) => !estFeu(c));
   const lignes = [];
-  const cible = visee(P, cartes);
-  const prise = P.prise;
-  const bas = prise ? prise.pv <= prise.max * (P.reliques.includes('grappins') ? 0.7 : SEUIL_ABORDAGE) : false;
-
-  // LE CHARPENTIER TRAVAILLE SEUL. Une volée d'un seul charpentier répare ;
-  // accompagné, il n'est qu'un homme de plus qui ne tire pas. Sans cette
-  // exclusivité il se glissait dans presque chaque volée sans rien coûter, et
-  // rendait autant de coque que la prise en enlevait : le combat ne finissait
-  // plus, et un joueur qui ne choisissait rien survivait aussi bien qu'un
-  // joueur qui choisissait.
-  const repare = (cartes.length === 1 && hommes.length === 1 && hommes[0].role === 'charpentier') ? 1 : 0;
   const synergies = [];
 
-  const canonniers = repare ? [] : hommes.filter((c) => c.role === 'canonnier');
-  const gabiers = repare ? [] : hommes.filter((c) => c.role === 'gabier');
-  const meilleurCanon = canonniers.length ? Math.max(...canonniers.map((c) => valeur(c, P))) : 0;
-
-  if (repare) {
-    for (const c of cartes) {
-      lignes.push({ quoi: estFeu(c) ? 'Feu' : c.nom, note: estFeu(c) ? 'jeté par-dessus bord' : 'au radoub', poudre: 0 });
-    }
-    lignes.push({ quoi: 'Radoub', note: '+12 à La Tortue, un Feu jeté', poudre: 0 });
-    return {
-      cible: 'radoub', lignes, synergies: ['Radoub'],
-      poudre: 0, fureur: 1, total: 0, pression: 0, degats: 0, annule: false, repare,
-      bord: bordDeLaVolee(P, cartes),
-    };
-  }
-
-  /* --- LA POUDRE : ce que les hommes valent ----------------------------- */
+  /* --- LA POUDRE : ce que les munitions valent ------------------------- */
   let poudre = 0;
   for (const c of cartes) {
     if (estFeu(c)) { lignes.push({ quoi: 'Feu', note: 'encombre la volée', poudre: 0 }); continue; }
-    const v = valeur(c, P);
-    if (c.role === 'charpentier') { lignes.push({ quoi: c.nom, note: 'ne tire pas — il ne répare que seul', poudre: 0 }); continue; }
-    if (c.role === 'gabier') {
-      const g = meilleurCanon || v;
-      lignes.push({ quoi: c.nom, note: meilleurCanon ? 'réglage de tir' : 'sans canonnier, il ne règle rien', poudre: g });
-      poudre += g; continue;
-    }
-    if (c.role === 'abordeur') {
-      const g = bas ? v * 2 : v;
-      lignes.push({ quoi: c.nom, note: bas ? 'à l’abordage, compte double' : 'attend que la coque cède', poudre: g });
-      poudre += g; continue;
-    }
-    const bosco = aOfficier(P, 'bosco') ? 2 : 0;
-    lignes.push({ quoi: c.nom, note: bosco ? 'le Bosco le pousse' : null, poudre: v + bosco });
-    poudre += v + bosco;
+    if (c.mouillee) { lignes.push({ quoi: c.nom, note: 'mouillée — elle ne prend pas', poudre: 0 }); continue; }
+    const v = poudreDe(c, P);
+    const double = c.id === 'boulet_rouge' && aHomme(P, 'etcheverry');
+    lignes.push({ quoi: c.nom, note: double ? 'Etcheverry le sort du fourneau' : null, poudre: v });
+    poudre += v;
   }
   if (P.reliques.includes('caronades')) { lignes.push({ quoi: 'Caronades', note: null, poudre: 6 }); poudre += 6; }
 
-  /* --- LA FUREUR : ce que leur entente vaut ----------------------------- */
+  /* --- LA FUREUR : ce que leur assortiment vaut ------------------------ */
   let fureur = 1;
   const ajoute = (f, quoi, note) => { fureur += f; lignes.push({ quoi, note, fureur: f }); };
 
-  const bordee = canonniers.length >= 2;
-  if (canonniers.length >= 3) { synergies.push('Bordée pleine'); ajoute(2, 'Bordée pleine', 'trois canonniers'); }
-  else if (bordee) { synergies.push('Bordée'); ajoute(1, 'Bordée', 'deux canonniers'); }
-  if (gabiers.length && canonniers.length) { synergies.push('Réglage'); ajoute(0.5, 'Réglage', 'un gabier règle le tir'); }
-  if (cible === 'abordage') { synergies.push('Abordage'); ajoute(1.5, 'Abordage', 'à bord — le pavillon tombe vite'); }
-  if (bordee && aOfficier(P, 'maitre_canonnier')) ajoute(0.5, 'Le Maître canonnier', 'la bordée est tenue');
-  // Le Maître voilier réglait le seuil du gréement, qui n'existe plus. Il paie
-  // maintenant le gabier : couper la manœuvre adverse ne coûte plus une place
-  // de volée pour rien.
-  if (gabiers.length && aOfficier(P, 'maitre_voilier')) ajoute(0.5, 'Le Maître voilier', 'les gabiers sont dans les haubans');
-  if (aOfficier(P, 'aumonier') && hommes.length >= 3) { synergies.push('Plein équipage'); ajoute(0.5, 'L’Aumônier', 'trois hommes à la manœuvre'); }
+  // Ce que les munitions apportent d'elles-mêmes.
+  const rouges = munitions.filter((c) => c.id === 'boulet_rouge' && !c.mouillee).length;
+  if (rouges) ajoute(0.5 * rouges, rouges > 1 ? `${rouges} boulets rouges` : 'Boulet rouge', 'chauffé au rouge');
 
-  // LA MULTIPLICATION, UNE SEULE FOIS. Les fureurs se sont additionnées entre
-  // elles ; c'est leur somme qui porte la poudre.
-  let total = Math.round(poudre * fureur);
+  // La figure.
+  const fig = figureDe(cartes);
+  const FIGURES = {
+    triplette: { nom: 'Triplette', f: 2, note: 'trois fois la même munition' },
+    panachee: { nom: 'Panachée', f: 1.5, note: 'trois munitions toutes différentes' },
+    paire: { nom: 'Paire', f: 1, note: 'deux munitions identiques' },
+  };
+  if (fig) {
+    const F = FIGURES[fig];
+    synergies.push(F.nom);
+    ajoute(F.f, F.nom, F.note);
+    // Les grappins visaient des abordeurs, qui n'existent plus. Ils paient la
+    // figure la plus difficile à réunir.
+    if (fig === 'triplette' && P.reliques.includes('grappins')) ajoute(1, 'Grappins neufs', 'la triplette est tenue');
+  }
 
-  /* --- ce qui arrive au boulet une fois parti --------------------------- */
-  // LA MÉTÉO NE TOUCHE PLUS LE TIR. Son `damageMult` multipliait chaque volée,
-  // si bien qu'une même main valait deux chiffres différents selon le ciel et
-  // qu'il fallait le lire avant de compter. Elle reste le DÉCOR — le ciel, la
-  // houle, la pluie — et n'entre plus dans aucune règle.
-  //
-  // LES RÈGLES DE PRISE sont retirées elles aussi. `lest`, `cuirasse`,
-  // `franc_bord` et `riposte` corrigeaient le total après coup, chacune à sa
-  // façon : quatre exceptions à retenir pour cinq navires.
+  // Gohier ouvre la rencontre : la PREMIÈRE volée porte +1.
+  if (aHomme(P, 'gohier') && P.bordees === bordeesDe(P)) ajoute(1, 'Gohier', 'la première volée de la rencontre');
 
-  // TOUTE volée met de la PRESSION, quelle que soit sa cible : c'est le seul
-  // compteur qui décide de la fin. Seules la coque et l'abordage entament en
-  // plus le bordé — tirer au gréement pousse autant et n'abîme rien.
+  // LA CHAÎNE d'une volée précédente double la fureur de celle-ci. Elle
+  // s'applique APRÈS toutes les additions, parce qu'elle porte sur leur somme :
+  // c'est ce qui en fait une mise en place plutôt qu'un bonus de plus.
+  if (P.chaine) { lignes.push({ quoi: 'Chaîne', note: 'la volée précédente a doublé la fureur', fureur: fureur }); fureur *= 2; }
+
+  const total = Math.round(poudre * fureur);
+
   return {
-    cible, lignes, synergies,
+    lignes, synergies, figure: fig,
     poudre, fureur, total,
     pression: total,
     degats: total,
-    // Le gabier annule la carte annoncée, quoi que la volée fasse par ailleurs.
     annule: annuleLAnnonce(P, cartes),
+    // La chaîne arme la volée SUIVANTE, jamais la sienne.
+    arme: munitions.some((c) => c.id === 'chaine' && !c.mouillee),
+    // La barrique ne tire pas : elle jette une munition ratée par-dessus bord.
+    barriques: munitions.filter((c) => c.id === 'barrique').length,
     bord: bordDeLaVolee(P, cartes),
   };
+}
+
+// CE QU'UNE BARRIQUE JETTE : la PIRE munition de la main, et d'abord un Feu
+// s'il y en a un — un Feu est la définition même d'une munition ratée, et
+// depuis que le charpentier a quitté le deck, c'est le seul moyen d'en sortir.
+// Déterministe : la pire, jamais une au hasard (règle 1).
+export function pireDeLaMain(P, sauf = []) {
+  const dispo = P.main.filter((c) => !sauf.includes(c));
+  const feu = dispo.find(estFeu);
+  if (feu) return feu;
+  return dispo.slice().sort((a, b) => poudreDe(a, P) - poudreDe(b, P) || a.uid - b.uid)[0] || null;
 }
 
 /* ------------------------------------------------------------ la partie */
 
 let uid = 0;
-const carte = (def) => ({ ...def, uid: ++uid, grade: 0, blesse: false });
+const carte = (def) => ({ ...def, uid: ++uid, mouillee: false });
 const feu = () => carte(FEU);
+
+// LE PAQUET, MONTÉ DEPUIS LES DONNÉES. `deck` dit combien d'exemplaires de
+// chaque munition par bord ; c'est du contenu, parce que la composition du
+// paquet est un réglage et pas une règle. Ajouter une munition ou en changer
+// le nombre ne demande aucune ligne de code.
+export function monterLeDeck(contenu) {
+  const parId = Object.fromEntries(contenu.munitions.map((m) => [m.id, m]));
+  const cartes = [];
+  for (const [bord, compo] of Object.entries(contenu.deck)) {
+    for (const [id, n] of Object.entries(compo)) {
+      for (let i = 0; i < n; i++) if (parId[id]) cartes.push(carte({ ...parId[id], bord }));
+    }
+  }
+  return cartes;
+}
 
 export function melanger(liste, rng) {
   const a = liste.slice();
@@ -250,14 +245,20 @@ export function melanger(liste, rng) {
 export function nouvellePartie(contenu) {
   return {
     contenu,
-    equipage: contenu.equipage.map(carte),
-    reliques: [], officiers: [], butin: 0, prisesFaites: 0,
+    // LE PAQUET, et L'ÉTAT-MAJOR à côté. Les hommes ne sont plus dedans : ils
+    // sont visibles en permanence et ne se jouent jamais.
+    deck: monterLeDeck(contenu),
+    hommes: [],
+    reliques: [], butin: 0, prisesFaites: 0,
     // LA TORTUE N'A PLUS DE POINTS DE VIE. On ne perd plus en coulant : on
     // perd en manquant le seuil, et c'est la seule façon.
     prise: null,
     pioche: [], main: [], defausse: [], selection: [],
     meteo: null, fini: null, journal: [], tour: 1,
     pression: 0, bordees: BORDEES, rechargements: RECHARGEMENTS,
+    // La chaîne arme la volée SUIVANTE ; les deux verbes « une fois par
+    // rencontre » se rechargent à l'engagement.
+    chaine: false, toussaintFait: false, ozanneFait: false, derniereVolee: null,
   };
 }
 
@@ -285,20 +286,21 @@ export function engager(P, defPrise, meteo, rng) {
     // coupée d'office. La relique abattait un mât sous le seuil, et il n'y a
     // plus ni mât ni seuil.
     intentions: ints, i: 0, annonce: ints[0], tirAnnule: P.reliques.includes('hune'),
-    // LE PILOTE VOIT PLUS LOIN : la carte d'après, annoncée elle aussi. Il
-    // annulait le malus de météo, et la météo n'entre plus dans aucune règle.
-    suivante: aOfficier(P, 'pilote') ? ints[1 % ints.length] : null,
+    // COUDRAY VOIT LES DEUX PROCHAINES MUNITIONS — pas la carte suivante de la
+    // prise. La vigie de la relique, elle, coupe la première annonce.
+    suivante: null,
   };
   // Les deux compteurs de la rencontre, annoncés avant qu'on engage.
   P.pression = 0;
   P.bordees = bordeesDe(P);
-  P.rechargements = rechargementsDe(P);
+  P.rechargements = rechargementsDe();
   // La météo est passée en DÉCOR : on la garde sur la partie pour le ciel et
   // la houle, aucune règle ne la lit plus.
   P.meteo = meteo || null;
   P.tour = 1;
-  P.pioche = melanger(P.equipage, rng);
-  for (const c of P.equipage) c.blesse = false;
+  P.pioche = melanger(P.deck, rng);
+  for (const c of P.deck) c.mouillee = false;
+  P.chaine = false; P.toussaintFait = false; P.ozanneFait = false; P.derniereVolee = null;
   P.main = []; P.defausse = []; P.selection = [];
   P.fini = null; P.journal = [];
   completer(P, rng);
@@ -350,39 +352,39 @@ export function selectionner(P, c) {
 export function jouer(P) {
   if (P.fini || !P.selection.length) return null;
   const r = evaluer(P, P.selection);
-  const joues = P.selection.slice();
   const prise = P.prise;
   const evenements = [];
 
   if (r.degats > 0) {
     prise.pv = Math.max(0, prise.pv - r.degats);
-    evenements.push({ type: r.cible === 'abordage' ? 'abordage' : 'coque', degats: r.degats });
+    evenements.push({ type: 'coque', degats: r.degats });
   }
-  // LA PRESSION MONTE À CHAQUE VOLÉE, quelle qu'en soit la cible : c'est elle
-  // que le joueur regarde, et c'est elle qui décide.
+  // LA PRESSION MONTE À CHAQUE VOLÉE : c'est elle que le joueur regarde, et
+  // c'est elle qui décide.
   P.pression += r.pression;
   P.bordees -= 1;
 
-  // LE GABIER ANNULE LA CARTE ANNONCÉE. Il n'y a plus de mât à abattre ni de
-  // seuil à franchir : il est de la volée ou il n'y est pas.
+  // LA MITRAILLE ANNULE LA CARTE ANNONCÉE. Elle est de la volée ou elle n'y
+  // est pas : ni seuil à franchir, ni conditions à réunir.
   if (r.annule) {
     prise.tirAnnule = true;
     evenements.push({ type: 'annule' });
-    P.journal.push(`Les gabiers coupent son manœuvre — ${prise.nom} n’aura pas sa carte.`);
+    P.journal.push(`La mitraille balaie son pont — ${prise.nom} n’aura pas sa carte.`);
   }
 
-  const repare = r.repare || 0;
-  if (repare) {
-    // LE CHARPENTIER NE SOIGNE PLUS UNE COQUE — on n'en a plus. Il nettoie la
-    // main : les Feux passent par-dessus bord, et c'est le seul moyen d'en
-    // sortir une fois qu'ils y sont.
-    let jetes = 0;
-    for (const zone of [P.main, P.pioche, P.defausse]) {
-      while (jetes < repare * 2) { const i = zone.findIndex(estFeu); if (i < 0) break; zone.splice(i, 1); jetes += 1; }
-    }
-    P.journal.push(jetes ? `Au radoub : ${jetes} Feu jeté par-dessus bord.` : 'Au radoub : rien à jeter.');
+  // LA BARRIQUE JETTE UNE MUNITION RATÉE PAR-DESSUS BORD, définitivement : la
+  // carte sort de la PARTIE, pas de la main. C'est le seul moyen d'amincir son
+  // paquet, et le seul moyen de se débarrasser d'un Feu.
+  for (let i = 0; i < r.barriques; i++) {
+    const pire = pireDeLaMain(P, P.selection);
+    if (!pire) { P.journal.push('La barrique part à l’eau : rien à jeter avec.'); break; }
+    retirerDeLaPartie(P, pire);
+    evenements.push({ type: 'barrique', quoi: pire.nom });
+    P.journal.push(`${pire.nom} passe par-dessus bord — elle ne reviendra pas.`);
   }
 
+  // On garde la volée jouée pour Ozanne, AVANT de vider la sélection.
+  P.derniereVolee = P.selection.slice();
   for (const c of P.selection) {
     const i = P.main.indexOf(c);
     if (i >= 0) P.main.splice(i, 1);
@@ -390,16 +392,72 @@ export function jouer(P) {
   }
   P.selection = [];
 
-  if (r.cible === 'abordage') prise.abordee = true;
+  // LA CHAÎNE ARME LA VOLÉE SUIVANTE, jamais la sienne. On efface d'abord le
+  // drapeau que cette volée-ci vient de consommer, puis on repose celui
+  // qu'elle laisse : sans cet ordre, une chaîne se doublait elle-même.
+  P.chaine = r.arme;
 
   // LES TROIS FINS. On regarde la PRESSION d'abord : une prise qui amène son
   // pavillon se rend entière, même si le même boulet l'aurait envoyée par le
   // fond. Coulée, on ne repêche que ce qui flotte. Et c'est SA coque à elle —
-  // La Tortue n'a plus de points de vie, on ne perd plus en coulant.
+  // La Tortue n'a pas de points de vie, on ne perd pas en coulant.
   if (P.pression >= prise.resistance) denouement(P, 'prise');
   else if (prise.pv <= 0) denouement(P, 'coulee');
   return { ...r, evenements };
 }
+
+// Sortir une carte de la PARTIE, où qu'elle soit. Une munition jetée
+// par-dessus bord ne revient pas par la défausse : c'est ce qui distingue un
+// amincissement d'une défausse, et c'est tout l'intérêt de la barrique.
+export function retirerDeLaPartie(P, c) {
+  for (const zone of [P.main, P.pioche, P.defausse, P.deck, P.selection]) {
+    const i = zone.indexOf(c);
+    if (i >= 0) zone.splice(i, 1);
+  }
+}
+
+/* ------------------------------------------------- les verbes de l'état-major
+   Deux hommes agissent SUR ORDRE, une fois par rencontre. Ce sont les seuls
+   ordres du jeu qui ne soient pas une volée, et chacun rend un refus motivé
+   plutôt qu'un silence (règle 5). */
+
+// TOUSSAINT retire une munition de la main — celle qu'on lui désigne, pas la
+// pire : c'est un ordre, pas un automatisme, et c'est ce qui le distingue de
+// la barrique.
+export function toussaint(P, c, rng) {
+  if (!aHomme(P, 'toussaint')) return { ok: false, pourquoi: 'Toussaint n’est pas à bord.' };
+  if (P.toussaintFait) return { ok: false, pourquoi: 'Toussaint a déjà fait son office cette fois-ci.' };
+  if (!c || !P.main.includes(c)) return { ok: false, pourquoi: 'Désigne une munition de ta main.' };
+  retirerDeLaPartie(P, c);
+  P.toussaintFait = true;
+  completer(P, rng);
+  return { ok: true, retiree: c };
+}
+
+// OZANNE rejoue la volée précédente : les mêmes munitions, reprises dans la
+// défausse et remises en main. Il ne la rejoue pas tout seul — il la REMET, et
+// c'est au joueur de la tirer, avec la bordée que ça coûte.
+export function ozanne(P) {
+  if (!aHomme(P, 'ozanne')) return { ok: false, pourquoi: 'Ozanne n’est pas à bord.' };
+  if (P.ozanneFait) return { ok: false, pourquoi: 'Ozanne a déjà fait son office cette fois-ci.' };
+  const volee = (P.derniereVolee || []).filter((c) => P.defausse.includes(c));
+  if (!volee.length) return { ok: false, pourquoi: 'Aucune volée à rejouer.' };
+  if (P.main.length + volee.length > tailleMain(P) + volee.length) return { ok: false, pourquoi: 'Ta main est pleine.' };
+  for (const c of volee) {
+    const i = P.defausse.indexOf(c);
+    if (i >= 0) P.defausse.splice(i, 1);
+    P.main.push(c);
+  }
+  P.ozanneFait = true;
+  P.selection = volee.slice();
+  return { ok: true, volee };
+}
+
+// COUDRAY voit les DEUX PROCHAINES munitions de la pioche. C'est de
+// l'information pure : elle ne change rien au tirage, elle change ce qu'on
+// garde en main ce tour-ci. On pioche avec `pop()` — le dessus du paquet est
+// la fin du tableau.
+export const aVenir = (P) => (aHomme(P, 'coudray') ? P.pioche.slice(-2).reverse() : []);
 
 // Les trois dénouements en un seul endroit. Deux sont des victoires et ne
 // diffèrent que par le butin ; la troisième ne rend rien.
@@ -443,18 +501,20 @@ export function riposter(P) {
   const annonce = prise.annonce;
   const res = { intention: annonce, annulee: false, effets: [] };
 
-  // SA CARTE NE TOUCHE PLUS NOTRE COQUE — on n'en a plus — ELLE TOUCHE NOTRE
-  // MAIN, ou le compteur. C'est là que se joue la rencontre : ce qu'elle nous
-  // prend, ce sont des hommes et des coups, pas des points de vie.
-  if (prise.tirAnnule) { res.annulee = true; res.raison = 'Les gabiers ont coupé sa manœuvre.'; }
+  // SA CARTE NE TOUCHE PAS NOTRE COQUE — nous n'en avons pas — ELLE TOUCHE
+  // NOTRE MAIN, ou le compteur. C'est là que se joue la rencontre : ce qu'elle
+  // nous prend, ce sont des munitions et des coups.
+  if (prise.tirAnnule) { res.annulee = true; res.raison = 'La mitraille a balayé son pont.'; }
   else {
     switch (annonce.effet) {
-      case 'mitraille': {
-        // Déterministe et annoncé : elle vise le meilleur homme en main.
-        const cible = P.main.filter((c) => !estFeu(c) && !c.blesse)
-          .sort((a, b) => valeur(b, P) - valeur(a, P) || a.uid - b.uid)[0];
-        if (cible) { cible.blesse = true; res.effets.push(`${cible.nom} est blessé — −2`); }
-        else res.effets.push('Personne à blesser.');
+      case 'mouillage': {
+        // Déterministe et annoncé : la lame noie la MEILLEURE munition en main.
+        // Mouillée, sa poudre tombe à zéro jusqu'à la fin de la rencontre —
+        // elle reste en main, et elle compte encore pour les figures.
+        const cible = P.main.filter((c) => !estFeu(c) && !c.mouillee)
+          .sort((a, b) => poudreDe(b, P) - poudreDe(a, P) || a.uid - b.uid)[0];
+        if (cible) { cible.mouillee = true; res.effets.push(`${cible.nom} est mouillée — sa poudre ne prend plus.`); }
+        else res.effets.push('Rien à mouiller.');
         break;
       }
       case 'brulot':
@@ -466,15 +526,15 @@ export function riposter(P) {
         else res.effets.push('La quille carénée refuse le feu.');
         break;
       case 'grappin': {
-        // Elle ne blesse pas : elle RETIENT. Le meilleur homme en main repart
-        // au fond du paquet, et la main se refera sans lui.
+        // Elle ne mouille pas : elle ARRACHE. La meilleure munition en main
+        // repart au fond du paquet — elle reviendra, mais pas ce tour-ci.
         const cible = P.main.filter((c) => !estFeu(c))
-          .sort((a, b) => valeur(b, P) - valeur(a, P) || a.uid - b.uid)[0];
+          .sort((a, b) => poudreDe(b, P) - poudreDe(a, P) || a.uid - b.uid)[0];
         if (cible) {
           P.main.splice(P.main.indexOf(cible), 1);
           P.defausse.push(cible);
-          res.effets.push(`${cible.nom} est retenu à bord — il repart au fond du paquet.`);
-        } else res.effets.push('Le grappin ne mord sur personne.');
+          res.effets.push(`${cible.nom} est arrachée du pont — elle repart au fond du paquet.`);
+        } else res.effets.push('Le grappin ne mord sur rien.');
         break;
       }
       case 'manoeuvre':
@@ -502,7 +562,7 @@ export function riposter(P) {
   prise.annonce = prise.intentions[prise.i];
   // LE PILOTE VOIT PLUS LOIN : la carte d'après, annoncée elle aussi. Il
   // annulait le malus de météo, et la météo n'entre plus dans aucune règle.
-  prise.suivante = aOfficier(P, 'pilote') ? prise.intentions[(prise.i + 1) % prise.intentions.length] : null;
+
   P.tour += 1;
   // Plus une bordée à tirer : la prise force de voiles et s'échappe. C'est la
   // seule fin qui ne rend rien, et la SEULE façon de perdre — on ne coule plus.
@@ -528,38 +588,31 @@ export function meilleureVolee(P, { viser = 'degats', max = null } = {}) {
     const bords = new Set(cartes.filter((c) => !estFeu(c)).map((c) => bordDe(P.contenu, c)));
     if (bords.size > 1) continue;
     const r = evaluer(P, cartes);
-    // `viser` dit ce qu'on cherche : les dégâts bruts, un mât, ou la prise la
-    // moins abîmée. Les trois ne donnent pas la même volée — c'est justement
+    // `viser` dit ce qu'on cherche : la pression brute, ou l'annulation de la
+    // carte annoncée. Les deux ne donnent pas la même volée — c'est justement
     // ce qui fait qu'il y a un choix.
-    const note = viser === 'annule' ? (r.annule ? 1000 + r.pression : -1)
-      : viser === 'abordage' ? (r.cible === 'abordage' ? 1000 + r.pression : r.pression)
-        // « butin » cherche la pression qui n'abîme pas : à pression égale,
-        // celle qui laisse la coque entière et ne risque pas de la couler.
-        : viser === 'butin' ? r.pression - r.degats * 0.5
-          : r.pression;
+    const note = viser === 'annule' ? (r.annule ? 1000 + r.pression : -1) : r.pression;
     if (!best || note > best.note) best = { ...r, cartes, note };
   }
   return best;
 }
 
-export const recruter = (P, def) => {
+// ON RECRUTE AU PORT, et il n'y a plus qu'une sorte de recrutement : les
+// hommes de l'état-major remplacent à la fois les recrues (qui entraient dans
+// le deck) et les officiers (qui n'y entraient pas). Deux façons de payer pour
+// deux sortes d'hommes, c'était une distinction que l'écran ne montrait pas.
+export const engagerHomme = (P, def) => {
   if (P.butin < def.prix) return { ok: false, pourquoi: 'Pas assez de butin.' };
-  P.butin -= def.prix; P.equipage.push(carte(def)); return { ok: true };
+  if (P.hommes.includes(def.id)) return { ok: false, pourquoi: 'Déjà à bord.' };
+  if (P.hommes.length >= ETAT_MAJOR_MAX) return { ok: false, pourquoi: `Cinq hommes au plus à l'état-major.` };
+  P.butin -= def.prix; P.hommes.push(def.id); return { ok: true };
 };
 export const acheterRelique = (P, def) => {
   if (P.butin < def.prix) return { ok: false, pourquoi: 'Pas assez de butin.' };
   if (P.reliques.includes(def.id)) return { ok: false, pourquoi: 'Déjà à bord.' };
   P.butin -= def.prix; P.reliques.push(def.id); return { ok: true };
 };
-export const engagerOfficier = (P, def) => {
-  if (P.butin < def.prix) return { ok: false, pourquoi: 'Pas assez de butin.' };
-  if (P.officiers.includes(def.id)) return { ok: false, pourquoi: 'Déjà à bord.' };
-  if (P.officiers.length >= OFFICIERS_MAX) return { ok: false, pourquoi: `Trois officiers au plus à l'état-major.` };
-  P.butin -= def.prix; P.officiers.push(def.id); return { ok: true };
-};
 
-export const graduer = (P, c, prix = 4) => {
-  if (P.butin < prix) return { ok: false, pourquoi: 'Pas assez de butin.' };
-  if (estFeu(c) || c.grade >= 3) return { ok: false, pourquoi: 'Rien à promouvoir.' };
-  P.butin -= prix; c.grade += 1; return { ok: true };
-};
+// LA PROMOTION EST SUPPRIMÉE avec les valeurs individuelles : une munition ne
+// se gradue pas, et toutes celles du même nom valent la même chose. C'est ce
+// qui permet aux figures d'exister.

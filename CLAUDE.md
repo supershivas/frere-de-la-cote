@@ -21,7 +21,7 @@ bloquait le chantier est tranché : cette question-là est fermée.
 |---|---|
 | La maquette | `docs/refonte/mockups/e-cartes.html` |
 | Les règles | `src/cartes.js` — pures, sans dé |
-| Le contenu | `data/equipage.json` — hommes, prises, reliques |
+| Le contenu | `data/equipage.json` — munitions, paquet, état-major, prises, reliques |
 | Les tests | `test/cartes.test.js` |
 | Version jouable | `node tools/bundle-mockup.mjs docs/refonte/mockups/e-cartes.html dist/e-cartes.html` |
 
@@ -30,11 +30,7 @@ bloquait le chantier est tranché : cette question-là est fermée.
 1. **La carte** (`src/voyage.js` + `src/caribbean.js`) — **fermée pour
    l'instant** : `CARTE_OUVERTE = false` dans la maquette fait entrer
    directement au combat, parce que c'est le combat qu'on éprouve. Rien n'est
-   supprimé, et `retourAuJeu()` est le seul chemin de retour, pour qu'on n'ait
-   pas six `ecran = 'carte'` à retrouver le jour où elle rouvre. On part de
-   l'Île de la Tortue et on met le cap sur une escale voisine : une prise, un
-   port, une épave, une rencontre. Chaque escale **dit ce qu'elle est avant
-   qu'on y aille**.
+   supprimé, et `retourAuJeu()` est le seul chemin de retour.
 2. **Une prise** annonce d'abord sa **RÉSISTANCE** : la pression qu'il faut lui
    mettre pour qu'elle amène son pavillon. C'est l'ante du jeu. On a **quatre
    bordées** pour l'atteindre et **trois rechargements** pour se refaire une
@@ -42,15 +38,76 @@ bloquait le chantier est tranché : cette question-là est fermée.
 3. Elle a aussi une coque : c'est le risque de l'envoyer par le fond avant
    qu'elle ait amené.
 4. Elle **annonce sa carte un tour à l'avance**, écrite en toutes lettres.
-   Rien n'est caché, rien n'est tiré au dé — et un **gabier** dans la volée la
-   coupe.
-5. **Une main** de cinq hommes. On en choisit jusqu'à trois, ils tirent
-   ensemble. Puis la prise joue la carte qu'elle avait annoncée — sur notre
-   MAIN, jamais sur une coque que nous n'avons plus.
+   Rien n'est caché, rien n'est tiré au dé — et une **mitraille** dans la volée
+   la coupe.
+5. **Une main** de cinq munitions. On en joue une à trois, d'un seul bord. Puis
+   la prise joue la carte qu'elle avait annoncée — sur notre MAIN, jamais sur
+   une coque que nous n'avons pas.
 6. **Les trois fins.** Résistance atteinte → **la prise**, butin plein. Coque à
    zéro avant → **coulée**, on ne repêche que 30 %. Plus une bordée → **elle
    s'échappe**, et l'on n'a rien. Les deux premières sont des victoires ; seul
-   le butin diffère. La Tortue à zéro → la chasse est rompue.
+   le butin diffère.
+
+### LE DECK EST FAIT DE MUNITIONS, PAS D'HOMMES
+
+C'est la décision qui commande toutes les autres. Un deck d'hommes nommés ne
+pouvait pas former de **figures** : chaque carte était unique, aucune main ne
+ressemblait à une autre, il n'y avait rien à reconnaître et « la volée la plus
+forte » se lisait d'un coup d'œil. Cinq munitions génériques et répétées, comme
+les figures d'un jeu de 52, et l'assortiment devient le jeu.
+
+| Munition | Poudre | Ce qu'elle fait |
+|---|---|---|
+| **Boulet ramé** | 8 | le rang courant : de la poudre, rien d'autre |
+| **Boulet rouge** | 6 | fureur +0,5 |
+| **Mitraille** | 4 | **annule la carte annoncée par la prise** |
+| **Chaîne** | 5 | la **prochaine** volée compte double sa fureur |
+| **Barrique** | 0 | retire une munition ratée **de la partie** |
+
+Chacune existe en plusieurs exemplaires, **à bâbord ET à tribord** — sans quoi
+la moitié des figures ne serait jouable que d'un bord, et le choix du bord
+cesserait d'en être un. Dix-sept par bord, trente-quatre en tout : assez pour
+tenir une rencontre sans rebattre la défausse.
+
+**LES FIGURES portent sur les munitions**, et c'est tout le score :
+
+| Figure | Fureur |
+|---|---|
+| trois fois la même munition | +2 |
+| trois munitions toutes différentes | +1,5 |
+| deux identiques | +1 |
+
+`poudre × fureur = pression`, la multiplication une seule fois. La **chaîne**
+s'applique APRÈS toutes les additions, parce qu'elle porte sur leur somme :
+c'est ce qui en fait une mise en place plutôt qu'un bonus de plus. Et elle arme
+la volée SUIVANTE, jamais la sienne — l'ordre d'écriture compte, sinon une
+chaîne se double elle-même.
+
+### L'ÉQUIPAGE A QUITTÉ LE DECK : c'est l'état-major
+
+Cinq hommes nommés au plus, **visibles en permanence**, qui ne se jouent jamais
+et changent chacun **une règle**. Ils remplacent à la fois les officiers et les
+recrues : deux façons de payer pour deux sortes d'hommes, c'était une
+distinction que l'écran ne montrait jamais.
+
+| Homme | Son verbe |
+|---|---|
+| **Etcheverry**, chef de pièce | les boulets rouges comptent double |
+| **Coudray**, maître canonnier | voit les 2 prochaines munitions de la pioche |
+| **Toussaint**, maître d'équipage | *une fois par rencontre* : retire une munition de la main |
+| **Gohier**, bosco | la première volée de chaque rencontre a fureur +1 |
+| **Ozanne**, quartier-maître | *une fois par rencontre* : rejoue la volée précédente |
+
+**Un homme qui n'apporterait qu'un bonus chiffré serait une munition de plus.**
+Leur nom, leur titre, leur texte et leur prix sont du contenu ; leur **verbe est
+du code**, dans `src/cartes.js` — la seule chose du jeu qui demande une ligne de
+code pour être ajoutée, et c'est voulu.
+
+Deux d'entre eux agissent **sur ordre** : leur initiale s'allume tant qu'ils
+n'ont pas servi, s'éteint après. Toussaint retire la munition **désignée** et
+non la pire — sinon il ferait double emploi avec la barrique, qui jette la pire
+toute seule. Ozanne **remet** la volée en main, il ne la tire pas : c'est au
+joueur de la lâcher, avec la bordée que ça coûte.
 
 ### Ce qui a été RETIRÉ, et qu'il ne faut pas reconstruire
 
@@ -59,62 +116,61 @@ de 375 px. Chacun de ceux-ci était défendable seul, aucun ne l'était ensemble
 
 | Retiré | Ce qu'il coûtait |
 |---|---|
-| **L'avant et l'arrière** — quarts, `SEUIL_GREEMENT`, `boutDe`, la position du bandeau | Un homme portait un bord ET un bout ; le bout ne servait qu'à ouvrir le tir au gréement. Un homme n'a plus qu'un **bord**. |
+| **Les métiers, les quarts, les valeurs individuelles, la distinction recrue/officier** | Un deck d'hommes tous différents ne peut pas former de figures. Une munition n'a qu'un **bord** et une poudre, la même pour toutes celles du même nom. |
+| **L'avant et l'arrière** — `SEUIL_GREEMENT`, `boutDe`, la position du bandeau | Le bout ne servait qu'à ouvrir le tir au gréement. |
 | **Les mâts et le démâtage** — `mats`, `matsMax`, `regreement` | Un compteur, un seuil de puissance et un décompte de repousse, pour un seul effet : empêcher la carte annoncée. |
 | **L'encrassement des bords** — `encrasse`, `encrasseTours`, les deux soupapes, l'écouvillon | Trois règles pour une seule contrainte. Il ne reste que celle qui se voit : une volée est d'un seul bord. |
 | **La météo en combat** — `damageMult` | Une même main valait deux chiffres selon le ciel, qu'il fallait lire avant de compter. Elle reste le **décor** : ciel, houle, pluie. |
 | **Les règles de prise** — `lest`, `cuirasse`, `franc_bord`, `riposte` | Quatre exceptions à retenir pour cinq navires, chacune corrigeant le total après coup. |
 | **Les PV de La Tortue et la riposte chiffrée** | On ne peut plus couler. On perd en **manquant le seuil**, et c'est la seule façon. |
 
-**La variété doit venir des OFFICIERS et des RELIQUES, pas des règles de base.**
-C'est la contrepartie de cette coupe : quatre objets y ont perdu leur verbe et
-en ont reçu un neuf plutôt que d'être supprimés — le Maître voilier paie le
-gabier, le Pilote montre la carte d'après, la Hune coupe la première annonce de
-la rencontre, les écouvillons donnent une place de plus dans la volée. Un objet
-qui ne change aucune règle n'est qu'un texte.
+**La variété vient de l'ÉTAT-MAJOR et des RELIQUES, pas des règles de base.**
+C'est la contrepartie de ces coupes : à chaque fois, les objets qui ont perdu
+leur verbe en ont reçu un neuf plutôt que d'être supprimés — les écouvillons
+donnent une place de plus dans la volée, la Hune coupe la première annonce de la
+rencontre, les grappins paient la triplette. **Un objet qui ne change aucune
+règle n'est qu'un texte.**
 
 ### Les trois choses qui font la décision
 
-**LE BORD — avec qui.** Chaque homme sert d'un côté : bâbord ou tribord, et la
-carte le dit par son FOND, aux couleurs des vrais feux de position — **bâbord
-rouge, tribord vert**. Une volée ne mêle pas les deux bords. C'est la seule
-contrainte de composition, et elle suffit.
+**LE BORD — ce qui tire ensemble.** Chaque munition est rangée d'un côté :
+bâbord ou tribord, et la carte le dit par son FOND, aux couleurs des vrais feux
+de position — **bâbord rouge, tribord vert**. Une volée ne mêle pas les deux
+bords. C'est la seule contrainte de composition, et elle suffit.
 
-**LE GABIER — ce qu'on empêche.** La prise annonce sa carte un tour à l'avance.
-**Un gabier dans la volée la coupe** : elle n'aura pas lieu. C'est tout ce qui
-reste du gréement, et c'est assez — il n'y a rien à réunir, pas de seuil à
-franchir, pas de mât à compter ; il occupe simplement une des trois places, et
-c'est là tout son prix.
+**LA FIGURE — ce qu'on assortit.** Trois fois la même munition, trois toutes
+différentes, ou une paire. C'est le cœur du jeu, et la seule raison d'être du
+deck de munitions : deux bandeaux de la même couleur côte à côte SONT une paire,
+et on la voit sans lire un mot.
 
 **LE RECHARGEMENT — quand renoncer à tirer.** Trois par rencontre. On tire la
-volée vers le **bas** : ces hommes-là repartent au fond du paquet, on en reprend
-autant, et la prise **ne joue pas sa carte**. C'est la seconde monnaie, et elle
-ne se convertit pas dans la première. Mesuré sur la flûte, un capitaine qui s'en
-sert la prend **56 fois sur 60** contre **28** pour celui qui les garde.
+volée vers le **bas** : ces munitions-là repartent au fond du paquet, on en
+reprend autant, et la prise **ne joue pas sa carte**. C'est la seconde monnaie,
+et elle ne se convertit pas dans la première. Mesuré, un capitaine qui s'en sert
+prend la barque **58 fois sur 60** contre **45**, et la flûte **37** contre
+**19**.
 
-**SA CARTE TOUCHE LA MAIN, PAS LA COQUE** — on n'en a plus. Mitraille (blesse le
-meilleur homme), brûlot (une carte Feu), grappin (le meilleur homme repart au
-fond du paquet), belle manœuvre (un rechargement de moins), colmatage (la
-pression retombe de 12). Ce qu'elle nous prend, ce sont des hommes et des coups.
+**SA CARTE TOUCHE LA MAIN, PAS LA COQUE** — nous n'en avons pas. Mouillage (la
+meilleure munition en main perd sa poudre), brûlot (une carte Feu), grappin (la
+meilleure munition repart au fond du paquet), belle manœuvre (un rechargement de
+moins), colmatage (la pression retombe de 12). Ce qu'elle nous prend, ce sont
+des munitions et des coups. **Une mitraille dans la volée la coupe** : c'est le
+seul moyen de l'empêcher, et il coûte une des trois places.
 
-**LES OFFICIERS — les jokers.** Trois au plus à l'état-major, engagés au
-partage. Ils ne se jouent pas : ils sont là et ils **changent une règle** (le
-Bosco pousse chaque canonnier, le Maître voilier paie le gabier, le Pilote
-montre la carte d'après, le Chirurgien allège les blessures…). Leur nom, leur texte et leur prix sont
-du contenu ; leur **verbe est du code**, dans `src/cartes.js` — c'est la seule
-chose du jeu qui demande une ligne de code pour être ajoutée, et c'est voulu :
-un officier qui ne changerait aucune règle ne serait qu'un homme de plus.
+**LES RÉSISTANCES SE RELISENT À CHAQUE FOIS QUE LE PAQUET CHANGE.** Le paquet
+de munitions frappe environ **deux fois plus fort** que l'ancien paquet d'hommes
+— les figures sont atteignables, précisément parce que les munitions se
+répètent — et les résistances ont dû être réétalonnées d'autant (barque 90 →
+175, flûte 140 → 230, galion 210 → 285, frégate 300 → 330, vaisseau 420 → 380).
+Sans quoi l'acte 1 se gagnait 60 fois sur 60 et le rechargement ne décidait plus
+de rien. **Et la coque suit la résistance** : au-dessus d'elle la prise amène son
+pavillon, en dessous elle s'enfonce avant — c'est ce croisement, et lui seul, qui
+fait que les petites prises se rendent et les grosses coulent.
 
-**Quatre métiers, et rien de plus à retenir.** Le canonnier apporte sa valeur,
-le gabier règle le tir sur le meilleur canonnier **et coupe la carte annoncée**,
-l'abordeur compte double sous la moitié de coque, le charpentier — **seul dans
-la volée** — jette les Feux par-dessus bord.
-
-Attention aux **seuils écrits en toutes lettres dans les règles de prise** :
-« une volée de moins de trois hommes ne l'entame pas » a été écrit quand on
-jouait jusqu'à cinq cartes, et annulait presque toutes les volées une fois le
-plafond descendu à trois. Un seuil de contenu se relit à chaque fois que la
-taille des volées change.
+L'échelle doit aussi tenir dans ce qu'un joueur ÉQUIPÉ peut atteindre : la
+progression ne vient plus que de l'état-major et des reliques (on ne recrute
+plus de cartes dans le deck), soit environ +55 % de pression. Une résistance
+au-dessus de ~380 n'est atteignable par personne.
 
 ### Un seul ordre, un seul geste
 
@@ -169,11 +225,12 @@ sert `tools/mobile-audit.mjs`.
   au-dessus.** Il n'y a plus d'infobulle flottante : à 375 px de large, elle
   recouvrait la mer, la carte d'intention ou la main, où qu'on l'ancre.
   **RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN.** Ce qu'une carte a à
-  dire s'écrit à la place de la réplique d'équipage, en une ligne — nom, métier,
-  bord, verbe — **tant que le doigt reste posé dessus** ; au relâchement le
+  dire s'écrit à la place de la réplique d'équipage, en une ligne — nom, bord,
+  poudre, effet — **tant que le doigt reste posé dessus** ; au relâchement le
   tableau reprend son contenu. Un refus s'écrit au même endroit, en rouge, et
   lui seul : l'homme s'annonce comme les autres, c'est le coup qui est
-  impossible, pas lui. Une pastille de météo, un officier, sa carte à elle se
+  impossible, pas elle. Une pastille de météo, un homme de l'état-major, sa
+  carte à elle se
   TOUCHENT plutôt qu'ils ne se tiennent : leur texte reste jusqu'au prochain
   rendu (`tenir: true`).
 - **La hauteur de ce bloc est RÉSERVÉE** (`min-height` sur `.tb-detail`) : il
@@ -199,7 +256,7 @@ sert `tools/mobile-audit.mjs`.
   sous-menu.
 - **La pioche dit sa COMPOSITION, jamais son ordre** : posée sur le bois du
   râtelier, à gauche de la réserve, elle donne ce qui reste — combien, par
-  bord, par métier. Ce qu'un joueur a le droit de savoir, c'est ce qui lui
+  bord, par munition. Ce qu'un joueur a le droit de savoir, c'est ce qui lui
   reste, pas ce qui vient. Les deux informations de paquet se lisent au même
   endroit.
 - **Ce qui vient est visible** : les deux prochains hommes de la pioche, face
@@ -250,26 +307,29 @@ sert `tools/mobile-audit.mjs`.
   `flex: 1` elles s'élargissaient à mesure qu'on en jouait : la main changeait
   de forme sous le pouce.
 - **La carte porte DEUX couleurs, pas une.** Le fond dit le bord, le bandeau
-  dit le métier. Un seul aplat ne pouvait dire qu'une des deux choses.
+  dit la munition. Un seul aplat ne pouvait dire qu'une des deux choses.
 - **LES DEUX FAMILLES DE COULEUR SONT SÉPARÉES, et c'est la règle qui prime :
   le fond est TOUJOURS SOMBRE et dit le bord, le bandeau TOUJOURS CLAIR et dit
-  le métier.** Le rouge et le vert appartenaient aux deux à la fois — le rouge
+  la munition.** Le rouge et le vert appartenaient aux deux à la fois — le rouge
   disait canonnier ET bâbord, le vert charpentier ET tribord — et rien ne
   permettait de savoir laquelle des deux choses une couleur nommait. Les fonds
   gardent le rouge et le vert, mais **très sourds** (bâbord `#5c2620`, tribord
-  `#1a4433`) : des teintes de carton, pas des signaux. Les métiers passent à une
-  **famille froide et claire** qui ne peut être confondue avec aucun fond —
-  canonnier pierre `#d9d2c4`, gabier bleu `#6fa8c9`, abordeur or `#e0a93c`,
-  charpentier violet `#9b8bbd` — en encre sombre `#241608`, la même pour les
-  quatre. Ne jamais rendre une couleur de métier rouge ou verte : elles
+  `#1a4433`) : des teintes de carton, pas des signaux. Les munitions passent à une
+  **famille claire** qui ne peut être confondue avec aucun fond — ramé pierre
+  `#d9d2c4`, rouge or `#e0a93c`, mitraille bleu `#6fa8c9`, chaîne violet
+  `#9b8bbd`, barrique bois `#c08b5c` — en encre sombre `#241608`, la même pour
+  les cinq. Ne jamais rendre une couleur de munition rouge ou verte : elles
   appartiennent aux bords.
-- **Le BORD porte le fond, le MÉTIER porte le bandeau.** C'est le bord qui
-  décide si deux hommes tirent ensemble, donc c'est lui qu'on doit voir en
-  premier : il est l'enseigne, comme une couleur aux cartes à jouer, et il n'en
-  existe que deux — bâbord `#6e2a22`, tribord `#1d4a37`, sourds, du carton
-  teinté et pas du plastique. L'inverse avait été essayé (métier en fond, bord
-  en tranche de 5 px) : la tranche se perdait dans le fond de métier.
-- **Le métier est un BANDEAU PLEIN**, toute la largeur, 26 % de la hauteur,
+- **CINQ MUNITIONS, CINQ COULEURS**, et c'est la répétition qui rend les figures
+  lisibles : deux bandeaux de la même couleur côte à côte SONT une paire, et on
+  la voit sans lire un mot. Une figure qu'il faut lire pour la voir n'est pas
+  une figure.
+- **Le BORD porte le fond, la MUNITION porte le bandeau.** C'est le bord qui
+  décide ce qui tire ensemble, donc c'est lui qu'on doit voir en premier : il
+  est l'enseigne, comme une couleur aux cartes à jouer, et il n'en existe que
+  deux. L'inverse avait été essayé (le type en fond, le bord en tranche de
+  5 px) : la tranche se perdait dans le fond.
+- **La munition est un BANDEAU PLEIN**, toute la largeur, 26 % de la hauteur,
   dans sa propre couleur (voir la règle des deux familles ci-dessus), avec un
   **glyphe SVG** au centre : boulet, voile, haches croisées, planche. Pas un emoji : un emoji change de
   forme et de couleur d'un téléphone à l'autre. Le glyphe se dimensionne sur la
@@ -337,10 +397,11 @@ tient pas. Ce n'est pas une passe de mise en page à la fin.
 
 ### Le contenu est de la donnée, la règle est du code
 
-Ajouter un homme, une prise ou une relique ne doit demander **aucune ligne de
-code** : tout est dans `data/equipage.json`. En face, un *verbe* de métier est
-une règle, donc il vit dans `src/cartes.js`. Les verbes ne se remplacent pas
-entre eux ; les hommes, si.
+Ajouter une munition, une prise ou une relique ne doit demander **aucune ligne de
+code** : tout est dans `data/equipage.json`, y compris la composition du
+paquet. En face, le *verbe* d'un homme de l'état-major est une règle, donc il
+vit dans `src/cartes.js` — c'est la seule chose qui demande du code, et c'est
+voulu : un homme qui ne changerait aucune règle ne serait qu'un texte.
 
 ---
 
@@ -349,7 +410,7 @@ entre eux ; les hommes, si.
 | Module | Rôle |
 |---|---|
 | **Règles — pures, déterministes, sans DOM ni aléatoire** | |
-| `src/cartes.js` | **La chasse-partie en cartes.** Manœuvres, évaluation, prise, partage |
+| `src/cartes.js` | **La chasse-partie en cartes.** Munitions, figures, évaluation, verbes de l'état-major, partage |
 | `src/shipPlans.js` | Plans de pont par classe de coque (encore utilisé par la vue en profil) |
 | **Génération — c'est ici que l'aléatoire est permis** | |
 | `src/voyage.js` | **La progression sur la carte** : escales, actes, prise trouvée, épaves, rencontres |
@@ -464,7 +525,7 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 177 vérifications, zéro dépendance
+node test/run.js          # 178 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
@@ -476,7 +537,7 @@ le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
 *Les tests qui mesurent une décision de conception.* Dans `cartes.test.js` :
 
 - **« la promesse du tour »** — ce que la prise fera est annoncé avant qu'on
-  joue, et un gabier dans la volée l'empêche vraiment. Si l'annonce ment, le
+  joue, et une mitraille dans la volée l'empêche vraiment. Si l'annonce ment, le
   tour redevient un pari et tout le reste ne sert à rien.
 - **« est-ce que choisir compte ? »** — les mêmes mains, sur les mêmes
   graines, jouées par un capitaine appliqué et par un maladroit. Le maladroit
@@ -484,7 +545,7 @@ le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
 - **« le rechargement est la vraie seconde monnaie »** — le test le plus
   important du dépôt. Les mêmes mains, sur les mêmes graines : un capitaine qui
   dépense ses trois rechargements contre un qui les garde. Mesuré, l'écart est
-  de 7 prises sur 60 sur la barque et de **28 sur la flûte**. Il échoue si
+  de 13 prises sur 60 sur la barque et de **18 sur la flûte**. Il échoue si
   l'écart se referme, et c'est bien le point : tant qu'une seule ligne de jeu
   est optimale, le joueur exécute un calcul, il ne choisit rien.
 - **« les trois fins »** — résistance atteinte, coque à zéro, quatre bordées
@@ -495,8 +556,15 @@ bout de la mer à l'autre, et **chaque escale dit ce qu'elle est avant qu'on y
 aille**. Le jour où l'un des trois cesse d'être vrai, la carte redevient une
 liste de nœuds.
 
+- **« les figures sont faites de munitions »** — c'est la raison d'être du
+  deck, et le test dit à la fois ce que chaque figure vaut et pourquoi elle
+  peut exister. Avec les mêmes assertions : **la chaîne arme la volée
+  SUIVANTE**, jamais la sienne, et **la barrique jette hors de la PARTIE**,
+  un Feu d'abord.
+- **« chacun des cinq hommes change une règle »** — un homme qui n'apporterait
+  qu'un bonus chiffré serait une munition de plus.
 - **« sa carte touche la main »** — aucune intention ne vise une coque que
-  nous n'avons plus, et une partie jouée jusqu'au bout ne finit jamais en
+  nous n'avons pas, et une partie jouée jusqu'au bout ne finit jamais en
   naufrage.
 
 **Un seuil qui casse là est une décision à prendre, pas un test à assouplir.**

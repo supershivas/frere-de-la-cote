@@ -21,6 +21,7 @@ const rngFor = (seed) => {
   let s = seed >>> 0 || 1;
   return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
 };
+let faux = 9000;   // des `uid` de test, hors de la suite du jeu
 const partie = (prise, seed, meteo = METEO.brise) => {
   const P = C.nouvellePartie(CONTENU);
   const rng = rngFor(seed);
@@ -62,7 +63,7 @@ test('the same seed played the same way ends the same way', () => {
 
 test('an impossible order says why, out loud', () => {
   const { P } = partie(CONTENU.prises[0], 3);
-  equal(C.recruter(P, CONTENU.recrues[0]).ok, false, 'recruiting without loot should be refused');
+  equal(C.engagerHomme(P, CONTENU.hommes[0]).ok, false, 'recruiting without loot should be refused');
 
   // Une volée ne mêle pas les deux bords, et le refus doit le dire.
   const premier = P.main.find((c) => !C.estFeu(c));
@@ -149,58 +150,121 @@ test('a reload is refused once the powder is spent', () => {
   assert(r.pourquoi, 'le refus ne dit pas pourquoi');
 });
 
-test('the quartermaster and the false bottom buy shots, not nothing', () => {
-  // Ces deux-là achetaient un homme de relève. La relève supprimée, ils
-  // seraient devenus deux textes sans verbe — un objet qui ne change aucune
-  // règle n'est qu'un homme de plus. Ils achètent maintenant des COUPS, la
-  // seule ressource de la rencontre.
-  const { P } = partie(CONTENU.prises[0], 3);
-  equal(P.bordees, C.BORDEES, 'la rencontre nue ne part pas à quatre bordées');
-  equal(P.rechargements, C.RECHARGEMENTS, 'la rencontre nue ne part pas à trois rechargements');
+test('the figures are made of munitions, which is why they exist at all', () => {
+  // LA RAISON D'ÊTRE DU DECK DE MUNITIONS. Avec des hommes tous différents,
+  // aucune main ne ressemblait à une autre : il n'y avait rien à reconnaître, et
+  // « la volée la plus forte » se lisait d'un coup d'œil. Des munitions
+  // répétées font des figures, et une figure se cherche.
+  const { P } = partie(CONTENU.prises[0], 7);
+  const de = (id, bord = 'babord') => ({ ...CONTENU.munitions.find((m) => m.id === id), bord, uid: ++faux });
 
-  const Q = C.nouvellePartie(CONTENU);
-  Q.officiers.push('quartier_maitre');
-  Q.reliques.push('double_fond');
-  C.engager(Q, CONTENU.prises[0], METEO.brise, rngFor(3));
-  equal(Q.bordees, C.BORDEES + 1, 'le double fond n’ajoute pas de bordée');
-  equal(Q.rechargements, C.RECHARGEMENTS + 1, 'le quartier-maître n’ajoute pas de rechargement');
+  equal(C.figureDe([de('boulet_rame'), de('boulet_rame'), de('boulet_rame')]), 'triplette', 'trois fois la même');
+  equal(C.figureDe([de('boulet_rame'), de('mitraille'), de('chaine')]), 'panachee', 'trois différentes');
+  equal(C.figureDe([de('boulet_rame'), de('boulet_rame'), de('chaine')]), 'paire', 'deux identiques et une autre');
+  equal(C.figureDe([de('boulet_rame'), de('boulet_rame')]), 'paire', 'deux identiques');
+  equal(C.figureDe([de('boulet_rame'), de('chaine')]), null, 'deux dépareillées ne font pas de figure');
+  equal(C.figureDe([de('boulet_rame')]), null, 'une seule munition ne fait pas de figure');
+
+  // Et la fureur suit : trois fois la même vaut plus que trois différentes.
+  const tri = C.evaluer(P, [de('mitraille'), de('mitraille'), de('mitraille')]);
+  const pan = C.evaluer(P, [de('mitraille'), de('chaine'), de('barrique')]);
+  equal(tri.fureur, 3, `une triplette porte ${tri.fureur} de fureur au lieu de 3`);
+  equal(pan.fureur, 2.5, `une panachée porte ${pan.fureur} de fureur au lieu de 2,5`);
 });
 
-test('every officer and relic still has a verb after the cut', () => {
-  // LA CONTREPARTIE DE LA COUPE. Quatre objets ont perdu leur verbe avec les
-  // systèmes retirés : le Maître voilier et la Hune réglaient le seuil du
-  // gréement, le Pilote annulait le malus de météo, les écouvillons dégageaient
-  // un bord encrassé. Aucun n'a été supprimé — chacun a reçu un verbe neuf,
-  // parce que c'est aux officiers et aux reliques de porter la variété
-  // maintenant que les règles de base n'en portent plus.
-  const avec = (ids, rel = []) => {
-    const Q = C.nouvellePartie(CONTENU);
-    Q.officiers.push(...ids); Q.reliques.push(...rel);
-    C.engager(Q, CONTENU.prises[0], METEO.brise, rngFor(3));
-    return Q;
-  };
-  // Les écouvillons : une place de plus dans la volée.
-  equal(C.voleeMax(C.nouvellePartie(CONTENU)), C.MAIN_MAX, 'la volée nue ne fait pas trois hommes');
-  equal(C.voleeMax(avec([], ['ecouvillons'])), C.MAIN_MAX + 1, 'les écouvillons n’ajoutent pas de place');
+test('the chain arms the NEXT volley, never its own', () => {
+  // Une chaîne qui se doublait elle-même n'était plus une mise en place, c'était
+  // un bonus de plus — et le seul ordre où l'écrire est : consommer le drapeau
+  // que la volée d'avant a laissé, PUIS reposer celui de celle-ci.
+  const { P } = partie(CONTENU.prises[0], 11);
+  const chaine = { ...CONTENU.munitions.find((m) => m.id === 'chaine'), bord: 'babord', uid: ++faux };
+  const rame = { ...CONTENU.munitions.find((m) => m.id === 'boulet_rame'), bord: 'babord', uid: ++faux };
+  P.main = [chaine, rame];
+  P.selection = [chaine];
+  const un = C.jouer(P);
+  equal(un.fureur, 1, `la chaîne s'est doublée elle-même (${un.fureur})`);
+  equal(P.chaine, true, 'la chaîne n’a pas armé la volée suivante');
+  C.riposter(P);
+  P.selection = [rame];
+  const deux = C.evaluer(P, P.selection);
+  equal(deux.fureur, 2, `la volée suivante n'a pas doublé sa fureur (${deux.fureur})`);
+  C.jouer(P);
+  equal(P.chaine, false, 'la chaîne dure plus d’une volée');
+});
 
-  // La hune : la première carte annoncée est coupée d'office.
-  equal(avec([], ['hune']).prise.tirAnnule, true, 'la hune ne coupe pas la première annonce');
-  equal(avec([]).prise.tirAnnule, false, 'la première annonce est coupée sans la hune');
+test('a barrel throws the worst munition out of the GAME, and a Fire first', () => {
+  // Une barrique jette par-dessus bord : la carte sort de la PARTIE, pas de la
+  // main. C'est le seul moyen d'amincir son paquet, et depuis que le charpentier
+  // a quitté le deck, le seul moyen de se débarrasser d'un Feu.
+  const { P, rng } = partie(CONTENU.prises[0], 13);
+  const barrique = { ...CONTENU.munitions.find((m) => m.id === 'barrique'), bord: 'babord', uid: ++faux };
+  const rame = { ...CONTENU.munitions.find((m) => m.id === 'boulet_rame'), bord: 'babord', uid: ++faux };
+  const mitraille = { ...CONTENU.munitions.find((m) => m.id === 'mitraille'), bord: 'babord', uid: ++faux };
+  P.main = [barrique, rame, mitraille];
+  P.selection = [barrique];
+  C.jouer(P);
+  assert(!P.main.includes(mitraille), 'la barrique n’a pas jeté la plus faible');
+  assert(!P.defausse.includes(mitraille), 'la munition jetée est revenue par la défausse');
+  assert(P.main.includes(rame), 'la barrique a jeté la plus forte');
 
-  // Le pilote : on voit la carte d'APRÈS.
-  const P = avec(['pilote']);
-  assert(P.prise.suivante && P.prise.suivante.nom, 'le pilote ne montre pas la carte suivante');
-  equal(avec([]).prise.suivante, null, 'la carte suivante se voit sans le pilote');
+  // Un Feu passe avant tout le reste : c'est la définition d'une munition ratée.
+  const { P: Q } = partie(CONTENU.prises[0], 17);
+  Q.prise.annonce = CONTENU.intentions.find((i) => i.effet === 'brulot');
+  Q.prise.tirAnnule = false;
+  C.riposter(Q); C.completer(Q, rng);
+  const feu = Q.main.find(C.estFeu) || Q.pioche.find(C.estFeu);
+  if (feu && !Q.main.includes(feu)) { Q.main.push(feu); Q.pioche.splice(Q.pioche.indexOf(feu), 1); }
+  if (!Q.main.some(C.estFeu)) return;
+  const b2 = { ...CONTENU.munitions.find((m) => m.id === 'barrique'), bord: Q.main.find((c) => !C.estFeu(c)).bord, uid: ++faux };
+  Q.main.push(b2); Q.selection = [b2];
+  C.jouer(Q);
+  equal(Q.main.some(C.estFeu), false, 'la barrique a laissé le Feu en main');
+});
 
-  // Le maître voilier : un gabier porte de la fureur.
-  const V = avec(['maitre_voilier']);
-  const gabier = V.main.find((c) => !C.estFeu(c) && c.role === 'gabier');
-  if (gabier) {
-    const N = avec([]);
-    const memeGabier = N.main.find((c) => !C.estFeu(c) && c.role === 'gabier');
-    assert(C.evaluer(V, [gabier]).fureur > C.evaluer(N, [memeGabier]).fureur,
-      'le maître voilier n’ajoute aucune fureur à un gabier');
-  }
+test('each of the five staff officers changes a rule', () => {
+  // L'ÉQUIPAGE A QUITTÉ LE DECK : il ne se joue plus, il CHANGE UNE RÈGLE.
+  // Un homme qui n'apporterait qu'un bonus chiffré serait une munition de plus.
+  const avec = (id) => { const Q = C.nouvellePartie(CONTENU); Q.hommes.push(id); C.engager(Q, CONTENU.prises[0], METEO.brise, rngFor(5)); return Q; };
+  const nu = () => { const Q = C.nouvellePartie(CONTENU); C.engager(Q, CONTENU.prises[0], METEO.brise, rngFor(5)); return Q; };
+  const rouge = (Q) => ({ ...CONTENU.munitions.find((m) => m.id === 'boulet_rouge'), bord: 'babord', uid: ++faux });
+
+  // Etcheverry double les boulets rouges.
+  const E = avec('etcheverry');
+  equal(C.poudreDe(rouge(E), E), 12, 'Etcheverry ne double pas les boulets rouges');
+  const N = nu();
+  equal(C.poudreDe(rouge(N), N), 6, 'un boulet rouge vaut déjà double sans Etcheverry');
+
+  // Coudray voit les deux prochaines munitions.
+  equal(C.aVenir(avec('coudray')).length, 2, 'Coudray ne voit rien venir');
+  equal(C.aVenir(nu()).length, 0, 'on voit venir sans Coudray');
+
+  // Gohier ouvre la rencontre : la PREMIÈRE volée porte +1.
+  const G = avec('gohier');
+  const m1 = G.main.filter((c) => !C.estFeu(c)).slice(0, 1);
+  const g1 = C.evaluer(G, m1).fureur;
+  G.bordees -= 1;
+  assert(g1 > C.evaluer(G, m1).fureur, 'Gohier porte encore après la première volée');
+
+  // Toussaint retire une munition DÉSIGNÉE, une fois par rencontre.
+  const T = avec('toussaint');
+  const cible = T.main[0];
+  const r = C.toussaint(T, cible, rngFor(9));
+  equal(r.ok, true, `Toussaint refuse son office : ${r.pourquoi}`);
+  assert(!T.main.includes(cible), 'la munition désignée est restée en main');
+  assert(!T.defausse.includes(cible), 'la munition retirée est revenue par la défausse');
+  equal(C.toussaint(T, T.main[0], rngFor(9)).ok, false, 'Toussaint sert deux fois dans la même rencontre');
+  equal(C.toussaint(nu(), null, rngFor(9)).ok, false, 'Toussaint sert sans être à bord');
+
+  // Ozanne remet la volée précédente en main, une fois par rencontre.
+  const O = avec('ozanne');
+  equal(C.ozanne(O).ok, false, 'Ozanne rejoue une volée qui n’a pas eu lieu');
+  O.selection = O.main.filter((c) => C.peutJouer(O, c).ok).slice(0, 2);
+  const jouees = O.selection.slice();
+  C.jouer(O); C.riposter(O);
+  const o = C.ozanne(O);
+  equal(o.ok, true, `Ozanne refuse son office : ${o.pourquoi}`);
+  empty(jouees.filter((c) => !O.main.includes(c)), 'la volée précédente n’est pas revenue en main');
+  equal(C.ozanne(O).ok, false, 'Ozanne sert deux fois dans la même rencontre');
 });
 
 test('the three endings, and only the first pays in full', () => {
@@ -310,72 +374,71 @@ test('the fireship card actually reaches the hand', () => {
   equal(P.main.filter(C.estFeu).length, 1, 'la carte Feu n’est pas arrivée en main au tirage suivant');
 });
 
-test('grapeshot hits the best man in hand, not a man at random', () => {
-  const mitraille = CONTENU.intentions.find((i) => i.effet === 'mitraille');
+test('the sea soaks the best munition in hand, never one at random', () => {
+  const mouillage = CONTENU.intentions.find((i) => i.effet === 'mouillage');
   const { P } = partie(CONTENU.prises[1], 23);
-  P.prise.annonce = mitraille;
-  const attendu = P.main.filter((c) => !C.estFeu(c)).sort((a, b) => C.valeur(b) - C.valeur(a) || a.uid - b.uid)[0];
+  P.prise.annonce = mouillage;
+  P.prise.tirAnnule = false;
+  const attendu = P.main.filter((c) => !C.estFeu(c))
+    .sort((a, b) => C.poudreDe(b, P) - C.poudreDe(a, P) || a.uid - b.uid)[0];
   C.riposter(P);
-  equal(attendu.blesse, true, 'grapeshot did not hit the announced target');
-});
-
-test('an officer changes a rule, and three at most sit at the table', () => {
-  // La barque n'a pas de règle : on mesure l'officier, pas la prise. (Sur la
-  // flûte, « un homme seul ne l'entame pas » ramenait les deux comptes à zéro
-  // et le test passait pour une mauvaise raison.)
-  const { P } = partie(CONTENU.prises[0], 53);
-  const bosco = CONTENU.officiers.find((o) => o.id === 'bosco');
-  const canon = P.main.find((c) => !C.estFeu(c) && c.role === 'canonnier');
-  if (!canon) return;
-  const avant = C.evaluer(P, [canon]).total;
-  P.butin = 99;
-  equal(C.engagerOfficier(P, bosco).ok, true, 'le Bosco a refusé de monter à bord');
-  assert(C.evaluer(P, [canon]).total > avant, 'le Bosco ne change rien au compte d’un canonnier');
-  equal(C.engagerOfficier(P, bosco).ok, false, 'le même officier a été engagé deux fois');
-  for (const o of CONTENU.officiers.filter((x) => x.id !== 'bosco').slice(0, 2)) {
-    equal(C.engagerOfficier(P, o).ok, true, `${o.id} refusé alors qu'il reste de la place`);
-  }
-  const detrop = CONTENU.officiers.find((o) => !P.officiers.includes(o.id));
-  equal(C.engagerOfficier(P, detrop).ok, false, 'un quatrième officier a pu monter à bord');
+  equal(attendu.mouillee, true, 'la lame n’a pas noyé la munition annoncée');
+  equal(C.poudreDe(attendu, P), 0, 'une munition mouillée compte encore de la poudre');
 });
 
 suite('cartes — contenu');
 
-test('every crew card names a role and a side that exist', () => {
-  // Un homme n'a plus qu'un BORD : le quart (bord × bout) disparaît avec
-  // l'avant et l'arrière, et il ne restait de lui qu'une moitié.
-  const roles = Object.keys(CONTENU.roles);
-  const bords = Object.keys(CONTENU.bords);
+test('the deck is made of munitions, repeated, on both sides', () => {
+  // LE DECK EST FAIT DE MUNITIONS, PAS D'HOMMES. C'est ce qui permet aux
+  // FIGURES d'exister : avec des hommes tous différents, aucune main ne
+  // ressemblait à une autre et il n'y avait rien à reconnaître.
   const bad = [];
-  for (const c of [...CONTENU.equipage, ...CONTENU.recrues]) {
-    if (!roles.includes(c.role)) bad.push(`${c.id} → rôle inconnu « ${c.role} »`);
-    if (!bords.includes(c.bord)) bad.push(`${c.id} → bord inconnu « ${c.bord} »`);
-    if (c.quart != null) bad.push(`${c.id} → porte encore un quart`);
+  const ids = CONTENU.munitions.map((m) => m.id);
+  for (const m of CONTENU.munitions) {
+    if (!m.nom || !m.texte) bad.push(`munition ${m.id} incomplète`);
+    if (typeof m.poudre !== 'number') bad.push(`munition ${m.id} sans poudre`);
   }
-  if (CONTENU.quarts) bad.push('data/equipage.json porte encore des quarts');
-  if (CONTENU.regles) bad.push('data/equipage.json porte encore des règles de prise');
-  if (CONTENU.tortue) bad.push('data/equipage.json porte encore les PV de La Tortue');
-  for (const p of CONTENU.prises) {
-    for (const k of ['mats', 'riposte', 'regle']) if (p[k] != null) bad.push(`prise ${p.id} porte encore « ${k} »`);
+  for (const [bord, compo] of Object.entries(CONTENU.deck)) {
+    if (!CONTENU.bords[bord]) bad.push(`deck → bord inconnu « ${bord} »`);
+    for (const [id, n] of Object.entries(compo)) {
+      if (!ids.includes(id)) bad.push(`deck.${bord} → « ${id} » n'existe pas`);
+      if (n < 2) bad.push(`deck.${bord}.${id} → ${n} exemplaire : pas de figure possible`);
+    }
+    // Chaque munition existe des DEUX côtés : sinon la moitié des figures ne
+    // serait jouable que d'un bord, et le choix du bord cesserait d'en être un.
+    for (const id of ids) if (!compo[id]) bad.push(`deck.${bord} → « ${id} » manque de ce bord`);
   }
-  empty(bad, 'entries pointing at nothing');
+  // Ce qui a quitté le contenu avec les hommes.
+  for (const k of ['roles', 'equipage', 'recrues', 'officiers', 'quarts']) {
+    if (CONTENU[k]) bad.push(`data/equipage.json porte encore « ${k} »`);
+  }
+  empty(bad, 'a deck that cannot make a figure');
+
+  const P = C.nouvellePartie(CONTENU);
+  assert(P.deck.length >= 30, `le paquet ne fait que ${P.deck.length} cartes`);
+  const parBord = {};
+  for (const c of P.deck) parBord[c.bord] = (parBord[c.bord] || 0) + 1;
+  empty(Object.entries(parBord).filter(([, n]) => n < 12).map(([b, n]) => `${b} : ${n}`),
+    'a side with too few munitions to fire');
 });
 
-test('both sides of the ship have enough men to fire', () => {
-  // Un bord qui n'aurait presque personne rendrait la moitié des mains
-  // injouables : une volée ne mêle pas les deux bords.
-  const compte = {};
-  for (const c of CONTENU.equipage) compte[c.bord] = (compte[c.bord] || 0) + 1;
-  const bad = Object.entries(compte).filter(([, n]) => n < 5).map(([b, n]) => `${b} : ${n} hommes`);
-  empty(bad, 'a side with too few men to fire');
-});
-
-test('every officer has a name, a text and a price', () => {
+test('the staff replaces both the recruits and the officers', () => {
   const bad = [];
-  for (const o of CONTENU.officiers) {
-    if (!o.nom || !o.texte || !o.prix) bad.push(`officier ${o.id} incomplet`);
+  for (const h of CONTENU.hommes) {
+    if (!h.nom || !h.titre || !h.texte || !h.prix) bad.push(`homme ${h.id} incomplet`);
+    if (!h.verbe) bad.push(`${h.id} n'a pas de verbe — ce n'est qu'un texte`);
   }
-  empty(bad, 'officers with nothing to say');
+  empty(bad, 'staff with nothing to change');
+  assert(CONTENU.hommes.length <= C.ETAT_MAJOR_MAX,
+    `${CONTENU.hommes.length} hommes proposés pour ${C.ETAT_MAJOR_MAX} places`);
+
+  // On n'en engage pas six.
+  const P = C.nouvellePartie(CONTENU);
+  P.butin = 999;
+  for (const h of CONTENU.hommes) equal(C.engagerHomme(P, h).ok, true, `${h.id} refusé`);
+  const r = C.engagerHomme(P, { id: 'un_de_trop', prix: 1 });
+  equal(r.ok, false, 'un sixième homme est monté à l’état-major');
+  assert(r.pourquoi, 'le refus ne dit pas pourquoi');
 });
 
 test('every prize rule and intention is defined', () => {
@@ -441,7 +504,7 @@ test('the reload is the real second currency — spending it decides the flute',
   // tirent la même volée ; l'un se sert de ses trois rechargements, l'autre
   // les garde. Si l'écart est petit, les rechargements sont un décor et la
   // rencontre n'a qu'un seul axe.
-  for (const [i, seuil] of [[0, 3], [1, 20]]) {
+  for (const [i, seuil] of [[0, 8], [1, 12]]) {
     const prise = CONTENU.prises[i];
     let avec = 0, sans = 0, bAvec = 0, bSans = 0;
     for (let s = 1; s <= 60; s++) {
@@ -532,8 +595,12 @@ function duel(prise, seed, applique) {
   return P.fini === 'prise';
 }
 
-test('a careful captain takes the merchantman far more often than a careless one', () => {
-  const prise = CONTENU.prises[1];
+test('a careful captain takes the first prize far more often than a careless one', () => {
+  // LA BARQUE, et non plus la flûte : le paquet de munitions frappe deux fois
+  // plus fort que l'ancien paquet d'hommes, les résistances ont été réétalonnées
+  // d'autant, et la flûte est devenue une prise d'acte 2. Mesurer « la manche
+  // de départ est-elle gagnable » sur une prise d'acte 2 ne mesure rien.
+  const prise = CONTENU.prises[0];
   let bons = 0, mauvais = 0;
   for (let s = 1; s <= 60; s++) {
     if (duel(prise, s * 977, true)) bons++;
