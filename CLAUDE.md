@@ -241,6 +241,18 @@ sert `tools/mobile-audit.mjs`.
   de forme sous le pouce.
 - **La carte porte DEUX couleurs, pas une.** Le fond dit le bord, le bandeau
   dit le métier. Un seul aplat ne pouvait dire qu'une des deux choses.
+- **LES DEUX FAMILLES DE COULEUR SONT SÉPARÉES, et c'est la règle qui prime :
+  le fond est TOUJOURS SOMBRE et dit le bord, le bandeau TOUJOURS CLAIR et dit
+  le métier.** Le rouge et le vert appartenaient aux deux à la fois — le rouge
+  disait canonnier ET bâbord, le vert charpentier ET tribord — et rien ne
+  permettait de savoir laquelle des deux choses une couleur nommait. Les fonds
+  gardent le rouge et le vert, mais **très sourds** (bâbord `#5c2620`, tribord
+  `#1a4433`) : des teintes de carton, pas des signaux. Les métiers passent à une
+  **famille froide et claire** qui ne peut être confondue avec aucun fond —
+  canonnier pierre `#d9d2c4`, gabier bleu `#6fa8c9`, abordeur or `#e0a93c`,
+  charpentier violet `#9b8bbd` — en encre sombre `#241608`, la même pour les
+  quatre. Ne jamais rendre une couleur de métier rouge ou verte : elles
+  appartiennent aux bords.
 - **Le BORD porte le fond, le MÉTIER porte le bandeau.** C'est le bord qui
   décide si deux hommes tirent ensemble, donc c'est lui qu'on doit voir en
   premier : il est l'enseigne, comme une couleur aux cartes à jouer, et il n'en
@@ -248,9 +260,8 @@ sert `tools/mobile-audit.mjs`.
   teinté et pas du plastique. L'inverse avait été essayé (métier en fond, bord
   en tranche de 5 px) : la tranche se perdait dans le fond de métier.
 - **Le métier est un BANDEAU PLEIN**, toute la largeur, 26 % de la hauteur,
-  dans sa propre couleur — canonnier `#b8442f`, gabier `#2b6f9e`, abordeur
-  `#c98a1e`, charpentier `#3f8f5c` — avec un **glyphe SVG crème** au centre :
-  boulet, voile, haches croisées, planche. Pas un emoji : un emoji change de
+  dans sa propre couleur (voir la règle des deux familles ci-dessus), avec un
+  **glyphe SVG** au centre : boulet, voile, haches croisées, planche. Pas un emoji : un emoji change de
   forme et de couleur d'un téléphone à l'autre. Le glyphe se dimensionne sur la
   HAUTEUR du bandeau ; mesuré sur la largeur de la carte, il poussait le nom
   dehors.
@@ -269,7 +280,10 @@ sert `tools/mobile-audit.mjs`.
 - **Un niveau ne s'affiche que s'il existe**, en étoiles. « niv. 0 » sur douze
   cartes, c'était douze fois la même information vide.
 - **La valeur est la chose la plus lisible de la carte.** Contrastes mesurés de
-  l'encre crème `#f7efd8` sur les deux enseignes : bâbord 9,1:1 · tribord 8,8:1.
+  l'encre crème `#f7efd8` sur les deux fonds : bâbord 10,4:1 · tribord 9,5:1 ;
+  de l'encre `#241608` sur les quatre bandeaux : pierre 11,7 · or 8,3 · bleu
+  6,8 · violet 5,7 ; et de chaque bandeau contre chaque fond, du moins au plus
+  contrasté : violet sur tribord 3,6:1, pierre sur bâbord 8:1.
 - **Un homme injouable se DÉSATURE, il ne s'efface pas** : sous 0,55
   d'opacité sa valeur cesse d'être lisible, et une carte qu'on ne peut pas
   lire ne dit plus pourquoi elle est refusée.

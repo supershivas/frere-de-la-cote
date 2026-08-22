@@ -1497,9 +1497,16 @@
 }
 /* LE BORD EST L'ENSEIGNE. C'est lui qui décide si deux hommes tirent ensemble,
    donc c'est lui qu'on doit voir en premier : il porte le fond de la carte
-   entière, et il n'en existe que deux. Sourds, pas saturés — du carton teinté,
-   pas du plastique. Contrastes mesurés de l'encre crème sur ces deux fonds :
-   bâbord 9,1:1 · tribord 8,8:1. */
+   entière, et il n'en existe que deux.
+
+   LES DEUX FAMILLES DE COULEUR SONT SÉPARÉES, et c'est la règle qui compte ici :
+   LE FOND EST TOUJOURS SOMBRE ET DIT LE BORD, LE BANDEAU EST TOUJOURS CLAIR ET
+   DIT LE MÉTIER. Le rouge et le vert appartenaient aux deux à la fois — le
+   rouge disait canonnier ET bâbord, le vert charpentier ET tribord — et rien ne
+   permettait de savoir laquelle des deux choses une couleur nommait. Les fonds
+   gardent le rouge et le vert mais très sourds et sombres : des teintes de
+   carton, pas des signaux. Contrastes mesurés de l'encre crème dessus :
+   bâbord 10,4:1 · tribord 9,5:1. */
 .screen.ecran-cartes .carte {
   flex: 0 0 var(--carte-l, 62px);
   width: var(--carte-l, 62px); height: var(--carte-h, 90px);
@@ -1514,8 +1521,8 @@
   transition: transform .18s cubic-bezier(.2,.9,.25,1.1), box-shadow .18s var(--ease-fast), filter .18s;
   will-change: transform;
 }
-.screen.ecran-cartes .carte[data-bord="babord"]  { --enseigne: #6e2a22; --encre: #f7efd8; --feu-bord: #b93a2c; }
-.screen.ecran-cartes .carte[data-bord="tribord"] { --enseigne: #1d4a37; --encre: #f7efd8; --feu-bord: #1f7a4a; }
+.screen.ecran-cartes .carte[data-bord="babord"]  { --enseigne: #5c2620; --encre: #f7efd8; --feu-bord: #b93a2c; }
+.screen.ecran-cartes .carte[data-bord="tribord"] { --enseigne: #1a4433; --encre: #f7efd8; --feu-bord: #1f7a4a; }
 
 /* Le carton prend la lumière, mais SANS TRAME : les deux quadrillages qui
    étaient ici vibraient dès que la carte bougeait sous le doigt. Un dégradé
@@ -1536,15 +1543,12 @@
 .screen.ecran-cartes .carte .c-bandeau {
   position: absolute; left: 0; right: 0; z-index: 2;
   height: 26%;
-  background: var(--metier, #6b5a3a);
-  /* L'ENCRE DU BANDEAU SUIT SA COULEUR, elle n'est pas crème par principe.
-     Mesurés sur crème #fdf6e3, deux des quatre métiers demandés tombent
-     sous 4,5:1 — l'ocre à 2,73 et le vert à 3,68 — et un glyphe qu'on ne
-     distingue pas du fond ne dit plus quel métier c'est. Les deux bandeaux
-     clairs prennent donc une encre sombre (6,3:1 et 4,5:1), comme une
-     couleur rouge sur une carte à jouer. Les quatre couleurs de bandeau,
-     elles, sont exactement celles qui ont été demandées. */
-  color: var(--encre-metier, #fdf6e3);
+  background: var(--metier, #a89a86);
+  /* LES QUATRE BANDEAUX SONT CLAIRS, donc l'encre est sombre — la même pour
+     les quatre, ce qui n'était pas possible tant qu'un bandeau brique en
+     côtoyait un ocre. Contrastes mesurés de #241608 dessus : pierre 11,7:1 ·
+     bleu 6,8:1 · or 8,3:1 · violet 5,7:1. */
+  color: #241608;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 1px; overflow: hidden;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.28);
@@ -1557,12 +1561,16 @@
   /* Le glyphe se mesure sur la HAUTEUR du bandeau, pas sur la largeur de la
      carte : mesuré en largeur, il poussait le nom hors du bandeau. */
   height: 54%; width: auto; display: block; flex: 0 0 auto;
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,.45));
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,.28));
 }
-.screen.ecran-cartes .carte[data-role="canonnier"]   { --metier: #b8442f; }
-.screen.ecran-cartes .carte[data-role="gabier"]      { --metier: #2b6f9e; }
-.screen.ecran-cartes .carte[data-role="abordeur"]    { --metier: #c98a1e; --encre-metier: #1a1206; }
-.screen.ecran-cartes .carte[data-role="charpentier"] { --metier: #3f8f5c; --encre-metier: #0e1a12; }
+/* UNE FAMILLE FROIDE ET CLAIRE, qui ne peut être confondue avec aucun fond :
+   ni le rouge ni le vert n'en sont, précisément parce qu'ils appartiennent aux
+   bords. Chaque bandeau se détache de chacun des deux fonds — mesuré, du
+   moins contrasté au plus : violet 3,6:1 sur tribord, pierre 8:1 sur bâbord. */
+.screen.ecran-cartes .carte[data-role="canonnier"]   { --metier: #d9d2c4; }
+.screen.ecran-cartes .carte[data-role="gabier"]      { --metier: #6fa8c9; }
+.screen.ecran-cartes .carte[data-role="abordeur"]    { --metier: #e0a93c; }
+.screen.ecran-cartes .carte[data-role="charpentier"] { --metier: #9b8bbd; }
 
 .screen.ecran-cartes .carte:active { cursor: grabbing; }
 .screen.ecran-cartes .carte.prise-en-main {
@@ -1604,11 +1612,11 @@
 }
 
 .screen.ecran-cartes .carte.feu {
-  --enseigne: #3a1c0c; --encre: #f0d0a0; --feu-bord: #8a4a14; --metier: #8a3c10;
+  --enseigne: #3a1c0c; --encre: #f0d0a0; --feu-bord: #8a4a14; --metier: #c9a48a;
   border-color: var(--warning);
 }
 .screen.ecran-cartes .carte.feu .c-nom { opacity: 1; }
-.screen.ecran-cartes .carte.blesse { --enseigne: #4a2018; }
+.screen.ecran-cartes .carte.blesse { --enseigne: #3f1a15; }
 .screen.ecran-cartes .carte.blesse .c-val { color: #ffd7cf; }
 /* « blessé » se loge sur la tranche droite, en vertical : le haut-gauche et le
    bas-gauche appartiennent au symbole de métier, et le pied au nom. */
