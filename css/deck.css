@@ -1286,7 +1286,6 @@
   display: block; height: 100%; transition: width .4s var(--ease-fast);
   background: linear-gradient(90deg, var(--hp-dark), var(--hp));
 }
-.screen.ecran-cartes .jauge.notre i { background: linear-gradient(90deg, #6b8f3a, #9acd32); }
 /* LA JAUGE DE PRESSION SE REMPLIT VERS LA RÉSISTANCE : c'est la barre que le
    joueur regarde, la seule qui décide de la fin. Elle est plus haute que les
    autres, et la coque passe dessous, fine — elle ne dit plus qu'un risque,
@@ -1307,7 +1306,6 @@
   font-family: var(--font-body); font-size: 9px; color: var(--text-secondary); margin-top: 1px;
 }
 .screen.ecran-cartes .e-mats { color: var(--gold-dark); letter-spacing: 1px; }
-.screen.ecran-cartes .e-mats .bas { color: #6b4a26; }
 
 .screen.ecran-cartes .pastilles {
   position: absolute; z-index: 2; left: 0; bottom: 46px;
@@ -1385,10 +1383,6 @@
 .ecran-cartes-bulle .b-nom { font-family: var(--font-title); font-size: 13px; color: var(--gold-light); }
 .ecran-cartes-bulle .b-quoi { color: var(--text-primary); }
 .ecran-cartes-bulle .b-poste { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
-.ecran-cartes-bulle .b-poste .c-poste { width: 28px; height: 34px; flex: 0 0 auto; }
-.ecran-cartes-bulle .b-poste .coque-fil { fill: #cbb894; stroke: #241608; stroke-width: 1.6; }
-.ecran-cartes-bulle .b-poste .quart.on { fill: var(--feu, #a5342a); }
-.ecran-cartes-bulle .b-poste .axe { stroke: #241608; stroke-width: 1; opacity: .55; }
 .ecran-cartes-bulle .b-refus { color: var(--hp); }
 .ecran-cartes-bulle hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
 .ecran-cartes-bulle::after {
@@ -1431,6 +1425,16 @@
    la volée entame en passant se lit à côté, plus petit. */
 .screen.ecran-cartes .tb-pression { font-family: var(--font-body); font-weight: 700; font-size: 21px; color: var(--gold-light, #e8c877); }
 .screen.ecran-cartes .tb-degats { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: var(--hp); }
+/* Ce que la volée EMPÊCHE, à côté de ce qu'elle met : couper la carte annoncée
+   est une décision au même titre que le chiffre. */
+/* Ce que le Pilote vend : la carte d'APRÈS, en pied de la sienne. */
+.screen.ecran-cartes .sa-suite {
+  font-family: var(--font-body); font-size: 7.5px; letter-spacing: .4px;
+  text-transform: uppercase; color: #c98d84; opacity: .85;
+  text-align: center; padding: 2px 3px 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.screen.ecran-cartes .tb-coupe { font-family: var(--font-body); font-weight: 700; font-size: 12px; color: #8fd4b4; }
 .screen.ecran-cartes .tb-sauf { font-family: var(--font-body); font-size: 10px; color: var(--success); }
 .screen.ecran-cartes .e-cargo { color: var(--gold); }
 .screen.ecran-cartes .occasion {
@@ -1545,8 +1549,10 @@
   gap: 1px; overflow: hidden;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.28);
 }
-.screen.ecran-cartes .carte .c-bandeau.avant   { top: 0; border-radius: 4px 4px 0 0; }
-.screen.ecran-cartes .carte .c-bandeau.arriere { bottom: 0; border-radius: 0 0 4px 4px; }
+/* Il n'y a plus qu'UNE position. Le bandeau était collé en haut ou en bas
+   selon que l'homme servait à l'avant ou à l'arrière ; l'avant et l'arrière
+   sont retirés, et il ne reste qu'une chose de moins à décoder. */
+.screen.ecran-cartes .carte .c-bandeau { top: 0; border-radius: 4px 4px 0 0; }
 .screen.ecran-cartes .carte .c-bandeau svg {
   /* Le glyphe se mesure sur la HAUTEUR du bandeau, pas sur la largeur de la
      carte : mesuré en largeur, il poussait le nom hors du bandeau. */
@@ -1581,9 +1587,7 @@
   line-height: 1; letter-spacing: -1px; z-index: 1;
   text-shadow: 0 2px 3px rgba(0,0,0,.4);
 }
-.screen.ecran-cartes .carte:has(.c-bandeau.avant)   .c-val { margin-top: 26%; }
-.screen.ecran-cartes .carte:has(.c-bandeau.arriere) .c-val { margin-bottom: 26%; }
-.screen.ecran-cartes .carte:has(.c-bandeau.arriere) .c-niveau { top: 3px; }
+.screen.ecran-cartes .carte .c-val { margin-top: 26%; }
 
 /* Le nom est de la saveur, pas une décision : très petit, dans le bandeau,
    sous le glyphe. */

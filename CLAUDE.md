@@ -39,71 +39,76 @@ bloquait le chantier est tranché : cette question-là est fermée.
    mettre pour qu'elle amène son pavillon. C'est l'ante du jeu. On a **quatre
    bordées** pour l'atteindre et **trois rechargements** pour se refaire une
    main sans tirer ; la main se remplit **à ras** après chacun.
-3. Elle a aussi une coque, des mâts, une riposte, et parfois une **règle** qui
-   casse une habitude.
-4. Elle **annonce son coup un tour à l'avance**, écrit en toutes lettres sur
-   une carte d'intention. Rien n'est caché, rien n'est tiré au dé.
+3. Elle a aussi une coque : c'est le risque de l'envoyer par le fond avant
+   qu'elle ait amené.
+4. Elle **annonce sa carte un tour à l'avance**, écrite en toutes lettres.
+   Rien n'est caché, rien n'est tiré au dé — et un **gabier** dans la volée la
+   coupe.
 5. **Une main** de cinq hommes. On en choisit jusqu'à trois, ils tirent
-   ensemble. La prise riposte avec le coup qu'elle avait annoncé.
+   ensemble. Puis la prise joue la carte qu'elle avait annoncée — sur notre
+   MAIN, jamais sur une coque que nous n'avons plus.
 6. **Les trois fins.** Résistance atteinte → **la prise**, butin plein. Coque à
    zéro avant → **coulée**, on ne repêche que 30 %. Plus une bordée → **elle
    s'échappe**, et l'on n'a rien. Les deux premières sont des victoires ; seul
    le butin diffère. La Tortue à zéro → la chasse est rompue.
 
+### Ce qui a été RETIRÉ, et qu'il ne faut pas reconstruire
+
+Le jeu était devenu trop chargé : sept systèmes à tenir en tête devant un écran
+de 375 px. Chacun de ceux-ci était défendable seul, aucun ne l'était ensemble.
+
+| Retiré | Ce qu'il coûtait |
+|---|---|
+| **L'avant et l'arrière** — quarts, `SEUIL_GREEMENT`, `boutDe`, la position du bandeau | Un homme portait un bord ET un bout ; le bout ne servait qu'à ouvrir le tir au gréement. Un homme n'a plus qu'un **bord**. |
+| **Les mâts et le démâtage** — `mats`, `matsMax`, `regreement` | Un compteur, un seuil de puissance et un décompte de repousse, pour un seul effet : empêcher la carte annoncée. |
+| **L'encrassement des bords** — `encrasse`, `encrasseTours`, les deux soupapes, l'écouvillon | Trois règles pour une seule contrainte. Il ne reste que celle qui se voit : une volée est d'un seul bord. |
+| **La météo en combat** — `damageMult` | Une même main valait deux chiffres selon le ciel, qu'il fallait lire avant de compter. Elle reste le **décor** : ciel, houle, pluie. |
+| **Les règles de prise** — `lest`, `cuirasse`, `franc_bord`, `riposte` | Quatre exceptions à retenir pour cinq navires, chacune corrigeant le total après coup. |
+| **Les PV de La Tortue et la riposte chiffrée** | On ne peut plus couler. On perd en **manquant le seuil**, et c'est la seule façon. |
+
+**La variété doit venir des OFFICIERS et des RELIQUES, pas des règles de base.**
+C'est la contrepartie de cette coupe : quatre objets y ont perdu leur verbe et
+en ont reçu un neuf plutôt que d'être supprimés — le Maître voilier paie le
+gabier, le Pilote montre la carte d'après, la Hune coupe la première annonce de
+la rencontre, les écouvillons donnent une place de plus dans la volée. Un objet
+qui ne change aucune règle n'est qu'un texte.
+
 ### Les trois choses qui font la décision
 
 **LE BORD — avec qui.** Chaque homme sert d'un côté : bâbord ou tribord, et la
-carte le dit par sa couleur, celle des vrais feux de position — **bâbord
-rouge, tribord vert**. Une volée ne mêle pas les deux bords. Et **le bord qui
-vient de tirer recharge** : au tour suivant, c'est l'autre qui parle. Il faut
-alterner ; c'est le verbe du jeu.
+carte le dit par son FOND, aux couleurs des vrais feux de position — **bâbord
+rouge, tribord vert**. Une volée ne mêle pas les deux bords. C'est la seule
+contrainte de composition, et elle suffit.
 
-**L'AVANT ET L'ARRIÈRE — sur quoi.** Une volée descend à la coque : ce sont
-les dégâts. Elle monte au gréement si **tous** les hommes sont à l'avant **et**
-qu'un gabier en est — elle n'entame alors pas la coque, elle abat un mât, et
-un mât qui tombe **emporte le coup annoncé**. Il se regrée en deux tours.
-C'est le seul échange du jeu : des dégâts contre un répit.
-
-**LA RELÈVE — combien de coups.** Cinq cartes en main, **trois au plus dans
-une volée**, la main refaite **à ras** après chaque bordée. La rareté n'est pas
-dans le nombre d'hommes qu'on reçoit, elle est dans le nombre de **coups** :
-quatre bordées contre une résistance annoncée. Une relève de deux hommes par
-tour faisait la même chose de façon détournée, et le joueur ne voyait jamais le
-compte ; ici les deux compteurs sont sur le ruban.
-
-Deux soupapes vont avec le rechargement des canons, et toutes deux viennent
-d'une main devenue petite : **un homme qui tire seul n'encrasse pas son bord**,
-et si aucun homme du bord libre n'est en main, le bord encrassé reprend le
-service. Sans elles, le joueur passait des tours entiers sans un coup à jouer —
-et un tour perdu n'est pas une décision.
+**LE GABIER — ce qu'on empêche.** La prise annonce sa carte un tour à l'avance.
+**Un gabier dans la volée la coupe** : elle n'aura pas lieu. C'est tout ce qui
+reste du gréement, et c'est assez — il n'y a rien à réunir, pas de seuil à
+franchir, pas de mât à compter ; il occupe simplement une des trois places, et
+c'est là tout son prix.
 
 **LE RECHARGEMENT — quand renoncer à tirer.** Trois par rencontre. On tire la
 volée vers le **bas** : ces hommes-là repartent au fond du paquet, on en reprend
-autant, et la prise **ne riposte pas**. C'est la seconde monnaie, et elle ne se
-convertit pas dans la première : dépenser un rechargement, c'est parier qu'une
-meilleure main rapportera plus que le coup qu'on ne tire pas. Mesuré sur la
-flûte, un capitaine qui s'en sert la prend **51 fois sur 60** contre **16** pour
-celui qui les garde — c'est le test le plus important du dépôt (§5).
+autant, et la prise **ne joue pas sa carte**. C'est la seconde monnaie, et elle
+ne se convertit pas dans la première. Mesuré sur la flûte, un capitaine qui s'en
+sert la prend **56 fois sur 60** contre **28** pour celui qui les garde.
 
-**LE GRÉEMENT — pousser sans abîmer.** Une volée au gréement met **autant de
-pression** qu'une volée à la coque et n'entame rien : c'est le seul moyen de
-faire céder une grosse prise sans l'envoyer par le fond, là où sa résistance
-dépasse sa coque. L'abordage pousse plus fort encore, et une prise abordée qui
-se rend rapporte 30 % de plus.
+**SA CARTE TOUCHE LA MAIN, PAS LA COQUE** — on n'en a plus. Mitraille (blesse le
+meilleur homme), brûlot (une carte Feu), grappin (le meilleur homme repart au
+fond du paquet), belle manœuvre (un rechargement de moins), colmatage (la
+pression retombe de 12). Ce qu'elle nous prend, ce sont des hommes et des coups.
 
 **LES OFFICIERS — les jokers.** Trois au plus à l'état-major, engagés au
 partage. Ils ne se jouent pas : ils sont là et ils **changent une règle** (le
-Bosco pousse chaque canonnier, le Maître voilier abaisse le seuil du gréement,
-le Chirurgien allège les blessures…). Leur nom, leur texte et leur prix sont
+Bosco pousse chaque canonnier, le Maître voilier paie le gabier, le Pilote
+montre la carte d'après, le Chirurgien allège les blessures…). Leur nom, leur texte et leur prix sont
 du contenu ; leur **verbe est du code**, dans `src/cartes.js` — c'est la seule
 chose du jeu qui demande une ligne de code pour être ajoutée, et c'est voulu :
 un officier qui ne changerait aucune règle ne serait qu'un homme de plus.
 
-**Pas de multiplicateur.** Une volée rend un chiffre, et le détail dit d'où
-vient chaque point. Les métiers apportent des effets, pas des coefficients :
-le canonnier sa valeur, le gabier règle le tir sur le meilleur canonnier,
-l'abordeur compte double sous la moitié, le charpentier **ne répare que s'il
-est seul** dans la volée.
+**Quatre métiers, et rien de plus à retenir.** Le canonnier apporte sa valeur,
+le gabier règle le tir sur le meilleur canonnier **et coupe la carte annoncée**,
+l'abordeur compte double sous la moitié de coque, le charpentier — **seul dans
+la volée** — jette les Feux par-dessus bord.
 
 Attention aux **seuils écrits en toutes lettres dans les règles de prise** :
 « une volée de moins de trois hommes ne l'entame pas » a été écrit quand on
@@ -249,12 +254,11 @@ sert `tools/mobile-audit.mjs`.
   forme et de couleur d'un téléphone à l'autre. Le glyphe se dimensionne sur la
   HAUTEUR du bandeau ; mesuré sur la largeur de la carte, il poussait le nom
   dehors.
-- **L'avant et l'arrière se disent par la PLACE du bandeau** : collé en haut
-  pour l'avant, collé en bas pour l'arrière, épousant les coins arrondis de ce
-  côté-là. La position porte l'information ; le chevron ▲/▼ qui la doublait
-  était un second code à apprendre pour la même chose.
+- **Le bandeau est toujours en haut.** Il était collé en haut ou en bas selon
+  que l'homme servait à l'avant ou à l'arrière ; l'avant et l'arrière sont
+  retirés, et c'est une chose de moins à décoder sur chaque carte.
 - **Une main se lit alors comme des jetons** : deux fonds, quatre couleurs de
-  bandeau, deux positions, et pas un mot à lire.
+  bandeau, et pas un mot à lire.
 - **La carte est au rapport 1 pour 1,45**, la proportion d'une carte à jouer.
   À 1 pour 2,5 elle était une lame, et le centre restait vide entre le haut et
   le pied. La valeur occupe ce centre et fait 40 % de la hauteur ; le nom passe
@@ -269,8 +273,9 @@ sert `tools/mobile-audit.mjs`.
 - **Un homme injouable se DÉSATURE, il ne s'efface pas** : sous 0,55
   d'opacité sa valeur cesse d'être lisible, et une carte qu'on ne peut pas
   lire ne dit plus pourquoi elle est refusée.
-- **Le schéma de coque ne vit que dans l'infobulle** : sur la carte, il
-  disputait la place à la valeur.
+- **Le schéma de coque est retiré avec le quart.** Il montrait un quart — bord
+  ET bout — sur une coque vue de dessus. Un homme n'a plus qu'un bord, et le
+  fond de sa carte le dit déjà.
 - **Le poste est un DESSIN, pas une abréviation** : une coque vue de dessus,
   proue en haut, coupée en quatre, le quart de l'homme allumé à la couleur de
   son bord. « BÂ · AV » demandait d'apprendre un code avant de pouvoir jouer.
@@ -435,7 +440,7 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 178 vérifications, zéro dépendance
+node test/run.js          # 177 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
@@ -447,15 +452,15 @@ le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
 *Les tests qui mesurent une décision de conception.* Dans `cartes.test.js` :
 
 - **« la promesse du tour »** — ce que la prise fera est annoncé avant qu'on
-  joue, et abattre un mât l'empêche vraiment. Si l'annonce ment, le tour
-  redevient un pari et tout le reste ne sert à rien.
+  joue, et un gabier dans la volée l'empêche vraiment. Si l'annonce ment, le
+  tour redevient un pari et tout le reste ne sert à rien.
 - **« est-ce que choisir compte ? »** — les mêmes mains, sur les mêmes
   graines, jouées par un capitaine appliqué et par un maladroit. Le maladroit
   doit perdre nettement.
 - **« le rechargement est la vraie seconde monnaie »** — le test le plus
   important du dépôt. Les mêmes mains, sur les mêmes graines : un capitaine qui
   dépense ses trois rechargements contre un qui les garde. Mesuré, l'écart est
-  de 8 prises sur 60 sur la barque et de **35 sur la flûte**. Il échoue si
+  de 7 prises sur 60 sur la barque et de **28 sur la flûte**. Il échoue si
   l'écart se referme, et c'est bien le point : tant qu'une seule ligne de jeu
   est optimale, le joueur exécute un calcul, il ne choisit rien.
 - **« les trois fins »** — résistance atteinte, coque à zéro, quatre bordées
@@ -466,13 +471,18 @@ bout de la mer à l'autre, et **chaque escale dit ce qu'elle est avant qu'on y
 aille**. Le jour où l'un des trois cesse d'être vrai, la carte redevient une
 liste de nœuds.
 
+- **« sa carte touche la main »** — aucune intention ne vise une coque que
+  nous n'avons plus, et une partie jouée jusqu'au bout ne finit jamais en
+  naufrage.
+
 **Un seuil qui casse là est une décision à prendre, pas un test à assouplir.**
-C'est ce test qui a écrit la moitié des règles ci-dessus : il a montré qu'un
-tir au gréement à la majorité partait
-par accident une fois sur deux (d'où « tous à l'avant, et un gabier ») ; qu'un
-mât perdu définitivement faisait du démâtage la seule tactique du jeu (d'où le
-regréement) ; et qu'un charpentier glissé dans chaque volée rendait plus de
-coque que la prise n'en enlevait (d'où « il ne répare que seul »).
+C'est ce test qui a écrit la moitié des règles ci-dessus, y compris celles qui
+ont fini par être retirées : le tir au gréement à la majorité partait par
+accident une fois sur deux, un mât perdu définitivement faisait du démâtage la
+seule tactique du jeu, un charpentier glissé dans chaque volée rendait plus de
+coque que la prise n'en enlevait. Chaque correctif tenait — et à la fin il y en
+avait sept à tenir en tête à la fois. **Un système qu'il faut rattraper par une
+exception est un système à retirer, pas à corriger.**
 
 C'est lui, encore, qui a tranché la structure. Sous le score additif, l'écart
 entre le capitaine appliqué et le maladroit était de 15 prises sur 60 ; le
@@ -537,10 +547,10 @@ seconde version du jeu à maintenir.
 
 ### Déviations actées par rapport au brief
 
-- **La météo reste en jeu** (`data/weather.json`) et agit vraiment : son
-  `damageMult` multiplie chaque volée. Le brief ne la cite pas en §2 ; ne pas
-  la supprimer par extrapolation depuis le §9, qui écarte le *vent* — un
-  système différent.
+- **La météo est du DÉCOR** (`data/weather.json`) : le ciel, la houle, la
+  pluie. Son `damageMult` a été retiré du combat — une même main valait deux
+  chiffres selon le ciel, qu'il fallait lire avant de compter. Ne pas la
+  remettre dans les règles ; ne pas la supprimer non plus.
 - **La réputation à trois factions et le Kraken Mécanique sont supprimés.**
 - **La carte macro est la vraie Caraïbe**, départ à l'Île de la Tortue.
 

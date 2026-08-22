@@ -55,7 +55,7 @@ test('the same seed played the same way ends the same way', () => {
       if (!b) { C.riposter(P); C.completer(P, rng); continue; }
       P.selection = b.cartes; C.jouer(P); C.riposter(P); C.completer(P, rng);
     }
-    return `${P.fini}/${P.prise.pv}/${P.nous.pv}`;
+    return `${P.fini}/${P.pression}/${P.prise.pv}/${P.bordees}`;
   };
   equal(jouer(31337), jouer(31337), 'two identical runs diverged');
 });
@@ -75,16 +75,30 @@ test('an impossible order says why, out loud', () => {
   }
 });
 
-test('the side that just fired has to reload — when they were several', () => {
+test('a volley is one side, and that is the only constraint on it', () => {
+  // L'ENCRASSEMENT EST RETIRÉ. Le bord qui venait de tirer rechargeait un tour,
+  // ce qui obligeait à alterner ; il fallait ensuite DEUX soupapes pour que le
+  // joueur ne se retrouve pas sans un coup à jouer (un homme seul n'encrasse
+  // pas, un bord encrassé reprend le service si l'autre est absent de la main).
+  // Trois règles pour une seule contrainte. Il ne reste que celle qui se voit.
   const { P } = partie(CONTENU.prises[0], 11);
   const b = C.meilleureVolee(P);
-  if (b.cartes.filter((c) => !C.estFeu(c)).length < 2) return; // un homme seul recharge à temps
   P.selection = b.cartes;
   const bord = C.bordDeLaVolee(P, b.cartes);
   C.jouer(P);
-  equal(P.encrasse, bord, 'the side that fired is not fouled');
   const encore = P.main.find((c) => !C.estFeu(c) && C.bordDe(CONTENU, c) === bord);
-  if (encore) equal(C.peutJouer(P, encore).ok, false, 'a fouled side can still fire');
+  if (encore) equal(C.peutJouer(P, encore).ok, true, 'un bord qui vient de tirer est encore bloqué');
+
+  // La seule chose qu'on refuse, et à voix haute : mêler les deux bords.
+  const { P: Q } = partie(CONTENU.prises[0], 12);
+  const un = Q.main.find((c) => !C.estFeu(c));
+  Q.selection = [un];
+  const autre = Q.main.find((c) => !C.estFeu(c) && C.bordDe(CONTENU, c) !== C.bordDe(CONTENU, un));
+  if (autre) {
+    const r = C.selectionner(Q, autre);
+    equal(r.ok, false, 'une volée a pu mêler les deux bords');
+    assert(r.pourquoi, 'le refus ne dit pas pourquoi');
+  }
 });
 
 test('the encounter is an ante: four broadsides, three reloads, a full hand', () => {
@@ -111,14 +125,14 @@ test('the encounter is an ante: four broadsides, three reloads, a full hand', ()
 
 test('a reload swaps men without firing, and the prize does not answer', () => {
   const { P, rng } = partie(CONTENU.prises[1], 21);
-  const avantPv = P.nous.pv, avantTour = P.tour, avantBordees = P.bordees;
+  const avantTour = P.tour, avantBordees = P.bordees, avantAnnonce = P.prise.annonce.id;
   P.selection = P.main.slice(0, 3);
   const renvoyes = P.selection.slice();
   const ok = C.recharger(P, rng);
   assert(ok.ok, `le rechargement a été refusé : ${ok.pourquoi}`);
   equal(P.rechargements, C.RECHARGEMENTS - 1, 'le rechargement n’a rien coûté');
   equal(P.bordees, avantBordees, 'un rechargement a mangé une bordée');
-  equal(P.nous.pv, avantPv, 'la prise a riposté à un rechargement');
+  equal(P.prise.annonce.id, avantAnnonce, 'la prise a joué sa carte pendant un rechargement');
   equal(P.tour, avantTour, 'un rechargement a fait passer un tour');
   equal(P.main.length, C.tailleMain(P), 'la main n’a pas été refaite à ras');
   equal(P.pression, 0, 'un rechargement a mis de la pression');
@@ -150,6 +164,43 @@ test('the quartermaster and the false bottom buy shots, not nothing', () => {
   C.engager(Q, CONTENU.prises[0], METEO.brise, rngFor(3));
   equal(Q.bordees, C.BORDEES + 1, 'le double fond n’ajoute pas de bordée');
   equal(Q.rechargements, C.RECHARGEMENTS + 1, 'le quartier-maître n’ajoute pas de rechargement');
+});
+
+test('every officer and relic still has a verb after the cut', () => {
+  // LA CONTREPARTIE DE LA COUPE. Quatre objets ont perdu leur verbe avec les
+  // systèmes retirés : le Maître voilier et la Hune réglaient le seuil du
+  // gréement, le Pilote annulait le malus de météo, les écouvillons dégageaient
+  // un bord encrassé. Aucun n'a été supprimé — chacun a reçu un verbe neuf,
+  // parce que c'est aux officiers et aux reliques de porter la variété
+  // maintenant que les règles de base n'en portent plus.
+  const avec = (ids, rel = []) => {
+    const Q = C.nouvellePartie(CONTENU);
+    Q.officiers.push(...ids); Q.reliques.push(...rel);
+    C.engager(Q, CONTENU.prises[0], METEO.brise, rngFor(3));
+    return Q;
+  };
+  // Les écouvillons : une place de plus dans la volée.
+  equal(C.voleeMax(C.nouvellePartie(CONTENU)), C.MAIN_MAX, 'la volée nue ne fait pas trois hommes');
+  equal(C.voleeMax(avec([], ['ecouvillons'])), C.MAIN_MAX + 1, 'les écouvillons n’ajoutent pas de place');
+
+  // La hune : la première carte annoncée est coupée d'office.
+  equal(avec([], ['hune']).prise.tirAnnule, true, 'la hune ne coupe pas la première annonce');
+  equal(avec([]).prise.tirAnnule, false, 'la première annonce est coupée sans la hune');
+
+  // Le pilote : on voit la carte d'APRÈS.
+  const P = avec(['pilote']);
+  assert(P.prise.suivante && P.prise.suivante.nom, 'le pilote ne montre pas la carte suivante');
+  equal(avec([]).prise.suivante, null, 'la carte suivante se voit sans le pilote');
+
+  // Le maître voilier : un gabier porte de la fureur.
+  const V = avec(['maitre_voilier']);
+  const gabier = V.main.find((c) => !C.estFeu(c) && c.role === 'gabier');
+  if (gabier) {
+    const N = avec([]);
+    const memeGabier = N.main.find((c) => !C.estFeu(c) && c.role === 'gabier');
+    assert(C.evaluer(V, [gabier]).fureur > C.evaluer(N, [memeGabier]).fureur,
+      'le maître voilier n’ajoute aucune fureur à un gabier');
+  }
 });
 
 test('the three endings, and only the first pays in full', () => {
@@ -188,25 +239,6 @@ test('the three endings, and only the first pays in full', () => {
   equal(D.butin, 0, 'une prise échappée a quand même rapporté');
 });
 
-test('one man alone does not foul his side, and a stuck hand always has a shot', () => {
-  // Deux soupapes du rechargement, toutes deux nées d'une main de cinq cartes :
-  // un homme seul recharge à temps (sinon une grosse volée n'a pas de contraire),
-  // et si aucun homme du bord libre n'est en main, le bord encrassé reprend le
-  // service — sans quoi le joueur passait des tours entiers sans coup à jouer,
-  // et un tour perdu n'est pas une décision.
-  const { P } = partie(CONTENU.prises[0], 29);
-  const seul = P.main.find((c) => !C.estFeu(c));
-  P.selection = [seul];
-  C.jouer(P);
-  equal(P.encrasse, null, 'un homme seul a encrassé son bord');
-
-  const Q = partie(CONTENU.prises[0], 31).P;
-  const bord = C.bordDe(CONTENU, Q.main.find((c) => !C.estFeu(c)));
-  Q.encrasse = bord;
-  Q.main = Q.main.filter((c) => C.estFeu(c) || C.bordDe(CONTENU, c) === bord);
-  assert(Q.main.some((c) => C.peutJouer(Q, c).ok), 'une main d’un seul bord encrassé ne peut plus rien jouer');
-});
-
 suite('cartes — la promesse du tour');
 
 test('the prize announces her blow before it lands', () => {
@@ -219,41 +251,47 @@ test('the prize announces her blow before it lands', () => {
   equal(r.intention.id, annonce.id, 'the blow that landed is not the one announced');
 });
 
-test('shooting the rigging really cancels the announced blow', () => {
-  // On force une prise dont l'intention d'ouverture est un coup de canon, puis
-  // on tire au gréement : le coup annoncé ne doit pas partir.
-  let trouve = false;
-  for (let s = 1; s <= 80 && !trouve; s++) {
-    const { P } = partie({ ...CONTENU.prises[2], mats: 3 }, s * 31);
-    if (P.prise.annonce.effet !== 'canon') continue;
-    const g = C.meilleureVolee(P, { viser: 'greement' });
-    if (!g || !g.abat) continue;
-    trouve = true;
-    const avant = P.nous.pv;
-    P.selection = g.cartes;
-    const j = C.jouer(P);
-    equal(j.cible, 'greement', 'the volley did not aim at the rigging');
-    equal(P.prise.mats, 2, 'no mast came down');
-    const r = C.riposter(P);
-    equal(r.annulee, true, 'the announced blow still landed');
-    equal(P.nous.pv, avant, 'La Tortue took damage from a cancelled blow');
-  }
-  assert(trouve, 'aucune graine ne produit un tir au gréement — le cas de test ne teste rien');
+test('a topman in the volley cancels the announced card', () => {
+  // TOUT CE QUI RESTE DU GRÉEMENT. Il n'y a plus de mât à abattre, plus de
+  // seuil de puissance à franchir, plus de regréement à compter : un gabier est
+  // de la volée ou il n'y est pas. Trois états à tenir en tête sont devenus un
+  // seul, et il se lit sur la carte.
+  const { P } = partie(CONTENU.prises[2], 5);
+  const gabier = P.main.find((c) => !C.estFeu(c) && c.role === 'gabier');
+  if (!gabier) return;
+  P.selection = [gabier];
+  const j = C.jouer(P);
+  equal(j.annule, true, 'un gabier dans la volée n’annule pas la carte annoncée');
+  const r = C.riposter(P);
+  equal(r.annulee, true, 'la carte annoncée est tombée quand même');
+
+  // Et sans gabier, elle tombe.
+  const { P: Q } = partie(CONTENU.prises[2], 5);
+  const sans = Q.main.filter((c) => !C.estFeu(c) && c.role !== 'gabier');
+  if (!sans.length) return;
+  Q.selection = [sans[0]];
+  equal(C.jouer(Q).annule, false, 'une volée sans gabier annule quand même');
+  equal(C.riposter(Q).annulee, false, 'la carte annoncée n’est pas tombée');
 });
 
-test('a mast is a reprieve, not a switch: it grows back', () => {
-  // Un mât définitivement perdu faisait de la mise à mal du gréement la seule
-  // tactique du jeu — y compris pour un joueur qui l'atteignait par hasard.
-  // Il se regrée, et la prise tire plus faiblement en attendant.
-  const { P, rng } = partie({ ...CONTENU.prises[2], pv: 99999 }, 17);
-  const g = C.meilleureVolee(P, { viser: 'greement' });
-  if (!g || !g.abat) return;
-  const mats0 = P.prise.mats;
-  P.selection = g.cartes; C.jouer(P);
-  equal(P.prise.mats, mats0 - 1, 'no mast came down');
-  C.riposter(P); C.completer(P, rng);
-  C.riposter(P); C.completer(P, rng);
-  equal(P.prise.mats, mats0, 'the mast never grew back');
+test('the prize takes her toll on the hand, never on a hull we no longer have', () => {
+  // SA CARTE NE TOUCHE PLUS NOTRE COQUE — nous n'en avons plus. Elle touche la
+  // main (mitraille, brûlot, grappin) ou le compteur (manœuvre, colmatage). On
+  // ne perd plus en coulant, on perd en manquant le seuil.
+  const bad = CONTENU.intentions.filter((i) => ['canon', 'virement', 'radoub'].includes(i.effet))
+    .map((i) => `${i.id} → effet retiré « ${i.effet} »`);
+  empty(bad, 'intentions still aiming at a hull that no longer exists');
+
+  const { P } = partie(CONTENU.prises[1], 5);
+  equal(P.nous, undefined, 'La Tortue a encore des points de vie');
+  let garde = 0;
+  while (!P.fini && garde++ < 12) {
+    const v = C.meilleureVolee(P);
+    P.selection = v ? v.cartes : [];
+    if (P.selection.length) C.jouer(P);
+    if (!P.fini) C.riposter(P);
+  }
+  assert(P.fini !== 'naufrage', 'on peut encore couler');
 });
 
 test('the fireship card actually reaches the hand', () => {
@@ -303,30 +341,33 @@ test('an officer changes a rule, and three at most sit at the table', () => {
 
 suite('cartes — contenu');
 
-test('every crew card names a role and a quarter that exist', () => {
+test('every crew card names a role and a side that exist', () => {
+  // Un homme n'a plus qu'un BORD : le quart (bord × bout) disparaît avec
+  // l'avant et l'arrière, et il ne restait de lui qu'une moitié.
   const roles = Object.keys(CONTENU.roles);
-  const quarts = Object.keys(CONTENU.quarts);
+  const bords = Object.keys(CONTENU.bords);
   const bad = [];
   for (const c of [...CONTENU.equipage, ...CONTENU.recrues]) {
     if (!roles.includes(c.role)) bad.push(`${c.id} → rôle inconnu « ${c.role} »`);
-    if (!quarts.includes(c.quart)) bad.push(`${c.id} → quart inconnu « ${c.quart} »`);
+    if (!bords.includes(c.bord)) bad.push(`${c.id} → bord inconnu « ${c.bord} »`);
+    if (c.quart != null) bad.push(`${c.id} → porte encore un quart`);
   }
-  for (const [id, q] of Object.entries(CONTENU.quarts)) {
-    if (!CONTENU.bords[q.bord]) bad.push(`quart ${id} → bord inconnu « ${q.bord} »`);
-    if (!['avant', 'arriere'].includes(q.bout)) bad.push(`quart ${id} → bout inconnu « ${q.bout} »`);
+  if (CONTENU.quarts) bad.push('data/equipage.json porte encore des quarts');
+  if (CONTENU.regles) bad.push('data/equipage.json porte encore des règles de prise');
+  if (CONTENU.tortue) bad.push('data/equipage.json porte encore les PV de La Tortue');
+  for (const p of CONTENU.prises) {
+    for (const k of ['mats', 'riposte', 'regle']) if (p[k] != null) bad.push(`prise ${p.id} porte encore « ${k} »`);
   }
   empty(bad, 'entries pointing at nothing');
 });
 
-test('both sides of the ship are playable, in both halves', () => {
-  // Un bord qui n'aurait presque personne rendrait le rechargement injouable.
+test('both sides of the ship have enough men to fire', () => {
+  // Un bord qui n'aurait presque personne rendrait la moitié des mains
+  // injouables : une volée ne mêle pas les deux bords.
   const compte = {};
-  for (const c of CONTENU.equipage) {
-    const q = CONTENU.quarts[c.quart];
-    compte[q.bord] = (compte[q.bord] || 0) + 1;
-  }
+  for (const c of CONTENU.equipage) compte[c.bord] = (compte[c.bord] || 0) + 1;
   const bad = Object.entries(compte).filter(([, n]) => n < 5).map(([b, n]) => `${b} : ${n} hommes`);
-  empty(bad, 'a side with too few men to fire on its turn');
+  empty(bad, 'a side with too few men to fire');
 });
 
 test('every officer has a name, a text and a price', () => {
@@ -338,7 +379,11 @@ test('every officer has a name, a text and a price', () => {
 });
 
 test('every prize rule and intention is defined', () => {
-  const bad = CONTENU.prises.filter((p) => p.regle && !CONTENU.regles[p.regle]).map((p) => `${p.id} → ${p.regle}`);
+  const bad = [];
+  const connus = CONTENU.intentions.map((i) => i.id);
+  for (const id of CONTENU.intentions_deck || []) {
+    if (!connus.includes(id)) bad.push(`intentions_deck → « ${id} » n'existe pas`);
+  }
   for (const i of CONTENU.intentions) {
     if (!i.nom || !i.texte || !i.effet) bad.push(`intention ${i.id} incomplète`);
   }

@@ -42,7 +42,7 @@
       "quand": [
         "argent_perou"
       ],
-      "texte": "De l'argent. Alors on vise le gréement, et rien d'autre."
+      "texte": "De l'argent. Alors on la pousse jusqu'à ce qu'elle amène, et rien d'autre."
     },
     {
       "moment": "ouverture",
@@ -194,7 +194,7 @@
       "quand": [
         "vent_a_elle"
       ],
-      "texte": "Le navire adverse a le vent. Tant que sa mâture tient, c'est lui qui décide de la distance."
+      "texte": "Le navire adverse a le vent. C'est lui qui décide de la distance, pas nous."
     },
     {
       "moment": "ouverture",
@@ -584,7 +584,7 @@
       "quand": [
         "ennemi_demate"
       ],
-      "texte": "Le gréement d'en face est à l'eau. Ce navire ne va plus nulle part."
+      "texte": "Ses officiers ont perdu la main. Elle annonce, et elle n'y arrive plus."
     },
     {
       "moment": "bascule",
@@ -664,7 +664,7 @@
       "quand": [
         "notre_demate"
       ],
-      "texte": "Plus de mâture. On ne s'approche plus, on ne fuit plus. On tire."
+      "texte": "On n'a plus le temps de manœuvrer. On tire, et on compte."
     },
     {
       "moment": "bascule",
@@ -1040,7 +1040,7 @@
       "moment": "denouement",
       "voix": "toussaint",
       "quand": [],
-      "texte": "Je vais voir ce qu'il reste de la coque."
+      "texte": "Elle nous a filé entre les doigts. On comptera les coups la prochaine fois."
     },
     {
       "moment": "denouement",

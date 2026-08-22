@@ -11,7 +11,7 @@
       "nom": "gabier",
       "court": "gabier",
       "verbe": "règle le tir sur le meilleur canonnier",
-      "aide": "Seul il ne vaut rien. Avec un canonnier, il tire à la même valeur que lui."
+      "aide": "Seul il ne vaut rien. Avec un canonnier, il tire à la même valeur que lui — et sa présence dans la volée ANNULE la carte que la prise avait annoncée."
     },
     "abordeur": {
       "nom": "abordeur",
@@ -31,98 +31,98 @@
       "id": "le_basque",
       "nom": "Le Basque",
       "role": "canonnier",
-      "quart": "ba",
+      "bord": "babord",
       "valeur": 10
     },
     {
       "id": "perrin",
       "nom": "Perrin",
       "role": "canonnier",
-      "quart": "br",
+      "bord": "babord",
       "valeur": 8
     },
     {
       "id": "guillou",
       "nom": "Guillou",
       "role": "canonnier",
-      "quart": "ta",
+      "bord": "tribord",
       "valeur": 10
     },
     {
       "id": "riou",
       "nom": "Riou",
       "role": "canonnier",
-      "quart": "tr",
+      "bord": "tribord",
       "valeur": 8
     },
     {
       "id": "bosser",
       "nom": "Bosser",
       "role": "canonnier",
-      "quart": "ba",
+      "bord": "babord",
       "valeur": 9
     },
     {
       "id": "kerlouan",
       "nom": "Kerlouan",
       "role": "gabier",
-      "quart": "ba",
+      "bord": "babord",
       "valeur": 2
     },
     {
       "id": "mahe",
       "nom": "Mahé",
       "role": "gabier",
-      "quart": "br",
+      "bord": "babord",
       "valeur": 2
     },
     {
       "id": "le_bihan",
       "nom": "Le Bihan",
       "role": "gabier",
-      "quart": "ta",
+      "bord": "tribord",
       "valeur": 2
     },
     {
       "id": "nedelec",
       "nom": "Nédélec",
       "role": "gabier",
-      "quart": "tr",
+      "bord": "tribord",
       "valeur": 2
     },
     {
       "id": "tanguy",
       "nom": "Tanguy",
       "role": "abordeur",
-      "quart": "ba",
+      "bord": "babord",
       "valeur": 6
     },
     {
       "id": "le_gall",
       "nom": "Le Gall",
       "role": "abordeur",
-      "quart": "br",
+      "bord": "babord",
       "valeur": 6
     },
     {
       "id": "jaouen",
       "nom": "Jaouen",
       "role": "abordeur",
-      "quart": "ta",
+      "bord": "tribord",
       "valeur": 6
     },
     {
       "id": "cadiou",
       "nom": "Cadiou",
       "role": "charpentier",
-      "quart": "br",
+      "bord": "babord",
       "valeur": 0
     },
     {
       "id": "herviou",
       "nom": "Herviou",
       "role": "charpentier",
-      "quart": "tr",
+      "bord": "tribord",
       "valeur": 0
     }
   ],
@@ -131,7 +131,7 @@
       "id": "etcheverry",
       "nom": "Etcheverry",
       "role": "canonnier",
-      "quart": "br",
+      "bord": "babord",
       "valeur": 13,
       "prix": 15
     },
@@ -139,7 +139,7 @@
       "id": "gohier",
       "nom": "Gohier",
       "role": "canonnier",
-      "quart": "tr",
+      "bord": "tribord",
       "valeur": 13,
       "prix": 15
     },
@@ -147,7 +147,7 @@
       "id": "coudray",
       "nom": "Coudray",
       "role": "gabier",
-      "quart": "ba",
+      "bord": "babord",
       "valeur": 4,
       "prix": 12
     },
@@ -155,7 +155,7 @@
       "id": "toussaint",
       "nom": "Toussaint",
       "role": "charpentier",
-      "quart": "ba",
+      "bord": "babord",
       "valeur": 0,
       "prix": 9
     },
@@ -163,7 +163,7 @@
       "id": "ravenel",
       "nom": "Ravenel",
       "role": "abordeur",
-      "quart": "ta",
+      "bord": "tribord",
       "valeur": 9,
       "prix": 15
     },
@@ -171,7 +171,7 @@
       "id": "kermarrec",
       "nom": "Kermarrec",
       "role": "abordeur",
-      "quart": "ba",
+      "bord": "babord",
       "valeur": 9,
       "prix": 15
     },
@@ -179,7 +179,7 @@
       "id": "lozac_h",
       "nom": "Lozac'h",
       "role": "gabier",
-      "quart": "ta",
+      "bord": "tribord",
       "valeur": 4,
       "prix": 12
     },
@@ -187,7 +187,7 @@
       "id": "quemeneur",
       "nom": "Quéméneur",
       "role": "canonnier",
-      "quart": "ba",
+      "bord": "babord",
       "valeur": 11,
       "prix": 12
     },
@@ -195,7 +195,7 @@
       "id": "le_dref",
       "nom": "Le Dréf",
       "role": "abordeur",
-      "quart": "tr",
+      "bord": "tribord",
       "valeur": 8,
       "prix": 12
     },
@@ -203,7 +203,7 @@
       "id": "morvan",
       "nom": "Morvan",
       "role": "canonnier",
-      "quart": "ta",
+      "bord": "tribord",
       "valeur": 11,
       "prix": 12
     }
@@ -216,10 +216,7 @@
       "hullClass": 6,
       "resistance": 90,
       "pv": 110,
-      "mats": 2,
-      "riposte": 12,
-      "butin": 14,
-      "regle": null
+      "butin": 14
     },
     {
       "id": "flute",
@@ -228,10 +225,7 @@
       "hullClass": 4,
       "resistance": 140,
       "pv": 150,
-      "mats": 2,
-      "riposte": 16,
-      "butin": 20,
-      "regle": "lest"
+      "butin": 20
     },
     {
       "id": "galion",
@@ -240,10 +234,7 @@
       "hullClass": 2,
       "resistance": 210,
       "pv": 190,
-      "mats": 3,
-      "riposte": 20,
-      "butin": 28,
-      "regle": "franc_bord"
+      "butin": 28
     },
     {
       "id": "fregate",
@@ -252,10 +243,7 @@
       "hullClass": 3,
       "resistance": 300,
       "pv": 240,
-      "mats": 3,
-      "riposte": 24,
-      "butin": 36,
-      "regle": "riposte"
+      "butin": 36
     },
     {
       "id": "vaisseau",
@@ -264,30 +252,9 @@
       "hullClass": 1,
       "resistance": 420,
       "pv": 310,
-      "mats": 3,
-      "riposte": 29,
-      "butin": 48,
-      "regle": "cuirasse"
+      "butin": 48
     }
   ],
-  "regles": {
-    "lest": {
-      "nom": "Lourdement lestée",
-      "texte": "Lourdement lestée : un homme seul ne l'entame pas."
-    },
-    "franc_bord": {
-      "nom": "Franc-bord haut",
-      "texte": "Muraille haute : un tir à la coque perd le tiers."
-    },
-    "riposte": {
-      "nom": "Riposte vive",
-      "texte": "La riposte part même après la perte d'un mât."
-    },
-    "cuirasse": {
-      "nom": "Bordé doublé",
-      "texte": "Bordé doublé : les dix premiers points de chaque volée ne portent pas."
-    }
-  },
   "reliques": [
     {
       "id": "longue_vue",
@@ -304,7 +271,7 @@
     {
       "id": "ecouvillons",
       "nom": "Écouvillons neufs",
-      "texte": "Un bord encrassé se dégage en un tour de moins.",
+      "texte": "+1 homme dans chaque volée (quatre au lieu de trois).",
       "prix": 27
     },
     {
@@ -322,7 +289,7 @@
     {
       "id": "hune",
       "nom": "Hune renforcée",
-      "texte": "Un tir au gréement abat un mât même sous le seuil.",
+      "texte": "La première carte annoncée de chaque rencontre est coupée d’office.",
       "prix": 24
     },
     {
@@ -332,32 +299,6 @@
       "prix": 27
     }
   ],
-  "quarts": {
-    "ba": {
-      "nom": "bâbord avant",
-      "bord": "babord",
-      "bout": "avant",
-      "court": "bâ · av"
-    },
-    "br": {
-      "nom": "bâbord arrière",
-      "bord": "babord",
-      "bout": "arriere",
-      "court": "bâ · ar"
-    },
-    "ta": {
-      "nom": "tribord avant",
-      "bord": "tribord",
-      "bout": "avant",
-      "court": "tri · av"
-    },
-    "tr": {
-      "nom": "tribord arrière",
-      "bord": "tribord",
-      "bout": "arriere",
-      "court": "tri · ar"
-    }
-  },
   "bords": {
     "babord": {
       "nom": "bâbord",
@@ -404,69 +345,48 @@
   ],
   "intentions": [
     {
-      "id": "bordee",
-      "nom": "Bordée",
-      "texte": "Tous les sabords d'un bord tirent ensemble, à hauteur de flottaison.",
-      "effet": "canon",
-      "force": 1.0
-    },
-    {
-      "id": "demi_bordee",
-      "nom": "Demi-bordée",
-      "texte": "Un seul pont donne. Le reste recharge.",
-      "effet": "canon",
-      "force": 0.6
-    },
-    {
-      "id": "enfilade",
-      "nom": "Tir d'enfilade",
-      "texte": "Le navire se place par le travers et balaie le pont de La Tortue.",
-      "effet": "canon",
-      "force": 1.8
-    },
-    {
       "id": "mitraille",
       "nom": "Mitraille",
       "texte": "Des clous et de la ferraille dans les gueules : ton meilleur homme en main est blessé (−2 jusqu'à la fin de la prise).",
-      "effet": "mitraille",
-      "force": 0.3
+      "effet": "mitraille"
     },
     {
       "id": "brulot",
       "nom": "Brûlot",
-      "texte": "Une barque en feu poussée vers ta coque : une carte Feu entre au-dessus de ta pioche.",
-      "effet": "brulot",
-      "force": 0.2
+      "texte": "Une barque en feu poussée contre le bord : une carte Feu entre au-dessus de ta pioche.",
+      "effet": "brulot"
     },
     {
-      "id": "virement",
-      "nom": "Virement de bord",
-      "texte": "Le navire vire : c'est ton autre bord qui se retrouve à recharger.",
-      "effet": "virement",
-      "force": 0
+      "id": "grappin",
+      "nom": "Grappin",
+      "texte": "Un grappin retient ton meilleur homme en main : il repart au fond du paquet.",
+      "effet": "grappin"
     },
     {
-      "id": "radoub_ennemi",
-      "nom": "Radoub",
-      "texte": "Les charpentiers du bord adverse colmatent sous la flottaison.",
-      "effet": "radoub",
-      "force": 0
+      "id": "manoeuvre",
+      "nom": "Belle manœuvre",
+      "texte": "Le navire prend le vent et gagne du temps : tu perds un rechargement.",
+      "effet": "manoeuvre"
+    },
+    {
+      "id": "colmatage",
+      "nom": "Colmatage",
+      "texte": "Les charpentiers du bord adverse reprennent le dessus : ta pression retombe de 12.",
+      "effet": "colmatage",
+      "force": 12
     }
   ],
-  "tortue": {
-    "pv": 98
-  },
   "intentions_deck": [
-    "bordee",
     "mitraille",
-    "demi_bordee",
-    "enfilade",
-    "bordee",
     "brulot",
-    "demi_bordee",
-    "virement",
-    "bordee",
-    "radoub_ennemi"
+    "colmatage",
+    "grappin",
+    "mitraille",
+    "manoeuvre",
+    "brulot",
+    "colmatage",
+    "mitraille",
+    "grappin"
   ],
   "officiers": [
     {
@@ -494,7 +414,7 @@
       "id": "maitre_voilier",
       "nom": "Le Maître voilier",
       "titre": "gabier en chef",
-      "texte": "Un tir au gréement abat un mât dès 20 de puissance.",
+      "texte": "Un gabier dans la volée porte +0,5 de fureur.",
       "prix": 24
     },
     {
@@ -515,7 +435,7 @@
       "id": "pilote",
       "nom": "Le Pilote côtier",
       "titre": "il connaît les fonds",
-      "texte": "La météo ne diminue plus jamais tes dégâts.",
+      "texte": "Tu vois la carte que la prise annoncera au tour SUIVANT.",
       "prix": 21
     }
   ]

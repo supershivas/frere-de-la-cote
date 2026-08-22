@@ -118,7 +118,7 @@ const houle = () => HOULE[P.meteo && P.meteo.id] || HOULE.brise;
 // Le canvas est RECADRÉ à la ligne de flottaison : la mer vient exactement au
 // bas de l'image, donc aligner deux coques par le bas les aligne par la
 // flottaison, quelles que soient leurs tailles de grille.
-function peindreCoque(cv, spec, facing, { matsAbattus = 0, feu = 0, px = 3 } = {}) {
+function peindreCoque(cv, spec, facing, { feu = 0, px = 3 } = {}) {
   if (!cv) return;
   const g = getGeneratedShip(spec);
   const grille = (g.grid || g).map((r) => (typeof r === 'string' ? r : r.join('')));
@@ -133,7 +133,7 @@ function peindreCoque(cv, spec, facing, { matsAbattus = 0, feu = 0, px = 3 } = {
   // navires, qui suffit à dire qu'ils flottent.
   const off = document.createElement('canvas');
   off.width = cols * px; off.height = rows * px;
-  drawGrid(off, greeVerte(grille, matsAbattus, eau), { color: g.palette, flag: '', facing, waterRow: eau });
+  drawGrid(off, grille, { color: g.palette, flag: '', facing, waterRow: eau });
 
   cv.width = cols * px; cv.height = (eau + 1) * px;
   const ctx = cv.getContext('2d');
@@ -150,15 +150,6 @@ function peindreCoque(cv, spec, facing, { matsAbattus = 0, feu = 0, px = 3 } = {
   if (feu > 0) allumer(cv, feu, px, eau, facing);
 }
 
-// Un mât abattu se VOIT : on efface le haut du gréement, un cran par mât.
-// C'est la même grille, tronquée — pas un second jeu de sprites à maintenir.
-function greeVerte(grille, abattus, eau) {
-  if (!abattus) return grille;
-  const hautPont = Math.max(0, eau - 6);
-  const coupe = Math.min(hautPont, Math.round((hautPont * abattus) / 3));
-  return grille.map((ligne, y) => (y < coupe ? '.'.repeat(ligne.length) : ligne));
-}
-
 // LE FEU FUME EN CONTINU. Peint dans le canvas, il ne bougeait qu'à la
 // repeinte — c'est-à-dire une fois par tour : un incendie figé. La braise
 // reste peinte (elle appartient à la coque), la fumée est un panache de DOM
@@ -172,7 +163,7 @@ let panache = null;
 function fumerEnContinu() {
   clearInterval(panache);
   const feux = () => [
-    { id: 'c-nous', f: P.nous.pv / P.nous.max },
+    { id: 'c-nous', f: 1 },
     { id: 'c-prise', f: P.prise ? P.prise.pv / P.prise.max : 1 },
   ].filter((x) => x.f < 0.4 && document.getElementById(x.id));
   panache = setInterval(() => {
@@ -257,7 +248,9 @@ const specPrise = () => ({
 
 function peindreCoques() {
   braise += 1;
-  const feuNous = P.nous.pv / P.nous.max < 0.4 ? (P.nous.pv / P.nous.max < 0.2 ? 2 : 1) : 0;
+  // La Tortue n'a plus de points de vie : elle ne brûle plus. C'est la prise
+  // qui fume, et seulement elle.
+  const feuNous = 0;
   const feuElle = P.prise.pv / P.prise.max < 0.4 ? (P.prise.pv / P.prise.max < 0.2 ? 2 : 1) : 0;
   // UNE SEULE ÉCHELLE pour les deux coques, calculée sur la plus haute et sur
   // la bande de mer disponible. Deux échelles différentes faisaient de la
@@ -277,8 +270,7 @@ function peindreCoques() {
   });
   const px = Math.max(1, Math.min(5, Math.floor(dispo / Math.max(...hauteurs))));
   peindreCoque(document.getElementById('c-nous'), specNous(), 1, { feu: feuNous, px });
-  peindreCoque(document.getElementById('c-prise'), specPrise(), -1,
-    { matsAbattus: P.prise.matsMax - P.prise.mats, feu: feuElle, px });
+  peindreCoque(document.getElementById('c-prise'), specPrise(), -1, { feu: feuElle, px });
   const h = houle();
   for (const id of ['c-nous', 'c-prise']) {
     const cv = document.getElementById(id);
@@ -399,8 +391,7 @@ function bouffee(pts, sens, taille = 1) {
 // orange : il fait un choc clair très bref, une masse de poussière sale qui
 // s'ouvre vers l'extérieur, et surtout du BOIS QUI VOLE. C'est le bois qui
 // dit que la coque a pris ; la fumée seule dit « quelque chose a explosé ».
-function impact(pt, cible = 'coque') {
-  const greement = cible === 'greement';
+function impact(pt) {
   // Le choc : un éclat de lumière très court, pas une explosion.
   const f = poser('choc');
   const o = dansLaMer(pt);
@@ -412,16 +403,14 @@ function impact(pt, cible = 'coque') {
 
   // La poussière : une seule masse, sale, qui s'ouvre et retombe.
   volute('poussiere', pt, {
-    largeur: greement ? 34 : 46, hauteur: greement ? 30 : 34,
-    vers: (Math.random() - 0.5) * 18, monte: greement ? -18 : -10,
+    largeur: 46, hauteur: 34,
+    vers: (Math.random() - 0.5) * 18, monte: -10,
     duree: 1400, lobes: 5, graine: Math.random() * 100,
   });
 
-  // Le bois. Beaucoup, et de la couleur de ce qui a été touché : du bordé
-  // sombre et du chêne clair pour la coque, de la toile et de l'espar pour
-  // le gréement.
-  copeaux(pt, greement ? 12 : 20,
-    greement ? ['#e6d9bd', '#cbb894', '#8a6234', '#f0e6cc'] : ['#b98a4b', '#8a6234', '#5a3d25', '#e6d9bd', '#3a2712']);
+  // Le bois. Beaucoup, de la couleur du bordé : c'est lui qui dit que la coque
+  // a pris. Il n'y a plus de tir au gréement, donc plus de toile qui vole.
+  copeaux(pt, 20, ['#b98a4b', '#8a6234', '#5a3d25', '#e6d9bd', '#3a2712']);
 }
 
 // LE BOULET. Il était noir, minuscule, et rapporté hors de l'écran : personne
@@ -455,8 +444,6 @@ async function tir(deId, versId, sens, texte, ton, { cible = 'coque' } = {}) {
   const ports = bouches(deId, sens);
   const cv = document.getElementById(versId);
   const r = cv ? cv.getBoundingClientRect() : null;
-  // Le point d'impact suit ce qu'on vise : le gréement en haut, la coque à la
-  // flottaison. Un boulet qui abat un mât ne doit pas frapper la cale.
   // OÙ LE BOULET FRAPPE. À la coque, c'est le bordé entre le pont et l'eau —
   // pas le milieu de l'image, qui tombait dans les voiles. On se sert des
   // repères relevés à la peinture : `pont` et `flottaison`, en pixels du
@@ -467,9 +454,7 @@ async function tir(deId, versId, sens, texte, ton, { cible = 'coque' } = {}) {
   const b = r
     ? {
       x: r.left + r.width * (0.36 + Math.random() * 0.28),
-      y: cible === 'greement'
-        ? r.top + r.height * 0.14
-        : r.top + pont + (flot - pont) * (0.35 + Math.random() * 0.45),
+      y: r.top + pont + (flot - pont) * (0.35 + Math.random() * 0.45),
     }
     : centre(versId, 0.5, 0.45);
 
@@ -540,8 +525,7 @@ function aborder(place) {
       engagerPrise(place);
       break;
     case 'port':
-      P.nous.pv = P.nous.max;
-      mot = `${place.name} : la Tortue est radoubée, et l'on recrute.`;
+      mot = `${place.name} : on relâche, et l'on recrute.`;
       lotPour = -1; ecran = 'partage'; rendre();
       break;
     case 'epave':
@@ -582,18 +566,22 @@ function tableau() {
   // passant. Les deux se lisent au même endroit, au moment du choix.
   const MANIERES = {
     coque: { nom: 'À la coque', dit: 'les boulets entrent dans le bordé : elle pousse et elle abîme' },
-    greement: { nom: 'Au gréement', dit: 'rien à la coque : elle pousse autant, et lui coupe son coup' },
     abordage: { nom: 'À l’abordage', dit: 'on saute à bord : c’est ce qui pousse le plus fort' },
-    radoub: { nom: 'Au radoub', dit: 'personne ne tire : on répare' },
+    radoub: { nom: 'Au radoub', dit: 'personne ne tire : le charpentier jette les Feux par-dessus bord' },
   };
   const m = MANIERES[r.cible] || MANIERES.coque;
   t.appendChild(el('div', { class: 'tb-tete' }, [
     el('span', { class: 'tb-cible', text: m.nom }),
     el('span', { class: 'tb-prix' }, [
       el('span', { class: 'tb-pression', text: `+${r.pression} ⚑` }),
-      r.degats > 0
-        ? el('span', { class: 'tb-degats', text: `${r.degats} ⚔ à la coque` })
-        : el('span', { class: 'tb-sauf', text: r.cible === 'radoub' ? '+12 ⛑' : 'coque intacte' }),
+      // CE QUE LA VOLÉE EMPÊCHE se lit à côté de ce qu'elle met : couper la
+      // carte annoncée est une décision au même titre que le chiffre, et elle
+      // était reléguée en fin de troisième ligne, où elle passait à la coupe.
+      r.annule
+        ? el('span', { class: 'tb-coupe', text: '✕ sa carte' })
+        : r.degats > 0
+          ? el('span', { class: 'tb-degats', text: `${r.degats} ⚔ coque` })
+          : el('span', { class: 'tb-sauf', text: r.cible === 'radoub' ? 'les Feux à l’eau' : 'coque intacte' }),
     ]),
   ]));
   t.appendChild(el('div', { class: 'tb-detail', text: m.dit }));
@@ -608,8 +596,8 @@ function tableau() {
     html: r.cible === 'radoub' ? 'une volée d’un seul charpentier répare et jette un Feu'
       : manque === 0 ? '<b>elle amène son pavillon</b>'
         : coque === 0 ? '<b>coulée avant de se rendre : on ne repêche que ce qui flotte</b>'
-          : `resterait ${manque} de pression en ${Math.max(0, P.bordees - 1)} bordée${P.bordees - 1 > 1 ? 's' : ''}`
-            + (r.cible === 'greement' && !r.abat ? ` · ${r.seuil} pour un mât` : ''),
+          : `resterait ${manque} en ${Math.max(0, P.bordees - 1)} bordée${P.bordees - 1 > 1 ? 's' : ''}`
+            + (r.annule ? ' · <b>elle ne jouera pas sa carte</b>' : ` · ${r.degats} à sa coque`),
   }));
   return t;
 }
@@ -654,69 +642,20 @@ function aideDe(c) {
     return '<div class="b-nom">Feu</div><div class="b-quoi">Un incendie à bord. Il occupe une place dans ta main '
       + 'et ne tire pas. Seul un charpentier, envoyé seul, peut le jeter par-dessus bord.</div>';
   }
-  const q = CONTENU.quarts[c.quart];
+  const b = CONTENU.bords[c.bord];
   const r = CONTENU.roles[c.role];
   const permis = C.peutJouer(P, c);
-  // LE SCHÉMA DE COQUE NE VIT PLUS QUE LÀ. Sur la carte, il disputait la
-  // place à la valeur ; dans la bulle, il a le temps d'être regardé.
+  // LE SCHÉMA DE COQUE EST RETIRÉ AVEC LE QUART. Il servait à montrer un
+  // quart — bord ET bout — sur une coque vue de dessus. Un homme n'a plus
+  // qu'un bord, et le fond de sa carte le dit déjà.
   return `<div class="b-nom">${c.nom}</div>`
-    + `<div class="b-poste">${posteVu(q).outerHTML}`
-    + `<span><b>${r.nom}</b><br>${q.nom}<br>valeur ${C.valeur(c, P)}`
+    + `<div class="b-poste"><span><b>${r.nom}</b><br>${b.nom}<br>valeur ${C.valeur(c, P)}`
     + `${c.blesse ? ' (blessé)' : ''}${c.grade ? ` · gradé ${'★'.repeat(c.grade)}` : ''}</span></div>`
     + `<div class="b-quoi">${r.aide}</div>`
     + (permis.ok ? '' : `<div class="b-refus">${permis.pourquoi}</div>`);
 }
 
 /* ---------------------------------------------------------------- la main */
-
-// LE POSTE, DESSINÉ. Une coque vue de dessus, proue en haut, coupée en quatre
-// par l'axe et par le maître-bau ; le quart de l'homme est allumé à la couleur
-// de son bord. Un dessin se lit sans traduction — « BÂ · AV » demandait au
-// joueur d'apprendre un code avant de pouvoir jouer.
-function posteVu(q) {
-  const NS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 34 42');
-  const forme = 'M17 1 C24 8 30 15 30 25 C30 34 25 40 17 41 C9 40 4 34 4 25 C4 15 10 8 17 1 Z';
-  const coque = document.createElementNS(NS, 'path');
-  coque.setAttribute('d', forme);
-  coque.setAttribute('class', 'coque-fil');
-  svg.appendChild(coque);
-
-  // Le quart allumé, découpé par un masque à la forme de la coque : le
-  // remplissage ne déborde jamais du bordé.
-  const id = `q${q.bord}-${q.bout}`;
-  const clip = document.createElementNS(NS, 'clipPath');
-  clip.setAttribute('id', id);
-  const cp = document.createElementNS(NS, 'path');
-  cp.setAttribute('d', forme);
-  clip.appendChild(cp);
-  svg.appendChild(clip);
-
-  const r = document.createElementNS(NS, 'rect');
-  // bâbord = gauche du dessin (on regarde le navire de dessus, proue en haut)
-  r.setAttribute('x', q.bord === 'babord' ? 0 : 17);
-  r.setAttribute('y', q.bout === 'avant' ? 0 : 21);
-  r.setAttribute('width', 17);
-  r.setAttribute('height', 21);
-  r.setAttribute('class', 'quart on');
-  r.setAttribute('clip-path', `url(#${id})`);
-  svg.appendChild(r);
-
-  for (const d of ['M17 2 L17 40', 'M5 21 L29 21']) {
-    const l = document.createElementNS(NS, 'path');
-    l.setAttribute('d', d); l.setAttribute('class', 'axe');
-    svg.appendChild(l);
-  }
-  const cadre = document.createElementNS(NS, 'path');
-  cadre.setAttribute('d', forme);
-  cadre.setAttribute('fill', 'none');
-  cadre.setAttribute('stroke', '#241608');
-  cadre.setAttribute('stroke-width', '1.6');
-  svg.appendChild(cadre);
-
-  return el('span', { class: 'c-poste' }, [svg]);
-}
 
 // Le dedans d'une carte, écrit UNE fois : la main et la réserve montrent
 // exactement le même objet, à l'échelle près. Deux gabarits qui divergent, ce
@@ -753,20 +692,14 @@ function metierVu(role) {
 //
 // LE BORD EST L'ENSEIGNE, comme la couleur d'une carte à jouer : c'est lui qui
 // décide si deux hommes tirent ensemble, donc c'est lui qui porte le FOND de
-// la carte entière. Le métier, lui, est le symbole. L'AVANT ET L'ARRIÈRE se
-// disent par la PLACE du symbole — en haut pour l'avant, en bas pour l'arrière
-// — et par rien d'autre : un chevron en plus aurait été un second code à
-// apprendre pour la même information.
+// la carte entière. Le métier, lui, est le bandeau.
+//
+// Le bandeau était COLLÉ EN HAUT ou EN BAS selon que l'homme servait à l'avant
+// ou à l'arrière. L'avant et l'arrière sont retirés : il n'y a plus qu'une
+// position, en haut, et une chose de moins à décoder sur chaque carte.
 function contenuCarte(c) {
   const feu = C.estFeu(c);
-  const q = feu ? null : CONTENU.quarts[c.quart];
-  // LE BANDEAU DE MÉTIER : pleine largeur, un quart de la hauteur, sa propre
-  // couleur, le glyphe dedans, et le nom sous le glyphe. Il est COLLÉ au bord
-  // de la carte — en haut pour l'avant, en bas pour l'arrière — et il en
-  // épouse les coins arrondis de ce côté-là. Une main se lit alors comme des
-  // jetons : deux fonds, quatre couleurs de bandeau, deux positions, et pas
-  // un mot à lire.
-  const bandeau = el('span', { class: `c-bandeau ${feu ? 'avant' : q.bout}` }, [
+  const bandeau = el('span', { class: 'c-bandeau' }, [
     feu ? null : metierVu(c.role),
     el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
   ]);
@@ -786,15 +719,15 @@ function contenuCarte(c) {
 function carteVue(c, rang = 0, neuve = false) {
   const feu = C.estFeu(c);
   const pris = P.selection.includes(c);
-  const q = feu ? null : CONTENU.quarts[c.quart];
+  const b = feu ? null : CONTENU.bords[c.bord];
   const permis = C.peutJouer(P, c);
   const n = el('button', {
     class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}${c.blesse ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}${neuve ? ' neuve' : ''}`,
     attrs: {
       type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`,
-      'data-bord': feu ? '' : q.bord, 'data-role': feu ? 'feu' : c.role,
+      'data-bord': feu ? '' : c.bord, 'data-role': feu ? 'feu' : c.role,
       'aria-label': feu ? 'Feu — encombre la main'
-        : `${c.nom}, ${c.role}, ${q.nom}, valeur ${C.valeur(c)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
+        : `${c.nom}, ${c.role}, ${b.nom}, valeur ${C.valeur(c)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
     },
     on: {
       // Un retour SOUS LE DOIGT, avant même que l'état change : la carte
@@ -857,7 +790,7 @@ function ecranChasse() {
   s.appendChild(el('div', { class: 'ruban' }, [
     el('div', { class: 'rb-txt' }, [
       el('div', { class: 'rb-quoi', text: `Prendre ${p.nom}` }),
-      el('div', { class: 'rb-rang', text: `${P.encrasse ? `${CONTENU.bords[P.encrasse].nom} recharge` : p.rang}` }),
+      el('div', { class: 'rb-rang', text: p.rang }),
     ]),
     // LES DEUX COMPTEURS DE LA RENCONTRE, à gauche du butin. Ce sont eux la
     // ressource : quatre bordées à tirer, trois rechargements à dépenser.
@@ -872,15 +805,15 @@ function ecranChasse() {
   // Les deux plaques sont dans UNE rangée en haut de la bande : posées
   // au-dessus de chaque coque, elles se retrouvaient à deux hauteurs
   // différentes selon la taille des navires, et l'œil lisait deux mers.
-  const mats = '|'.repeat(p.mats) + '.'.repeat(p.matsMax - p.mats);
-  const matsHtml = mats.split('').map((ch) => (ch === '|' ? '|' : '<span class="bas">.</span>')).join('');
   const mer = el('div', { class: 'mer' }, [
     el('div', { class: 'etiquettes' }, [
+      // LA TORTUE N'A PLUS DE JAUGE : elle n'a plus de points de vie, on ne
+      // peut plus couler. Sa plaque dit ce qui nous reste à dépenser — c'est
+      // la seule chose de notre côté qui puisse manquer.
       el('div', { class: 'etiq nous' }, [
         el('div', { class: 'e-nom', text: 'La Tortue' }),
-        el('div', { class: 'jauge notre' }, [el('i', { attrs: { style: `width:${(100 * P.nous.pv) / P.nous.max}%` } })]),
         el('div', { class: 'e-chif' }, [
-          el('span', { text: `${P.nous.pv} / ${P.nous.max}` }),
+          el('span', { class: 'e-fort', text: `${P.bordees} bordée${P.bordees > 1 ? 's' : ''}` }),
           el('span', { class: 'e-mats', text: `main ${P.main.length}/${C.tailleMain(P)}` }),
         ]),
       ]),
@@ -893,7 +826,6 @@ function ecranChasse() {
         el('div', { class: 'jauge pression' }, [el('i', { attrs: { style: `width:${Math.min(100, (100 * P.pression) / p.resistance)}%` } })]),
         el('div', { class: 'e-chif' }, [
           el('span', { class: 'e-fort', text: `${P.pression} / ${p.resistance}` }),
-          el('span', { class: 'e-mats', html: matsHtml }),
         ]),
         el('div', { class: 'jauge bordage' }, [el('i', { attrs: { style: `width:${(100 * p.pv) / p.max}%` } })]),
         el('div', { class: 'e-chif menu' }, [el('span', { text: `coque ${p.pv} / ${p.max}` })]),
@@ -908,20 +840,16 @@ function ecranChasse() {
   // 44 px qui les ouvre toutes — trois puces de 17 px de haut étaient trois
   // cibles qu'un pouce rate, et l'audit mobile les relevait.
   const conditions = [];
+  // LA MÉTÉO EST DU DÉCOR. Elle multipliait chaque volée, si bien qu'une même
+  // main valait deux chiffres différents selon le ciel et qu'il fallait le lire
+  // avant de compter. Elle reste le ciel, la houle et la pluie, et elle le dit.
   if (P.meteo) {
-    const m = P.meteo.mods.damageMult || 1;
     conditions.push({
-      chip: `${P.meteo.icon} ${P.meteo.name_fr}${m !== 1 ? ` ×${m}` : ''}`, cls: '',
+      chip: `${P.meteo.icon} ${P.meteo.name_fr}`, cls: '',
       titre: `${P.meteo.icon} ${P.meteo.name_fr}`,
-      corps: `${P.meteo.desc_fr || ''} ${m === 1 ? 'Aucun effet sur tes volées.'
-        : m < 1 ? `<b>Tes volées perdent ${Math.round((1 - m) * 100)} %</b> : la mer gêne le pointage.`
-          : `<b>Tes volées gagnent ${Math.round((m - 1) * 100)} %</b> : la mer porte le tir.`}`,
+      corps: `${P.meteo.desc_fr || ''} <b>Aucun effet sur tes volées</b> — le temps qu'il fait ne change pas ce que valent tes hommes.`,
     });
   }
-  if (p.regle) conditions.push({
-    chip: `⚑ ${CONTENU.regles[p.regle].nom}`, cls: 'regle', titre: `⚑ ${CONTENU.regles[p.regle].nom}`,
-    corps: `${CONTENU.regles[p.regle].texte} C'est la particularité de ce navire-là ; un autre en aura une autre.`,
-  });
   for (const id of P.reliques) {
     const r = CONTENU.reliques.find((x) => x.id === id);
     if (r) conditions.push({ chip: `✦ ${r.nom}`, cls: 'relique', titre: `✦ ${r.nom}`, corps: r.texte });
@@ -939,21 +867,24 @@ function ecranChasse() {
   // c'est une carte — même facture que les nôtres, teinte sombre — posée sous
   // SON navire. Elle appartient visuellement à la prise, et le joueur n'a
   // qu'un seul vocabulaire de forme à apprendre.
+  // Sa carte ne porte plus de chiffre de dégâts : elle ne touche plus notre
+  // coque, elle touche notre MAIN. Ce qu'elle prend s'écrit en toutes lettres.
   const a = p.annonce;
-  const chiffre = a.effet === 'canon'
-    ? `−${Math.round(p.riposte * a.force * (0.5 + 0.5 * (p.mats / p.matsMax)))}`
-    : '⚑';
+  const chiffre = '⚑';
   const saCarte = el('div', {
     class: `sa-carte${p.tirAnnule ? ' annulee' : ''}`,
     attrs: { role: 'button', tabindex: '0', 'aria-label': `${a.nom} — ${a.texte}` },
     on: { click: () => bulleSur(saCarte, `<div class="b-nom">${a.nom}</div>`
-      + `<div class="b-quoi">${p.tirAnnule ? `Le mât abattu emporte le tir : ${p.nom} ne fera rien ce tour-ci.` : a.texte}</div>`
+      + `<div class="b-quoi">${p.tirAnnule ? `Les gabiers ont coupé sa manœuvre : ${p.nom} ne fera rien ce tour-ci.` : a.texte}</div>`
       + `<div>${p.nom} joue cette carte à la fin de ton tour, pas avant.</div>`) },
   }, [
-    el('div', { class: 'sa-tete' }, [el('span', { text: p.tirAnnule ? 'emporté' : 'sa carte' })]),
+    el('div', { class: 'sa-tete' }, [el('span', { text: p.tirAnnule ? 'coupée' : 'sa carte' })]),
     el('div', { class: 'sa-nom', text: a.nom }),
     el('div', { class: 'sa-mesure', text: p.tirAnnule ? '✕' : chiffre }),
     el('div', { class: 'sa-pied', text: p.tirAnnule ? 'sans effet' : 'fin du tour' }),
+    // LE PILOTE MONTRE LA CARTE D'APRÈS, en pied de la sienne : c'est de
+    // l'information pure, et c'est tout ce qu'il vend.
+    p.suivante ? el('div', { class: 'sa-suite', text: `puis ${p.suivante.nom}` }) : null,
   ]);
   mer.appendChild(saCarte);
 
@@ -976,7 +907,7 @@ function ecranChasse() {
   const parRole = {};
   for (const c of reste) {
     if (C.estFeu(c)) { parRole.feu = (parRole.feu || 0) + 1; continue; }
-    parBord[CONTENU.quarts[c.quart].bord] += 1;
+    parBord[c.bord] += 1;
     parRole[c.role] = (parRole[c.role] || 0) + 1;
   }
   const roles = Object.entries(parRole)
@@ -1007,7 +938,7 @@ function ecranChasse() {
       class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.blesse ? ' blesse' : ''}`,
       attrs: {
         style: `--rang:${i}`,
-        'data-bord': C.estFeu(c) ? '' : CONTENU.quarts[c.quart].bord,
+        'data-bord': C.estFeu(c) ? '' : c.bord,
         'data-role': C.estFeu(c) ? 'feu' : c.role,
       },
     }, contenuCarte(c)))));
@@ -1178,8 +1109,7 @@ async function tirer() {
     await attendre(500);
   } else {
     await tir('c-nous', 'c-prise', 1,
-      r.cible === 'greement' ? (r.abat ? 'un mât !' : 'dans les voiles') : `−${r.degats}`,
-      r.cible === 'greement' ? '' : 'dmg', { cible: r.cible });
+      `−${r.degats}`, 'dmg', { cible: r.cible });
     if (r.pression > 0) fxFloatText(centre('c-prise', 0.5, 0.82).x, centre('c-prise', 0.5, 0.82).y, `+${r.pression} ⚑`, '');
   }
   peindreCoques();
@@ -1191,7 +1121,7 @@ async function tirer() {
   await attendre(180);
   const rip = C.riposter(P);
   if (rip.annulee) {
-    fxFloatText(centre('c-prise').x, centre('c-prise').y - 24, 'tir emporté', '');
+    fxFloatText(centre('c-prise').x, centre('c-prise').y - 24, 'carte coupée', '');
     await attendre(560);
   } else if (rip.degats > 0) {
     await tir('c-prise', 'c-nous', -1, `−${rip.degats}`, 'dmg');
@@ -1218,7 +1148,8 @@ async function tirer() {
   mot = [rip.annulee ? rip.raison : null, ...rip.effets].filter(Boolean).join(' ');
   peindreCoques();
   occupe = false;
-  if (P.fini === 'naufrage') { ecran = 'naufrage'; rendre(); return; }
+  // On ne coule plus : `naufrage` n'existe plus comme fin. La seule façon de
+  // perdre est de manquer le seuil, et c'est la riposte qui la constate.
   // La riposte peut clore la rencontre elle aussi : plus une bordée à tirer et
   // la prise force de voiles. Sans ce second passage, la manche restait ouverte
   // sur un écran où plus rien n'était jouable.
@@ -1242,7 +1173,7 @@ function offres() {
     lot = [
       ...C.melanger(dispo, rng).slice(0, 2).map((r) => ({
         nom: `Recruter ${r.nom}`, prix: r.prix,
-        det: `${r.role} · ${CONTENU.quarts[r.quart].nom} · valeur ${r.valeur}`,
+        det: `${r.role} · ${CONTENU.bords[r.bord].nom} · valeur ${r.valeur}`,
         acheter: () => C.recruter(P, r),
       })),
       ...C.melanger(rel, rng).slice(0, 1).map((r) => ({ nom: r.nom, prix: r.prix, det: r.texte, acheter: () => C.acheterRelique(P, r) })),
@@ -1261,7 +1192,7 @@ function ecranPartage() {
   s.appendChild(el('div', { class: 'ruban' }, [
     el('div', { class: 'rb-txt' }, [
       el('div', { class: 'rb-quoi', text: P.fini === 'echec' ? 'Rien à partager' : 'Partage du butin' }),
-      el('div', { class: 'rb-rang', text: `${P.prisesFaites} prise(s) · La Tortue radoubée` }),
+      el('div', { class: 'rb-rang', text: `${P.prisesFaites} prise(s) · on relâche` }),
     ]),
     el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
   ]));
@@ -1461,25 +1392,18 @@ function appliquer(b) {
       if (libres.length) { P.butin += libres[0].prix; C.recruter(P, libres[0]); mot = `${libres[0].nom} embarque.`; }
       break;
     }
-    case 'soin': P.nous.pv = Math.min(P.nous.max, P.nous.pv + 20); mot = 'La Tortue est radoubée de 20.'; break;
-    case 'soin_plein': P.nous.pv = P.nous.max; mot = 'La Tortue repart neuve.'; break;
+    // La Tortue n'a plus de points de vie : ce qui la soignait donne du butin.
+    case 'soin': P.butin += 4; mot = 'On revend ce qu’on n’emporte pas : +4 💰.'; break;
+    case 'soin_plein': P.butin += 8; mot = 'La cale est vidée au meilleur prix : +8 💰.'; break;
     case 'butin': P.butin += 6; mot = '+6 de butin.'; break;
     case 'carte_marine': P.butin = Math.max(0, P.butin - 4); mot = 'On sait où elle passe.'; break;
     default: mot = '';
   }
 }
 
-function ecranNaufrage() {
-  const s = el('div', { class: 'screen ecran-cartes' });
-  s.appendChild(el('div', { class: 'verdict' }, [
-    el('h2', { text: 'La Tortue est démâtée' }),
-    el('p', { html: `${P.prise.nom} tient encore ${P.prise.pv}. Butin ramené : <b>${P.butin}</b> après ${P.prisesFaites} prise(s).` }),
-  ]));
-  s.appendChild(el('div', { class: 'suite' }, [
-    el('button', { class: 'btn-level-1', text: 'Reprendre la mer', attrs: { type: 'button' }, on: { click: () => location.reload() } }),
-  ]));
-  return s;
-}
+// L'ÉCRAN DE NAUFRAGE EST RETIRÉ. La Tortue n'a plus de points de vie : on ne
+// perd plus en coulant, on perd en manquant le seuil — et cette fin-là se dit
+// sur l'écran de partage, avec les deux autres.
 
 /* ---------------------------------------------------------------- l'aide */
 // Une seule fois, au premier engagement : ce qu'est une volée, et le geste.
@@ -1516,11 +1440,10 @@ function ouvrirAide() {
     <p>Chaque homme sert d'un côté du navire : <span class="pion ba">bâbord</span> ou
     <span class="pion tri">tribord</span>, comme les feux de position. <b>Une volée ne mêle pas les deux bords</b> :
     les canons d'un bord tirent ensemble, ceux d'en face regardent la mer.</p>
-    <p>Et le bord qui vient de tirer <b>recharge</b> : au tour suivant, c'est l'autre qui parle. Il faut alterner.</p>
-    <h4>L'avant et l'arrière — sur quoi</h4>
-    <p>Une volée descend à la <b>coque</b> : ce sont les dégâts. Elle monte au <b>gréement</b> si
-    <b>tous</b> les hommes sont à l'avant <b>et</b> qu'un gabier en est : elle n'entame pas la coque, elle
-    abat un mât — et un mât qui tombe <b>emporte le coup qu'elle avait annoncé</b>. Il se regrée en deux tours.</p>
+    <h4>Le gabier — ce qu'on empêche</h4>
+    <p>La prise annonce sa carte un tour à l'avance. <b>Un gabier dans la volée la coupe</b> : elle
+    n'aura pas lieu. C'est tout ce qu'il faut, et il n'y a rien d'autre à réunir — mais il occupe
+    une des trois places, et c'est là tout son prix.</p>
     <h4>Les métiers</h4>
     <ul>${Object.values(CONTENU.roles).map((r) => `<li><b>${r.nom}</b> — ${r.aide}</li>`).join('')}</ul>
     <h4>La rencontre</h4>
@@ -1528,7 +1451,10 @@ function ouvrirAide() {
     pavillon. On a <b>quatre bordées</b> pour l'atteindre et <b>trois rechargements</b> pour se refaire une
     main sans tirer. La main se remplit à ras après chacun.</p>
     <p>Sa résistance atteinte, elle se rend <b>entière</b>. Sa coque à zéro avant, elle coule et l'on ne
-    repêche que <b>trois dixièmes</b>. Plus une bordée à tirer, elle <b>s'échappe</b> et l'on n'a rien.</p>
+    repêche que <b>trois dixièmes</b>. Plus une bordée à tirer, elle <b>s'échappe</b> et l'on n'a rien —
+    c'est la seule façon de perdre : <b>La Tortue ne coule pas</b>.</p>
+    <p>Sa carte à elle ne touche pas notre coque, elle touche notre <b>main</b> : un homme blessé, un
+    homme retenu, une carte Feu, un rechargement perdu, de la pression qui retombe.</p>
     <h4>Les gestes</h4>
     <p>Toucher un homme l'ajoute à la volée. <b>Pousser la volée vers le haut</b>, jusqu'à la zone qui
     s'ouvre sous La Tortue : elle part. <b>Tirer la volée vers le bas</b> : ces hommes-là repartent au
@@ -1590,17 +1516,17 @@ const ETAPES = [
     fait: () => P.tour > 1,
   },
   {
-    quoi: '.ruban',
+    quoi: '.rb-coups',
     qui: 'Coudray',
-    dit: 'Le bord qui vient de tirer <b>recharge</b> : au tour suivant, c’est l’autre qui parle. '
-      + 'Sauf si un homme a tiré seul — un seul canon se recharge à temps.',
+    dit: 'Quatre <b>bordées</b> pour l’amener, trois <b>rechargements</b> pour refaire ta main sans tirer. '
+      + 'Il n’y a rien d’autre à compter.',
     fait: () => P.tour > 2,
   },
   {
-    quoi: '.coque.prise',
+    quoi: '.sa-carte',
     qui: 'Gohier, matelot',
-    dit: 'Une volée où <b>tous</b> les hommes sont à l’avant, avec un gabier, monte au gréement : '
-      + 'elle n’entame pas la coque, elle abat un mât — et le mât emporte son coup.',
+    dit: 'Elle annonce sa carte un tour à l’avance. Un <b>gabier</b> dans ta volée la coupe : '
+      + 'elle n’aura pas lieu.',
     fait: () => P.tour > 3,
   },
 ];
@@ -1682,7 +1608,7 @@ function rendre() {
     : ecran === 'partage' ? ecranPartage()
       : ecran === 'epave' ? ecranEpave()
         : ecran === 'rencontre' ? ecranRencontre()
-          : ecran === 'naufrage' ? ecranNaufrage() : ecranChasse();
+          : ecranChasse();
   r.appendChild(s);
   if (ecran === 'chasse') { calibrerCartes(); peindreCoques(); brancherGeste(s); }
   // La distribution est un ÉVÉNEMENT, pas un état : une fois les cartes
