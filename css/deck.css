@@ -1367,28 +1367,14 @@
 }
 .screen.ecran-cartes .sa-carte.annulee .sa-pied { background: linear-gradient(180deg, #14472f, #0b2a1c); }
 
-/* --- l'infobulle qui suit la main ---------------------------------------
-   Elle est ancrée au-dessus de la carte touchée et se pose là où il y a de la
-   place. Le survol ne porte aucune information (§2) : elle s'ouvre à l'appui,
-   sur n'importe quelle carte — y compris celles qu'on ne peut pas jouer, qui
-   sont justement celles dont il faut expliquer le refus.                    */
-.ecran-cartes-bulle {
-  position: fixed; z-index: 46; max-width: 240px; pointer-events: none;
-  background: var(--bg-panel); border: 1px solid var(--gold-dark); border-radius: 6px;
-  padding: 7px 9px; box-shadow: 0 8px 22px rgba(0,0,0,.6);
-  font-family: var(--font-body); font-size: 10px; line-height: 1.45; color: var(--text-secondary);
-  opacity: 0; transform: translateY(6px); transition: opacity .13s var(--ease-fast), transform .13s var(--ease-fast);
-}
-.ecran-cartes-bulle.vue { opacity: 1; transform: none; }
-.ecran-cartes-bulle .b-nom { font-family: var(--font-title); font-size: 13px; color: var(--gold-light); }
-.ecran-cartes-bulle .b-quoi { color: var(--text-primary); }
-.ecran-cartes-bulle .b-poste { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
-.ecran-cartes-bulle .b-refus { color: var(--hp); }
-.ecran-cartes-bulle hr { border: 0; border-top: 1px solid var(--border); margin: 6px 0; }
-.ecran-cartes-bulle::after {
-  content: ''; position: absolute; bottom: -6px; left: var(--fleche, 50%); margin-left: -6px;
-  border: 6px solid transparent; border-top-color: var(--gold-dark);
-}
+/* L'INFOBULLE FLOTTANTE EST SUPPRIMÉE. Elle était ancrée au-dessus de ce qu'on
+   touchait ; à 375 px de large, elle recouvrait la mer, la carte d'intention
+   ou la main. Un panneau flottant sur un écran de téléphone cache toujours
+   quelque chose qu'on était en train de lire.
+
+   Ce qu'une carte a à dire s'écrit maintenant DANS LE TABLEAU (`.tb-detail`),
+   à la place de la réplique d'équipage, tant que le doigt reste posé — voir
+   `direDansLeTableau()`. RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN.  */
 
 /* --- l'état-major : les officiers embarqués, dans la bande de mer -------- */
 .screen.ecran-cartes .etat-major {
@@ -1448,8 +1434,16 @@
 .screen.ecran-cartes .tb-detail {
   font-size: 9px; color: var(--text-secondary); line-height: 1.4; margin-top: 2px;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  /* La hauteur est RÉSERVÉE, pas mesurée : ce bloc reçoit tour à tour la
+     réplique d'équipage et la phrase de l'homme qu'on touche, et sans réserve
+     le tableau changeait de hauteur sous le pouce à chaque appui — donc la
+     main aussi, puisqu'elle est juste dessous. */
+  min-height: 2.8em;
 }
 .screen.ecran-cartes .tb-detail b { color: var(--text-primary); }
+/* Un refus s'écrit au MÊME endroit, en rouge — et lui seul : l'homme s'annonce
+   comme les autres, c'est le coup qui est impossible, pas lui. */
+.screen.ecran-cartes .tb-detail .tb-refus { color: #f0a090; display: block; }
 .screen.ecran-cartes .tb-geste {
   font-size: 9px; color: var(--gold-dark); letter-spacing: .4px; margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

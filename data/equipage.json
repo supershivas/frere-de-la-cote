@@ -10,7 +10,7 @@
     "gabier": {
       "nom": "gabier",
       "court": "gabier",
-      "verbe": "règle le tir sur le meilleur canonnier",
+      "verbe": "règle le tir sur le meilleur canonnier, et coupe sa carte",
       "aide": "Seul il ne vaut rien. Avec un canonnier, il tire à la même valeur que lui — et sa présence dans la volée ANNULE la carte que la prise avait annoncée."
     },
     "abordeur": {
@@ -22,8 +22,8 @@
     "charpentier": {
       "nom": "charpentier",
       "court": "charp.",
-      "verbe": "ne tire pas ; répare s'il est seul",
-      "aide": "Une volée d'un seul charpentier rend 12 à La Tortue et jette une carte Feu. Accompagné, il ne fait rien."
+      "verbe": "ne tire pas ; seul, il jette les Feux à l'eau",
+      "aide": "Une volée d'un seul charpentier jette les cartes Feu par-dessus bord. C'est le seul moyen d'en sortir. Accompagné, il ne fait rien."
     }
   },
   "equipage": [

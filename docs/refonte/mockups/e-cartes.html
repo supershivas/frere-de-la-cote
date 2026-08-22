@@ -602,57 +602,55 @@ function tableau() {
   return t;
 }
 
-/* ------------------------------------------------------- la bulle d'aide
-   Ancrée au-dessus de l'élément touché, jamais au survol (§2 : le survol ne
-   porte aucune information). Elle s'ouvre au premier appui sur n'importe
-   quelle carte — y compris celles qu'on ne peut pas jouer, qui sont justement
-   celles dont il faut expliquer le refus. */
-let bulle = null, bulleT = null;
-function bulleSur(cible, html, duree = 3200) {
-  fermerBulle();
-  bulle = el('div', { class: 'ecran-cartes-bulle', html });
-  document.body.appendChild(bulle);
-  const r = cible.getBoundingClientRect();
-  const l = bulle.getBoundingClientRect();
-  const marge = 6;
-  const x = Math.max(marge, Math.min(window.innerWidth - l.width - marge, r.left + r.width / 2 - l.width / 2));
-  bulle.style.left = `${x}px`;
-  // JUSTE AU-DESSUS DE CE QU'ON TOUCHE, et nulle part ailleurs. Elle était
-  // remontée jusqu'au-dessus du tableau pour ne rien recouvrir : à l'écran,
-  // elle se retrouvait à 200 px de la carte qu'elle expliquait, et il fallait
-  // faire le lien soi-même. Une bulle ancrée loin de son ancre n'est plus une
-  // bulle, c'est un second tableau.
-  bulle.style.top = `${Math.max(marge, r.top - 10 - l.height)}px`;
-  bulle.style.setProperty('--fleche', `${r.left + r.width / 2 - x}px`);
-  requestAnimationFrame(() => bulle && bulle.classList.add('vue'));
-  clearTimeout(bulleT);
-  bulleT = setTimeout(fermerBulle, duree);
-}
-function fermerBulle() {
-  clearTimeout(bulleT);
-  if (bulle) { bulle.remove(); bulle = null; }
-}
-document.addEventListener('pointerdown', (e) => {
-  if (bulle && !e.target.closest('.carte, .sa-carte, .pastille, .officier')) fermerBulle();
-}, true);
+/* ------------------------------------------------- ce qu'une carte a à dire
+   IL N'Y A PLUS D'INFOBULLE. Elle était ancrée au-dessus de ce qu'on touchait,
+   et à cette taille d'écran elle recouvrait la mer, la carte d'intention, ou
+   la main elle-même : un panneau flottant sur un écran de 375 px cache
+   toujours quelque chose qu'on était en train de lire.
 
-// Ce qu'un homme fait, en une phrase, plus la raison s'il ne peut pas tirer.
+   Ce qu'une carte a à dire s'écrit DANS LE TABLEAU, à la place de la réplique
+   d'équipage, tant que le doigt reste posé dessus. Une ligne, deux au plus. Au
+   relâchement, le tableau reprend son contenu. Le tableau est déjà l'endroit
+   où l'on lit ce qu'on est en train de faire ; il n'y a pas de raison d'en
+   ouvrir un second par-dessus.
+
+   RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN. */
+// `tenir` : le texte reste jusqu'au prochain rendu au lieu de s'effacer au
+// relâchement. Une carte en main se LIT TANT QU'ON LA TIENT — le doigt est
+// déjà dessus, et la relâcher est le geste naturel pour en finir. Mais une
+// pastille de météo ou un officier se TOUCHENT : garder le doigt dessus pour
+// lire ne viendrait à l'idée de personne, et le texte n'aurait fait qu'un
+// clignement.
+function direDansLeTableau(html, { refus = false, tenir = false } = {}) {
+  const d = document.querySelector('.ecran-cartes .tableau .tb-detail');
+  if (!d) return;
+  // On écrit EN PLACE, sans repasser par `rendre()` : un rendu complet pendant
+  // que le doigt est posé détruirait la carte touchée sous ce même doigt.
+  if (!tenir && d.dataset.avant == null) d.dataset.avant = d.innerHTML;
+  d.innerHTML = html;
+  d.classList.toggle('tb-dit-refus', refus);
+}
+function rendreLeTableau() {
+  const d = document.querySelector('.ecran-cartes .tableau .tb-detail');
+  if (!d || d.dataset.avant == null) return;
+  d.innerHTML = d.dataset.avant;
+  delete d.dataset.avant;
+  d.classList.remove('tb-dit-refus');
+}
+
+// Ce qu'un homme fait, EN UNE LIGNE : son nom, son métier et son bord, son
+// verbe. C'est tout ce dont on a besoin pour décider s'il entre dans la volée ;
+// le reste — l'aide longue du métier — vit dans la modale d'aide, où on a le
+// temps de le lire.
 function aideDe(c) {
   if (C.estFeu(c)) {
-    return '<div class="b-nom">Feu</div><div class="b-quoi">Un incendie à bord. Il occupe une place dans ta main '
-      + 'et ne tire pas. Seul un charpentier, envoyé seul, peut le jeter par-dessus bord.</div>';
+    return '<b>Feu</b> · un incendie à bord · il occupe une place et ne tire pas ; '
+      + 'seul un charpentier, envoyé seul, le jette par-dessus bord.';
   }
   const b = CONTENU.bords[c.bord];
   const r = CONTENU.roles[c.role];
-  const permis = C.peutJouer(P, c);
-  // LE SCHÉMA DE COQUE EST RETIRÉ AVEC LE QUART. Il servait à montrer un
-  // quart — bord ET bout — sur une coque vue de dessus. Un homme n'a plus
-  // qu'un bord, et le fond de sa carte le dit déjà.
-  return `<div class="b-nom">${c.nom}</div>`
-    + `<div class="b-poste"><span><b>${r.nom}</b><br>${b.nom}<br>valeur ${C.valeur(c, P)}`
-    + `${c.blesse ? ' (blessé)' : ''}${c.grade ? ` · gradé ${'★'.repeat(c.grade)}` : ''}</span></div>`
-    + `<div class="b-quoi">${r.aide}</div>`
-    + (permis.ok ? '' : `<div class="b-refus">${permis.pourquoi}</div>`);
+  const etat = [c.blesse ? 'blessé −2' : null, c.grade ? `gradé ${'★'.repeat(c.grade)}` : null].filter(Boolean);
+  return `<b>${c.nom}</b> · ${r.nom} ${b.nom}${etat.length ? ` (${etat.join(', ')})` : ''} · ${r.verbe}.`;
 }
 
 /* ---------------------------------------------------------------- la main */
@@ -733,13 +731,21 @@ function carteVue(c, rang = 0, neuve = false) {
       // Un retour SOUS LE DOIGT, avant même que l'état change : la carte
       // s'enfonce à l'appui et remonte au relâchement. C'est ce qui fait la
       // différence entre toucher un bouton et manipuler un objet.
+      // TANT QUE LE DOIGT RESTE POSÉ, le tableau dit ce que fait cet homme-là.
+      // Y compris ceux qu'on ne peut PAS jouer : ce sont eux dont il faut
+      // expliquer le refus, et il s'écrit au même endroit, en rouge.
       pointerdown: () => {
         if (occupe) return;
         n.style.transform = 'translateY(-4px) scale(.97)';
-        bulleSur(n, aideDe(c));
+        const permis = C.peutJouer(P, c);
+        // Seul le REFUS passe en rouge : l'homme, lui, s'annonce comme les
+        // autres. Toute la ligne en rouge disait « cet homme est mauvais »
+        // plutôt que « ce coup-là est impossible ».
+        direDansLeTableau(aideDe(c) + (permis.ok ? '' : `<br><span class="tb-refus">${permis.pourquoi}</span>`));
       },
-      pointerup: () => { n.style.transform = ''; },
-      pointerleave: () => { n.style.transform = ''; },
+      pointerup: () => { n.style.transform = ''; rendreLeTableau(); },
+      pointerleave: () => { n.style.transform = ''; rendreLeTableau(); },
+      pointercancel: () => { n.style.transform = ''; rendreLeTableau(); },
       click: () => {
         n.style.transform = '';
         if (occupe || glisse) return;
@@ -775,7 +781,7 @@ function etatMajor() {
     const n = el('button', {
       class: 'officier', text: o.nom.replace(/^(Le |La |L')/, '')[0],
       attrs: { type: 'button', 'aria-label': `${o.nom} — ${o.texte}` },
-      on: { click: () => bulleSur(n, `<div class="b-nom">${o.nom}</div><div>${o.titre}</div><div class="b-quoi">${o.texte}</div>`) },
+      on: { click: () => direDansLeTableau(`<b>${o.nom}</b>, ${o.titre} · ${o.texte}`, { tenir: true }) },
     });
     zone.appendChild(n);
   }
@@ -856,7 +862,7 @@ function ecranChasse() {
   }
   const past = el('button', {
     class: 'pastilles', attrs: { type: 'button', 'aria-label': 'conditions de la chasse' },
-    on: { click: () => bulleSur(past, conditions.map((c) => `<div class="b-nom">${c.titre}</div><div class="b-quoi">${c.corps}</div>`).join('<hr>'), 6000) },
+    on: { click: () => direDansLeTableau(conditions.map((c) => `<b>${c.titre}</b> — ${c.corps}`).join(' '), { tenir: true }) },
   }, conditions.map((c) => el('span', { class: `pastille ${c.cls}`, text: c.chip })));
   if (conditions.length) mer.appendChild(past);
 
@@ -874,9 +880,9 @@ function ecranChasse() {
   const saCarte = el('div', {
     class: `sa-carte${p.tirAnnule ? ' annulee' : ''}`,
     attrs: { role: 'button', tabindex: '0', 'aria-label': `${a.nom} — ${a.texte}` },
-    on: { click: () => bulleSur(saCarte, `<div class="b-nom">${a.nom}</div>`
-      + `<div class="b-quoi">${p.tirAnnule ? `Les gabiers ont coupé sa manœuvre : ${p.nom} ne fera rien ce tour-ci.` : a.texte}</div>`
-      + `<div>${p.nom} joue cette carte à la fin de ton tour, pas avant.</div>`) },
+    on: { click: () => direDansLeTableau(`<b>${a.nom}</b> — ${p.tirAnnule
+      ? `les gabiers ont coupé sa manœuvre : ${p.nom} ne fera rien ce tour-ci.`
+      : `${a.texte} ${p.nom} la joue à la fin de ton tour, pas avant.`}`, { tenir: true }) },
   }, [
     el('div', { class: 'sa-tete' }, [el('span', { text: p.tirAnnule ? 'coupée' : 'sa carte' })]),
     el('div', { class: 'sa-nom', text: a.nom }),
@@ -997,7 +1003,11 @@ function brancherGeste(scene) {
     montee = Math.min(montee, dy);
     if (!franchi && Math.hypot(dx, dy) > 8) {
       franchi = true; glisse = true;
-      fermerBulle();
+      // LE GESTE COMMENCE ICI, pas au `pointerdown`. Le doigt quitte la carte
+      // qu'il tenait : le tableau reprend son contenu. Restauré dès l'appui —
+      // le `pointerdown` de la carte remonte jusqu'au râtelier — il effaçait la
+      // phrase de l'homme touché avant même qu'on l'ait lue.
+      rendreLeTableau();
       // PAS de capture avant ce point : capturer dès l'appui redirige le
       // `click` suivant vers la zone au lieu de la carte, et plus aucun homme
       // ne peut être ajouté à la volée.
@@ -1085,7 +1095,6 @@ function brancherGeste(scene) {
 // second compteur du ruban qui paie.
 function rechargerVolee() {
   if (occupe || P.fini || !P.selection.length) return;
-  fermerBulle();
   const combien = P.selection.length;
   const avant = new Set(P.main.map((c) => c.uid));
   const r = C.recharger(P, rng);
@@ -1099,7 +1108,6 @@ function rechargerVolee() {
 async function tirer() {
   if (occupe || P.fini || !P.selection.length) return;
   occupe = true;
-  fermerBulle();   // une bulle d'aide ouverte recouvrait le tir qu'elle explique
   const r = C.jouer(P);
   rendre();
 

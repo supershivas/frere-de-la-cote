@@ -126,7 +126,8 @@ largage — un tour.
 
 | geste | effet |
 |---|---|
-| toucher un homme | il rejoint la volée, et une bulle dit ce qu'il fait |
+| poser le doigt sur un homme | le tableau dit ce qu'il fait, tant qu'on le tient |
+| toucher un homme | il rejoint la volée |
 | pousser la volée vers le haut | la **zone de dépôt s'ouvre sous La Tortue** ; lâcher dedans, la volée part |
 | tirer la volée vers le bas | **rechargement** : ces hommes repartent au fond, on en reprend autant, la prise ne riposte pas |
 | monter puis redescendre | on renonce, la volée est défaite |
@@ -164,12 +165,21 @@ sert `tools/mobile-audit.mjs`.
   bandeau de tête, nom, grand chiffre, pied — en noir et rouge, posée à plat
   sous son navire. Un rectangle horizontal avec du texte dedans n'est pas une
   carte, c'est une boîte de plus à lire.
-- **Tout s'explique à l'appui, jamais au survol** : une bulle ancrée **juste**
-  au-dessus de ce qu'on touche — remontée au-dessus du tableau pour ne rien
-  recouvrir, elle se retrouvait à 200 px de la carte qu'elle expliquait, et
-  n'était plus une bulle mais un second tableau — — un homme, sa carte à elle, la météo, la règle
-  de la prise, une relique, un officier. Y compris les hommes qu'on **ne peut
-  pas** jouer : ce sont eux dont il faut expliquer le refus.
+- **Tout s'explique à l'appui, jamais au survol — ET DANS LE TABLEAU, jamais
+  au-dessus.** Il n'y a plus d'infobulle flottante : à 375 px de large, elle
+  recouvrait la mer, la carte d'intention ou la main, où qu'on l'ancre.
+  **RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN.** Ce qu'une carte a à
+  dire s'écrit à la place de la réplique d'équipage, en une ligne — nom, métier,
+  bord, verbe — **tant que le doigt reste posé dessus** ; au relâchement le
+  tableau reprend son contenu. Un refus s'écrit au même endroit, en rouge, et
+  lui seul : l'homme s'annonce comme les autres, c'est le coup qui est
+  impossible, pas lui. Une pastille de météo, un officier, sa carte à elle se
+  TOUCHENT plutôt qu'ils ne se tiennent : leur texte reste jusqu'au prochain
+  rendu (`tenir: true`).
+- **La hauteur de ce bloc est RÉSERVÉE** (`min-height` sur `.tb-detail`) : il
+  reçoit tour à tour la réplique d'équipage et la phrase de l'homme qu'on
+  touche, et sans réserve le tableau changeait de hauteur sous le pouce à
+  chaque appui — donc la main aussi, puisqu'elle est juste dessous.
 - **Les cartes arrivent, elles n'apparaissent pas** : la relève vole depuis la
   droite, décalée d'une carte à l'autre. On compte les hommes reçus sans lire
   un chiffre. La marque `neuve` est un ÉVÉNEMENT, pas un état : elle est
