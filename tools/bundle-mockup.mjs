@@ -74,13 +74,39 @@ for (const a of alias) corps = corps.replace(new RegExp(`\\b${a}\\.([A-Za-z_$][\
 // produisent une page blanche et une seule ligne d'erreur en console. On
 // échoue ici plutôt que de livrer ça — c'est arrivé avec `scene`, déclaré à la
 // fois par src/ocean.js et par la maquette.
-const nomsDe = (src) => [...src.matchAll(/^(?:const|let|var|function|class|async function)\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
+// `export ` en tête est FACULTATIF, et c'est tout le sujet : sans lui dans le
+// motif, aucun nom EXPORTÉ n'était vu — ni par le contrôle des doublons, ni par
+// celui des masquages. Les deux ne surveillaient que les déclarations privées
+// des modules, c'est-à-dire la moitié la moins dangereuse.
+const nomsDe = (src) => [...src.matchAll(/^(?:export\s+)?(?:const|let|var|function|class|async function)\s+([A-Za-z_$][\w$]*)/gm)].map((m) => m[1]);
 const vus = new Map();
 for (const [nom, src] of [...MODULES.map((m) => [m, lire(m)]), [entree, corps]]) {
   for (const n of nomsDe(src)) {
     if (vus.has(n)) throw new Error(`nom déclaré deux fois : \`${n}\` dans ${vus.get(n)} et ${nom} — le fichier autonome partage une seule portée`);
     vus.set(n, nom);
   }
+}
+
+// ET LE MÊME PIÈGE, UN CRAN PLUS BAS : une variable LOCALE de la maquette qui
+// porte le nom d'une déclaration de module. En modules, `const aVenir =
+// C.aVenir(P)` est un masquage parfaitement légal. À plat, le préfixe de
+// namespace disparaît et la ligne devient `const aVenir = aVenir(P)` — une
+// référence à soi-même dans la zone morte temporelle, donc une PAGE BLANCHE et
+// une seule ligne en console.
+//
+// Le contrôle du dessus ne le voyait pas : il n'ancre qu'en début de ligne,
+// donc il ne lit que les déclarations de premier niveau. Celui-ci lit les
+// déclarations INDENTÉES de la maquette et les confronte aux noms des modules.
+// C'est la deuxième fois que la règle 11 coûte un écran noir ; une contrainte
+// sans instrument est un vœu (règle 6).
+const nomsDeModule = new Set();
+for (const m of MODULES) for (const n of nomsDe(lire(m))) nomsDeModule.add(n);
+const masques = [...new Set([...corps.matchAll(/^[ \t]+(?:const|let|var|function)\s+([A-Za-z_$][\w$]*)/gm)]
+  .map((m) => m[1]).filter((n) => nomsDeModule.has(n)))];
+if (masques.length) {
+  throw new Error(`${entree} déclare localement ${masques.map((n) => `\`${n}\``).join(', ')}, qui porte(nt) `
+    + 'déjà ce nom dans un module embarqué. À plat, le masquage transforme un appel `X.nom(…)` '
+    + 'en référence à soi-même : la page est blanche. Renomme la variable locale.');
 }
 
 const donnees = Object.entries(DONNEES)

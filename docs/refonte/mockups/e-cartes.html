@@ -706,32 +706,32 @@ function munitionVue(id) {
 // bandeau : son nom se répète dans le paquet, et c'est cette répétition qui
 // rend les figures reconnaissables d'un coup d'œil.
 function contenuCarte(c) {
-  const feu = C.estFeu(c);
+  const estUnFeu = C.estFeu(c);
   const bandeau = el('span', { class: 'c-bandeau' }, [
-    feu ? null : munitionVue(c.id),
-    el('span', { class: 'c-nom', text: feu ? 'Feu' : c.nom }),
+    estUnFeu ? null : munitionVue(c.id),
+    el('span', { class: 'c-nom', text: estUnFeu ? 'Feu' : c.nom }),
   ]);
   return [
     c.mouillee ? el('span', { class: 'c-etat', text: 'mouillée' }) : null,
-    feu ? el('span', { class: 'c-fumee' }) : null,
+    estUnFeu ? el('span', { class: 'c-fumee' }) : null,
     bandeau,
     // LA POUDRE occupe le centre du champ libre. Toutes les munitions du même
     // nom portent le même chiffre : c'est ce qui permet aux figures d'exister.
-    el('span', { class: 'c-val', text: feu ? '—' : String(C.poudreDe(c, P)) }),
+    el('span', { class: 'c-val', text: estUnFeu ? '—' : String(C.poudreDe(c, P)) }),
   ];
 }
 
 function carteVue(c, rang = 0, neuve = false) {
-  const feu = C.estFeu(c);
+  const estUnFeu = C.estFeu(c);
   const pris = P.selection.includes(c);
-  const b = feu ? null : CONTENU.bords[c.bord];
+  const b = estUnFeu ? null : CONTENU.bords[c.bord];
   const permis = C.peutJouer(P, c);
   const n = el('button', {
-    class: `carte${pris ? ' prise-en-main' : ''}${feu ? ' feu' : ''}${c.mouillee ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}${neuve ? ' neuve' : ''}`,
+    class: `carte${pris ? ' prise-en-main' : ''}${estUnFeu ? ' estUnFeu' : ''}${c.mouillee ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}${neuve ? ' neuve' : ''}`,
     attrs: {
       type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`,
-      'data-bord': feu ? '' : c.bord, 'data-role': feu ? 'feu' : c.id,
-      'aria-label': feu ? 'Feu — encombre la main'
+      'data-bord': estUnFeu ? '' : c.bord, 'data-role': estUnFeu ? 'estUnFeu' : c.id,
+      'aria-label': estUnFeu ? 'Feu — encombre la main'
         : `${c.nom}, ${b.nom}, poudre ${C.poudreDe(c, P)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
     },
     on: {
@@ -989,10 +989,10 @@ function ecranChasse() {
   // paquet est la fin du tableau, donc le premier à venir est le dernier élément.
   //
   // Ce n'est pas une cible : on ne peut ni les toucher ni les jouer.
-  const aVenir = C.aVenir(P);
-  const reserve = aVenir.length
+  const munitionsAVenir = C.aVenir(P);
+  const reserve = munitionsAVenir.length
     ? el('div', { class: 'reserve', attrs: { 'aria-hidden': 'true' } },
-      [el('span', { class: 'reserve-cle', text: 'à venir' })].concat(aVenir.map((c, i) => el('div', {
+      [el('span', { class: 'reserve-cle', text: 'à venir' })].concat(munitionsAVenir.map((c, i) => el('div', {
         class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.mouillee ? ' blesse' : ''}`,
         attrs: {
           style: `--rang:${i}`,
