@@ -224,32 +224,37 @@
       "id": "mouillage",
       "nom": "Mouillage",
       "texte": "Une lame embarque et noie la sainte-barbe : ta meilleure munition en main est mouillée, sa poudre tombe à zéro.",
-      "effet": "mouillage"
+      "effet": "mouillage",
+      "dit": "ta meilleure munition en main perd sa poudre."
     },
     {
       "id": "brulot",
       "nom": "Brûlot",
       "texte": "Une barque en feu poussée contre le bord : une carte Feu entre au-dessus de ta pioche.",
-      "effet": "brulot"
+      "effet": "brulot",
+      "dit": "une carte Feu entre au-dessus de ta pioche."
     },
     {
       "id": "grappin",
       "nom": "Grappin",
       "texte": "Un grappin mord le bordé : ta meilleure munition en main repart au fond du paquet.",
-      "effet": "grappin"
+      "effet": "grappin",
+      "dit": "ta meilleure munition en main repart au fond du paquet."
     },
     {
       "id": "manoeuvre",
       "nom": "Belle manœuvre",
       "texte": "Le navire prend le vent et gagne du temps : tu perds un rechargement.",
-      "effet": "manoeuvre"
+      "effet": "manoeuvre",
+      "dit": "tu perds un rechargement."
     },
     {
       "id": "colmatage",
       "nom": "Colmatage",
       "texte": "Les charpentiers du bord adverse reprennent le dessus : ta pression retombe de 12.",
       "effet": "colmatage",
-      "force": 12
+      "force": 12,
+      "dit": "ta pression retombe de 12."
     }
   ],
   "intentions_deck": [

@@ -1326,7 +1326,10 @@
    a en main, et elle la montre. Un rectangle horizontal avec du texte dedans
    n'était pas une carte : c'était une boîte de plus.                        */
 .screen.ecran-cartes .sa-carte {
-  position: absolute; z-index: 4; right: 3%; bottom: 2px;
+  /* LA CARTE REMONTE pour laisser sa légende sous elle, DANS la mer. Posée à
+     2 px du bas, sa légende débordait de la bande et venait se poser sur le
+     tableau — deux panneaux l'un sur l'autre, dont celui qui dit quoi faire. */
+  position: absolute; z-index: 4; right: 3%; bottom: 38px;
   width: calc(var(--carte-l, 62px) * 1.1); height: calc(var(--carte-h, 100px) * .92);
   display: flex; flex-direction: column; align-items: center;
   background: linear-gradient(168deg, #241412 0%, #16100f 55%, #0d0908 100%);
@@ -1335,6 +1338,48 @@
   transform: rotate(2.5deg);
   cursor: help;
 }
+/* CE QUE SA CARTE FAIT, SOUS SA CARTE, ET TOUJOURS LÀ. C'était à l'autre bout
+   de l'écran, dans le tableau, et seulement quand on la touchait : le joueur
+   composait sa volée sans savoir contre quoi. Deux lignes au plus — au-delà,
+   c'est du récit, et le récit est derrière le doigt. La plaque est opaque
+   (règle 4) : le fond est un canvas animé qui va du bleu nuit au ciel de midi. */
+.screen.ecran-cartes .sa-dit {
+  position: absolute; z-index: 4; right: 3%; bottom: 2px;
+  width: min(58%, 210px);
+  background: rgba(20, 12, 10, .88); border: 1px solid #7a2a22; border-radius: 5px;
+  padding: 3px 6px; pointer-events: none;
+  font-family: var(--font-body); font-size: 9px; line-height: 1.35; color: #e6cfc6;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.screen.ecran-cartes .sa-dit b { color: #f0b0a4; }
+
+/* LE PHYLACTÈRE, au-dessus de La Tortue. Une réplique est une RESPIRATION :
+   elle se dit, puis elle s'efface. Elle vivait dans le tableau, où elle restait
+   sous les yeux jusqu'au tour suivant — à la place du compte de la volée, qui
+   est la seule chose que le tableau ait à dire.
+
+   `position: absolute` : il ne prend jamais de place au flux, donc il ne pousse
+   ni la mer ni la main quand il apparaît. */
+.screen.ecran-cartes .phylactere {
+  position: absolute; z-index: 5; left: 2%; bottom: calc(var(--pied, 56px) + 34%);
+  max-width: 62%;
+  background: var(--bg-panel); border: 1px solid var(--gold-dark); border-radius: 7px;
+  padding: 5px 8px;
+  box-shadow: 0 6px 16px rgba(0,0,0,.55);
+  font-family: var(--font-body); font-size: 9.5px; line-height: 1.4; color: var(--text-secondary);
+  opacity: 0; transform: translateY(5px); pointer-events: none;
+  transition: opacity .18s var(--ease-fast), transform .18s var(--ease-fast);
+}
+.screen.ecran-cartes .phylactere.vu { opacity: 1; transform: none; }
+.screen.ecran-cartes .phylactere:empty { display: none; }
+.screen.ecran-cartes .phylactere b { color: var(--gold-light, #e8c877); }
+.screen.ecran-cartes .phylactere .tb-refus { color: #f0a090; }
+/* La pointe, vers le pont de La Tortue. */
+.screen.ecran-cartes .phylactere::after {
+  content: ''; position: absolute; bottom: -6px; left: 22px;
+  border: 6px solid transparent; border-top-color: var(--gold-dark); border-bottom: 0;
+}
+
 .screen.ecran-cartes .sa-carte::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 6px;
   background:
@@ -1395,7 +1440,13 @@
 .screen.ecran-cartes .tableau {
   flex: 0 0 auto; background: var(--bg-panel);
   border: 1px solid var(--border); border-left: 3px solid var(--border);
-  border-radius: 0 6px 6px 0; padding: 5px 8px; min-height: 58px;
+  border-radius: 0 6px 6px 0; padding: 5px 8px;
+  /* SA HAUTEUR SUIT SON CONTENU. Elle était réservée à 58 px pour que le
+     tableau ne saute pas quand il passait d'une réplique d'équipage au compte
+     d'une volée. Ces deux contenus ne se disputent plus la place — il ne reste
+     que le compte — donc la réserve n'a plus d'objet, et le tableau vide se
+     réduit à sa seule ligne : « Touche des munitions du même bord. » */
+  min-height: 0;
   touch-action: none;
 }
 .screen.ecran-cartes .tableau.arme { border-left-color: var(--gold); }
@@ -1448,11 +1499,14 @@
 .screen.ecran-cartes .tb-detail {
   font-size: 9px; color: var(--text-secondary); line-height: 1.4; margin-top: 2px;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-  /* La hauteur est RÉSERVÉE, pas mesurée : ce bloc reçoit tour à tour la
-     réplique d'équipage et la phrase de l'homme qu'on touche, et sans réserve
-     le tableau changeait de hauteur sous le pouce à chaque appui — donc la
-     main aussi, puisqu'elle est juste dessous. */
-  min-height: 2.8em;
+  /* PLUS DE RÉSERVE : la hauteur suit le contenu. La réserve tenait à ce que ce
+     bloc recevait tour à tour trois choses de longueurs très différentes — la
+     réplique d'équipage, l'explication de sa carte à elle, la phrase de la
+     munition qu'on touche. Les deux premières sont parties ailleurs (le
+     phylactère au-dessus de La Tortue, la légende sous sa carte), il ne reste
+     que le compte de la volée, et le tableau peut enfin se réduire à une ligne
+     quand il n'y a rien à compter. */
+  min-height: 0;
 }
 .screen.ecran-cartes .tb-detail b { color: var(--text-primary); }
 /* Un refus s'écrit au MÊME endroit, en rouge — et lui seul : l'homme s'annonce

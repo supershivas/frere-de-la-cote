@@ -78,7 +78,12 @@ let ecran = CARTE_OUVERTE ? 'carte' : 'chasse';
 let trouve = null;        // ce qu'une épave vient de rendre
 let viseeCarte = null;    // l'escale visée, en attente de confirmation
 let rencontre = null;     // la rencontre en cours
-let mot = '';            // la dernière chose qui s'est passée, en une ligne
+// LA DERNIÈRE CHOSE QUI S'EST PASSÉE, en une ligne. Ce n'est PAS un état : ça
+// se dit, puis ça s'efface. Le tableau la gardait affichée jusqu'au tour
+// suivant, si bien qu'une phrase d'ambiance restait sous les yeux pendant toute
+// une composition de volée, à la place du compte.
+let mot = '';
+let motT = null;
 let occupe = false;      // une animation est en cours : les gestes sont sourds
 let neuves = [];         // les `uid` relevés au dernier tour, pour l'animation
 
@@ -485,6 +490,7 @@ function phylactere(moment, etiquettes = []) {
   const r = lignes[Math.floor(rng() * lignes.length)];
   const v = PHY.voix[r.voix] || { nom: r.voix, role: '' };
   mot = `<b>${v.nom}</b> : « ${r.texte} »`;
+  motJusqua = Date.now() + DUREE_MOT;
 }
 
 /* --------------------------------------------------------------- prises */
@@ -545,18 +551,13 @@ function aborder(place) {
 /* ------------------------------------------------------------ le tableau *//* ------------------------------------------------------------ le tableau */
 function tableau() {
   const t = el('div', { class: `tableau${P.selection.length ? ' arme' : ''}` });
+  // AUCUNE VOLÉE : UNE SEULE LIGNE. Le tableau portait ici trois choses qui
+  // s'excluaient — la réplique d'équipage, le rappel des compteurs et
+  // l'invitation — et il gardait la hauteur des trois même vide. Les compteurs
+  // sont sur le ruban, la réplique est passée au phylactère : il ne reste que
+  // ce qu'il faut faire.
   if (!P.selection.length) {
-    t.appendChild(el('div', { class: 'tb-tete' }, [el('span', { class: 'tb-cible', text: 'Personne à la manœuvre' })]));
-    t.appendChild(el('div', {
-      class: 'tb-detail',
-      html: mot || 'Une <b>volée</b>, c’est le groupe de munitions que tu tires <b>ensemble</b> : '
-        + 'jusqu’à trois, toutes du <b>même bord</b>. Assortis-les : deux pareilles font une paire.',
-    }));
-    const reste = Math.max(0, P.prise.resistance - P.pression);
-    t.appendChild(el('div', {
-      class: 'tb-geste',
-      text: `encore ${reste} de pression en ${P.bordees} bordée${P.bordees > 1 ? 's' : ''} · ${P.rechargements} rechargement${P.rechargements > 1 ? 's' : ''}`,
-    }));
+    t.appendChild(el('div', { class: 'tb-detail', text: 'Touche des munitions du même bord.' }));
     return t;
   }
   const r = C.evaluer(P, P.selection);
@@ -607,6 +608,44 @@ function tableau() {
         : `resterait ${manque} en ${Math.max(0, P.bordees - 1)} bordée${P.bordees - 1 > 1 ? 's' : ''}`,
   }));
   return t;
+}
+
+/* ------------------------------------------------------- le phylactère
+   Au-dessus de La Tortue, quatre secondes, puis il s'efface. Les répliques
+   d'équipage, ce que la riposte vient de faire, ce qu'un ordre a donné : tout
+   ce qui RESPIRE passe par là. Rien de tout cela n'est un état, et rien de tout
+   cela n'a sa place dans le tableau, qui ne dit qu'une chose — le compte de la
+   volée qu'on est en train de composer. */
+const DUREE_MOT = 4000;
+let motJusqua = 0;
+
+// `souffler` et non `dire` : `brancherGeste` a déjà un `dire` local, qui écrit
+// la consigne du geste dans le tableau. Deux fonctions du même nom pour deux
+// endroits différents, c'est le piège qu'on vient de payer d'un écran noir.
+function souffler(html) {
+  mot = html || '';
+  motJusqua = mot ? Date.now() + DUREE_MOT : 0;
+  poserLeMot();
+}
+
+// LA DATE DE FIN EST PORTÉE PAR L'ÉTAT, pas par le minuteur. `rendre()` refait
+// tout le DOM à chaque carte touchée : un minuteur relancé à chaque rendu
+// aurait gardé la réplique à l'écran tant que le joueur composait sa volée,
+// c'est-à-dire exactement le défaut qu'on répare. Avec une échéance, le
+// phylactère s'efface quatre secondes après avoir été SOUFFLÉ, quoi qu'il
+// arrive entre-temps.
+function poserLeMot() {
+  const zone = document.querySelector('.ecran-cartes .phylactere');
+  if (!zone) return;
+  clearTimeout(motT);
+  const reste = motJusqua - Date.now();
+  if (!mot || reste <= 0) { mot = ''; zone.classList.remove('vu'); zone.innerHTML = ''; return; }
+  zone.innerHTML = mot;
+  // Deux images successives : sans ce saut, une réplique qui en remplace une
+  // autre ne rejouait pas l'apparition et semblait n'avoir jamais changé.
+  zone.classList.remove('vu');
+  requestAnimationFrame(() => requestAnimationFrame(() => zone.classList.add('vu')));
+  motT = setTimeout(() => { mot = ''; motJusqua = 0; zone.classList.remove('vu'); }, reste);
 }
 
 /* ------------------------------------------------- ce qu'une carte a à dire
@@ -757,7 +796,7 @@ function carteVue(c, rang = 0, neuve = false) {
         n.style.transform = '';
         if (occupe || glisse) return;
         const r = C.selectionner(P, c);
-        if (!r.ok) { mot = `<span class="tb-refus">${r.pourquoi}</span>`; secouer(n); }
+        if (!r.ok) { souffler(`<span class="tb-refus">${r.pourquoi}</span>`); secouer(n); }
         rendre();
       },
     },
@@ -798,8 +837,8 @@ function etatMajor() {
         click: () => {
           if (!ordre || fait) { direDansLeTableau(`<b>${h.nom}</b>, ${h.titre} · ${h.texte}`, { tenir: true }); return; }
           const r = ordre.faire();
-          if (!r.ok) { mot = `<span class="tb-refus">${r.pourquoi}</span>`; secouer(n); }
-          else mot = r.dit;
+          if (!r.ok) { souffler(`<span class="tb-refus">${r.pourquoi}</span>`); secouer(n); }
+          else souffler(r.dit);
           rendre();
         },
       },
@@ -886,6 +925,10 @@ function ecranChasse() {
         el('div', { class: 'e-chif menu' }, [el('span', { text: `coque ${p.pv} / ${p.max}` })]),
       ]),
     ]),
+    // LE PHYLACTÈRE, AU-DESSUS DE LA TORTUE : c'est notre bord qui parle, donc
+    // c'est de notre bord que ça sort. Il est vide et invisible la plupart du
+    // temps, et ne prend jamais de place au flux — d'où l'absolu.
+    el('div', { class: 'phylactere', attrs: { 'aria-live': 'polite' } }),
     el('div', { class: 'flotte' }, [
       el('div', { class: 'coque nous' }, [el('canvas', { attrs: { id: 'c-nous' } })]),
       el('div', { class: 'coque prise' }, [el('canvas', { attrs: { id: 'c-prise' } })]),
@@ -929,9 +972,11 @@ function ecranChasse() {
   const saCarte = el('div', {
     class: `sa-carte${p.tirAnnule ? ' annulee' : ''}`,
     attrs: { role: 'button', tabindex: '0', 'aria-label': `${a.nom} — ${a.texte}` },
+    // Au doigt, le texte LONG — celui qui raconte. La légende sous la carte,
+    // elle, est toujours là et dit l'effet en une ligne.
     on: { click: () => direDansLeTableau(`<b>${a.nom}</b> — ${p.tirAnnule
       ? `la mitraille a balayé son pont : ${p.nom} ne fera rien ce tour-ci.`
-      : `${a.texte} ${p.nom} la joue à la fin de ton tour, pas avant.`}`, { tenir: true }) },
+      : a.texte}`, { tenir: true }) },
   }, [
     el('div', { class: 'sa-tete' }, [el('span', { text: p.tirAnnule ? 'coupée' : 'sa carte' })]),
     el('div', { class: 'sa-nom', text: a.nom }),
@@ -941,7 +986,17 @@ function ecranChasse() {
     // l'information pure, et c'est tout ce qu'il vend.
     p.suivante ? el('div', { class: 'sa-suite', text: `puis ${p.suivante.nom}` }) : null,
   ]);
+
+  // CE QUE SA CARTE FAIT, SOUS SA CARTE ET TOUJOURS VISIBLE. C'était dans le
+  // tableau, à l'autre bout de l'écran, et seulement quand on la touchait —
+  // donc le joueur composait sa volée sans savoir contre quoi. Deux lignes au
+  // plus, et rien sur QUAND elle la joue : le pied de la carte dit déjà « fin
+  // du tour ».
+  const saLegende = el('div', { class: 'sa-dit' }, [
+    el('b', { text: a.nom }), el('span', { text: ` — ${p.tirAnnule ? 'coupée, elle ne fera rien.' : (a.dit || a.texte)}` }),
+  ]);
   mer.appendChild(saCarte);
+  mer.appendChild(saLegende);
 
   // La zone de dépôt vit SOUS NOTRE NAVIRE : c'est là que la volée doit
   // arriver. Elle n'apparaît que pendant le geste — une cible permanente
@@ -1122,7 +1177,7 @@ function brancherGeste(scene) {
     if (m > -40 && d > 44) { rechargerVolee(); return; }
     if (surZone) { tirer(); return; }
     // Monté puis redescendu : on renonce.
-    if (m < -40 && d > m + 60) { P.selection = []; mot = 'Volée défaite.'; rendre(); return; }
+    if (m < -40 && d > m + 60) { P.selection = []; souffler('Volée défaite.'); rendre(); return; }
     dire(aideTexte, null);
   };
 
@@ -1151,10 +1206,10 @@ function rechargerVolee() {
   const combien = P.selection.length;
   const avant = new Set(P.main.map((c) => c.uid));
   const r = C.recharger(P, rng);
-  if (!r.ok) { mot = `<span class="tb-refus">${r.pourquoi}</span>`; rendre(); return; }
+  if (!r.ok) { souffler(`<span class="tb-refus">${r.pourquoi}</span>`); rendre(); return; }
   // Les hommes repris arrivent comme à la distribution : on les VOIT monter.
   neuves = P.main.filter((c) => !avant.has(c.uid)).map((c) => c.uid);
-  mot = `${combien} homme${combien > 1 ? 's renvoyés' : ' renvoyé'} au fond — il reste ${P.rechargements} rechargement${P.rechargements > 1 ? 's' : ''}.`;
+  souffler(`${combien} munition${combien > 1 ? 's renvoyées' : ' renvoyée'} au fond — il reste ${P.rechargements} rechargement${P.rechargements > 1 ? 's' : ''}.`);
   rendre();
 }
 
@@ -1206,7 +1261,7 @@ async function tirer() {
     fxFloatText(b.x, b.y - 26, rip.intention.nom, 'dmg');
     await attendre(620);
   }
-  mot = [rip.annulee ? rip.raison : null, ...rip.effets].filter(Boolean).join(' ');
+  souffler([rip.annulee ? rip.raison : null, ...rip.effets].filter(Boolean).join(' '));
   peindreCoques();
   occupe = false;
   // On ne coule plus : `naufrage` n'existe plus comme fin. La seule façon de
@@ -1479,11 +1534,13 @@ function motPremier() {
   const fond = el('div', { class: 'overlay', on: { click: () => fond.remove() } });
   fond.appendChild(el('div', { class: 'modal ecran-cartes aide-boite' }, [
     el('h3', { text: 'Une volée' }),
-    el('p', { html: 'Une <b>volée</b>, c’est le groupe d’hommes que tu envoies tirer <b>en même temps</b> : '
-      + 'jusqu’à <b>trois</b>, tous du <b>même bord</b> — <span class="pion ba">bâbord</span> ou '
+    el('p', { html: 'Une <b>volée</b>, c’est le groupe de munitions que tu tires <b>en même temps</b> : '
+      + 'jusqu’à <b>trois</b>, toutes du <b>même bord</b> — <span class="pion ba">bâbord</span> ou '
       + '<span class="pion tri">tribord</span>, jamais mélangés. Les canons d’un bord tirent ensemble ; '
       + 'ceux d’en face regardent la mer.' }),
-    el('p', { html: 'Touche des hommes pour les mettre à la manœuvre, puis <b>pousse la volée</b> sur la zone '
+    el('p', { html: '<b>Assortis-les</b> : deux munitions pareilles font une paire, trois une triplette, '
+      + 'trois différentes une panachée. C’est la <b>fureur</b>, et elle multiplie la poudre.' }),
+    el('p', { html: 'Touche des munitions pour les mettre à la manœuvre, puis <b>pousse la volée</b> sur la zone '
       + 'qui s’ouvre sous La Tortue. Le tableau écrit le compte exact <b>avant</b> que tu lâches.' }),
     el('p', { html: 'En face, <b>elle montre la carte qu’elle jouera</b> à la fin de ton tour. Rien n’est caché, '
       + 'rien n’est tiré au sort.' }),
@@ -1691,6 +1748,7 @@ function rendre() {
   // arrivées, on oublie qui venait d'arriver. Sans cet oubli, l'animation
   // repartait à chaque rendu — c'est-à-dire à chaque homme touché.
   neuves = [];
+  poserLeMot();
   tutoRendre();
 }
 

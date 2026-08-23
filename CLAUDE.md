@@ -217,6 +217,29 @@ sert `tools/mobile-audit.mjs`.
 
 ### Ce que l'écran montre, et où
 
+- **TROIS CONTENUS QUI S'EXCLUENT, TROIS ENDROITS.** Le tableau portait à la
+  fois la carte annoncée par la prise, le compte de la volée et les répliques
+  d'équipage : trois choses qui ne pouvaient pas s'afficher ensemble, et dont
+  la plus bavarde chassait toujours la plus utile.
+  - **Ce que sa carte fait** s'écrit **sous sa carte, dans la mer**, en deux
+    lignes au plus, et **toujours** — c'était à l'autre bout de l'écran et
+    seulement au doigt, si bien qu'on composait sa volée sans savoir contre
+    quoi. Rien sur QUAND elle la joue : le pied de la carte dit déjà « fin du
+    tour ». Le champ `dit` des intentions est cette version courte ; `texte`
+    reste la longue, pour le doigt et la modale.
+  - **Les répliques d'équipage** passent en **phylactère au-dessus de La
+    Tortue**, quatre secondes, puis s'effacent. Une réplique est une
+    respiration, pas un état — `souffler()`, et non `dire()`, qui est déjà pris
+    par la consigne de geste. **L'échéance est portée par l'état**
+    (`motJusqua`), pas par le minuteur : `rendre()` refait tout le DOM à chaque
+    carte touchée, et un minuteur relancé à chaque rendu aurait gardé la
+    réplique à l'écran pendant toute la composition d'une volée — exactement le
+    défaut qu'on répare.
+  - **Le tableau ne garde que le compte de la volée**, et se réduit à une seule
+    ligne quand il n'y en a pas : « Touche des munitions du même bord. » Sa
+    hauteur suit son contenu — `min-height: 0` sur `.tableau` ET sur
+    `.tb-detail`. La réserve de 58 px n'existait que parce que trois contenus
+    de longueurs différentes s'y succédaient.
 - **Sa carte d'intention est une carte** : le même gabarit que les nôtres —
   bandeau de tête, nom, grand chiffre, pied — en noir et rouge, posée à plat
   sous son navire. Un rectangle horizontal avec du texte dedans n'est pas une
@@ -233,10 +256,10 @@ sert `tools/mobile-audit.mjs`.
   carte à elle se
   TOUCHENT plutôt qu'ils ne se tiennent : leur texte reste jusqu'au prochain
   rendu (`tenir: true`).
-- **La hauteur de ce bloc est RÉSERVÉE** (`min-height` sur `.tb-detail`) : il
-  reçoit tour à tour la réplique d'équipage et la phrase de l'homme qu'on
-  touche, et sans réserve le tableau changeait de hauteur sous le pouce à
-  chaque appui — donc la main aussi, puisqu'elle est juste dessous.
+- **La hauteur du tableau suit son contenu.** Elle a été réservée un temps, le
+  bloc recevant tour à tour trois choses de longueurs très différentes ; les
+  deux autres sont parties ailleurs (voir ci-dessus), la réserve n'a plus
+  d'objet.
 - **Les cartes arrivent, elles n'apparaissent pas** : la relève vole depuis la
   droite, décalée d'une carte à l'autre. On compte les hommes reçus sans lire
   un chiffre. La marque `neuve` est un ÉVÉNEMENT, pas un état : elle est
