@@ -819,11 +819,25 @@ function secouer(n) {
 // s'allume tant qu'ils n'ont pas servi et s'éteint après. Les trois autres
 // n'ont rien à ordonner — leur règle est toujours là.
 function etatMajor() {
-  // Seuls les hommes EMBARQUÉS s'affichent : cinq carrés vides en permanence,
-  // c'était cinq cibles tactiles pour rien — et sous les 44 px, parce qu'il
-  // fallait les faire tenir.
-  if (!P.hommes.length) return null;
   const zone = el('div', { class: 'etat-major' });
+  // L'ÉTAT-MAJOR VIDE SE MONTRE QUAND MÊME, en UNE case et non en cinq. Il ne
+  // s'affichait pas du tout tant qu'on n'avait engagé personne — pour ne pas
+  // poser cinq carrés vides, cinq cibles tactiles pour rien. Le prix de cette
+  // économie était plus élevé qu'elle : l'état-major est la SEULE progression
+  // du jeu depuis que le deck ne se recrute plus, et un joueur qui commence ne
+  // pouvait pas deviner qu'il existe. Une case suffit à le dire.
+  if (!P.hommes.length) {
+    const vide = el('button', {
+      class: 'officier vacant', text: '+',
+      attrs: { type: 'button', 'aria-label': 'l’état-major, vide' },
+      on: { click: () => direDansLeTableau(
+        '<b>L’état-major</b> — cinq hommes au plus, engagés à l’escale. '
+        + 'Ils ne se jouent pas : chacun change une règle. Tu n’en as encore aucun.',
+        { tenir: true }) },
+    });
+    zone.appendChild(vide);
+    return zone;
+  }
   for (const id of P.hommes) {
     const h = CONTENU.hommes.find((x) => x.id === id);
     if (!h) continue;
@@ -899,6 +913,11 @@ function ecranChasse() {
   // Les deux plaques sont dans UNE rangée en haut de la bande : posées
   // au-dessus de chaque coque, elles se retrouvaient à deux hauteurs
   // différentes selon la taille des navires, et l'œil lisait deux mers.
+  // L'ÉTAT-MAJOR EST DANS LE FLUX, sous les plaques. Posé en absolu dans le
+  // coin haut-droit, il recouvrait la plaque de la prise — c'est-à-dire la
+  // jauge de pression, le seul chiffre que le joueur regarde. `.mer` est une
+  // colonne flex : il suffit de le mettre à sa place plutôt que par-dessus.
+  const major = etatMajor();
   const mer = el('div', { class: 'mer' }, [
     el('div', { class: 'etiquettes' }, [
       // LA TORTUE N'A PLUS DE JAUGE : elle n'a plus de points de vie, on ne
@@ -925,6 +944,7 @@ function ecranChasse() {
         el('div', { class: 'e-chif menu' }, [el('span', { text: `coque ${p.pv} / ${p.max}` })]),
       ]),
     ]),
+    major,
     // LE PHYLACTÈRE, AU-DESSUS DE LA TORTUE : c'est notre bord qui parle, donc
     // c'est de notre bord que ça sort. Il est vide et invisible la plupart du
     // temps, et ne prend jamais de place au flux — d'où l'absolu.
@@ -958,8 +978,6 @@ function ecranChasse() {
   }, conditions.map((c) => el('span', { class: `pastille ${c.cls}`, text: c.chip })));
   if (conditions.length) mer.appendChild(past);
 
-  const major = etatMajor();
-  if (major) mer.appendChild(major);
 
   // SA CARTE : l'intention n'est pas un bandeau de plus en travers de l'écran,
   // c'est une carte — même facture que les nôtres, teinte sombre — posée sous

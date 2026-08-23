@@ -103,6 +103,16 @@ Leur nom, leur titre, leur texte et leur prix sont du contenu ; leur **verbe est
 du code**, dans `src/cartes.js` — la seule chose du jeu qui demande une ligne de
 code pour être ajoutée, et c'est voulu.
 
+**L'état-major se montre même VIDE**, en UNE case et non en cinq : il ne
+s'affichait pas du tout tant qu'on n'avait engagé personne, pour ne pas poser
+cinq carrés vides. Le prix de cette économie était plus élevé qu'elle —
+l'état-major est la SEULE progression du jeu depuis que le deck ne se recrute
+plus, et un joueur qui commence ne pouvait pas deviner qu'il existe.
+
+Il est **dans le flux, en rang sous les plaques**, et non en colonne dans le
+coin haut-droit : là, il recouvrait la plaque de la prise, c'est-à-dire la jauge
+de pression — le seul chiffre que le joueur regarde.
+
 Deux d'entre eux agissent **sur ordre** : leur initiale s'allume tant qu'ils
 n'ont pas servi, s'éteint après. Toussaint retire la munition **désignée** et
 non la pire — sinon il ferait double emploi avec la barrique, qui jette la pire
