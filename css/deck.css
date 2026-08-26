@@ -1360,25 +1360,35 @@
 
    `position: absolute` : il ne prend jamais de place au flux, donc il ne pousse
    ni la mer ni la main quand il apparaît. */
+/* UNE BULLE DE BANDE DESSINÉE, qui SORT DU NAVIRE. C'était une plaque de
+   panneau parmi d'autres, sombre, avec un petit triangle : elle ressemblait à
+   l'interface et non à quelqu'un qui parle. Une bulle est blanche, cerclée
+   d'encre, et sa queue part de la bouche — ici, du pont de La Tortue. */
 .screen.ecran-cartes .phylactere {
-  position: absolute; z-index: 5; left: 2%; bottom: calc(var(--pied, 56px) + 34%);
-  max-width: 62%;
-  background: var(--bg-panel); border: 1px solid var(--gold-dark); border-radius: 7px;
-  padding: 5px 8px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.55);
-  font-family: var(--font-body); font-size: 9.5px; line-height: 1.4; color: var(--text-secondary);
-  opacity: 0; transform: translateY(5px); pointer-events: none;
-  transition: opacity .18s var(--ease-fast), transform .18s var(--ease-fast);
+  position: absolute; z-index: 5; left: 3%; bottom: calc(var(--pied, 56px) + 30%);
+  max-width: 64%;
+  background: #fdf7e7; border: 2px solid #1c1109; border-radius: 14px;
+  padding: 6px 10px;
+  box-shadow: 0 5px 0 rgba(28,17,9,.35), 0 10px 20px rgba(0,0,0,.4);
+  font-family: var(--font-body); font-size: 9.5px; line-height: 1.4; color: #241608;
+  opacity: 0; transform: translateY(6px) scale(.9); transform-origin: 18% 100%;
+  pointer-events: none;
+  transition: opacity .16s var(--ease-fast), transform .22s cubic-bezier(.2,1.3,.35,1);
 }
 .screen.ecran-cartes .phylactere.vu { opacity: 1; transform: none; }
 .screen.ecran-cartes .phylactere:empty { display: none; }
-.screen.ecran-cartes .phylactere b { color: var(--gold-light, #e8c877); }
-.screen.ecran-cartes .phylactere .tb-refus { color: #f0a090; }
-/* La pointe, vers le pont de La Tortue. */
+.screen.ecran-cartes .phylactere b { color: #8a3c10; }
+.screen.ecran-cartes .phylactere .tb-refus { color: #a5231b; font-weight: 700; }
+/* LA QUEUE, en deux bulles qui descendent vers le pont : c'est ce qui fait
+   qu'on lit « quelqu'un parle » et non « un panneau s'affiche ». Dessinée avec
+   les deux pseudo-éléments, sans image. */
+.screen.ecran-cartes .phylactere::before,
 .screen.ecran-cartes .phylactere::after {
-  content: ''; position: absolute; bottom: -6px; left: 22px;
-  border: 6px solid transparent; border-top-color: var(--gold-dark); border-bottom: 0;
+  content: ''; position: absolute;
+  background: #fdf7e7; border: 2px solid #1c1109; border-radius: 50%;
 }
+.screen.ecran-cartes .phylactere::before { width: 13px; height: 11px; bottom: -9px; left: 16px; }
+.screen.ecran-cartes .phylactere::after  { width: 7px;  height: 6px;  bottom: -18px; left: 11px; }
 
 .screen.ecran-cartes .sa-carte::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: 6px;
@@ -1421,6 +1431,31 @@
    à la place de la réplique d'équipage, tant que le doigt reste posé — voir
    `direDansLeTableau()`. RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN.  */
 
+/* --- L'ÉCHELLE DE PUISSANCE ----------------------------------------------
+   Cinq crans qui S'AJOUTENT. Tout vit dans `.mer` et jamais sur la page :
+   secouer `body` déplacerait aussi le râtelier et la main, et les cartes qu'on
+   vient de lâcher sauteraient avec le décor. */
+.screen.ecran-cartes .mer .flash {
+  position: absolute; inset: 0; z-index: 6; pointer-events: none;
+  background: radial-gradient(120% 90% at 72% 55%, #fff 0%, rgba(255,240,210,.75) 35%, transparent 72%);
+  mix-blend-mode: screen;
+}
+.screen.ecran-cartes .mer .onde {
+  position: absolute; z-index: 6; pointer-events: none;
+  width: 90px; height: 90px; border-radius: 50%;
+  border: 5px solid rgba(255, 236, 200, .9);
+  box-shadow: 0 0 18px rgba(255, 220, 160, .6);
+}
+/* Le chiffre grossit avec le cran : c'est le même chiffre, pas un autre effet. */
+.fx-float.puissance-sourd   { font-size: 15px; }
+.fx-float.puissance-sec     { font-size: 19px; }
+.fx-float.puissance-nourri  { font-size: 25px; }
+.fx-float.puissance-bordee  { font-size: 33px; text-shadow: 0 0 12px rgba(255,210,140,.7); }
+.fx-float.puissance-demontee {
+  font-size: 44px; font-weight: 700;
+  text-shadow: 0 0 6px #fff, 0 0 20px rgba(255,200,120,.95), 0 3px 0 rgba(90,40,10,.8);
+}
+
 /* --- l'état-major : les officiers embarqués, dans la bande de mer -------- */
 /* DANS LE FLUX, SOUS LES PLAQUES, EN RANG. En colonne dans le coin haut-droit,
    il recouvrait la plaque de la prise — donc la jauge de pression, le seul
@@ -1428,10 +1463,14 @@
    de ciel, qui ne sert à rien d'autre. */
 .screen.ecran-cartes .etat-major {
   flex: 0 0 auto; z-index: 3;
-  display: flex; flex-direction: row; gap: 4px; flex-wrap: wrap;
+  display: flex; flex-direction: row; gap: 4px;
 }
+/* CINQ CADRES SUR UNE RANGÉE, à la largeur de l'écran. Ils partagent la place
+   au lieu d'en réclamer 44 px chacun : à cinq, une rangée fixe déborderait sur
+   un téléphone de 320 px. La hauteur, elle, ne descend jamais sous 44. */
 .screen.ecran-cartes .officier {
-  width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 6px;
+  flex: 1 1 0; min-width: 0; max-width: 64px;
+  height: 44px; min-height: 44px; padding: 0; border-radius: 6px;
   border: 1px solid var(--gold-dark); background: linear-gradient(180deg, #3d2817, #241608);
   font-family: var(--font-title); font-size: 18px; color: var(--gold-light); cursor: help;
   box-shadow: 0 2px 5px rgba(0,0,0,.5);
@@ -1493,8 +1532,10 @@
    rien ne disait lesquels attendaient qu'on les touche. */
 /* La case vide : elle DIT qu'il y a quelque chose à engager, sans prétendre
    valoir un homme. Un trait discontinu, pas de fond, pas de halo. */
+/* Un cadre vide est POSÉ SUR LA MER, donc il porte une plaque opaque et non un
+   voile (règle 4) : à travers, on voyait le ciel et ça ressemblait à un trou. */
 .screen.ecran-cartes .officier.vacant {
-  background: rgba(20, 14, 8, .35);
+  background: linear-gradient(180deg, #2a1d10, #1a1209);
   border: 1px dashed rgba(201, 162, 75, .55);
   color: var(--gold-dark); font-size: 18px; font-weight: 700;
   box-shadow: none; animation: none; opacity: .8;
@@ -1569,88 +1610,64 @@
   display: flex; gap: var(--jeu-gap, 5px); align-items: flex-end;
   justify-content: center;
 }
-/* LE BORD EST L'ENSEIGNE. C'est lui qui décide si deux hommes tirent ensemble,
-   donc c'est lui qu'on doit voir en premier : il porte le fond de la carte
-   entière, et il n'en existe que deux.
+/* LA CARTE EST CRÈME, ET SON CADRE DIT LA MUNITION.
+   Elle a porté deux couleurs — un fond sombre pour le bord, un bandeau clair
+   pour la munition — tant que bâbord et tribord décidaient de ce qui pouvait
+   tirer ensemble. Ce bord est retiré : il ne reste qu'une chose à dire par
+   carte, et une carte qui n'a qu'une chose à dire n'a pas besoin de deux
+   aplats. Le carton reprend sa couleur de carton, et le cadre porte tout.
 
-   LES DEUX FAMILLES DE COULEUR SONT SÉPARÉES, et c'est la règle qui compte ici :
-   LE FOND EST TOUJOURS SOMBRE ET DIT LE BORD, LE BANDEAU EST TOUJOURS CLAIR ET
-   DIT LE MÉTIER. Le rouge et le vert appartenaient aux deux à la fois — le
-   rouge disait canonnier ET bâbord, le vert charpentier ET tribord — et rien ne
-   permettait de savoir laquelle des deux choses une couleur nommait. Les fonds
-   gardent le rouge et le vert mais très sourds et sombres : des teintes de
-   carton, pas des signaux. Contrastes mesurés de l'encre crème dessus :
-   bâbord 10,4:1 · tribord 9,5:1. */
+   Trois pixels, pas un liséré : à cinq cartes sur 375 px, un trait de 1 px ne
+   se distingue pas d'une ombre. Contrastes du cadre sur le crème, mesurés :
+   ramé 1,5:1 · rouge 1,9:1 · mitraille 2,4:1 · chaîne 2,6:1 · barrique 2,3:1 —
+   c'est peu, donc le cadre ne travaille jamais seul : le glyphe est de la même
+   couleur, et le NOM aussi. Trois porteurs pour une information. */
 .screen.ecran-cartes .carte {
   flex: 0 0 var(--carte-l, 62px);
   width: var(--carte-l, 62px); height: var(--carte-h, 90px);
-  color: var(--encre, #f7efd8);
-  background: var(--enseigne, #4a3f2e);
-  border: 2px solid #1c1109;
-  border-radius: 6px;
+  color: #241608;
+  background: #f2ead6;
+  border: 3px solid var(--metier, #a89a86);
+  border-radius: 7px;
   padding: 3px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: grab; user-select: none; position: relative; overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(243,231,200,.20), 0 2px 3px rgba(0,0,0,.5), 0 6px 10px rgba(0,0,0,.3);
+  box-shadow: 0 2px 3px rgba(0,0,0,.45), 0 6px 10px rgba(0,0,0,.28);
   transition: transform .18s cubic-bezier(.2,.9,.25,1.1), box-shadow .18s var(--ease-fast), filter .18s;
   will-change: transform;
 }
-.screen.ecran-cartes .carte[data-bord="babord"]  { --enseigne: #5c2620; --encre: #f7efd8; --feu-bord: #b93a2c; }
-.screen.ecran-cartes .carte[data-bord="tribord"] { --enseigne: #1a4433; --encre: #f7efd8; --feu-bord: #1f7a4a; }
 
-/* Le carton prend la lumière, mais SANS TRAME : les deux quadrillages qui
-   étaient ici vibraient dès que la carte bougeait sous le doigt. Un dégradé
-   seul, en multiply. */
+/* Le grain du carton, en multiply : sans lui, le crème est un aplat
+   d'imprimerie et non du papier. */
 .screen.ecran-cartes .carte::after {
   content: ''; position: absolute; inset: 0; pointer-events: none;
   mix-blend-mode: multiply;
-  background: linear-gradient(146deg, #ffffff 0%, #ffffff 46%, #efe9dd 76%, #d5cdbc 100%);
+  background: linear-gradient(146deg, #ffffff 0%, #ffffff 46%, #f0ebe0 76%, #ded5c2 100%);
 }
 
-/* LA CARTE PORTE DEUX COULEURS, PAS UNE. Le fond est le bord — l'enseigne,
-   celle qui décide si deux hommes tirent ensemble. Le BANDEAU est le métier,
-   dans sa propre couleur, sur toute la largeur, avec le glyphe crème dedans.
-   Un seul aplat ne disait qu'une des deux choses ; il en fallait deux.
-
-   Et sa POSITION dit l'avant et l'arrière : collé en haut, collé en bas. Il
-   touche le bord de la carte et en épouse les coins arrondis de ce côté-là. */
+/* LE GLYPHE, en grand, dans la couleur de la munition. Il monte en haut de la
+   carte, là où était le bandeau. */
 .screen.ecran-cartes .carte .c-bandeau {
-  position: absolute; left: 0; right: 0; z-index: 2;
-  height: 26%;
-  background: var(--metier, #a89a86);
-  /* LES QUATRE BANDEAUX SONT CLAIRS, donc l'encre est sombre — la même pour
-     les quatre, ce qui n'était pas possible tant qu'un bandeau brique en
-     côtoyait un ocre. Contrastes mesurés de #241608 dessus : pierre 11,7:1 ·
-     bleu 6,8:1 · or 8,3:1 · violet 5,7:1. */
-  color: #241608;
+  position: absolute; left: 0; right: 0; top: 2px; z-index: 2;
+  height: 30%;
+  color: var(--metier, #8a7a62);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 1px; overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.28);
 }
-/* Il n'y a plus qu'UNE position. Le bandeau était collé en haut ou en bas
-   selon que l'homme servait à l'avant ou à l'arrière ; l'avant et l'arrière
-   sont retirés, et il ne reste qu'une chose de moins à décoder. */
-.screen.ecran-cartes .carte .c-bandeau { top: 0; border-radius: 4px 4px 0 0; }
 .screen.ecran-cartes .carte .c-bandeau svg {
-  /* Le glyphe se mesure sur la HAUTEUR du bandeau, pas sur la largeur de la
-     carte : mesuré en largeur, il poussait le nom hors du bandeau. */
-  height: 54%; width: auto; display: block; flex: 0 0 auto;
-  filter: drop-shadow(0 1px 0 rgba(255,255,255,.28));
+  height: 62%; width: auto; display: block; flex: 0 0 auto;
 }
-/* UNE FAMILLE CLAIRE, qui ne peut être confondue avec aucun fond : ni le rouge
-   ni le vert n'en sont, précisément parce qu'ils appartiennent aux bords.
-   Chaque bandeau se détache de chacun des deux fonds — mesuré, du moins
-   contrasté au plus : violet 3,6:1 sur tribord, pierre 8:1 sur bâbord. Et
-   l'encre sombre tient sur les cinq, de 5,7:1 (violet) à 11,7:1 (pierre).
 
-   CINQ MUNITIONS, CINQ COULEURS. C'est la répétition qui rend les figures
-   lisibles : deux bandeaux de la même couleur côte à côte SONT une paire, et
-   on la voit sans lire un mot. */
-.screen.ecran-cartes .carte[data-role="boulet_rame"]  { --metier: #d9d2c4; }
-.screen.ecran-cartes .carte[data-role="boulet_rouge"] { --metier: #e0a93c; }
-.screen.ecran-cartes .carte[data-role="mitraille"]    { --metier: #6fa8c9; }
-.screen.ecran-cartes .carte[data-role="chaine"]       { --metier: #9b8bbd; }
-.screen.ecran-cartes .carte[data-role="barrique"]     { --metier: #c08b5c; }
+/* CINQ MUNITIONS, CINQ COULEURS, et c'est la répétition qui rend les figures
+   lisibles : deux cadres de la même couleur côte à côte SONT une paire, et on
+   la voit sans lire un mot. Les teintes sont assombries par rapport aux
+   bandeaux d'avant : elles étaient claires pour porter une encre sombre sur un
+   fond sombre, elles doivent maintenant se détacher SUR du crème. */
+.screen.ecran-cartes .carte[data-role="boulet_rame"]  { --metier: #8a7f6c; }
+.screen.ecran-cartes .carte[data-role="boulet_rouge"] { --metier: #b8791b; }
+.screen.ecran-cartes .carte[data-role="mitraille"]    { --metier: #35709b; }
+.screen.ecran-cartes .carte[data-role="chaine"]       { --metier: #6f5d99; }
+.screen.ecran-cartes .carte[data-role="barrique"]     { --metier: #96633a; }
 
 .screen.ecran-cartes .carte:active { cursor: grabbing; }
 .screen.ecran-cartes .carte.prise-en-main {
@@ -1673,15 +1690,17 @@
   font-family: var(--font-body); font-weight: 700;
   font-size: calc(var(--carte-h, 90px) * .4);
   line-height: 1; letter-spacing: -1px; z-index: 1;
-  text-shadow: 0 2px 3px rgba(0,0,0,.4);
+  color: #241608;
 }
 .screen.ecran-cartes .carte .c-val { margin-top: 26%; }
 
-/* Le nom est de la saveur, pas une décision : très petit, dans le bandeau,
-   sous le glyphe. */
+/* Le nom est en ENCRE SOMBRE, pas dans la couleur de la munition : à 7 px
+   c'est du petit texte, qui demande 4,5:1, et aucune des cinq teintes n'y
+   arrive sur le crème (3,0 à 4,7). La couleur reste au CADRE et au GLYPHE, qui
+   sont des formes et se contentent de 3:1 — les cinq y sont. */
 .screen.ecran-cartes .carte .c-nom {
-  font-family: var(--font-title); font-size: 6.5px; line-height: 1; text-align: center;
-  letter-spacing: .2px; opacity: .9; max-width: 100%; padding: 0 2px;
+  font-family: var(--font-title); font-size: 7px; line-height: 1; text-align: center;
+  letter-spacing: .2px; max-width: 100%; padding: 0 2px; font-weight: 700; color: #241608;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -1691,17 +1710,18 @@
   font-size: 8px; line-height: 1; letter-spacing: -.5px; color: var(--gold-light, #e8c877);
 }
 
+/* LA CARTE FEU GARDE SON TRAITEMENT À PART : c'est la seule carte qui ne sert
+   à rien, et il faut le voir de loin. Son carton est roussi, pas crème. */
 .screen.ecran-cartes .carte.feu {
-  --enseigne: #3a1c0c; --encre: #f0d0a0; --feu-bord: #8a4a14; --metier: #c9a48a;
-  border-color: var(--warning);
+  --metier: #8a3c10;
+  background: #d8b48c; border-color: #8a3c10; color: #3a1c0c;
 }
-.screen.ecran-cartes .carte.feu .c-nom { opacity: 1; }
-.screen.ecran-cartes .carte.blesse { --enseigne: #3f1a15; }
-.screen.ecran-cartes .carte.blesse .c-val { color: #ffd7cf; }
-/* « blessé » se loge sur la tranche droite, en vertical : le haut-gauche et le
-   bas-gauche appartiennent au symbole de métier, et le pied au nom. */
+/* Une munition MOUILLÉE a pris l'eau : son carton est gondolé et terne. */
+.screen.ecran-cartes .carte.blesse { background: #d9d2c6; filter: saturate(.55); }
+/* « mouillée » se loge sur la tranche droite, en vertical : le haut appartient
+   au glyphe et au nom, le centre à la poudre. */
 .screen.ecran-cartes .carte .c-etat {
-  position: absolute; top: 50%; right: 2px; z-index: 2;
+  position: absolute; top: 50%; right: 2px; z-index: 2; color: #6a4a3a;
   transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl;
   font-size: 7.5px; font-weight: 700; opacity: .9; letter-spacing: .5px;
 }
@@ -1790,21 +1810,28 @@
    Elle apparaît SOUS NOTRE NAVIRE, là où la volée doit arriver, et c'est la
    seule cible du jeu : on ne largue plus vers le bas, il n'y a rien sous les
    cartes que le bois du râtelier. */
+/* LA ZONE DE DÉPÔT EST LE PLATEAU ENTIER. C'était un rectangle de la taille
+   d'une carte, sous La Tortue : il fallait viser, et un geste qui demande de
+   viser n'est plus un geste, c'est un bouton déguisé. Tout ce qui est au-dessus
+   du bois accepte la volée — donc la marque qui le dit couvre tout, et se
+   contente d'un liséré et d'un mot en pied. */
 .screen.ecran-cartes .depot {
-  position: absolute; z-index: 4; left: 3%; width: 44%; bottom: 2px;
-  height: calc(var(--carte-h, 100px) * .92); border: 2px dashed var(--gold-dark); border-radius: 8px;
-  background: rgba(212,160,23,.10);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-title); font-size: 12px; color: var(--gold); text-align: center; padding: 0 6px;
-  opacity: 0; transform: translateY(10px) scale(.96);
-  transition: opacity .18s var(--ease-fast), transform .18s var(--ease-fast), background .18s;
+  position: absolute; z-index: 4; inset: 0;
+  border: 2px dashed var(--gold-dark); border-radius: 10px;
+  background: rgba(212,160,23,.07);
+  /* Le mot va EN HAUT : le bas de la mer porte déjà la légende de sa carte, et
+     les deux se superposaient. */
+  display: flex; align-items: flex-start; justify-content: center;
+  font-family: var(--font-title); font-size: 12px; color: var(--gold);
+  text-align: center; padding: 4px 6px 0;
+  opacity: 0; transition: opacity .18s var(--ease-fast), background .18s, box-shadow .18s;
   pointer-events: none;
 }
-.screen.ecran-cartes .depot.vu { opacity: 1; transform: none; }
+.screen.ecran-cartes .depot.vu { opacity: 1; }
 .screen.ecran-cartes .depot.prete {
   border-style: solid; border-color: var(--gold-light);
-  background: rgba(241,196,15,.22);
-  box-shadow: 0 0 18px rgba(241,196,15,.35);
+  background: rgba(241,196,15,.14);
+  box-shadow: inset 0 0 34px rgba(241,196,15,.30);
 }
 
 /* --- ce qui vole : boulets, copeaux, fumée -------------------------------

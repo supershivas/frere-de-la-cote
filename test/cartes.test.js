@@ -65,41 +65,35 @@ test('an impossible order says why, out loud', () => {
   const { P } = partie(CONTENU.prises[0], 3);
   equal(C.engagerHomme(P, CONTENU.hommes[0]).ok, false, 'recruiting without loot should be refused');
 
-  // Une volée ne mêle pas les deux bords, et le refus doit le dire.
-  const premier = P.main.find((c) => !C.estFeu(c));
-  C.selectionner(P, premier);
-  const enFace = P.main.find((c) => !C.estFeu(c) && C.bordDe(CONTENU, c) !== C.bordDe(CONTENU, premier));
-  if (enFace) {
-    const r = C.selectionner(P, enFace);
-    equal(r.ok, false, 'mixing both sides should be refused');
-    assert(/bord/i.test(r.pourquoi), `le refus n'explique pas le bord : « ${r.pourquoi} »`);
+  // Une volée ne prend pas plus de munitions qu'elle n'a de places.
+  for (const c of P.main.slice(0, C.voleeMax(P))) C.selectionner(P, c);
+  const detrop = P.main.find((c) => !P.selection.includes(c));
+  if (detrop) {
+    const r = C.selectionner(P, detrop);
+    equal(r.ok, false, 'une quatrième munition est entrée dans la volée');
+    assert(r.pourquoi, 'le refus ne dit pas pourquoi');
   }
 });
 
-test('a volley is one side, and that is the only constraint on it', () => {
-  // L'ENCRASSEMENT EST RETIRÉ. Le bord qui venait de tirer rechargeait un tour,
-  // ce qui obligeait à alterner ; il fallait ensuite DEUX soupapes pour que le
-  // joueur ne se retrouve pas sans un coup à jouer (un homme seul n'encrasse
-  // pas, un bord encrassé reprend le service si l'autre est absent de la main).
-  // Trois règles pour une seule contrainte. Il ne reste que celle qui se voit.
+test('a volley has no composition rule left — only how many', () => {
+  // BÂBORD ET TRIBORD SONT RETIRÉS. Ils interdisaient de mêler les deux côtés :
+  // une main sur deux était à moitié injouable, et la moitié des tours devenait
+  // une attente plutôt qu'une décision. Ce qui reste et qui décide, ce sont les
+  // FIGURES — assortir, et non trier.
+  //
+  // Mesuré, le retrait multiplie par 2,8 la pression médiane d'une volée (de
+  // ~30 à 85), puisque la main joue toujours ses trois meilleures : les
+  // résistances ont été réétalonnées d'autant, dans le même mouvement.
   const { P } = partie(CONTENU.prises[0], 11);
-  const b = C.meilleureVolee(P);
-  P.selection = b.cartes;
-  const bord = C.bordDeLaVolee(P, b.cartes);
-  C.jouer(P);
-  const encore = P.main.find((c) => !C.estFeu(c) && C.bordDe(CONTENU, c) === bord);
-  if (encore) equal(C.peutJouer(P, encore).ok, true, 'un bord qui vient de tirer est encore bloqué');
+  empty(P.main.filter((c) => !C.peutJouer(P, c).ok),
+    'une munition de la main est refusée alors qu’aucune règle ne la refuse');
+  empty(P.deck.filter((c) => c.bord != null), 'une munition porte encore un bord');
+  if (CONTENU.bords) throw new Error('data/equipage.json porte encore des bords');
 
-  // La seule chose qu'on refuse, et à voix haute : mêler les deux bords.
-  const { P: Q } = partie(CONTENU.prises[0], 12);
-  const un = Q.main.find((c) => !C.estFeu(c));
-  Q.selection = [un];
-  const autre = Q.main.find((c) => !C.estFeu(c) && C.bordDe(CONTENU, c) !== C.bordDe(CONTENU, un));
-  if (autre) {
-    const r = C.selectionner(Q, autre);
-    equal(r.ok, false, 'une volée a pu mêler les deux bords');
-    assert(r.pourquoi, 'le refus ne dit pas pourquoi');
-  }
+  // N'importe quel trio de la main forme une volée.
+  const trois = P.main.slice(0, 3);
+  for (const c of trois) equal(C.selectionner(P, c).ok, true, 'une munition a été refusée');
+  equal(P.selection.length, 3, 'la volée n’a pas pris les trois');
 });
 
 test('the encounter is an ante: four broadsides, three reloads, a full hand', () => {
@@ -388,7 +382,7 @@ test('the sea soaks the best munition in hand, never one at random', () => {
 
 suite('cartes — contenu');
 
-test('the deck is made of munitions, repeated, on both sides', () => {
+test('the deck is made of munitions, repeated often enough to make figures', () => {
   // LE DECK EST FAIT DE MUNITIONS, PAS D'HOMMES. C'est ce qui permet aux
   // FIGURES d'exister : avec des hommes tous différents, aucune main ne
   // ressemblait à une autre et il n'y avait rien à reconnaître.
@@ -398,16 +392,13 @@ test('the deck is made of munitions, repeated, on both sides', () => {
     if (!m.nom || !m.texte) bad.push(`munition ${m.id} incomplète`);
     if (typeof m.poudre !== 'number') bad.push(`munition ${m.id} sans poudre`);
   }
-  for (const [bord, compo] of Object.entries(CONTENU.deck)) {
-    if (!CONTENU.bords[bord]) bad.push(`deck → bord inconnu « ${bord} »`);
-    for (const [id, n] of Object.entries(compo)) {
-      if (!ids.includes(id)) bad.push(`deck.${bord} → « ${id} » n'existe pas`);
-      if (n < 2) bad.push(`deck.${bord}.${id} → ${n} exemplaire : pas de figure possible`);
-    }
-    // Chaque munition existe des DEUX côtés : sinon la moitié des figures ne
-    // serait jouable que d'un bord, et le choix du bord cesserait d'en être un.
-    for (const id of ids) if (!compo[id]) bad.push(`deck.${bord} → « ${id} » manque de ce bord`);
+  for (const [id, n] of Object.entries(CONTENU.deck)) {
+    if (!ids.includes(id)) bad.push(`deck → « ${id} » n'existe pas`);
+    // Trois exemplaires au moins : en dessous, la triplette est impossible et
+    // la figure la plus payante n'est qu'un texte.
+    if (n < 3) bad.push(`deck.${id} → ${n} exemplaire(s) : pas de triplette possible`);
   }
+  for (const id of ids) if (!CONTENU.deck[id]) bad.push(`deck → « ${id} » n'est pas dans le paquet`);
   // Ce qui a quitté le contenu avec les hommes.
   for (const k of ['roles', 'equipage', 'recrues', 'officiers', 'quarts']) {
     if (CONTENU[k]) bad.push(`data/equipage.json porte encore « ${k} »`);
@@ -416,10 +407,6 @@ test('the deck is made of munitions, repeated, on both sides', () => {
 
   const P = C.nouvellePartie(CONTENU);
   assert(P.deck.length >= 30, `le paquet ne fait que ${P.deck.length} cartes`);
-  const parBord = {};
-  for (const c of P.deck) parBord[c.bord] = (parBord[c.bord] || 0) + 1;
-  empty(Object.entries(parBord).filter(([, n]) => n < 12).map(([b, n]) => `${b} : ${n}`),
-    'a side with too few munitions to fire');
 });
 
 test('the staff replaces both the recruits and the officers', () => {

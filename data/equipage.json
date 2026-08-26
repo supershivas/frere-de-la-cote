@@ -39,20 +39,11 @@
     }
   ],
   "deck": {
-    "babord": {
-      "boulet_rame": 5,
-      "boulet_rouge": 4,
-      "mitraille": 3,
-      "chaine": 3,
-      "barrique": 2
-    },
-    "tribord": {
-      "boulet_rame": 5,
-      "boulet_rouge": 4,
-      "mitraille": 3,
-      "chaine": 3,
-      "barrique": 2
-    }
+    "boulet_rame": 10,
+    "boulet_rouge": 8,
+    "mitraille": 6,
+    "chaine": 6,
+    "barrique": 4
   },
   "hommes": [
     {
@@ -122,8 +113,8 @@
       "nom": "Barque longue",
       "rang": "petite prise",
       "hullClass": 6,
-      "resistance": 175,
-      "pv": 230,
+      "resistance": 230,
+      "pv": 300,
       "butin": 14
     },
     {
@@ -131,8 +122,8 @@
       "nom": "Flûte marchande",
       "rang": "marchand",
       "hullClass": 4,
-      "resistance": 230,
-      "pv": 300,
+      "resistance": 265,
+      "pv": 320,
       "butin": 20
     },
     {
@@ -140,8 +131,8 @@
       "nom": "Galion d'argent",
       "rang": "gros porteur",
       "hullClass": 2,
-      "resistance": 285,
-      "pv": 310,
+      "resistance": 300,
+      "pv": 335,
       "butin": 28
     },
     {
@@ -149,8 +140,8 @@
       "nom": "Frégate royale",
       "rang": "escorte",
       "hullClass": 3,
-      "resistance": 330,
-      "pv": 320,
+      "resistance": 335,
+      "pv": 340,
       "butin": 36
     },
     {
@@ -158,23 +149,11 @@
       "nom": "Vaisseau de ligne",
       "rang": "vaisseau",
       "hullClass": 1,
-      "resistance": 380,
-      "pv": 330,
+      "resistance": 375,
+      "pv": 350,
       "butin": 48
     }
   ],
-  "bords": {
-    "babord": {
-      "nom": "bâbord",
-      "couleur": "#c0392b",
-      "aide": "le côté gauche du navire — feu rouge"
-    },
-    "tribord": {
-      "nom": "tribord",
-      "couleur": "#27ae60",
-      "aide": "le côté droit du navire — feu vert"
-    }
-  },
   "reliques": [
     {
       "id": "longue_vue",

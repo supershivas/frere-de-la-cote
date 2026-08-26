@@ -126,6 +126,7 @@ de 375 px. Chacun de ceux-ci était défendable seul, aucun ne l'était ensemble
 
 | Retiré | Ce qu'il coûtait |
 |---|---|
+| **Bâbord et tribord** — `bordDe`, `bordDeLaVolee`, `data-bord`, les deux moitiés du paquet | Une main sur deux était à moitié injouable, et la moitié des tours devenait une attente. Ce qui décide, ce sont les FIGURES : assortir, et non trier. |
 | **Les métiers, les quarts, les valeurs individuelles, la distinction recrue/officier** | Un deck d'hommes tous différents ne peut pas former de figures. Une munition n'a qu'un **bord** et une poudre, la même pour toutes celles du même nom. |
 | **L'avant et l'arrière** — `SEUIL_GREEMENT`, `boutDe`, la position du bandeau | Le bout ne servait qu'à ouvrir le tir au gréement. |
 | **Les mâts et le démâtage** — `mats`, `matsMax`, `regreement` | Un compteur, un seuil de puissance et un décompte de repousse, pour un seul effet : empêcher la carte annoncée. |
@@ -143,10 +144,14 @@ règle n'est qu'un texte.**
 
 ### Les trois choses qui font la décision
 
-**LE BORD — ce qui tire ensemble.** Chaque munition est rangée d'un côté :
-bâbord ou tribord, et la carte le dit par son FOND, aux couleurs des vrais feux
-de position — **bâbord rouge, tribord vert**. Une volée ne mêle pas les deux
-bords. C'est la seule contrainte de composition, et elle suffit.
+**AUCUNE CONTRAINTE DE COMPOSITION.** Une volée, c'est une à trois munitions de
+la main, prises comme on veut. Bâbord et tribord ont été **retirés** : ils
+interdisaient de mêler les deux côtés, ce qui rendait une main sur deux à moitié
+injouable et transformait la moitié des tours en attente plutôt qu'en décision.
+Mesuré, leur retrait multiplie par **2,8** la pression médiane d'une volée (de
+~30 à 85), puisque la main joue toujours ses trois meilleures — les résistances
+ont été réétalonnées d'autant dans le même mouvement (barque 230, flûte 265,
+galion 300, frégate 335, vaisseau 375).
 
 **LA FIGURE — ce qu'on assortit.** Trois fois la même munition, trois toutes
 différentes, ou une paire. C'est le cœur du jeu, et la seule raison d'être du

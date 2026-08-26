@@ -17,9 +17,11 @@
 //
 // CE QUI FAIT LE JEU, ET RIEN D'AUTRE :
 //
-//   LE BORD (bâbord / tribord) dit CE QUI PEUT TIRER ENSEMBLE. Une volée ne
-//   mêle pas les deux bords — les canons d'un même bord tirent ensemble, ceux
-//   d'en face regardent la mer. C'est la seule contrainte de composition.
+//   AUCUNE CONTRAINTE DE COMPOSITION. Une volée, c'est une à trois munitions
+//   de la main, prises comme on veut. Bâbord et tribord ont été retirés : ils
+//   interdisaient de mêler les deux côtés, ce qui rendait une main sur deux à
+//   moitié injouable et transformait la moitié des tours en attente plutôt
+//   qu'en décision. Ce qui décide, ce sont les FIGURES.
 //
 //   LES DEUX AXES D'UNE VOLÉE. La POUDRE est la somme des munitions ; la
 //   FUREUR part à 1 et monte avec les figures — trois fois la même munition,
@@ -39,7 +41,7 @@
 //
 // CE QUI A ÉTÉ RETIRÉ, et qu'il ne faut pas reconstruire : les métiers, les
 // quarts, l'avant et l'arrière, les valeurs individuelles, la distinction
-// recrue/officier, les mâts et le démâtage, l'encrassement des bords, la météo
+// recrue/officier, bâbord et tribord, les mâts et le démâtage, la météo
 // en combat (elle reste le décor du ciel), les règles de prise, les points de
 // vie de La Tortue et la riposte chiffrée.
 //
@@ -68,12 +70,10 @@ export const ETAT_MAJOR_MAX = 5;
 export const bordeesDe = (P) => BORDEES + (P.reliques.includes('double_fond') ? 1 : 0);
 export const rechargementsDe = () => RECHARGEMENTS;
 
-const FEU = { id: 'feu', nom: 'Feu', poudre: 0, effet: null, bord: null };
+const FEU = { id: 'feu', nom: 'Feu', poudre: 0, effet: null };
 export const estFeu = (c) => c.id === 'feu';
 
-// `contenu` reste en premier argument : tout le jeu appelle `bordDe(P.contenu, c)`.
-export const bordDe = (contenu, c) => (estFeu(c) ? null : c.bord);
-export const autreBord = (b) => (b === 'babord' ? 'tribord' : 'babord');
+
 
 // L'ÉTAT-MAJOR : cinq hommes nommés au plus. Ils ne se jouent pas — ils sont
 // là, et chacun change UNE RÈGLE. Leur nom, leur titre, leur texte et leur
@@ -102,11 +102,6 @@ export const valeur = poudreDe;
 // LA MITRAILLE ANNULE LA CARTE ANNONCÉE. C'est le seul moyen de l'empêcher, et
 // il coûte une des trois places de la volée : c'est là tout son prix.
 export const annuleLAnnonce = (P, cartes) => cartes.some((c) => c.id === 'mitraille');
-
-export function bordDeLaVolee(P, cartes) {
-  for (const c of cartes) if (!estFeu(c)) return bordDe(P.contenu, c);
-  return null;
-}
 
 // LA FIGURE D'UNE VOLÉE. Elle porte sur les MUNITIONS, ce qui n'était possible
 // qu'une fois le deck fait de cartes qui se répètent : avec des hommes tous
@@ -200,7 +195,6 @@ export function evaluer(P, cartes) {
     arme: munitions.some((c) => c.id === 'chaine' && !c.mouillee),
     // La barrique ne tire pas : elle jette une munition ratée par-dessus bord.
     barriques: munitions.filter((c) => c.id === 'barrique').length,
-    bord: bordDeLaVolee(P, cartes),
   };
 }
 
@@ -222,16 +216,14 @@ const carte = (def) => ({ ...def, uid: ++uid, mouillee: false });
 const feu = () => carte(FEU);
 
 // LE PAQUET, MONTÉ DEPUIS LES DONNÉES. `deck` dit combien d'exemplaires de
-// chaque munition par bord ; c'est du contenu, parce que la composition du
+// chaque munition ; c'est du contenu, parce que la composition du
 // paquet est un réglage et pas une règle. Ajouter une munition ou en changer
 // le nombre ne demande aucune ligne de code.
 export function monterLeDeck(contenu) {
   const parId = Object.fromEntries(contenu.munitions.map((m) => [m.id, m]));
   const cartes = [];
-  for (const [bord, compo] of Object.entries(contenu.deck)) {
-    for (const [id, n] of Object.entries(compo)) {
-      for (let i = 0; i < n; i++) if (parId[id]) cartes.push(carte({ ...parId[id], bord }));
-    }
+  for (const [id, n] of Object.entries(contenu.deck)) {
+    for (let i = 0; i < n; i++) if (parId[id]) cartes.push(carte({ ...parId[id] }));
   }
   return cartes;
 }
@@ -326,13 +318,10 @@ export function completer(P, rng, combien = null) {
 export function peutJouer(P, c) {
   if (P.fini) return { ok: false, pourquoi: 'La prise est jouée.' };
   if (estFeu(c)) return { ok: true };
-  const b = bordDe(P.contenu, c);
-  // L'ENCRASSEMENT EST RETIRÉ. Le bord qui venait de tirer rechargeait un
-  // tour, ce qui obligeait à alterner — et il fallait deux soupapes pour que
-  // le joueur ne se retrouve pas sans un coup à jouer. Trois règles pour une
-  // contrainte ; il ne reste que celle qui se voit : une volée d'un seul bord.
-  const bv = bordDeLaVolee(P, P.selection);
-  if (bv && bv !== b) return { ok: false, pourquoi: `La volée est à ${P.contenu.bords[bv].nom} : les canons d’en face ne portent pas.` };
+  // PLUS AUCUNE CONTRAINTE DE COMPOSITION. Bâbord et tribord interdisaient de
+  // mêler les deux côtés : une main sur deux était à moitié injouable, et la
+  // moitié des tours devenait une attente plutôt qu'une décision. Ce qui reste
+  // et qui décide, ce sont les figures.
   return { ok: true };
 }
 
@@ -585,8 +574,6 @@ export function meilleureVolee(P, { viser = 'degats', max = null } = {}) {
     const cartes = [];
     for (let i = 0; i < n; i++) if (masque & (1 << i)) cartes.push(jouables[i]);
     if (cartes.length > plafond) continue;
-    const bords = new Set(cartes.filter((c) => !estFeu(c)).map((c) => bordDe(P.contenu, c)));
-    if (bords.size > 1) continue;
     const r = evaluer(P, cartes);
     // `viser` dit ce qu'on cherche : la pression brute, ou l'annulation de la
     // carte annoncée. Les deux ne donnent pas la même volée — c'est justement

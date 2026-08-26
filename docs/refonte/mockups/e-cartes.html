@@ -445,8 +445,11 @@ function boulet(a, b, duree = 620) {
   });
 }
 
-async function tir(deId, versId, sens, texte, ton, { cible = 'coque' } = {}) {
-  const ports = bouches(deId, sens);
+async function tir(deId, versId, sens, texte, ton, { cible = 'coque', boulets = 3 } = {}) {
+  // COMBIEN DE BOULETS PARTENT, c'est le cran de puissance qui le dit. Une
+  // volée sourde en envoie un, une volée démontée toute la rangée : le nombre
+  // de bouches qui tirent EST l'échelle, avant même l'écran qui tremble.
+  const ports = bouches(deId, sens).slice(0, Math.max(1, boulets));
   const cv = document.getElementById(versId);
   const r = cv ? cv.getBoundingClientRect() : null;
   // OÙ LE BOULET FRAPPE. À la coque, c'est le bordé entre le pont et l'eau —
@@ -475,6 +478,7 @@ async function tir(deId, versId, sens, texte, ton, { cible = 'coque' } = {}) {
   impact(b, cible);
   if (texte) fxFloatText(b.x, b.y - 26, texte, ton);
   await attendre(280);
+  return b;
 }
 
 /* ------------------------------------------------------------ phylactères */
@@ -557,7 +561,7 @@ function tableau() {
   // sont sur le ruban, la réplique est passée au phylactère : il ne reste que
   // ce qu'il faut faire.
   if (!P.selection.length) {
-    t.appendChild(el('div', { class: 'tb-detail', text: 'Touche des munitions du même bord.' }));
+    t.appendChild(el('div', { class: 'tb-detail', text: 'Touche des munitions — assortis-les.' }));
     return t;
   }
   const r = C.evaluer(P, P.selection);
@@ -684,15 +688,13 @@ function rendreLeTableau() {
   d.classList.remove('tb-dit-refus');
 }
 
-// Ce qu'une munition fait, EN UNE LIGNE : son nom, son bord, sa poudre, son
-// effet. C'est tout ce dont on a besoin pour décider si elle entre dans la
+// Ce qu'une munition fait, EN UNE LIGNE : son nom, sa poudre, son effet. C'est tout ce dont on a besoin pour décider si elle entre dans la
 // volée ; le texte long vit dans la modale d'aide, où on a le temps de le lire.
 function aideDe(c) {
   if (C.estFeu(c)) {
     return '<b>Feu</b> · un incendie à bord · il occupe une place et ne tire pas ; '
       + 'seule une barrique le jette par-dessus bord.';
   }
-  const b = CONTENU.bords[c.bord];
   const EFFETS = {
     fureur: 'fureur +0,5',
     annule: 'annule la carte annoncée',
@@ -700,7 +702,7 @@ function aideDe(c) {
     barrique: 'retire une munition ratée de la partie',
   };
   const quoi = EFFETS[c.effet] || 'de la poudre, et rien d’autre';
-  return `<b>${c.nom}</b> · ${b.nom} · poudre ${C.poudreDe(c, P)}`
+  return `<b>${c.nom}</b> · poudre ${C.poudreDe(c, P)}`
     + `${c.mouillee ? ' (mouillée)' : ''} · ${quoi}.`;
 }
 
@@ -763,15 +765,14 @@ function contenuCarte(c) {
 function carteVue(c, rang = 0, neuve = false) {
   const estUnFeu = C.estFeu(c);
   const pris = P.selection.includes(c);
-  const b = estUnFeu ? null : CONTENU.bords[c.bord];
   const permis = C.peutJouer(P, c);
   const n = el('button', {
     class: `carte${pris ? ' prise-en-main' : ''}${estUnFeu ? ' estUnFeu' : ''}${c.mouillee ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}${neuve ? ' neuve' : ''}`,
     attrs: {
       type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`,
-      'data-bord': estUnFeu ? '' : c.bord, 'data-role': estUnFeu ? 'estUnFeu' : c.id,
+      'data-role': estUnFeu ? 'feu' : c.id,
       'aria-label': estUnFeu ? 'Feu — encombre la main'
-        : `${c.nom}, ${b.nom}, poudre ${C.poudreDe(c, P)}${permis.ok ? '' : `, ${permis.pourquoi}`}`,
+        : `${c.nom}, poudre ${C.poudreDe(c, P)}`,
     },
     on: {
       // Un retour SOUS LE DOIGT, avant même que l'état change : la carte
@@ -820,27 +821,26 @@ function secouer(n) {
 // n'ont rien à ordonner — leur règle est toujours là.
 function etatMajor() {
   const zone = el('div', { class: 'etat-major' });
-  // L'ÉTAT-MAJOR VIDE SE MONTRE QUAND MÊME, en UNE case et non en cinq. Il ne
-  // s'affichait pas du tout tant qu'on n'avait engagé personne — pour ne pas
-  // poser cinq carrés vides, cinq cibles tactiles pour rien. Le prix de cette
-  // économie était plus élevé qu'elle : l'état-major est la SEULE progression
-  // du jeu depuis que le deck ne se recrute plus, et un joueur qui commence ne
-  // pouvait pas deviner qu'il existe. Une case suffit à le dire.
-  if (!P.hommes.length) {
-    const vide = el('button', {
-      class: 'officier vacant', text: '+',
-      attrs: { type: 'button', 'aria-label': 'l’état-major, vide' },
-      on: { click: () => direDansLeTableau(
-        '<b>L’état-major</b> — cinq hommes au plus, engagés à l’escale. '
-        + 'Ils ne se jouent pas : chacun change une règle. Tu n’en as encore aucun.',
-        { tenir: true }) },
-    });
-    zone.appendChild(vide);
-    return zone;
-  }
-  for (const id of P.hommes) {
-    const h = CONTENU.hommes.find((x) => x.id === id);
-    if (!h) continue;
+  // CINQ CADRES, TOUJOURS. Ils ne s'affichaient qu'une fois remplis — d'abord
+  // aucun, puis une seule case — pour ne pas poser de cibles tactiles vides.
+  // C'était l'inverse du service à rendre : l'état-major est la SEULE
+  // progression du jeu depuis que le paquet ne se recrute plus, et cinq cadres
+  // vides DISENT qu'il y a cinq places à remplir. Un cadre vide n'est pas une
+  // cible ratée, c'est une promesse.
+  for (let i = 0; i < C.ETAT_MAJOR_MAX; i++) {
+    const id = P.hommes[i];
+    const h = id ? CONTENU.hommes.find((x) => x.id === id) : null;
+    if (!h) {
+      zone.appendChild(el('button', {
+        class: 'officier vacant', text: '·',
+        attrs: { type: 'button', 'aria-label': `place ${i + 1} de l’état-major, vide` },
+        on: { click: () => direDansLeTableau(
+          `<b>L’état-major</b> — ${C.ETAT_MAJOR_MAX} places, à remplir à l’escale. `
+          + `Ils ne se jouent pas : chacun change une règle. Tu en as ${P.hommes.length}.`,
+          { tenir: true }) },
+      }));
+      continue;
+    }
     const ordre = ORDRES[h.verbe];
     const fait = ordre ? ordre.fait() : false;
     const n = el('button', {
@@ -945,8 +945,8 @@ function ecranChasse() {
       ]),
     ]),
     major,
-    // LE PHYLACTÈRE, AU-DESSUS DE LA TORTUE : c'est notre bord qui parle, donc
-    // c'est de notre bord que ça sort. Il est vide et invisible la plupart du
+    // LE PHYLACTÈRE SORT DE NOTRE NAVIRE : c'est nous qui parlons, donc c'est
+    // de chez nous que ça sort. Il est vide et invisible la plupart du
     // temps, et ne prend jamais de place au flux — d'où l'absolu.
     el('div', { class: 'phylactere', attrs: { 'aria-live': 'polite' } }),
     el('div', { class: 'flotte' }, [
@@ -1019,7 +1019,7 @@ function ecranChasse() {
   // La zone de dépôt vit SOUS NOTRE NAVIRE : c'est là que la volée doit
   // arriver. Elle n'apparaît que pendant le geste — une cible permanente
   // serait un bouton de plus, et il n'y en a aucun.
-  mer.appendChild(el('div', { class: 'depot' }, [el('span', { text: '⌃ la volée part ici' })]));
+  mer.appendChild(el('div', { class: 'depot' }, [el('span', { text: 'lâche ici' })]));
   s.appendChild(mer);
 
   s.appendChild(tableau());
@@ -1031,11 +1031,9 @@ function ecranChasse() {
   // de savoir, c'est ce qui lui reste — pas ce qui vient. (Les deux hommes de
   // la relève, eux, sont montrés à part : c'est une fenêtre voulue.)
   const reste = P.pioche;
-  const parBord = { babord: 0, tribord: 0 };
   const parMunition = {};
   for (const c of reste) {
     if (C.estFeu(c)) { parMunition.feu = (parMunition.feu || 0) + 1; continue; }
-    parBord[c.bord] += 1;
     parMunition[c.id] = (parMunition[c.id] || 0) + 1;
   }
   const COURT = { boulet_rame: 'ramé', boulet_rouge: 'rouge', mitraille: 'mitr.', chaine: 'chaîne', barrique: 'barr.', feu: 'feu' };
@@ -1049,10 +1047,6 @@ function ecranChasse() {
   const piocheEtat = el('div', { class: 'pioche-etat', attrs: { 'aria-hidden': 'true' } }, [
     el('span', { class: 'pe-cle', text: 'pioche' }),
     el('span', { class: 'pe-nb', text: String(reste.length) }),
-    el('span', { class: 'pe-bord' }, [
-      el('i', { class: 'pt-ba' }), el('span', { text: String(parBord.babord) }),
-      el('i', { class: 'pt-tri' }), el('span', { text: String(parBord.tribord) }),
-    ]),
     el('span', { class: 'pe-roles', text: roles || '—' }),
   ]);
 
@@ -1069,7 +1063,6 @@ function ecranChasse() {
         class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.mouillee ? ' blesse' : ''}`,
         attrs: {
           style: `--rang:${i}`,
-          'data-bord': C.estFeu(c) ? '' : c.bord,
           'data-role': C.estFeu(c) ? 'feu' : c.id,
         },
       }, contenuCarte(c)))))
@@ -1111,11 +1104,14 @@ function brancherGeste(scene) {
     if (tab) { tab.classList.remove('tire', 'annule'); if (cls) tab.classList.add(cls); }
     if (aide) aide.innerHTML = h;
   };
+  // TOUT CE QUI EST AU-DESSUS DU RÂTELIER EST UNE CIBLE. La zone de dépôt était
+  // un rectangle de la taille d'une carte, sous La Tortue : il fallait viser,
+  // et un geste qui demande de viser n'est plus un geste, c'est un bouton
+  // déguisé. Le plateau entier — la mer, le tableau, tout ce qui n'est pas le
+  // bois où reposent les cartes — accepte la volée.
   const surLeDepot = (x, y) => {
-    if (!depot) return false;
-    const r = depot.getBoundingClientRect();
-    const m = 26;   // le doigt cache la cible : on l'élargit
-    return x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m;
+    if (!ratelier) return y < window.innerHeight * 0.6;
+    return y < ratelier.getBoundingClientRect().top;
   };
 
   const debut = (e) => {
@@ -1156,12 +1152,19 @@ function brancherGeste(scene) {
     // Les cartes SUIVENT LE DOIGT, sans plafond : elles doivent pouvoir se
     // poser sur la zone de dépôt. Bornées, elles restaient collées en bas de
     // l'écran et le geste n'aboutissait jamais.
-    const cx = paquet.length ? paquet.reduce((s, p) => s + p.cx, 0) / paquet.length : 0;
-    const k = Math.max(0, Math.min(1, -dy / 90));      // 0 → posées, 1 → en paquet
+    // LES CARTES SUIVENT LA DERNIÈRE, EN TAS. Elles convergeaient vers le
+    // CENTRE du groupe : le doigt tenait une carte et le paquet se formait à
+    // côté, si bien qu'on ne savait plus laquelle on tenait. Elles se rangent
+    // maintenant derrière la dernière touchée — celle qui est sous le doigt —
+    // décalées de trois pixels, comme un jeu qu'on ramasse.
+    const tete = paquet[paquet.length - 1];
+    const k = Math.max(0, Math.min(1, -dy / 70));      // 0 → posées, 1 → en tas
     paquet.forEach((p, i) => {
-      const vers = (cx - p.cx) * k + (i - (paquet.length - 1) / 2) * 5 * k;
-      const tourne = (i - (paquet.length - 1) / 2) * 3.5 * k;
-      p.n.style.transform = `translate(${dx + vers}px, ${dy - 18}px) rotate(${tourne}deg) scale(${1.04 + k * 0.05})`;
+      const rang = paquet.length - 1 - i;               // 0 = la tête
+      const vers = (tete.cx - p.cx) * k + rang * 3 * k;
+      const monte = (tete.cy - p.cy) * k - rang * 3 * k;
+      const tourne = rang * -2.5 * k;
+      p.n.style.transform = `translate(${dx + vers}px, ${dy + monte - 14}px) rotate(${tourne}deg) scale(${1.04 + k * 0.06})`;
       p.n.style.zIndex = String(20 + i);
     });
 
@@ -1178,7 +1181,7 @@ function brancherGeste(scene) {
         ? `↓ relâche : ${n} homme${n > 1 ? 's repartent' : ' repart'} au fond, ${P.rechargements - 1} rechargement${P.rechargements - 1 > 1 ? 's' : ''} après`
         : '<span class="tb-refus">plus un rechargement à dépenser</span>', 'tire');
     } else if (annule) dire('↩ relâche : la volée est défaite', 'annule');
-    else if (pret) dire('↑ relâche : la volée part', 'tire');
+    else if (pret) dire('↑ relâche n’importe où : la volée part', 'tire');
     else dire('vers le haut : la volée part · vers le bas : on recharge', null);
   };
   const fin = (e) => {
@@ -1231,6 +1234,78 @@ function rechargerVolee() {
   rendre();
 }
 
+/* ------------------------------------------------- L'ÉCHELLE DE PUISSANCE
+   Cinq crans, et ils S'AJOUTENT : chacun garde tout ce que fait le précédent et
+   ajoute une chose. Une volée forte ne doit pas ressembler à un autre effet,
+   elle doit ressembler au MÊME effet en plus gros — sinon le joueur apprend
+   cinq animations au lieu d'une échelle.
+
+   Les seuils sont relevés sur la distribution réelle des volées, pas choisis à
+   l'œil : mesurée sur 2 800 volées jouées par un capitaine appliqué,
+   p25 = 60, médiane = 85, p75 = 128, p90 = 192, p99 = 325. D'où :
+
+     < 25    SOURD     le carton claque, une poussière, rien de plus
+     25-59   SEC       un coup part : bouffée, boulet, la coque encaisse
+     60-119  NOURRI    plusieurs boulets, des copeaux, le chiffre tombe lourd
+     120-219 BORDÉE    l'écran tremble, la fumée court le long du bord
+     220+    DÉMONTÉE  éclair blanc, onde de choc, la mer recule
+
+   Un quart des volées est SEC, la moitié NOURRI, un quart BORDÉE, et DÉMONTÉE
+   arrive une fois sur cent : c'est ce qui en fait un événement. Un cran qu'on
+   voit à chaque tour n'est pas une récompense, c'est un décor. */
+const PUISSANCE = [
+  { seuil: 220, nom: 'démontée', boulets: 3, secousse: 13, eclair: true, onde: true },
+  { seuil: 120, nom: 'bordée', boulets: 3, secousse: 7, eclair: true, onde: false },
+  { seuil: 60, nom: 'nourri', boulets: 2, secousse: 3, eclair: false, onde: false },
+  { seuil: 25, nom: 'sec', boulets: 1, secousse: 1.5, eclair: false, onde: false },
+  { seuil: 0, nom: 'sourd', boulets: 1, secousse: 0, eclair: false, onde: false },
+];
+const puissanceDe = (n) => PUISSANCE.find((p) => n >= p.seuil) || PUISSANCE[PUISSANCE.length - 1];
+
+// L'ÉCRAN TREMBLE — sur `.mer`, jamais sur la page. Secouer `body` déplace
+// aussi le râtelier et la main : les cartes qu'on vient de lâcher sautaient
+// avec le décor, et le geste avait l'air d'avoir raté.
+function secousse(px, duree = 320) {
+  if (!px) return;
+  const m = document.querySelector('.ecran-cartes .mer');
+  if (!m || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const pas = [];
+  for (let i = 0; i <= 8; i++) {
+    const k = px * (1 - i / 8);
+    pas.push({ transform: `translate(${(i % 2 ? -k : k).toFixed(1)}px, ${((i % 3 ? k : -k) * .5).toFixed(1)}px)` });
+  }
+  pas.push({ transform: 'none' });
+  m.animate(pas, { duration: duree, easing: 'ease-out' });
+}
+
+// L'ÉCLAIR : un voile blanc très bref sur la mer. Il dit « ça a porté » avant
+// même que le chiffre monte.
+function eclair(force = 1) {
+  const m = document.querySelector('.ecran-cartes .mer');
+  if (!m || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const f = el('div', { class: 'flash' });
+  m.appendChild(f);
+  f.animate([{ opacity: 0 }, { opacity: 0.55 * force, offset: 0.12 }, { opacity: 0 }],
+    { duration: 260, easing: 'ease-out' }).onfinish = () => f.remove();
+}
+
+// L'ONDE DE CHOC : un anneau qui s'ouvre depuis le point d'impact. Réservé au
+// dernier cran — c'est le seul effet que les autres n'ont pas, et il ne doit
+// pas devenir familier.
+function onde(pt) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const m = document.querySelector('.ecran-cartes .mer');
+  if (!m) return;
+  const r = m.getBoundingClientRect();
+  const o = el('div', { class: 'onde' });
+  o.style.left = `${pt.x - r.left}px`; o.style.top = `${pt.y - r.top}px`;
+  m.appendChild(o);
+  o.animate([
+    { transform: 'translate(-50%,-50%) scale(.1)', opacity: .9, borderWidth: '5px' },
+    { transform: 'translate(-50%,-50%) scale(3.2)', opacity: 0, borderWidth: '1px' },
+  ], { duration: 620, easing: 'cubic-bezier(.15,.8,.3,1)' }).onfinish = () => o.remove();
+}
+
 async function tirer() {
   if (occupe || P.fini || !P.selection.length) return;
   occupe = true;
@@ -1242,9 +1317,19 @@ async function tirer() {
     fxFloatText(centre('c-nous').x, centre('c-nous').y - 20, '+12', 'heal');
     await attendre(500);
   } else {
-    await tir('c-nous', 'c-prise', 1,
-      `−${r.degats}`, 'dmg', { cible: r.cible });
-    if (r.pression > 0) fxFloatText(centre('c-prise', 0.5, 0.82).x, centre('c-prise', 0.5, 0.82).y, `+${r.pression} ⚑`, '');
+    // CE QUE LA VOLÉE PÈSE SE VOIT AVANT DE SE LIRE. Le cran est choisi sur la
+    // pression, et il ajoute aux effets du cran d'en dessous plutôt que de les
+    // remplacer.
+    const P5 = puissanceDe(r.pression);
+    if (P5.eclair) eclair(P5.nom === 'démontée' ? 1 : .6);
+    await tir('c-nous', 'c-prise', 1, `−${r.degats}`, 'dmg',
+      { cible: r.cible, boulets: P5.boulets });
+    secousse(P5.secousse);
+    if (P5.onde) onde(centre('c-prise', 0.5, 0.6));
+    if (r.pression > 0) {
+      fxFloatText(centre('c-prise', 0.5, 0.82).x, centre('c-prise', 0.5, 0.82).y,
+        `+${r.pression} ⚑`, `puissance-${P5.nom.replace('é', 'e')}`);
+    }
   }
   peindreCoques();
   rendre();
@@ -1544,28 +1629,13 @@ function appliquer(b) {
 // Trois phrases sur un fond opaque, refermées d'un doigt — pas un tutoriel.
 const CLE_OUVERTURE = 'fdlc-cartes-ouverture-vue';
 let vuLOuverture = false;
-function motPremier() {
-  if (vuLOuverture) return;
-  vuLOuverture = true;
-  try { if (localStorage.getItem(CLE_OUVERTURE)) return; localStorage.setItem(CLE_OUVERTURE, '1'); } catch { /* mode privé */ }
-  if (new URLSearchParams(location.search).has('sansOuverture')) return;
-  const fond = el('div', { class: 'overlay', on: { click: () => fond.remove() } });
-  fond.appendChild(el('div', { class: 'modal ecran-cartes aide-boite' }, [
-    el('h3', { text: 'Une volée' }),
-    el('p', { html: 'Une <b>volée</b>, c’est le groupe de munitions que tu tires <b>en même temps</b> : '
-      + 'jusqu’à <b>trois</b>, toutes du <b>même bord</b> — <span class="pion ba">bâbord</span> ou '
-      + '<span class="pion tri">tribord</span>, jamais mélangés. Les canons d’un bord tirent ensemble ; '
-      + 'ceux d’en face regardent la mer.' }),
-    el('p', { html: '<b>Assortis-les</b> : deux munitions pareilles font une paire, trois une triplette, '
-      + 'trois différentes une panachée. C’est la <b>fureur</b>, et elle multiplie la poudre.' }),
-    el('p', { html: 'Touche des munitions pour les mettre à la manœuvre, puis <b>pousse la volée</b> sur la zone '
-      + 'qui s’ouvre sous La Tortue. Le tableau écrit le compte exact <b>avant</b> que tu lâches.' }),
-    el('p', { html: 'En face, <b>elle montre la carte qu’elle jouera</b> à la fin de ton tour. Rien n’est caché, '
-      + 'rien n’est tiré au sort.' }),
-    el('button', { class: 'btn-level-1', text: 'À la manœuvre', attrs: { type: 'button' }, on: { click: () => fond.remove() } }),
-  ]));
-  document.body.appendChild(fond);
-}
+// LA MODALE D'OUVERTURE EST RETIRÉE. Trois paragraphes en travers de l'écran
+// avant d'avoir vu une seule carte : personne ne lit un mode d'emploi avant de
+// savoir de quoi il parle. Ce qu'elle disait vit dans la roue crantée, où l'on
+// va quand on se pose la question — et le premier phylactère, lui, sort du
+// navire au moment où il sert.
+function motPremier() {}
+
 
 function ouvrirAide() {
   const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
