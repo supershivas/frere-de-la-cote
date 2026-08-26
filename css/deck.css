@@ -1202,6 +1202,11 @@
 }
 
 /* --- la mer : deux coques posées sur UNE ligne de flottaison --- */
+/* LA MER NE SE LAISSE PLUS COMPRIMER. Elle prenait « la place qui reste », si
+   bien que toute boîte qui grandissait ailleurs sur l'écran remontait les
+   navires — un changement d'information faisait bouger le décor, ce qui n'a
+   aucun sens et se voyait à chaque volée composée. Elle a maintenant sa part,
+   et elle la garde. */
 .screen.ecran-cartes .mer {
   position: relative; flex: 1 1 auto;
   min-height: 190px;
@@ -1329,8 +1334,12 @@
   /* LA CARTE REMONTE pour laisser sa légende sous elle, DANS la mer. Posée à
      2 px du bas, sa légende débordait de la bande et venait se poser sur le
      tableau — deux panneaux l'un sur l'autre, dont celui qui dit quoi faire. */
+  /* SA CARTE NE SUIT PLUS LA MAIN À LA LETTRE : les deux paquets ont rétréci
+     les nôtres, et la sienne rétrécissait avec, jusqu'à ne plus tenir son nom
+     sur une ligne. Elle a maintenant un plancher. */
   position: absolute; z-index: 4; right: 3%; bottom: 38px;
-  width: calc(var(--carte-l, 62px) * 1.1); height: calc(var(--carte-h, 100px) * .92);
+  width: max(62px, calc(var(--carte-l, 62px) * 1.15));
+  height: max(90px, calc(var(--carte-h, 100px) * .95));
   display: flex; flex-direction: column; align-items: center;
   background: linear-gradient(168deg, #241412 0%, #16100f 55%, #0d0908 100%);
   color: #e8d8c4; border: 1px solid #7a2a22; border-radius: 7px; overflow: hidden;
@@ -1351,6 +1360,10 @@
   font-family: var(--font-body); font-size: 9px; line-height: 1.35; color: #e6cfc6;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
+/* `hidden` ne suffit pas ici : la légende porte `display: -webkit-box` pour son
+   coupage à deux lignes, et un `display` explicite bat la feuille du
+   navigateur. Il faut le dire nous-mêmes. */
+.screen.ecran-cartes .sa-dit[hidden] { display: none; }
 .screen.ecran-cartes .sa-dit b { color: #f0b0a4; }
 
 /* LE PHYLACTÈRE, au-dessus de La Tortue. Une réplique est une RESPIRATION :
@@ -1463,13 +1476,14 @@
    de ciel, qui ne sert à rien d'autre. */
 .screen.ecran-cartes .etat-major {
   flex: 0 0 auto; z-index: 3;
-  display: flex; flex-direction: row; gap: 4px;
+  display: flex; flex-direction: row; justify-content: center; gap: 6px;
+  padding: 0 4px;
 }
 /* CINQ CADRES SUR UNE RANGÉE, à la largeur de l'écran. Ils partagent la place
    au lieu d'en réclamer 44 px chacun : à cinq, une rangée fixe déborderait sur
    un téléphone de 320 px. La hauteur, elle, ne descend jamais sous 44. */
 .screen.ecran-cartes .officier {
-  flex: 1 1 0; min-width: 0; max-width: 64px;
+  flex: 1 1 0; min-width: 0; max-width: 58px;
   height: 44px; min-height: 44px; padding: 0; border-radius: 6px;
   border: 1px solid var(--gold-dark); background: linear-gradient(180deg, #3d2817, #241608);
   font-family: var(--font-title); font-size: 18px; color: var(--gold-light); cursor: help;
@@ -1480,10 +1494,21 @@
    Il garde sa taille : le mou vertical va à la mer, qui est peinte, et non à
    un panneau vide — un grand rectangle brun sans rien dedans se lit comme un
    bug, pas comme de la respiration. */
+/* LE COMPTE EST UNE BULLE POSÉE SUR LES CARTES, pas une barre en travers de
+   l'écran. La barre vivait loin de ce qu'elle décrivait, occupait une bande
+   entière même vide, et changeait de hauteur avec son contenu — ce qui faisait
+   monter les navires. En absolu au-dessus du bois, elle n'a aucun des trois
+   défauts : elle n'existe que s'il y a une volée, et elle ne prend rien. */
 .screen.ecran-cartes .tableau {
-  flex: 0 0 auto; background: var(--bg-panel);
+  position: absolute; z-index: 8; left: 50%; bottom: calc(100% - 6px);
+  transform: translateX(-50%) translateY(6px) scale(.94);
+  min-width: 44%; max-width: 92%;
+  opacity: 0; pointer-events: none;
+  transition: opacity .14s var(--ease-fast), transform .2s cubic-bezier(.2,1.25,.35,1);
+  text-align: center;
+  background: var(--bg-panel);
   border: 1px solid var(--border); border-left: 3px solid var(--border);
-  border-radius: 0 6px 6px 0; padding: 5px 8px;
+  border-radius: 8px; padding: 5px 10px;
   /* SA HAUTEUR SUIT SON CONTENU. Elle était réservée à 58 px pour que le
      tableau ne saute pas quand il passait d'une réplique d'équipage au compte
      d'une volée. Ces deux contenus ne se disputent plus la place — il ne reste
@@ -1492,7 +1517,20 @@
   min-height: 0;
   touch-action: none;
 }
-.screen.ecran-cartes .tableau.arme { border-left-color: var(--gold); }
+.screen.ecran-cartes .tableau.arme {
+  border-left-color: var(--gold); border-color: var(--gold-dark);
+  opacity: 1; transform: translateX(-50%);
+  box-shadow: 0 6px 18px rgba(0,0,0,.5);
+}
+/* LE GROS CHIFFRE, seul et centré : c'est tout ce qu'on vient chercher. */
+.screen.ecran-cartes .tb-chiffre {
+  font-family: var(--font-body); font-weight: 700; font-size: 30px; line-height: 1;
+  color: var(--gold-light, #e8c877); text-shadow: 0 2px 4px rgba(0,0,0,.5);
+}
+.screen.ecran-cartes .tableau .tb-detail,
+.screen.ecran-cartes .tableau .tb-geste { text-align: center; }
+.screen.ecran-cartes .tableau .tb-detail { font-size: 8.5px; -webkit-line-clamp: 2; }
+.screen.ecran-cartes .tableau .tb-geste { font-size: 8px; }
 .screen.ecran-cartes .tableau.tire { border-left-color: var(--hp); }
 .screen.ecran-cartes .tableau.annule { border-left-color: var(--text-muted); }
 .screen.ecran-cartes .tb-tete { display: flex; align-items: baseline; gap: 6px; }
@@ -1580,6 +1618,52 @@
    Le râtelier n'est pas décoratif : il donne un sol aux cartes. Une carte qui
    flotte sur la mer ne se manipule pas ; une carte posée sur du bois, si.     */
 
+/* Le râtelier devient le repère de la bulle : elle se pose au-dessus de lui. */
+.screen.ecran-cartes .ratelier { position: relative; }
+.screen.ecran-cartes .rangee { display: flex; align-items: flex-end; justify-content: center; gap: 5px; }
+
+/* LES DEUX PAQUETS, de part et d'autre de la main : un dos de carte dit ce
+   qu'il reste par sa seule présence, là où une ligne de texte demandait d'être
+   déchiffrée. Le détail s'ouvre au doigt — la composition, jamais l'ordre. */
+.screen.ecran-cartes .paquet {
+  /* 44 px, comme tout ce qui se touche (§2). À 34 de large, l'audit mobile les
+     relevait — et c'est exactement le genre de cible qu'un pouce rate. */
+  flex: 0 0 auto; width: 44px; min-width: 44px; min-height: 44px;
+  height: calc(var(--carte-h, 90px) * .62);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border-radius: 5px; padding: 0; cursor: pointer;
+  background: repeating-linear-gradient(45deg, #4a3116 0 4px, #3d2811 4px 8px);
+  border: 2px solid #1c1109;
+  box-shadow: inset 0 0 0 1px rgba(201,162,75,.35), 0 2px 4px rgba(0,0,0,.5);
+  color: var(--gold-light, #e8c877);
+}
+.screen.ecran-cartes .paquet .pq-nb { font-family: var(--font-body); font-weight: 700; font-size: 14px; line-height: 1; }
+.screen.ecran-cartes .paquet .pq-cle {
+  font-family: var(--font-body); font-size: 6.5px; letter-spacing: .4px;
+  text-transform: uppercase; color: #a5844c;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+}
+/* Le contenu d'un paquet, une LIGNE par munition. Les couleurs sont celles des
+   cartes, redites ici parce qu'une modale n'est pas un écran et n'hérite
+   d'aucune règle de `.screen.ecran-cartes` (règle 2 du dépôt). */
+.paquet-boite .pq-grille { display: flex; flex-direction: column; gap: 5px; padding: 6px 0; }
+.paquet-boite .pq-lot {
+  display: flex; align-items: center; gap: 8px;
+  background: #f2ead6; color: #241608;
+  border: 2px solid var(--m, #8a7f6c); border-radius: 6px; padding: 4px 8px;
+}
+.paquet-boite .pq-lot[data-role="boulet_rame"]  { --m: #8a7f6c; }
+.paquet-boite .pq-lot[data-role="boulet_rouge"] { --m: #b3261d; }
+.paquet-boite .pq-lot[data-role="mitraille"]    { --m: #6b7176; }
+.paquet-boite .pq-lot[data-role="chaine"]       { --m: #6f5d99; }
+.paquet-boite .pq-lot[data-role="barrique"]     { --m: #96633a; }
+.paquet-boite .pq-lot[data-role="feu"]          { --m: #8a3c10; background: #d8b48c; }
+.paquet-boite .pq-glyphe { width: 20px; height: 20px; flex: 0 0 auto; color: var(--m); }
+.paquet-boite .pq-glyphe svg { width: 100%; height: 100%; display: block; fill: currentColor; }
+.paquet-boite .pq-nom { font-family: var(--font-title); font-size: 13px; flex: 1 1 auto; }
+.paquet-boite .pq-poudre { font-family: var(--font-body); font-size: 9px; opacity: .7; }
+.paquet-boite .pq-x { font-family: var(--font-body); font-weight: 700; font-size: 14px; color: #7a3a10; }
+
 .screen.ecran-cartes .ratelier {
   flex: 0 0 auto; position: relative;
   margin: 0 -7px -7px;           /* le bois va d'un bord à l'autre */
@@ -1607,6 +1691,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,.6);
 }
 .screen.ecran-cartes .main {
+  flex: 1 1 auto; min-width: 0;
   display: flex; gap: var(--jeu-gap, 5px); align-items: flex-end;
   justify-content: center;
 }
@@ -1664,8 +1749,11 @@
    bandeaux d'avant : elles étaient claires pour porter une encre sombre sur un
    fond sombre, elles doivent maintenant se détacher SUR du crème. */
 .screen.ecran-cartes .carte[data-role="boulet_rame"]  { --metier: #8a7f6c; }
-.screen.ecran-cartes .carte[data-role="boulet_rouge"] { --metier: #b8791b; }
-.screen.ecran-cartes .carte[data-role="mitraille"]    { --metier: #35709b; }
+/* Le boulet ROUGE est rouge, et la mitraille est GRISE : les munitions se
+   nomment par leur couleur, et lui donner un or ou un bleu demandait
+   d'apprendre une correspondance contre le nom même de la carte. */
+.screen.ecran-cartes .carte[data-role="boulet_rouge"] { --metier: #b3261d; }
+.screen.ecran-cartes .carte[data-role="mitraille"]    { --metier: #6b7176; }
 .screen.ecran-cartes .carte[data-role="chaine"]       { --metier: #6f5d99; }
 .screen.ecran-cartes .carte[data-role="barrique"]     { --metier: #96633a; }
 
@@ -1757,7 +1845,7 @@
   box-shadow: inset 0 0 0 2px var(--gold-light, #e8c877), 0 -4px 14px rgba(232,200,119,.25);
 }
 .screen.ecran-cartes .reserve {
-  position: absolute; right: 9px; top: 5px; z-index: 2;
+  position: absolute; right: 44px; top: 3px; z-index: 2;
   display: flex; align-items: flex-end; gap: 3px; pointer-events: none;
 }
 /* La lèvre de bois qui passe DEVANT le haut des cartes : c'est elle qui les

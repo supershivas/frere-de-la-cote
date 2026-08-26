@@ -553,65 +553,58 @@ function aborder(place) {
 }
 
 /* ------------------------------------------------------------ le tableau *//* ------------------------------------------------------------ le tableau */
+// LE COMPTE DE LA VOLÉE, ACCROCHÉ AUX CARTES ELLES-MÊMES.
+//
+// C'était une barre en travers de l'écran, entre la mer et la main. Elle avait
+// trois défauts d'un coup : elle vivait loin de ce qu'elle décrivait, elle
+// occupait une bande entière même vide, et sa hauteur changeait avec son
+// contenu — ce qui faisait MONTER les navires, puisque la mer prend la place
+// qui reste. Une bulle posée au-dessus des cartes choisies n'a aucun de ces
+// trois défauts : elle est là où l'on regarde, elle n'existe que s'il y a une
+// volée, et elle flotte au-dessus du plateau sans en prendre.
 function tableau() {
   const t = el('div', { class: `tableau${P.selection.length ? ' arme' : ''}` });
-  // AUCUNE VOLÉE : UNE SEULE LIGNE. Le tableau portait ici trois choses qui
-  // s'excluaient — la réplique d'équipage, le rappel des compteurs et
-  // l'invitation — et il gardait la hauteur des trois même vide. Les compteurs
-  // sont sur le ruban, la réplique est passée au phylactère : il ne reste que
-  // ce qu'il faut faire.
-  if (!P.selection.length) {
-    t.appendChild(el('div', { class: 'tb-detail', text: 'Touche des munitions — assortis-les.' }));
-    return t;
-  }
+  if (!P.selection.length) return t;
   const r = C.evaluer(P, P.selection);
 
-  // LE TITRE EST LA FIGURE. C'est elle qu'on cherche en composant sa volée, et
-  // c'est elle qu'il faut voir se former : « À la coque » disait la même chose
-  // à chaque tour, donc ne disait rien. Sans figure, on annonce le compte nu.
+  // LE GROS CHIFFRE, et ce que la volée fait en plus. Une carte seule annonce
+  // ce qu'elle est ; deux et plus, la bulle explique l'EFFET qu'elles font
+  // ensemble — c'est là que se prend la décision.
   const FIGURES = {
-    triplette: { nom: 'Triplette', dit: 'trois fois la même — fureur +2' },
-    panachee: { nom: 'Panachée', dit: 'trois différentes — fureur +1,5' },
-    paire: { nom: 'Paire', dit: 'deux identiques — fureur +1' },
+    triplette: 'Triplette — trois fois la même',
+    panachee: 'Panachée — trois différentes',
+    paire: 'Paire — deux identiques',
   };
-  const f = FIGURES[r.figure];
-  t.appendChild(el('div', { class: 'tb-tete' }, [
-    el('span', { class: 'tb-cible', text: f ? f.nom : 'Volée' }),
-    el('span', { class: 'tb-prix' }, [
-      // LES DEUX AXES, ÉCRITS COMME ILS SE CALCULENT : poudre × fureur, et le
-      // produit. Le joueur voit lequel des deux sa volée fait monter.
-      el('span', { class: 'tb-axes', text: `${r.poudre} × ${String(r.fureur).replace('.', ',')}` }),
-      el('span', { class: 'tb-pression', text: `${r.pression} ⚑` }),
-    ]),
-  ]));
-
-  // CE QUE LES MUNITIONS FONT EN PLUS de leur poudre. Trois effets au plus, et
-  // seulement ceux qui portent : une ligne d'effets qui liste ce qui ne se
-  // passe pas est une ligne à ne pas lire.
   const fait = [];
-  if (f) fait.push(f.dit);
-  const rouges = P.selection.filter((c) => c.id === 'boulet_rouge' && !c.mouillee).length;
-  if (rouges) fait.push(`${rouges > 1 ? `${rouges} rouges` : 'rouge'} +${String(0.5 * rouges).replace('.', ',')}`);
+  if (r.figure) fait.push(`<b>${FIGURES[r.figure]}</b>`);
+  else if (P.selection.length > 1) fait.push('aucune figure');
   if (r.annule) fait.push('<b>sa carte est coupée</b>');
-  if (r.arme) fait.push('<b>la prochaine volée double sa fureur</b>');
-  if (r.barriques) fait.push(`${r.barriques > 1 ? `${r.barriques} ratées jetées` : 'une ratée jetée'} par-dessus bord`);
-  t.appendChild(el('div', {
-    class: 'tb-detail',
-    html: fait.length ? fait.join(' · ') : 'de la poudre, et rien d’autre',
-  }));
+  if (r.arme) fait.push('<b>la prochaine volée est doublée</b>');
+  if (r.barriques) fait.push('une ratée jetée par-dessus bord');
+  if (!fait.length) fait.push(P.selection.length === 1 ? aideCourte(P.selection[0]) : 'de la poudre, et rien d’autre');
 
-  // Ce que la volée LAISSE : la pression qu'il restera à mettre, et sur quel
-  // nombre de bordées. C'est la seule projection dont le joueur a besoin.
-  const apres = P.pression + r.pression;
-  const manque = Math.max(0, P.prise.resistance - apres);
-  const coque = Math.max(0, P.prise.pv - r.degats);
+  t.appendChild(el('div', { class: 'tb-chiffre', text: String(r.pression) }));
+  t.appendChild(el('div', { class: 'tb-detail', html: fait.join(' · ') }));
+  const manque = Math.max(0, P.prise.resistance - (P.pression + r.pression));
   t.appendChild(el('div', {
     class: 'tb-geste',
     html: manque === 0 ? '<b>elle amène son pavillon</b>'
-      : coque === 0 ? '<b>coulée avant de se rendre : on ne repêche que ce qui flotte</b>'
-        : `resterait ${manque} en ${Math.max(0, P.bordees - 1)} bordée${P.bordees - 1 > 1 ? 's' : ''}`,
+      : `resterait ${manque} en ${Math.max(0, P.bordees - 1)} bordée${P.bordees - 1 > 1 ? 's' : ''}`,
   }));
   return t;
+}
+
+// Ce qu'une munition fait, en trois mots — pour la bulle quand une seule carte
+// est choisie.
+function aideCourte(c) {
+  if (C.estFeu(c)) return 'ne tire pas ; seule une barrique le jette';
+  const EFFETS = {
+    fureur: '+4 de poudre à la volée',
+    annule: 'annule la carte annoncée',
+    chaine: 'la PROCHAINE volée est doublée',
+    barrique: 'retire une munition ratée de la partie',
+  };
+  return EFFETS[c.effet] || 'de la poudre, et rien d’autre';
 }
 
 /* ------------------------------------------------------- le phylactère
@@ -671,22 +664,11 @@ function poserLeMot() {
 // pastille de météo ou un officier se TOUCHENT : garder le doigt dessus pour
 // lire ne viendrait à l'idée de personne, et le texte n'aurait fait qu'un
 // clignement.
-function direDansLeTableau(html, { refus = false, tenir = false } = {}) {
-  const d = document.querySelector('.ecran-cartes .tableau .tb-detail');
-  if (!d) return;
-  // On écrit EN PLACE, sans repasser par `rendre()` : un rendu complet pendant
-  // que le doigt est posé détruirait la carte touchée sous ce même doigt.
-  if (!tenir && d.dataset.avant == null) d.dataset.avant = d.innerHTML;
-  d.innerHTML = html;
-  d.classList.toggle('tb-dit-refus', refus);
-}
-function rendreLeTableau() {
-  const d = document.querySelector('.ecran-cartes .tableau .tb-detail');
-  if (!d || d.dataset.avant == null) return;
-  d.innerHTML = d.dataset.avant;
-  delete d.dataset.avant;
-  d.classList.remove('tb-dit-refus');
-}
+// LE TABLEAU N'EST PLUS UN ENDROIT OÙ ÉCRIRE. Il n'existe que quand une volée
+// est composée, et il ne dit plus qu'une chose : le compte de cette volée. Tout
+// ce qui s'y expliquait — un homme de l'état-major, la météo, une munition
+// qu'on tient sous le doigt — passe au PHYLACTÈRE, qui est fait pour ça : ça se
+// dit, puis ça s'efface.
 
 // Ce qu'une munition fait, EN UNE LIGNE : son nom, sa poudre, son effet. C'est tout ce dont on a besoin pour décider si elle entre dans la
 // volée ; le texte long vit dans la modale d'aide, où on a le temps de le lire.
@@ -769,7 +751,7 @@ function carteVue(c, rang = 0, neuve = false) {
   const n = el('button', {
     class: `carte${pris ? ' prise-en-main' : ''}${estUnFeu ? ' estUnFeu' : ''}${c.mouillee ? ' blesse' : ''}${!permis.ok && !pris ? ' muet' : ''}${neuve ? ' neuve' : ''}`,
     attrs: {
-      type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`,
+      type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`, 'data-uid': String(c.uid),
       'data-role': estUnFeu ? 'feu' : c.id,
       'aria-label': estUnFeu ? 'Feu — encombre la main'
         : `${c.nom}, poudre ${C.poudreDe(c, P)}`,
@@ -788,11 +770,11 @@ function carteVue(c, rang = 0, neuve = false) {
         // Seul le REFUS passe en rouge : l'homme, lui, s'annonce comme les
         // autres. Toute la ligne en rouge disait « cet homme est mauvais »
         // plutôt que « ce coup-là est impossible ».
-        direDansLeTableau(aideDe(c) + (permis.ok ? '' : `<br><span class="tb-refus">${permis.pourquoi}</span>`));
+        souffler(aideDe(c));
       },
-      pointerup: () => { n.style.transform = ''; rendreLeTableau(); },
-      pointerleave: () => { n.style.transform = ''; rendreLeTableau(); },
-      pointercancel: () => { n.style.transform = ''; rendreLeTableau(); },
+      pointerup: () => { n.style.transform = ''; },
+      pointerleave: () => { n.style.transform = ''; },
+      pointercancel: () => { n.style.transform = ''; },
       click: () => {
         n.style.transform = '';
         if (occupe || glisse) return;
@@ -834,10 +816,9 @@ function etatMajor() {
       zone.appendChild(el('button', {
         class: 'officier vacant', text: '·',
         attrs: { type: 'button', 'aria-label': `place ${i + 1} de l’état-major, vide` },
-        on: { click: () => direDansLeTableau(
+        on: { click: () => souffler(
           `<b>L’état-major</b> — ${C.ETAT_MAJOR_MAX} places, à remplir à l’escale. `
-          + `Ils ne se jouent pas : chacun change une règle. Tu en as ${P.hommes.length}.`,
-          { tenir: true }) },
+          + `Chacun change une règle. Tu en as ${P.hommes.length}.`) },
       }));
       continue;
     }
@@ -849,7 +830,7 @@ function etatMajor() {
       attrs: { type: 'button', 'aria-label': `${h.nom} — ${h.texte}` },
       on: {
         click: () => {
-          if (!ordre || fait) { direDansLeTableau(`<b>${h.nom}</b>, ${h.titre} · ${h.texte}`, { tenir: true }); return; }
+          if (!ordre || fait) { souffler(`<b>${h.nom}</b>, ${h.titre} · ${h.texte}`); return; }
           const r = ordre.faire();
           if (!r.ok) { souffler(`<span class="tb-refus">${r.pourquoi}</span>`); secouer(n); }
           else souffler(r.dit);
@@ -895,20 +876,15 @@ function ecranChasse() {
   const p = P.prise;
   const s = el('div', { class: 'screen ecran-cartes' });
 
-  s.appendChild(el('div', { class: 'ruban' }, [
-    el('div', { class: 'rb-txt' }, [
-      el('div', { class: 'rb-quoi', text: `Prendre ${p.nom}` }),
-      el('div', { class: 'rb-rang', text: p.rang }),
-    ]),
-    // LES DEUX COMPTEURS DE LA RENCONTRE, à gauche du butin. Ce sont eux la
-    // ressource : quatre bordées à tirer, trois rechargements à dépenser.
-    el('div', { class: 'rb-coups' }, [
-      el('span', { class: `rb-coup${P.bordees <= 1 ? ' bas' : ''}`, text: `⚔ ${P.bordees}` }),
-      el('span', { class: `rb-coup${P.rechargements <= 0 ? ' vide' : ''}`, text: `↻ ${P.rechargements}` }),
-    ]),
-    el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
-    el('button', { class: 'btn-level-3 rouage', text: '⚙', attrs: { type: 'button', 'aria-label': 'aide et réglages' }, on: { click: ouvrirAide } }),
-  ]));
+  // LE BANDEAU DE TÊTE EST RETIRÉ. Il redisait le nom de la prise, qui est déjà
+  // sur sa plaque, et son rang, qui ne sert à rien pendant qu'on tire. Les deux
+  // compteurs et le butin sont descendus sur la plaque de La Tortue, où l'œil
+  // va déjà. Il ne reste qu'une roue crantée, posée sur la mer.
+  s.appendChild(el('button', {
+    class: 'btn-level-3 rouage seul', text: '⚙',
+    attrs: { type: 'button', 'aria-label': 'aide et réglages' },
+    on: { click: ouvrirAide },
+  }));
 
   // Les deux plaques sont dans UNE rangée en haut de la bande : posées
   // au-dessus de chaque coque, elles se retrouvaient à deux hauteurs
@@ -926,8 +902,9 @@ function ecranChasse() {
       el('div', { class: 'etiq nous' }, [
         el('div', { class: 'e-nom', text: 'La Tortue' }),
         el('div', { class: 'e-chif' }, [
-          el('span', { class: 'e-fort', text: `${P.bordees} bordée${P.bordees > 1 ? 's' : ''}` }),
-          el('span', { class: 'e-mats', text: `main ${P.main.length}/${C.tailleMain(P)}` }),
+          el('span', { class: `e-fort${P.bordees <= 1 ? ' bas' : ''}`, text: `⚔ ${P.bordees}` }),
+          el('span', { class: `e-fort${P.rechargements <= 0 ? ' vide' : ''}`, text: `↻ ${P.rechargements}` }),
+          el('span', { class: 'e-mats', text: `${P.butin} 💰` }),
         ]),
       ]),
       // LA JAUGE DE PRESSION SE REMPLIT VERS LA RÉSISTANCE : c'est la barre
@@ -974,7 +951,7 @@ function ecranChasse() {
   }
   const past = el('button', {
     class: 'pastilles', attrs: { type: 'button', 'aria-label': 'conditions de la chasse' },
-    on: { click: () => direDansLeTableau(conditions.map((c) => `<b>${c.titre}</b> — ${c.corps}`).join(' '), { tenir: true }) },
+    on: { click: () => souffler(conditions.map((c) => `<b>${c.titre}</b> — ${c.corps}`).join(' ')) },
   }, conditions.map((c) => el('span', { class: `pastille ${c.cls}`, text: c.chip })));
   if (conditions.length) mer.appendChild(past);
 
@@ -987,14 +964,19 @@ function ecranChasse() {
   // coque, elle touche notre MAIN. Ce qu'elle prend s'écrit en toutes lettres.
   const a = p.annonce;
   const chiffre = '⚑';
+  // CE QUE SA CARTE FAIT, SOUS SA CARTE, AU DOIGT SEULEMENT. Toujours visible,
+  // elle occupait la mer en permanence pour une phrase qu'on lit une fois et
+  // qui ne change pas d'un tour à l'autre. On touche la carte, la phrase
+  // apparaît ; on la retouche, elle s'en va.
+  const saLegende = el('div', { class: 'sa-dit', attrs: { hidden: '' } }, [
+    el('b', { text: a.nom }),
+    el('span', { text: ` — ${p.tirAnnule ? 'coupée, elle ne fera rien.' : (a.dit || a.texte)}` }),
+  ]);
+
   const saCarte = el('div', {
     class: `sa-carte${p.tirAnnule ? ' annulee' : ''}`,
     attrs: { role: 'button', tabindex: '0', 'aria-label': `${a.nom} — ${a.texte}` },
-    // Au doigt, le texte LONG — celui qui raconte. La légende sous la carte,
-    // elle, est toujours là et dit l'effet en une ligne.
-    on: { click: () => direDansLeTableau(`<b>${a.nom}</b> — ${p.tirAnnule
-      ? `la mitraille a balayé son pont : ${p.nom} ne fera rien ce tour-ci.`
-      : a.texte}`, { tenir: true }) },
+    on: { click: () => { saLegende.hidden = !saLegende.hidden; } },
   }, [
     el('div', { class: 'sa-tete' }, [el('span', { text: p.tirAnnule ? 'coupée' : 'sa carte' })]),
     el('div', { class: 'sa-nom', text: a.nom }),
@@ -1005,14 +987,6 @@ function ecranChasse() {
     p.suivante ? el('div', { class: 'sa-suite', text: `puis ${p.suivante.nom}` }) : null,
   ]);
 
-  // CE QUE SA CARTE FAIT, SOUS SA CARTE ET TOUJOURS VISIBLE. C'était dans le
-  // tableau, à l'autre bout de l'écran, et seulement quand on la touchait —
-  // donc le joueur composait sa volée sans savoir contre quoi. Deux lignes au
-  // plus, et rien sur QUAND elle la joue : le pied de la carte dit déjà « fin
-  // du tour ».
-  const saLegende = el('div', { class: 'sa-dit' }, [
-    el('b', { text: a.nom }), el('span', { text: ` — ${p.tirAnnule ? 'coupée, elle ne fera rien.' : (a.dit || a.texte)}` }),
-  ]);
   mer.appendChild(saCarte);
   mer.appendChild(saLegende);
 
@@ -1022,53 +996,79 @@ function ecranChasse() {
   mer.appendChild(el('div', { class: 'depot' }, [el('span', { text: 'lâche ici' })]));
   s.appendChild(mer);
 
-  s.appendChild(tableau());
+  // DEUX DOS DE CARTE, DE PART ET D'AUTRE DE LA MAIN : la PIOCHE à gauche, la
+  // DÉFAUSSE à droite. Le compte est écrit dessus ; le détail s'ouvre au doigt.
+  //
+  // La composition tenait en une ligne de texte au-dessus du bois — « ramé 8,
+  // rouge 7, chaîne 6 » — qu'il fallait déchiffrer. Un dos de carte dit la même
+  // chose par sa seule présence, et ce qu'il y a dedans est à un doigt.
+  const paquetVu = (cls, cartes, titre, vide) => el('button', {
+    class: `paquet ${cls}`, attrs: { type: 'button', 'aria-label': `${titre} — ${cartes.length} cartes` },
+    on: { click: () => ouvrirPaquet(titre, cartes, vide) },
+  }, [
+    el('span', { class: 'pq-nb', text: String(cartes.length) }),
+    el('span', { class: 'pq-cle', text: titre }),
+  ]);
 
   const main = el('div', { class: 'main' });
   P.main.forEach((c, i) => main.appendChild(carteVue(c, neuves.indexOf(c.uid), neuves.includes(c.uid))));
 
-  // LA COMPOSITION DE LA PIOCHE, jamais son ordre. Ce qu'un joueur a le droit
-  // de savoir, c'est ce qui lui reste — pas ce qui vient. (Les deux hommes de
-  // la relève, eux, sont montrés à part : c'est une fenêtre voulue.)
-  const reste = P.pioche;
-  const parMunition = {};
-  for (const c of reste) {
-    if (C.estFeu(c)) { parMunition.feu = (parMunition.feu || 0) + 1; continue; }
-    parMunition[c.id] = (parMunition[c.id] || 0) + 1;
-  }
-  const COURT = { boulet_rame: 'ramé', boulet_rouge: 'rouge', mitraille: 'mitr.', chaine: 'chaîne', barrique: 'barr.', feu: 'feu' };
-  // Les trois plus nombreuses, et rien de plus : la ligne tenait sur deux
-  // lignes et poussait le râtelier vers le bas.
-  const roles = Object.entries(parMunition)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
-    .map(([r, n]) => `${COURT[r] || r} ${n}`)
-    .join(', ');
-  const piocheEtat = el('div', { class: 'pioche-etat', attrs: { 'aria-hidden': 'true' } }, [
-    el('span', { class: 'pe-cle', text: 'pioche' }),
-    el('span', { class: 'pe-nb', text: String(reste.length) }),
-    el('span', { class: 'pe-roles', text: roles || '—' }),
-  ]);
-
-  // LES DEUX QUI VIENNENT, POSÉS SUR LE LISTEAU. Ce n'est plus donné : c'est
-  // COUDRAY qui l'achète. Sans lui, le listeau est vide — et c'est justement ce
-  // qui fait qu'on voit ce qu'il apporte. On pioche avec `pop()` : le DESSUS du
-  // paquet est la fin du tableau, donc le premier à venir est le dernier élément.
-  //
-  // Ce n'est pas une cible : on ne peut ni les toucher ni les jouer.
+  // LES DEUX QUI VIENNENT, POSÉS SUR LE LISTEAU. C'est COUDRAY qui l'achète :
+  // sans lui, rien. On pioche avec `pop()` — le DESSUS du paquet est la fin du
+  // tableau, donc le premier à venir est le dernier élément.
   const munitionsAVenir = C.aVenir(P);
   const reserve = munitionsAVenir.length
     ? el('div', { class: 'reserve', attrs: { 'aria-hidden': 'true' } },
-      [el('span', { class: 'reserve-cle', text: 'à venir' })].concat(munitionsAVenir.map((c, i) => el('div', {
+      munitionsAVenir.map((c, i) => el('div', {
         class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.mouillee ? ' blesse' : ''}`,
-        attrs: {
-          style: `--rang:${i}`,
-          'data-role': C.estFeu(c) ? 'feu' : c.id,
-        },
-      }, contenuCarte(c)))))
+        attrs: { style: `--rang:${i}`, 'data-role': C.estFeu(c) ? 'feu' : c.id },
+      }, contenuCarte(c))))
     : null;
-  s.appendChild(el('div', { class: 'ratelier' }, [piocheEtat, reserve, main]));
+
+  s.appendChild(el('div', { class: 'ratelier' }, [
+    tableau(),
+    reserve,
+    el('div', { class: 'rangee' }, [
+      paquetVu('pioche', P.pioche, 'pioche', 'La pioche est vide — elle se refait de la défausse.'),
+      main,
+      paquetVu('defausse', P.defausse, 'défausse', 'Rien de joué pour l’instant.'),
+    ]),
+  ]));
   return s;
+}
+
+// CE QU'IL Y A DANS UN PAQUET, à plat, trié par munition. On montre la
+// COMPOSITION et jamais l'ordre : ce qu'un joueur a le droit de savoir, c'est
+// ce qui lui reste, pas ce qui vient — sinon la pioche cesse d'être un pari.
+function ouvrirPaquet(titre, cartes, vide) {
+  const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
+  const b = el('div', { class: 'modal ecran-cartes aide-boite paquet-boite' });
+  b.appendChild(el('h3', { text: `${titre} · ${cartes.length}` }));
+  if (!cartes.length) b.appendChild(el('p', { text: vide }));
+  else {
+    // DES JETONS, PAS DES CARTES. Les vraies cartes sont dessinées par
+    // `.screen.ecran-cartes .carte` (règle 2 du dépôt) : dans une modale, qui
+    // n'est pas un écran, aucune de ces règles ne s'applique et elles sortaient
+    // en glyphes nus de trois centimètres. Une ligne par munition dit la même
+    // chose, en moins de place et sans dupliquer une définition.
+    const parId = {};
+    for (const c of cartes) (parId[C.estFeu(c) ? 'feu' : c.id] ||= []).push(c);
+    const grille = el('div', { class: 'pq-grille' });
+    for (const [id, lot] of Object.entries(parId).sort((x, y) => y[1].length - x[1].length)) {
+      const def = CONTENU.munitions.find((m) => m.id === id);
+      const ligne = el('div', { class: 'pq-lot', attrs: { 'data-role': id } }, [
+        el('span', { class: 'pq-glyphe' }, [id === 'feu' ? null : munitionVue(id)]),
+        el('span', { class: 'pq-nom', text: def ? def.nom : 'Feu' }),
+        el('span', { class: 'pq-poudre', text: def ? `poudre ${def.poudre}` : 'ne tire pas' }),
+        el('span', { class: 'pq-x', text: `×${lot.length}` }),
+      ]);
+      grille.appendChild(ligne);
+    }
+    b.appendChild(grille);
+  }
+  b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
+  fond.appendChild(b);
+  document.body.appendChild(fond);
 }
 
 /* ----------------------------------------------------------- le geste
@@ -1129,7 +1129,6 @@ function brancherGeste(scene) {
       // qu'il tenait : le tableau reprend son contenu. Restauré dès l'appui —
       // le `pointerdown` de la carte remonte jusqu'au râtelier — il effaçait la
       // phrase de l'homme touché avant même qu'on l'ait lue.
-      rendreLeTableau();
       // PAS de capture avant ce point : capturer dès l'appui redirige le
       // `click` suivant vers la zone au lieu de la carte, et plus aucun homme
       // ne peut être ajouté à la volée.
@@ -1138,7 +1137,13 @@ function brancherGeste(scene) {
       // les lisait DÉJÀ TRANSFORMÉES : la position calculée dépendait de la
       // précédente, et le paquet tremblait. Une boucle de rétroaction, la même
       // que celle qui rétrécissait les coques.
-      paquet = [...scene.querySelectorAll('.carte.prise-en-main')].map((n) => {
+      // DANS L'ORDRE OÙ ON LES A CHOISIES, pas dans celui du DOM. `querySelectorAll`
+      // rend les cartes de gauche à droite : la « dernière » était la plus à
+      // droite de la main et non la dernière touchée, si bien qu'en
+      // sélectionnant de droite à gauche le tas se formait à l'autre bout.
+      // `P.selection` garde l'ordre des doigts.
+      const ordre = P.selection.map((c) => scene.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
+      paquet = (ordre.length ? ordre : [...scene.querySelectorAll('.carte.prise-en-main')]).map((n) => {
         const r = n.getBoundingClientRect();
         n.style.transition = 'none';
         return { n, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
@@ -1254,10 +1259,10 @@ function rechargerVolee() {
    arrive une fois sur cent : c'est ce qui en fait un événement. Un cran qu'on
    voit à chaque tour n'est pas une récompense, c'est un décor. */
 const PUISSANCE = [
-  { seuil: 220, nom: 'démontée', boulets: 3, secousse: 13, eclair: true, onde: true },
-  { seuil: 120, nom: 'bordée', boulets: 3, secousse: 7, eclair: true, onde: false },
-  { seuil: 60, nom: 'nourri', boulets: 2, secousse: 3, eclair: false, onde: false },
-  { seuil: 25, nom: 'sec', boulets: 1, secousse: 1.5, eclair: false, onde: false },
+  { seuil: 150, nom: 'démontée', boulets: 3, secousse: 13, eclair: true, onde: true },
+  { seuil: 80, nom: 'bordée', boulets: 3, secousse: 7, eclair: true, onde: false },
+  { seuil: 45, nom: 'nourri', boulets: 2, secousse: 3, eclair: false, onde: false },
+  { seuil: 20, nom: 'sec', boulets: 1, secousse: 1.5, eclair: false, onde: false },
   { seuil: 0, nom: 'sourd', boulets: 1, secousse: 0, eclair: false, onde: false },
 ];
 const puissanceDe = (n) => PUISSANCE.find((p) => n >= p.seuil) || PUISSANCE[PUISSANCE.length - 1];
@@ -1322,13 +1327,15 @@ async function tirer() {
     // remplacer.
     const P5 = puissanceDe(r.pression);
     if (P5.eclair) eclair(P5.nom === 'démontée' ? 1 : .6);
-    await tir('c-nous', 'c-prise', 1, `−${r.degats}`, 'dmg',
-      { cible: r.cible, boulets: P5.boulets });
+    // UN SEUL CHIFFRE. Il en montait deux — les dégâts à la coque puis la
+    // pression — et depuis que la pression EST les dégâts, c'était deux fois le
+    // même nombre à deux endroits. On ne garde que celui qui décide.
+    await tir('c-nous', 'c-prise', 1, null, null, { cible: r.cible, boulets: P5.boulets });
     secousse(P5.secousse);
     if (P5.onde) onde(centre('c-prise', 0.5, 0.6));
     if (r.pression > 0) {
-      fxFloatText(centre('c-prise', 0.5, 0.82).x, centre('c-prise', 0.5, 0.82).y,
-        `+${r.pression} ⚑`, `puissance-${P5.nom.replace('é', 'e')}`);
+      fxFloatText(centre('c-prise', 0.5, 0.62).x, centre('c-prise', 0.5, 0.62).y,
+        `+${r.pression}`, `puissance-${P5.nom.replace('é', 'e')}`);
     }
   }
   peindreCoques();
@@ -1813,7 +1820,12 @@ function calibrerCartes() {
   if (!rat) return;
   const n = C.tailleMain(P);
   const gap = 5;
-  const large = Math.floor((rat.clientWidth - 14 - gap * (n - 1)) / n);
+  // LES DEUX PAQUETS PRENNENT LEUR PART. La largeur d'une carte se calculait
+  // sur le râtelier entier ; depuis que la pioche et la défausse encadrent la
+  // main, la main déborde de leur largeur — et `overflow-x: hidden` l'ampute
+  // EN SILENCE, ce qui est le pire défaut possible (§2).
+  const cotes = [...rat.querySelectorAll('.paquet')].reduce((t, n2) => t + n2.offsetWidth + gap, 0);
+  const large = Math.floor((rat.clientWidth - 14 - cotes - gap * (n - 1)) / n);
   const s = document.querySelector('.screen.ecran-cartes');
   s.style.setProperty('--carte-l', `${large}px`);
   s.style.setProperty('--jeu-gap', `${gap}px`);

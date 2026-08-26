@@ -71,13 +71,18 @@ tenir une rencontre sans rebattre la défausse.
 
 **LES FIGURES portent sur les munitions**, et c'est tout le score :
 
-| Figure | Fureur |
+| Figure | Poudre |
 |---|---|
-| trois fois la même munition | +2 |
-| trois munitions toutes différentes | +1,5 |
-| deux identiques | +1 |
+| trois fois la même munition | +34 |
+| trois munitions toutes différentes | +14 |
+| deux identiques | +6 |
 
-`poudre × fureur = pression`, la multiplication une seule fois. La **chaîne**
+`poudre = pression`, tout s'additionne. **LA FUREUR EST RETIRÉE** : « 17 × 2,5 »
+demandait au joueur un produit de tête avant de savoir ce que sa volée valait,
+et à trois cartes près du seuil, c'est exactement le calcul qu'il ne faut pas
+avoir à faire. Les figures valent des POINTS — et leur ÉCART est ce qui paie le
+rechargement : serrées, elles se valaient et améliorer sa main ne rapportait
+plus rien. La **chaîne**
 s'applique APRÈS toutes les additions, parce qu'elle porte sur leur somme :
 c'est ce qui en fait une mise en place plutôt qu'un bonus de plus. Et elle arme
 la volée SUIVANTE, jamais la sienne — l'ordre d'écriture compte, sinon une
@@ -232,6 +237,21 @@ sert `tools/mobile-audit.mjs`.
 
 ### Ce que l'écran montre, et où
 
+- **LE COMPTE EST UNE BULLE POSÉE SUR LES CARTES**, en absolu au-dessus du
+  bois — pas une barre en travers de l'écran. La barre vivait loin de ce qu'elle
+  décrivait, occupait une bande entière même vide, et **changeait de hauteur
+  avec son contenu : les navires MONTAIENT** quand on composait une volée,
+  puisque la mer prend la place qui reste. `.mer` garde maintenant sa part, et
+  la bulle ne prend rien.
+- **DEUX DOS DE CARTE ENCADRENT LA MAIN** : la pioche à gauche, la défausse à
+  droite, le compte écrit dessus, le détail au doigt. Un dos dit ce qu'il reste
+  par sa seule présence, là où une ligne de texte demandait d'être déchiffrée.
+  **`calibrerCartes()` doit leur retrancher leur largeur** — sinon la main
+  déborde, et `overflow-x: hidden` l'ampute en silence (§2).
+- **Le contenu d'un paquet se montre en JETONS, pas en cartes.** Une modale
+  n'est pas un écran : aucune règle `.screen.ecran-cartes .carte` ne s'y
+  applique (règle 2), et les cartes en sortaient en glyphes nus de trois
+  centimètres.
 - **TROIS CONTENUS QUI S'EXCLUENT, TROIS ENDROITS.** Le tableau portait à la
   fois la carte annoncée par la prise, le compte de la volée et les répliques
   d'équipage : trois choses qui ne pouvaient pas s'afficher ensemble, et dont
@@ -373,6 +393,13 @@ sert `tools/mobile-audit.mjs`.
   forme et de couleur d'un téléphone à l'autre. Le glyphe se dimensionne sur la
   HAUTEUR du bandeau ; mesuré sur la largeur de la carte, il poussait le nom
   dehors.
+- **Les cartes se rangent derrière la DERNIÈRE TOUCHÉE**, pas derrière la
+  dernière du DOM : `querySelectorAll` rend les cartes de gauche à droite, si
+  bien qu'en sélectionnant de droite à gauche le tas se formait à l'autre bout
+  de la main. C'est `P.selection` qui garde l'ordre des doigts.
+- **On lâche la volée N'IMPORTE OÙ au-dessus du bois.** La zone de dépôt faisait
+  la taille d'une carte : il fallait viser, et un geste qui demande de viser est
+  un bouton déguisé.
 - **Le bandeau est toujours en haut.** Il était collé en haut ou en bas selon
   que l'homme servait à l'avant ou à l'arrière ; l'avant et l'arrière sont
   retirés, et c'est une chose de moins à décoder sur chaque carte.

@@ -13,8 +13,7 @@
       "nom": "Boulet rouge",
       "poudre": 6,
       "effet": "fureur",
-      "fureur": 0.5,
-      "texte": "Chauffé au rouge dans le fourneau. Il met le feu autant qu'il troue : +0,5 de fureur."
+      "texte": "Chauffé au rouge dans le fourneau. Il met le feu à toute la volée : +4 de poudre."
     },
     {
       "id": "mitraille",
@@ -76,7 +75,7 @@
       "titre": "bosco",
       "verbe": "gohier",
       "prix": 18,
-      "texte": "La première volée de chaque rencontre a +1 de fureur."
+      "texte": "La première volée de chaque rencontre porte +10 de poudre."
     },
     {
       "id": "ozanne",
@@ -91,20 +90,20 @@
     {
       "id": "triplette",
       "nom": "Triplette",
-      "fureur": 2,
-      "texte": "Trois fois la même munition."
+      "texte": "Trois fois la même munition.",
+      "poudre": 34
     },
     {
       "id": "panachee",
       "nom": "Panachée",
-      "fureur": 1.5,
-      "texte": "Trois munitions toutes différentes."
+      "texte": "Trois munitions toutes différentes.",
+      "poudre": 14
     },
     {
       "id": "paire",
       "nom": "Paire",
-      "fureur": 1,
-      "texte": "Deux munitions identiques."
+      "texte": "Deux munitions identiques.",
+      "poudre": 6
     }
   ],
   "prises": [
@@ -113,8 +112,8 @@
       "nom": "Barque longue",
       "rang": "petite prise",
       "hullClass": 6,
-      "resistance": 230,
-      "pv": 300,
+      "resistance": 190,
+      "pv": 250,
       "butin": 14
     },
     {
@@ -122,8 +121,8 @@
       "nom": "Flûte marchande",
       "rang": "marchand",
       "hullClass": 4,
-      "resistance": 265,
-      "pv": 320,
+      "resistance": 215,
+      "pv": 265,
       "butin": 20
     },
     {
@@ -131,8 +130,8 @@
       "nom": "Galion d'argent",
       "rang": "gros porteur",
       "hullClass": 2,
-      "resistance": 300,
-      "pv": 335,
+      "resistance": 240,
+      "pv": 280,
       "butin": 28
     },
     {
@@ -140,8 +139,8 @@
       "nom": "Frégate royale",
       "rang": "escorte",
       "hullClass": 3,
-      "resistance": 335,
-      "pv": 340,
+      "resistance": 265,
+      "pv": 290,
       "butin": 36
     },
     {
@@ -149,8 +148,8 @@
       "nom": "Vaisseau de ligne",
       "rang": "vaisseau",
       "hullClass": 1,
-      "resistance": 375,
-      "pv": 350,
+      "resistance": 295,
+      "pv": 300,
       "butin": 48
     }
   ],
@@ -164,7 +163,7 @@
     {
       "id": "grappins",
       "nom": "Grappins neufs",
-      "texte": "Une triplette porte +1 de fureur de plus.",
+      "texte": "Une triplette porte +8 de poudre de plus.",
       "prix": 18
     },
     {

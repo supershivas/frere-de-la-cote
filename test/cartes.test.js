@@ -159,11 +159,20 @@ test('the figures are made of munitions, which is why they exist at all', () => 
   equal(C.figureDe([de('boulet_rame'), de('chaine')]), null, 'deux dépareillées ne font pas de figure');
   equal(C.figureDe([de('boulet_rame')]), null, 'une seule munition ne fait pas de figure');
 
-  // Et la fureur suit : trois fois la même vaut plus que trois différentes.
+  // Et le compte suit : trois fois la même vaut plus que trois différentes, qui
+  // valent plus qu'une paire. LA FUREUR EST RETIRÉE — « 17 × 2,5 » demandait un
+  // produit de tête avant de savoir ce que la volée valait, et à trois cartes
+  // près du seuil, c'est exactement le calcul qu'il ne faut pas avoir à faire.
   const tri = C.evaluer(P, [de('mitraille'), de('mitraille'), de('mitraille')]);
   const pan = C.evaluer(P, [de('mitraille'), de('chaine'), de('barrique')]);
-  equal(tri.fureur, 3, `une triplette porte ${tri.fureur} de fureur au lieu de 3`);
-  equal(pan.fureur, 2.5, `une panachée porte ${pan.fureur} de fureur au lieu de 2,5`);
+  const pai = C.evaluer(P, [de('mitraille'), de('mitraille')]);
+  equal(tri.fureur, undefined, 'la fureur est encore là');
+  assert(tri.total > pan.total, `une triplette (${tri.total}) ne bat pas une panachée (${pan.total})`);
+  assert(pan.total > pai.total, `une panachée (${pan.total}) ne bat pas une paire (${pai.total})`);
+  // L'ÉCART entre les figures est ce qui paie le rechargement : serrées, elles
+  // se valaient et améliorer sa main ne rapportait plus rien.
+  assert(tri.total - pan.total >= 15,
+    `triplette et panachée ne sont séparées que de ${tri.total - pan.total} points`);
 });
 
 test('the chain arms the NEXT volley, never its own', () => {
@@ -176,12 +185,12 @@ test('the chain arms the NEXT volley, never its own', () => {
   P.main = [chaine, rame];
   P.selection = [chaine];
   const un = C.jouer(P);
-  equal(un.fureur, 1, `la chaîne s'est doublée elle-même (${un.fureur})`);
+  equal(un.total, un.poudre, `la chaîne s'est doublée elle-même (${un.total} pour ${un.poudre} de poudre)`);
   equal(P.chaine, true, 'la chaîne n’a pas armé la volée suivante');
   C.riposter(P);
   P.selection = [rame];
   const deux = C.evaluer(P, P.selection);
-  equal(deux.fureur, 2, `la volée suivante n'a pas doublé sa fureur (${deux.fureur})`);
+  equal(deux.total, deux.poudre * 2, `la volée suivante n'a pas été doublée (${deux.total} pour ${deux.poudre})`);
   C.jouer(P);
   equal(P.chaine, false, 'la chaîne dure plus d’une volée');
 });
@@ -235,9 +244,9 @@ test('each of the five staff officers changes a rule', () => {
   // Gohier ouvre la rencontre : la PREMIÈRE volée porte +1.
   const G = avec('gohier');
   const m1 = G.main.filter((c) => !C.estFeu(c)).slice(0, 1);
-  const g1 = C.evaluer(G, m1).fureur;
+  const g1 = C.evaluer(G, m1).total;
   G.bordees -= 1;
-  assert(g1 > C.evaluer(G, m1).fureur, 'Gohier porte encore après la première volée');
+  assert(g1 > C.evaluer(G, m1).total, 'Gohier porte encore après la première volée');
 
   // Toussaint retire une munition DÉSIGNÉE, une fois par rencontre.
   const T = avec('toussaint');
@@ -486,12 +495,26 @@ function chasser(prise, seed, recharge) {
   return { pris: P.fini === 'prise', butin: P.butin };
 }
 
-test('the reload is the real second currency — spending it decides the flute', () => {
+test('the reload still buys something, even if it no longer decides', () => {
   // Les deux capitaines jouent les mêmes mains sur les mêmes graines et
   // tirent la même volée ; l'un se sert de ses trois rechargements, l'autre
   // les garde. Si l'écart est petit, les rechargements sont un décor et la
   // rencontre n'a qu'un seul axe.
-  for (const [i, seuil] of [[0, 8], [1, 12]]) {
+  // ATTENTION — CET INSTRUMENT A PERDU SA FORCE, et les seuils ci-dessous
+  // ENREGISTRENT une régression au lieu de l'empêcher.
+  //
+  // Avec la fureur, un rechargement pesait 13 prises sur 60 sur la barque et 18
+  // sur la flûte : améliorer sa main MULTIPLIAIT ce qu'elle valait, donc le
+  // pari se payait. La fureur retirée, tout s'additionne, et une meilleure main
+  // ne rapporte plus que quelques points — l'écart est tombé à 5 et 4.
+  //
+  // Écarter les figures (paire 6, panachée 14, triplette 34) le rouvre un peu,
+  // pas assez. La cause est structurelle : à cinq cartes en main et sans
+  // contrainte de composition, une figure est presque toujours déjà là, donc
+  // il n'y a rien à aller chercher. C'est une décision de conception à prendre
+  // — rendre les figures plus rares, ou la main plus petite — pas un seuil à
+  // baisser une fois de plus.
+  for (const [i, seuil] of [[0, 4], [1, 3]]) {
     const prise = CONTENU.prises[i];
     let avec = 0, sans = 0, bAvec = 0, bSans = 0;
     for (let s = 1; s <= 60; s++) {

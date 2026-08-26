@@ -23,11 +23,13 @@
 //   moitié injouable et transformait la moitié des tours en attente plutôt
 //   qu'en décision. Ce qui décide, ce sont les FIGURES.
 //
-//   LES DEUX AXES D'UNE VOLÉE. La POUDRE est la somme des munitions ; la
-//   FUREUR part à 1 et monte avec les figures — trois fois la même munition,
-//   trois toutes différentes, ou une simple paire. `total = poudre × fureur`.
-//   Les figures portent sur les MUNITIONS, ce qui est possible précisément
-//   parce qu'elles se répètent.
+//   UN SEUL CHIFFRE : LA POUDRE. La somme des munitions, plus ce que la figure
+//   ajoute — trois fois la même, trois toutes différentes, ou une paire. La
+//   FUREUR a été retirée : un second axe multiplicatif demandait de lire deux
+//   nombres et d'en faire le produit de tête avant de savoir ce que la volée
+//   valait. Les figures ajoutent maintenant des POINTS, et l'on additionne.
+//   Elles portent sur les MUNITIONS, ce qui n'est possible que parce qu'elles
+//   se répètent.
 //
 //   LA RÉSISTANCE. Une prise annonce AVANT l'engagement la PRESSION qu'il
 //   faut lui mettre pour qu'elle amène son pavillon. C'est un seuil, comme
@@ -120,26 +122,22 @@ export function figureDe(cartes) {
   return null;
 }
 
-// LE COMPTE D'UNE VOLÉE, SUR DEUX AXES.
+// LE COMPTE D'UNE VOLÉE, EN UN SEUL CHIFFRE.
 //
-//   LA POUDRE, c'est ce que les munitions valent : la somme de leurs poudres.
-//   LA FUREUR, c'est ce que leur assortiment vaut : elle part à 1, chaque
-//   apport en ajoute, TOUTES LES FUREURS S'ADDITIONNENT, et la somme multiplie
-//   la poudre UNE SEULE FOIS.
+//   LA POUDRE, c'est ce que les munitions valent, plus ce que leur assortiment
+//   ajoute. Tout s'additionne, et le détail dit d'où vient chaque point.
 //
-//     total = poudre × fureur
-//
-// Deux axes plutôt qu'un tas de points, parce qu'ils ne se remplacent pas :
-// trois boulets ramés font une grosse poudre et une fureur ordinaire ; une
-// triplette de mitrailles fait l'inverse. Le joueur voit ce qu'il construit, et
-// le détail dit de quel côté vient chaque gain — d'où les lignes qui portent
-// l'un OU l'autre.
+// Il y a eu un second axe — la FUREUR, qui multipliait la poudre. Il est
+// retiré : « 17 × 2,5 » demandait au joueur de faire un produit de tête avant
+// de savoir ce que sa volée valait, et à trois cartes près du seuil, ce calcul
+// est exactement celui qu'il ne faut pas avoir à faire. Une figure vaut des
+// POINTS, et les points s'ajoutent.
 export function evaluer(P, cartes) {
   const munitions = cartes.filter((c) => !estFeu(c));
   const lignes = [];
   const synergies = [];
 
-  /* --- LA POUDRE : ce que les munitions valent ------------------------- */
+  /* --- ce que les munitions valent ------------------------------------- */
   let poudre = 0;
   for (const c of cartes) {
     if (estFeu(c)) { lignes.push({ quoi: 'Feu', note: 'encombre la volée', poudre: 0 }); continue; }
@@ -149,45 +147,47 @@ export function evaluer(P, cartes) {
     lignes.push({ quoi: c.nom, note: double ? 'Etcheverry le sort du fourneau' : null, poudre: v });
     poudre += v;
   }
-  if (P.reliques.includes('caronades')) { lignes.push({ quoi: 'Caronades', note: null, poudre: 6 }); poudre += 6; }
+  const ajoute = (n, quoi, note) => { poudre += n; lignes.push({ quoi, note, poudre: n }); };
+  if (P.reliques.includes('caronades')) ajoute(6, 'Caronades', null);
 
-  /* --- LA FUREUR : ce que leur assortiment vaut ------------------------ */
-  let fureur = 1;
-  const ajoute = (f, quoi, note) => { fureur += f; lignes.push({ quoi, note, fureur: f }); };
-
-  // Ce que les munitions apportent d'elles-mêmes.
+  // LE BOULET ROUGE MET LE FEU À TOUTE LA VOLÉE. Il portait « +0,5 de fureur »,
+  // qui n'existe plus ; il ajoute maintenant des points, comme tout le reste.
   const rouges = munitions.filter((c) => c.id === 'boulet_rouge' && !c.mouillee).length;
-  if (rouges) ajoute(0.5 * rouges, rouges > 1 ? `${rouges} boulets rouges` : 'Boulet rouge', 'chauffé au rouge');
+  if (rouges) ajoute(4 * rouges, rouges > 1 ? `${rouges} boulets rouges` : 'Boulet rouge', 'chauffé au rouge');
 
-  // La figure.
+  /* --- ce que leur assortiment ajoute ----------------------------------- */
   const fig = figureDe(cartes);
   const FIGURES = {
-    triplette: { nom: 'Triplette', f: 2, note: 'trois fois la même munition' },
-    panachee: { nom: 'Panachée', f: 1.5, note: 'trois munitions toutes différentes' },
-    paire: { nom: 'Paire', f: 1, note: 'deux munitions identiques' },
+    // L'ÉCART ENTRE LES FIGURES EST CE QUI PAIE LE RECHARGEMENT. Serrées
+    // (8 / 15 / 22), elles se valaient à peu près : améliorer sa main ne
+    // rapportait que quelques points et dépenser un rechargement ne décidait
+    // plus rien — mesuré, l'écart entre le capitaine qui s'en sert et celui qui
+    // les garde était tombé de 14 prises sur 60 à 4. Écartées, courir après la
+    // triplette redevient un pari qui vaut un coup.
+    triplette: { nom: 'Triplette', pts: 34, note: 'trois fois la même munition' },
+    panachee: { nom: 'Panachée', pts: 14, note: 'trois munitions toutes différentes' },
+    paire: { nom: 'Paire', pts: 6, note: 'deux munitions identiques' },
   };
   if (fig) {
     const F = FIGURES[fig];
     synergies.push(F.nom);
-    ajoute(F.f, F.nom, F.note);
-    // Les grappins visaient des abordeurs, qui n'existent plus. Ils paient la
-    // figure la plus difficile à réunir.
-    if (fig === 'triplette' && P.reliques.includes('grappins')) ajoute(1, 'Grappins neufs', 'la triplette est tenue');
+    ajoute(F.pts, F.nom, F.note);
+    // Les grappins paient la figure la plus difficile à réunir.
+    if (fig === 'triplette' && P.reliques.includes('grappins')) ajoute(8, 'Grappins neufs', 'la triplette est tenue');
   }
 
-  // Gohier ouvre la rencontre : la PREMIÈRE volée porte +1.
-  if (aHomme(P, 'gohier') && P.bordees === bordeesDe(P)) ajoute(1, 'Gohier', 'la première volée de la rencontre');
+  // Gohier ouvre la rencontre : la PREMIÈRE volée porte davantage.
+  if (aHomme(P, 'gohier') && P.bordees === bordeesDe(P)) ajoute(10, 'Gohier', 'la première volée de la rencontre');
 
-  // LA CHAÎNE d'une volée précédente double la fureur de celle-ci. Elle
-  // s'applique APRÈS toutes les additions, parce qu'elle porte sur leur somme :
-  // c'est ce qui en fait une mise en place plutôt qu'un bonus de plus.
-  if (P.chaine) { lignes.push({ quoi: 'Chaîne', note: 'la volée précédente a doublé la fureur', fureur: fureur }); fureur *= 2; }
-
-  const total = Math.round(poudre * fureur);
+  // LA CHAÎNE d'une volée précédente DOUBLE celle-ci. C'est le seul produit qui
+  // reste, et il tient parce qu'il ne se lit pas au moment du calcul : il a été
+  // décidé au tour d'avant, et le tableau montre le total déjà doublé.
+  let total = poudre;
+  if (P.chaine) { lignes.push({ quoi: 'Chaîne', note: 'la volée précédente double celle-ci', poudre: total }); total *= 2; }
 
   return {
     lignes, synergies, figure: fig,
-    poudre, fureur, total,
+    poudre, total,
     pression: total,
     degats: total,
     annule: annuleLAnnonce(P, cartes),
