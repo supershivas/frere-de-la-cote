@@ -993,22 +993,30 @@ function ecranChasse() {
   // La zone de dépôt vit SOUS NOTRE NAVIRE : c'est là que la volée doit
   // arriver. Elle n'apparaît que pendant le geste — une cible permanente
   // serait un bouton de plus, et il n'y en a aucun.
-  mer.appendChild(el('div', { class: 'depot' }, [el('span', { text: 'lâche ici' })]));
-  s.appendChild(mer);
-
-  // DEUX DOS DE CARTE, DE PART ET D'AUTRE DE LA MAIN : la PIOCHE à gauche, la
-  // DÉFAUSSE à droite. Le compte est écrit dessus ; le détail s'ouvre au doigt.
+  // LES DEUX PAQUETS SONT SUR LE PLATEAU, pas sur le bois. Ils encadraient la
+  // main et lui prenaient 98 px de large, donc les cartes rétrécissaient
+  // d'autant ; le bois n'appartient qu'à la main. Petits, en bas à gauche de la
+  // mer — le bas à droite est à sa carte à elle.
   //
-  // La composition tenait en une ligne de texte au-dessus du bois — « ramé 8,
-  // rouge 7, chaîne 6 » — qu'il fallait déchiffrer. Un dos de carte dit la même
-  // chose par sa seule présence, et ce qu'il y a dedans est à un doigt.
+  // La plaque visible fait 30 px, mais le BOUTON en fait 44 : le doigt vise la
+  // cible, pas le dessin (§2). C'est la seule façon d'avoir un petit dos de
+  // carte sans une cible qu'un pouce rate.
   const paquetVu = (cls, cartes, titre, vide) => el('button', {
     class: `paquet ${cls}`, attrs: { type: 'button', 'aria-label': `${titre} — ${cartes.length} cartes` },
     on: { click: () => ouvrirPaquet(titre, cartes, vide) },
   }, [
-    el('span', { class: 'pq-nb', text: String(cartes.length) }),
-    el('span', { class: 'pq-cle', text: titre }),
+    el('span', { class: 'pq-dos' }, [
+      el('span', { class: 'pq-nb', text: String(cartes.length) }),
+      el('span', { class: 'pq-cle', text: titre === 'pioche' ? 'pioche' : 'jouées' }),
+    ]),
   ]);
+  mer.appendChild(el('div', { class: 'paquets' }, [
+    paquetVu('pioche', P.pioche, 'pioche', 'La pioche est vide — elle se refait de la défausse.'),
+    paquetVu('defausse', P.defausse, 'défausse', 'Rien de joué pour l’instant.'),
+  ]));
+
+  mer.appendChild(el('div', { class: 'depot' }, [el('span', { text: 'lâche ici' })]));
+  s.appendChild(mer);
 
   const main = el('div', { class: 'main' });
   P.main.forEach((c, i) => main.appendChild(carteVue(c, neuves.indexOf(c.uid), neuves.includes(c.uid))));
@@ -1025,15 +1033,7 @@ function ecranChasse() {
       }, contenuCarte(c))))
     : null;
 
-  s.appendChild(el('div', { class: 'ratelier' }, [
-    tableau(),
-    reserve,
-    el('div', { class: 'rangee' }, [
-      paquetVu('pioche', P.pioche, 'pioche', 'La pioche est vide — elle se refait de la défausse.'),
-      main,
-      paquetVu('defausse', P.defausse, 'défausse', 'Rien de joué pour l’instant.'),
-    ]),
-  ]));
+  s.appendChild(el('div', { class: 'ratelier' }, [tableau(), reserve, main]));
   return s;
 }
 
@@ -1820,12 +1820,11 @@ function calibrerCartes() {
   if (!rat) return;
   const n = C.tailleMain(P);
   const gap = 5;
-  // LES DEUX PAQUETS PRENNENT LEUR PART. La largeur d'une carte se calculait
-  // sur le râtelier entier ; depuis que la pioche et la défausse encadrent la
-  // main, la main déborde de leur largeur — et `overflow-x: hidden` l'ampute
-  // EN SILENCE, ce qui est le pire défaut possible (§2).
-  const cotes = [...rat.querySelectorAll('.paquet')].reduce((t, n2) => t + n2.offsetWidth + gap, 0);
-  const large = Math.floor((rat.clientWidth - 14 - cotes - gap * (n - 1)) / n);
+  // LA MAIN REPREND TOUTE LA LARGEUR DU RÂTELIER. Les deux paquets l'ont
+  // encadrée un temps et lui prenaient 98 px : les cartes rétrécissaient
+  // d'autant. Ils sont remontés sur le plateau, où il y a de la place — le bois
+  // n'appartient qu'à la main.
+  const large = Math.floor((rat.clientWidth - 14 - gap * (n - 1)) / n);
   const s = document.querySelector('.screen.ecran-cartes');
   s.style.setProperty('--carte-l', `${large}px`);
   s.style.setProperty('--jeu-gap', `${gap}px`);

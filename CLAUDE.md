@@ -243,11 +243,15 @@ sert `tools/mobile-audit.mjs`.
   avec son contenu : les navires MONTAIENT** quand on composait une volée,
   puisque la mer prend la place qui reste. `.mer` garde maintenant sa part, et
   la bulle ne prend rien.
-- **DEUX DOS DE CARTE ENCADRENT LA MAIN** : la pioche à gauche, la défausse à
-  droite, le compte écrit dessus, le détail au doigt. Un dos dit ce qu'il reste
-  par sa seule présence, là où une ligne de texte demandait d'être déchiffrée.
-  **`calibrerCartes()` doit leur retrancher leur largeur** — sinon la main
-  déborde, et `overflow-x: hidden` l'ampute en silence (§2).
+- **DEUX DOS DE CARTE SUR LE PLATEAU** : la pioche et la défausse, petites, en
+  bas à gauche de la mer — le bas à droite est à sa carte à elle. Un dos dit ce
+  qu'il reste par sa seule présence, là où une ligne de texte demandait d'être
+  déchiffrée. Elles ont encadré la main un temps et lui prenaient 98 px de
+  large : les cartes rétrécissaient d'autant. **Le bois n'appartient qu'à la
+  main.**
+- **La plaque fait 30 px, le BOUTON en fait 44.** Le doigt vise la cible, pas le
+  dessin (§2) : c'est la seule façon d'avoir un petit dos de carte sans une
+  cible qu'un pouce rate. Le bouton est transparent, seule la plaque se voit.
 - **Le contenu d'un paquet se montre en JETONS, pas en cartes.** Une modale
   n'est pas un écran : aucune règle `.screen.ecran-cartes .carte` ne s'y
   applique (règle 2), et les cartes en sortaient en glyphes nus de trois

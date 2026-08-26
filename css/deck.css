@@ -1620,32 +1620,43 @@
 
 /* Le râtelier devient le repère de la bulle : elle se pose au-dessus de lui. */
 .screen.ecran-cartes .ratelier { position: relative; }
-.screen.ecran-cartes .rangee { display: flex; align-items: flex-end; justify-content: center; gap: 5px; }
 
-/* LES DEUX PAQUETS, de part et d'autre de la main : un dos de carte dit ce
-   qu'il reste par sa seule présence, là où une ligne de texte demandait d'être
-   déchiffrée. Le détail s'ouvre au doigt — la composition, jamais l'ordre. */
+/* LES DEUX PAQUETS SONT SUR LE PLATEAU, pas sur le bois. Ils encadraient la
+   main et lui prenaient 98 px de large : les cartes rétrécissaient d'autant, et
+   le bois n'appartient qu'à la main. En bas à gauche de la mer — le bas à
+   droite est à sa carte à elle.
+
+   LA PLAQUE FAIT 30 px, LE BOUTON EN FAIT 44. Le doigt vise la cible, pas le
+   dessin (§2) : c'est la seule façon d'avoir un petit dos de carte sans une
+   cible qu'un pouce rate. Le bouton est transparent, seule la plaque se voit. */
+.screen.ecran-cartes .paquets {
+  position: absolute; z-index: 4; left: 2px; bottom: 0;
+  display: flex; align-items: flex-end; gap: 0;
+}
 .screen.ecran-cartes .paquet {
-  /* 44 px, comme tout ce qui se touche (§2). À 34 de large, l'audit mobile les
-     relevait — et c'est exactement le genre de cible qu'un pouce rate. */
-  flex: 0 0 auto; width: 44px; min-width: 44px; min-height: 44px;
-  height: calc(var(--carte-h, 90px) * .62);
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  border-radius: 5px; padding: 0; cursor: pointer;
-  background: repeating-linear-gradient(45deg, #4a3116 0 4px, #3d2811 4px 8px);
-  border: 2px solid #1c1109;
-  box-shadow: inset 0 0 0 1px rgba(201,162,75,.35), 0 2px 4px rgba(0,0,0,.5);
+  width: 44px; height: 44px; min-height: 44px; padding: 0;
+  background: none; border: 0; box-shadow: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.screen.ecran-cartes .paquet .pq-dos {
+  width: 30px; height: 40px; border-radius: 4px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: repeating-linear-gradient(45deg, #4a3116 0 3px, #3d2811 3px 6px);
+  border: 1.5px solid #1c1109;
+  box-shadow: inset 0 0 0 1px rgba(201,162,75,.35), 0 2px 5px rgba(0,0,0,.55);
   color: var(--gold-light, #e8c877);
+  transition: transform .14s var(--ease-fast);
 }
-.screen.ecran-cartes .paquet .pq-nb { font-family: var(--font-body); font-weight: 700; font-size: 14px; line-height: 1; }
+.screen.ecran-cartes .paquet:active .pq-dos { transform: translateY(2px) scale(.96); }
+.screen.ecran-cartes .paquet .pq-nb { font-family: var(--font-body); font-weight: 700; font-size: 12px; line-height: 1; }
 .screen.ecran-cartes .paquet .pq-cle {
-  font-family: var(--font-body); font-size: 6.5px; letter-spacing: .4px;
-  text-transform: uppercase; color: #a5844c;
-  writing-mode: vertical-rl; transform: rotate(180deg);
+  font-family: var(--font-body); font-size: 5.5px; letter-spacing: .3px;
+  text-transform: uppercase; color: #a5844c; line-height: 1;
 }
-/* Le contenu d'un paquet, une LIGNE par munition. Les couleurs sont celles des
-   cartes, redites ici parce qu'une modale n'est pas un écran et n'hérite
-   d'aucune règle de `.screen.ecran-cartes` (règle 2 du dépôt). */
+/* Une défausse vide ne se donne pas des airs de paquet : elle s'efface. */
+.screen.ecran-cartes .paquet.defausse .pq-dos { opacity: .55; }
+
 .paquet-boite .pq-grille { display: flex; flex-direction: column; gap: 5px; padding: 6px 0; }
 .paquet-boite .pq-lot {
   display: flex; align-items: center; gap: 8px;
