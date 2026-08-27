@@ -24,10 +24,15 @@ const racine = resolve(dirname(new URL(import.meta.url).pathname), '..');
 const lire = (p) => readFileSync(resolve(racine, p), 'utf8');
 
 // DANS L'ORDRE DE DÉPENDANCE : les modules sont collés bout à bout dans une
-// seule portée, donc celui qui en utilise un autre doit venir après.
-const MODULES = ['src/caribbean.js', 'src/voyage.js', 'src/cartes.js',
+// seule portée, donc celui qui en utilise un autre doit venir après. Cet ordre
+// est écrit une fois pour toutes ; CE QUI CHANGE D'UNE MAQUETTE À L'AUTRE, ce
+// sont les modules qu'elle importe, et ils se LISENT dans la maquette plutôt
+// que de se redéclarer ici. Deux plateaux coexistent (`e-cartes.html` et
+// `f-simple.html`) et n'ont pas les mêmes règles : une liste figée aurait
+// embarqué les deux dans chacun, ou — bien pire, parce que rien ne le signale —
+// livré une page muette pour celui qui n'était pas dans la liste.
+const ORDRE = ['src/caribbean.js', 'src/voyage.js', 'src/cartes.js', 'src/simple.js',
   'src/sprites.js', 'src/ocean.js', 'src/fx.js'];
-const DONNEES = { CONTENU: 'data/equipage.json', METEO: 'data/weather.json', PHY: 'data/phylacteres.json' };
 
 // --- CSS : style.css et tout ce qu'elle @importe, dans l'ordre ---
 function css(fichier) {
@@ -36,6 +41,25 @@ function css(fichier) {
   return src.replace(/@import\s+(?:url\(\s*)?['"]([^'"]+)['"]\s*\)?\s*;?/g,
     (_, ref) => `\n/* ${ref} */\n${css('css/' + ref.replace(/^\.\//, ''))}\n`);
 }
+
+// --- CE QUE LA MAQUETTE IMPORTE, et ce que ces modules importent à leur tour.
+// On part de la maquette et l'on suit les arêtes : un module qu'aucune maquette
+// n'importe n'a rien à faire dans son fichier autonome. L'ordre reste celui
+// d'`ORDRE` — la découverte dit QUOI embarquer, jamais DANS QUEL ORDRE.
+const importsDe = (src) => [...src.matchAll(/^\s*import[^;]*?from\s+['"]([^'"]+)['"];?\s*$/gm)]
+  .map((m) => m[1].replace(/^\.\//, '').replace(/^src\//, ''));
+const pageSrc = lire(entree);
+const atteints = new Set();
+const suivre = (src) => {
+  for (const f of importsDe(src)) {
+    if (atteints.has(f) || !ORDRE.includes(`src/${f}`)) continue;
+    atteints.add(f);
+    suivre(lire(`src/${f}`));
+  }
+};
+suivre(pageSrc);
+const MODULES = ORDRE.filter((m) => atteints.has(m.replace(/^src\//, '')));
+if (!MODULES.length) throw new Error(`${entree} n'importe aucun module de ORDRE — rien à embarquer`);
 
 // --- JS : les modules, désexportés et mis à plat ---
 //
@@ -56,7 +80,7 @@ const js = MODULES.map((m) => {
 }).join('\n\n');
 
 // --- le script de la maquette, privé de ses imports et de ses fetch ---
-const page = lire(entree);
+const page = pageSrc;
 const bloc = page.match(/<script type="module">([\s\S]*?)<\/script>/);
 if (!bloc) throw new Error('pas de <script type="module"> dans la maquette');
 // Les préfixes de namespace (`import * as C from …` → `C.jouer`) n'ont plus
@@ -64,10 +88,32 @@ if (!bloc) throw new Error('pas de <script type="module"> dans la maquette');
 // ce qui manquait le jour où un second module a été importé de cette façon —
 // la page devenait blanche sur un « Voy is not defined ».
 const alias = [...bloc[1].matchAll(/^import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from/gm)].map((m) => m[1]);
-let corps = bloc[1]
-  .replace(/^import[\s\S]*?;\s*$/gm, '')
-  .replace(/const \[CONTENU, METEO, PHY\] = await Promise\.all\(\[[\s\S]*?\]\);/, '')
-  .replace(/const jget[^\n]*\n/, '');
+let corps = bloc[1].replace(/^import[\s\S]*?;\s*$/gm, '');
+
+// LES DONNÉES SE LISENT DANS LA MAQUETTE, elles ne sont pas redéclarées ici.
+// Une table `{ CONTENU: 'data/equipage.json', … }` dans cet outil était une
+// SECONDE déclaration de ce que la maquette charge : la maquette qui chargeait
+// un autre fichier obtenait un `undefined` silencieux, et le fichier autonome
+// une page blanche. Deux formes sont reconnues, celles qu'écrivent les deux
+// maquettes vivantes — un `Promise.all` de plusieurs fichiers, ou un `fetch`
+// isolé.
+const donneesLues = [];
+corps = corps.replace(
+  /const \[([^\]]+)\] = await Promise\.all\(\[([\s\S]*?)\]\);/,
+  (tout, noms, dedans) => {
+    const fichiers = [...dedans.matchAll(/['"]([^'"]+\.json)['"]/g)].map((m) => m[1]);
+    const cles = noms.split(',').map((s) => s.trim());
+    if (cles.length !== fichiers.length) throw new Error(`${entree} : ${cles.length} noms pour ${fichiers.length} fichiers de données`);
+    cles.forEach((c, i) => donneesLues.push([c, fichiers[i]]));
+    return '';
+  },
+);
+corps = corps.replace(
+  /const ([A-Za-z_$][\w$]*) = await \(await fetch\(['"]([^'"]+\.json)['"]\)\)\.json\(\);/g,
+  (tout, nom, fichier) => { donneesLues.push([nom, fichier]); return ''; },
+);
+corps = corps.replace(/const jget[^\n]*\n/, '');
+if (!donneesLues.length) throw new Error(`${entree} ne charge aucun fichier de données par une forme reconnue — le fichier autonome serait muet`);
 for (const a of alias) corps = corps.replace(new RegExp(`\\b${a}\\.([A-Za-z_$][\\w$]*)`, 'g'), '$1');
 
 // Les modules sont collés dans UNE portée : deux déclarations de même nom
@@ -109,7 +155,7 @@ if (masques.length) {
     + 'en référence à soi-même : la page est blanche. Renomme la variable locale.');
 }
 
-const donnees = Object.entries(DONNEES)
+const donnees = donneesLues
   .map(([nom, f]) => `const ${nom} = ${lire(f)};`).join('\n');
 
 const html = `<!DOCTYPE html>

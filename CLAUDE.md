@@ -480,6 +480,78 @@ sert `tools/mobile-audit.mjs`.
   la mer ? On nomme la chose — « le navire adverse », « la prise », « la
   coque », ou son nom propre.
 
+## 1 bis. L'AUTRE PLATEAU : la volée nue
+
+Un **second environnement**, monté à côté du premier et non à sa place. Onze
+cartes, trois types, un seul ordre. On éprouve une question et une seule : **que
+reste-t-il quand on retire tout ?**
+
+| | |
+|---|---|
+| La maquette | `docs/refonte/mockups/f-simple.html` |
+| Les règles | `src/simple.js` — pures, sans dé |
+| Le contenu | `data/simple.json` — trois types, le paquet, les cinq prises |
+| Les tests | `test/simple.test.js` |
+| Le CSS | `css/deck.css` §17.4 — le reste vient de §17, tel quel |
+
+**LES DEUX ENVIRONNEMENTS COEXISTENT.** `e-cartes.html` et `src/cartes.js` ne
+sont pas touchés : ils gardent l'état-major, les reliques, la carte annoncée,
+les rechargements, la coulée et les cinq munitions. Ne pas fondre l'un dans
+l'autre, et ne pas mettre un drapeau dans `cartes.js` pour simuler celui-ci —
+deux jeux derrière un `if` sont deux jeux qu'on ne peut plus juger séparément.
+
+**ONZE CARTES : 4 boulets ramés (6), 4 mitrailles (4), 3 boulets rouges (10).**
+Un paquet qu'on compte sur les doigts. Au troisième tour, un joueur SAIT ce qui
+reste, parce qu'il l'a vu passer : c'est la seule connaissance que ce plateau
+demande, et la seule qu'il récompense. D'où la ligne **« au paquet »** posée sur
+le bois — cacher le compte ne ferait pas du suspense, seulement une
+comptabilité à tenir sur un coin de table.
+
+**LA PUISSANCE VIENT DE DEUX CHOSES.** Le TYPE de chaque carte, et ce que la
+MAIN assortit : **paire +8**, **triplette +24**. Tout s'additionne. Il n'y a pas
+de troisième chose à savoir — ni fureur, ni multiplicateur, ni bord, ni effet de
+carte, ni riposte, ni rechargement, ni coque. La **panachée** elle-même est
+retirée : trois types différents ne valent rien, parce qu'une seconde condition,
+en sens inverse de la première, est une règle de plus à vérifier.
+
+**Une triplette de la plus faible bat un boulet rouge seul** — 36 contre 10.
+C'est tout le plateau en une ligne : si la carte la plus chère gagnait toujours,
+il n'y aurait rien à assortir et la main ne dirait rien. Un test le tient.
+
+**DEUX FINS, PAS TROIS.** Résistance atteinte → la prise, butin plein. Plus une
+bordée (quatre) → elle s'échappe, et l'on n'a rien. La coulée est partie avec la
+coque : une seconde façon de gagner qui rendait moins était une exception de
+plus.
+
+**LES RÉSISTANCES SONT MESURÉES, pas choisies à l'œil** : 104 · 132 · 140 · 150
+· 166. Sur 2 000 rencontres jouées à la meilleure volée, le total de quatre
+bordées donne p25 = 142, médiane = 146, p75 = 166 — d'où des prises à 100 %,
+89 %, 77 %, 36 % et 24 %. **Il n'y a AUCUNE progression** dans ce plateau (ni
+état-major, ni relique, ni recrutement), donc l'échelle doit tenir entière dans
+ce qu'un joueur atteint avec onze cartes : une résistance au-dessus de ~175
+n'est atteignable par personne.
+
+**Le choix compte encore, et beaucoup.** Mêmes graines, mêmes mains : un
+capitaine qui lit sa main prend la flûte **89 fois sur 100**, un capitaine qui
+pose les trois premières cartes venues **2 fois**. Si cet écart se referme, la
+volée nue n'est plus qu'une addition qu'on exécute — et c'est le plateau qu'il
+faut jeter, pas le test.
+
+**UN SEUL GESTE, ET PAS DE GESTE DESCENDANT.** On touche une à trois cartes, on
+pousse vers le haut, la volée part ; monter puis redescendre annule. Le
+rechargement n'existe pas ici, donc le râtelier n'est la cible de rien et il n'y
+a qu'une zone de dépôt. Les flèches du clavier doublent le geste.
+
+**L'écran n'a que ce dont il a besoin** : la jauge de pression, le compteur de
+bordées, les deux coques, la ligne du paquet, la main. Pas d'état-major, pas de
+pastilles de conditions, pas de carte d'intention, pas de phylactère, pas de
+tutoriel, pas de carte des Caraïbes, pas de boutique — les cinq prises
+s'enchaînent, et c'est tout.
+
+**Le score se joue en séquence**, comme dans l'autre plateau : chaque carte à
+son tour, puis le nom de la figure en grand, puis le total, et seulement là les
+canons tirent.
+
 ## 2. Les deux contraintes qui priment sur le reste
 
 ### Mobile d'abord
@@ -518,6 +590,7 @@ voulu : un homme qui ne changerait aucune règle ne serait qu'un texte.
 |---|---|
 | **Règles — pures, déterministes, sans DOM ni aléatoire** | |
 | `src/cartes.js` | **La chasse-partie en cartes.** Munitions, figures, évaluation, verbes de l'état-major, partage |
+| `src/simple.js` | **La volée nue** (§1 bis) : onze cartes, trois types, paire et triplette. L'autre plateau, à côté et non à la place |
 | `src/shipPlans.js` | Plans de pont par classe de coque (encore utilisé par la vue en profil) |
 | **Génération — c'est ici que l'aléatoire est permis** | |
 | `src/voyage.js` | **La progression sur la carte** : escales, actes, prise trouvée, épaves, rencontres |
@@ -531,7 +604,7 @@ voulu : un homme qui ne changerait aucune règle ne serait qu'un texte.
 | `src/deckView.js` | Rendu en profil : le sprite généré sert de cadre au plan |
 | `src/run.js` | État de partie : archétypes, chasse-partie, moral, légitimité |
 | **Styles** | |
-| `css/deck.css` | Le CSS de la refonte. **§17 = l'écran de cartes, §17.2 = la carte, §17.3 = le tutoriel** |
+| `css/deck.css` | Le CSS de la refonte. **§17 = l'écran de cartes, §17.2 = la carte, §17.3 = le tutoriel, §17.4 = la volée nue** |
 | `css/components.css` | Composants **partagés** : jauges, boutons `.btn-level-*`, modales |
 | `css/style.css` | Ce qui appartient à **un écran**, et rien d'autre |
 | **Outils** | |
@@ -632,7 +705,7 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 178 vérifications, zéro dépendance
+node test/run.js          # 192 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
@@ -719,7 +792,10 @@ maquette **utilise l'interface du jeu**, elle n'en réinvente pas une à côté.
 un composant manque, l'ajouter à `css/deck.css` et au design system — jamais
 dans un `<style>` de maquette.
 
-`e-cartes.html` est la maquette vivante. `b2-combat.html`, `c-rade.html` et
+`e-cartes.html` et `f-simple.html` sont les deux maquettes vivantes — la
+chasse-partie complète et la volée nue (§1 bis), montées côte à côte pour
+qu'on puisse les comparer plutôt que d'en fondre une dans l'autre.
+`b2-combat.html`, `c-rade.html` et
 `d-breche.html` sont les trois échelles de combat abandonnées : à lire pour
 savoir ce qui a été essayé, à ne pas reprendre. `profil.html` et
 `role-equipage-mockup.html` sont antérieures et ne suivent aucune de ces

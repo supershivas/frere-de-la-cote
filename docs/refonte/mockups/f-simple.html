@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<base href="../../../">
+<title>F — la volée nue (maquette jouable)</title>
+<!-- titre: La volée nue -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8F%B4%3C/text%3E%3C/svg%3E">
+</head>
+<body data-bg="sea">
+<canvas id="ocean"></canvas>
+<div id="parchment"></div>
+<main id="app"></main>
+
+<script type="module">
+/* ============================================================
+   F — LA VOLÉE NUE.
+
+   ONZE CARTES SUR UN RÂTELIER, ET RIEN D'AUTRE. On en touche une à trois, on
+   pousse le paquet vers le haut, il part. La puissance vient du TYPE des
+   cartes et de ce que la MAIN assortit — une paire, une triplette. Il n'y a
+   pas de troisième chose à savoir.
+
+   C'EST UN AUTRE ENVIRONNEMENT, PAS UNE RÉÉCRITURE DE `e-cartes.html`. Celui-ci
+   reste entier, avec son état-major, ses reliques, sa carte annoncée, ses
+   rechargements et ses cinq munitions. Ici, tout cela est absent — non pas
+   caché derrière un drapeau, absent : c'est ce qu'on éprouve.
+
+   Ce qui vient du jeu, et n'est pas réinventé ici :
+     src/simple.js      les règles, pures et sans dé
+     src/sprites.js     les coques, générées à l'exécution
+     src/ocean.js       le ciel et la mer animés
+     src/fx.js          les nombres flottants
+     data/simple.json   les trois types, le paquet, les cinq prises
+     css/style.css      l'interface (§17 et §17.4 de css/deck.css)
+
+   MOBILE D'ABORD : rien en bas de l'écran qu'un râtelier de bois, un seul
+   ordre, et il se donne au doigt.
+   ============================================================ */
+
+import * as S from './src/simple.js';
+import { getGeneratedShip, drawGrid } from './src/sprites.js';
+import { startOcean } from './src/ocean.js';
+import { initFx, fxFloatText } from './src/fx.js';
+
+const el = (tag, o = {}, kids = []) => {
+  const n = document.createElement(tag);
+  if (o.class) n.className = o.class;
+  if (o.text !== undefined) n.textContent = o.text;
+  if (o.html !== undefined) n.innerHTML = o.html;
+  if (o.attrs) for (const [k, v] of Object.entries(o.attrs)) n.setAttribute(k, v);
+  if (o.on) for (const [e, f] of Object.entries(o.on)) n.addEventListener(e, f);
+  for (const k of [].concat(kids)) if (k != null) n.appendChild(typeof k === 'string' ? document.createTextNode(k) : k);
+  return n;
+};
+const app = () => document.getElementById('app');
+const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const CONTENU = await (await fetch('data/simple.json')).json();
+
+/* L'aléatoire vit ici, dans la GÉNÉRATION, et nulle part ailleurs. */
+let graine = (Math.random() * 4294967295) >>> 0;
+const rngPour = (s) => { let x = s >>> 0 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; };
+let rng = rngPour(graine);
+
+const P = S.nouvellePartie(CONTENU);
+let ecran = 'chasse';
+let occupe = false;      // une animation est en cours : les gestes sont sourds
+let glisse = false;      // un glissement vient de finir : le clic qui suit ne compte pas
+let neuves = [];         // les `uid` arrivés au dernier tour, pour l'animation
+let mot = '';            // ce qui vient de se passer, en une ligne
+
+// On refait la main à ras en gardant trace de QUI vient d'arriver : c'est ce
+// qui permet de ne faire voler que les cartes neuves.
+function relever() {
+  const avant = new Set(P.main.map((c) => c.uid));
+  S.completer(P, rng);
+  neuves = P.main.filter((c) => !avant.has(c.uid)).map((c) => c.uid);
+}
+
+/* ------------------------------------------------------------- les coques */
+
+// Une coque générée porte SA PALETTE : lui passer une couleur unique fait
+// retomber chaque caractère inconnu dessus, et le navire sort en aplat
+// monochrome, sans voiles ni pavillon, sans qu'aucune erreur soit levée
+// (règle 7). Le canvas est RECADRÉ à la flottaison : aligner deux coques par
+// le bas les aligne par la ligne d'eau.
+const SABORDS = new Map();
+function peindreCoque(cv, spec, facing, px = 3) {
+  if (!cv) return;
+  const g = getGeneratedShip(spec);
+  const grille = (g.grid || g).map((r) => (typeof r === 'string' ? r : r.join('')));
+  const cols = grille[0].length, rows = grille.length;
+  const eau = g.waterY != null ? g.waterY : rows - 1;
+
+  const off = document.createElement('canvas');
+  off.width = cols * px; off.height = rows * px;
+  drawGrid(off, grille, { color: g.palette, flag: '', facing, waterRow: eau });
+
+  cv.width = cols * px; cv.height = (eau + 1) * px;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(off, 0, 0);
+  cv.dataset.flottaison = String((eau + 1) * px);
+  cv.dataset.pont = String(Math.round((eau - 3) * px));
+
+  // LES SABORDS SONT RELEVÉS DANS LA GRILLE ('p'), jamais devinés : c'est de là
+  // que partent les boulets et la fumée.
+  const pts = [];
+  for (let y = 0; y <= eau; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (grille[y][x] !== 'p') continue;
+      const vx = facing === 1 ? x : cols - 1 - x;
+      pts.push({ x: (vx + 0.5) * px, y: (y + 0.5) * px });
+    }
+  }
+  SABORDS.set(cv.id, pts);
+}
+
+const specNous = () => ({
+  seed: 4211, hullClass: 4, hullShape: 'fine', sailsPerMast: 3, jibs: 1, wear: 0,
+  colors: { hull: '#5a3d25', sail: '#e6d9bd', faction: '#8a1f1f' },
+  flag: { motif: 'Crâne', bg: '#161616', sym: '#e6d9bd', accent: '#f1c40f' },
+  trim: 'simple', emblem: 'petit',
+});
+const specPrise = () => ({
+  seed: 9137, hullClass: P.prise.hullClass, hullShape: 'ronde',
+  sailsPerMast: 3, jibs: 2, wear: 1,
+  colors: { hull: '#6b4a26', sail: '#f0e6cc', faction: '#c8a227' },
+  flag: { motif: 'Croix', bg: '#f0e6cc', sym: '#a3242a', accent: '#c8a227' },
+  trim: 'doré', emblem: 'grand',
+});
+
+// UNE SEULE ÉCHELLE POUR LES DEUX COQUES, et elle est MESURÉE UNE FOIS sur la
+// bande de mer — jamais relue du canvas qu'elle vient de dimensionner (règle 9).
+function peindreCoques() {
+  const flotte = document.querySelector('.ecran-cartes .flotte');
+  if (!flotte || !P.prise) return;
+  const dispo = Math.max(60, flotte.clientHeight - 10);
+  const specs = [specNous(), specPrise()];
+  const hauts = specs.map((s) => {
+    const g = getGeneratedShip(s);
+    const grille = (g.grid || g).map((r) => (typeof r === 'string' ? r : r.join('')));
+    return (g.waterY != null ? g.waterY : grille.length - 1) + 1;
+  });
+  const px = Math.max(1, Math.min(3, Math.floor(dispo / Math.max(...hauts))));
+  peindreCoque(document.getElementById('c-nous'), specs[0], 1, px);
+  peindreCoque(document.getElementById('c-prise'), specs[1], -1, px);
+}
+
+/* ------------------------------------------------- ce qui vole : dans la mer
+   Les boulets et les copeaux vivent DANS la bande de mer, en coordonnées
+   relatives à elle — jamais en `position: fixed` sur la page (règle 11) : le
+   repère d'un élément fixé dépend de ses ancêtres, et un boulet posé sur
+   `body` partait un écran plus bas sans que rien ne le signale. */
+const laMer = () => document.querySelector('.screen.ecran-cartes .mer');
+function dansLaMer(pt) {
+  const m = laMer();
+  if (!m) return pt;
+  const r = m.getBoundingClientRect();
+  return { x: pt.x - r.left, y: pt.y - r.top };
+}
+function poser(classe) {
+  const d = el('div', { class: classe });
+  (laMer() || document.body).appendChild(d);
+  return d;
+}
+function centre(id, dx = 0.5, dy = 0.45) {
+  const n = document.getElementById(id);
+  if (!n) return { x: innerWidth / 2, y: innerHeight / 2 };
+  const r = n.getBoundingClientRect();
+  return { x: r.left + r.width * dx, y: r.top + r.height * dy };
+}
+// Les sabords du côté qui tire, en coordonnées d'écran : un boulet ne sort pas
+// par la poupe.
+function bouches(id, sens) {
+  const cv = document.getElementById(id);
+  const pts = SABORDS.get(id) || [];
+  if (!cv || !pts.length) return [centre(id, sens === 1 ? 0.82 : 0.18, 0.42)];
+  const r = cv.getBoundingClientRect();
+  const kx = r.width / cv.width, ky = r.height / cv.height;
+  const vus = pts.map((p) => ({ x: r.left + p.x * kx, y: r.top + p.y * ky }));
+  vus.sort((a, b) => (sens === 1 ? b.x - a.x : a.x - b.x));
+  return vus.slice(0, Math.max(1, Math.min(3, Math.ceil(vus.length / 2))));
+}
+
+// DES ÉCLATS DE BOIS. Un boulet dans un bordé de chêne n'ouvre pas un trou
+// net : il arrache des copeaux. C'est le bois qui dit que la coque a pris ; la
+// fumée seule dirait « quelque chose a explosé ».
+function copeaux(pt, n = 18) {
+  const teintes = ['#b98a4b', '#8a6234', '#5a3d25', '#e6d9bd', '#3a2712'];
+  const o = dansLaMer(pt);
+  for (let i = 0; i < n; i++) {
+    const d = poser('copeau');
+    const ang = (Math.PI * (0.15 + Math.random() * 0.7)) * (Math.random() < 0.5 ? 1 : -1) + Math.PI;
+    const dist = 22 + Math.random() * 46;
+    d.style.left = `${o.x}px`; d.style.top = `${o.y}px`;
+    d.style.background = teintes[i % teintes.length];
+    d.style.width = `${2 + Math.random() * 3}px`;
+    d.style.height = `${1 + Math.random() * 2}px`;
+    d.animate(
+      [{ transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${Math.cos(ang) * dist}px, ${26 - Math.abs(Math.sin(ang)) * dist * 0.7}px) rotate(${Math.random() * 540 - 270}deg)`, opacity: 0 }],
+      { duration: 420 + Math.random() * 320, easing: 'cubic-bezier(.2,.7,.4,1)' },
+    ).onfinish = () => d.remove();
+  }
+}
+
+// UNE MASSE TRANSLUCIDE SE PEINT EN UNE FOIS (règle 12) : six ellipses
+// empilées laissent voir tous leurs recouvrements et l'on lit six bulles, pas
+// un nuage. Un seul élément, dont les lobes sont des dégradés du même fond.
+function volute(classe, pt, { largeur = 30, hauteur = 26, vers = 0, monte = -18, duree = 1100, lobes = 4, graine = 0 } = {}) {
+  const o = dansLaMer(pt);
+  const d = poser(classe);
+  const h = (n) => { const v = Math.sin((graine + 1) * 12.9898 + n * 78.233) * 43758.5453; return v - Math.floor(v); };
+  const couches = [];
+  for (let i = 0; i < lobes; i++) {
+    const r = 26 + h(i + 13) * 22;
+    couches.push(`radial-gradient(${r}% ${r * 1.1}% at ${18 + h(i) * 64}% ${26 + h(i + 7) * 48}%, var(--coeur) 0%, var(--bord) 62%, transparent 78%)`);
+  }
+  d.style.backgroundImage = couches.join(',');
+  d.style.left = `${o.x}px`; d.style.top = `${o.y}px`;
+  d.style.width = `${largeur}px`; d.style.height = `${hauteur}px`;
+  d.animate([
+    { transform: 'translate(-50%,-50%) scale(.4)', opacity: 0 },
+    { transform: `translate(calc(-50% + ${vers * 0.4}px), calc(-50% + ${monte * 0.35}px)) scale(1.1)`, opacity: .9, offset: .28 },
+    { transform: `translate(calc(-50% + ${vers}px), calc(-50% + ${monte}px)) scale(2.2)`, opacity: 0 },
+  ], { duration: duree, easing: 'cubic-bezier(.15,.6,.4,1)' }).onfinish = () => d.remove();
+}
+
+function bouffee(pts, sens) {
+  const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+  volute('boufee', { x: (Math.min(...xs) + Math.max(...xs)) / 2 + sens * 8, y: (Math.min(...ys) + Math.max(...ys)) / 2 }, {
+    largeur: Math.max(38, Math.max(...xs) - Math.min(...xs) + 40),
+    hauteur: Math.max(...ys) - Math.min(...ys) + 42,
+    vers: sens * (26 + Math.random() * 14), monte: -8 - Math.random() * 8,
+    duree: 1000, lobes: 5, graine: Math.random() * 100,
+  });
+}
+
+// UN IMPACT N'EST PAS UNE EXPLOSION : un choc clair très bref, de la poussière
+// terreuse, et du bois qui vole.
+function impact(pt) {
+  const f = poser('choc');
+  const o = dansLaMer(pt);
+  f.style.left = `${o.x}px`; f.style.top = `${o.y}px`;
+  f.animate([
+    { transform: 'translate(-50%,-50%) scale(.3)', opacity: .95 },
+    { transform: 'translate(-50%,-50%) scale(1.5)', opacity: 0 },
+  ], { duration: 180, easing: 'ease-out' }).onfinish = () => f.remove();
+  volute('poussiere', pt, { largeur: 46, hauteur: 34, vers: (Math.random() - 0.5) * 18, monte: -10, duree: 1400, lobes: 5, graine: Math.random() * 100 });
+  copeaux(pt, 20);
+}
+
+// UN BOULET EST UNE BILLE DE FONTE : petite, mate. Ce qui la rend visible sur
+// une mer sombre, c'est son sillage, pas sa taille.
+function boulet(a, b, duree = 600) {
+  return new Promise((fini) => {
+    const oa = dansLaMer(a), ob = dansLaMer(b);
+    const d = poser('boulet');
+    const arc = Math.min(70, Math.abs(ob.x - oa.x) * 0.26);
+    const t0 = performance.now();
+    let dernier = 0;
+    const pas = (t) => {
+      const k = Math.min(1, (t - t0) / duree);
+      const x = oa.x + (ob.x - oa.x) * k;
+      const y = oa.y + (ob.y - oa.y) * k - Math.sin(k * Math.PI) * arc;
+      d.style.transform = `translate(${x - 8}px, ${y - 8}px)`;
+      if (t - dernier > 45 && k < 0.92) {
+        dernier = t;
+        const f = poser('boulet-sillage');
+        f.style.transform = `translate(${x - 6}px, ${y - 6}px)`;
+        setTimeout(() => f.remove(), 620);
+      }
+      if (k < 1) requestAnimationFrame(pas); else { d.remove(); fini(); }
+    };
+    requestAnimationFrame(pas);
+  });
+}
+
+// LE TIR. Le boulet frappe LE BORDÉ — entre le pont et l'eau — d'après les
+// repères relevés à la peinture, jamais d'après un pourcentage de l'image.
+async function tir(nb) {
+  const ports = bouches('c-nous', 1).slice(0, Math.max(1, nb));
+  const cv = document.getElementById('c-prise');
+  const r = cv ? cv.getBoundingClientRect() : null;
+  const ech = cv && r ? r.height / cv.height : 1;
+  const pont = cv ? Number(cv.dataset.pont || 0) * ech : 0;
+  const flot = cv ? Number(cv.dataset.flottaison || cv.height) * ech : 0;
+  const cible = () => (r
+    ? { x: r.left + r.width * (0.36 + Math.random() * 0.28), y: r.top + pont + (flot - pont) * (0.35 + Math.random() * 0.45) }
+    : centre('c-prise'));
+  bouffee(ports, 1);
+  await Promise.all(ports.map(async (p, i) => {
+    await attendre(i * 90);
+    const b = cible();
+    await boulet(p, b, 560 + i * 40);
+    impact(b);
+  }));
+}
+
+/* ---------------------------------------------------------------- la carte */
+
+// LA CARTE EST UN SYMBOLE, DESSINÉ. Trois formes qu'on distingue à distance de
+// bras sans lire un mot — c'est ce qui permet de RECONNAÎTRE une paire, et une
+// figure qu'il faut lire pour la voir n'est pas une figure. En SVG et non en
+// emoji : un emoji change de forme et de couleur d'un téléphone à l'autre.
+const GLYPHES = {
+  boulet_rame: '<circle cx="5.4" cy="12" r="4"/><circle cx="18.6" cy="12" r="4"/><rect x="8.4" y="10.6" width="7.2" height="2.8" rx="1"/>',
+  boulet_rouge: '<circle cx="12" cy="12.6" r="5.6"/>'
+    + '<path d="M12 1.6 L12 5 M5.6 4.4 L7.6 7 M18.4 4.4 L16.4 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>',
+  mitraille: '<circle cx="12" cy="4.6" r="2.3"/><circle cx="6" cy="11.4" r="2.3"/><circle cx="18" cy="11.4" r="2.3"/>'
+    + '<circle cx="9" cy="19" r="2.3"/><circle cx="16" cy="18.4" r="2.3"/>',
+};
+function glyphe(id) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('fill', 'currentColor');
+  svg.innerHTML = GLYPHES[id] || '<circle cx="12" cy="12" r="6"/>';
+  return svg;
+}
+
+// UNE CARTE NE PORTE QUE DEUX CHOSES : son type — le glyphe, le nom, la
+// couleur du cadre — et sa poudre. Il n'y a pas de troisième ligne à lire,
+// parce qu'il n'y a pas de troisième chose à savoir.
+function carteVue(c, rang = 0, neuve = false) {
+  const pris = P.selection.includes(c);
+  const n = el('button', {
+    class: `carte${pris ? ' prise-en-main' : ''}${neuve ? ' neuve' : ''}`,
+    attrs: {
+      type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`,
+      'data-uid': String(c.uid), 'data-role': c.id,
+      'aria-label': `${c.nom}, poudre ${S.poudreDe(c)}`,
+    },
+    on: {
+      // Un retour SOUS LE DOIGT, avant même que l'état change : la carte
+      // s'enfonce à l'appui et remonte au relâchement.
+      pointerdown: () => { if (!occupe) n.style.transform = 'translateY(-4px) scale(.97)'; },
+      pointerup: () => { n.style.transform = ''; },
+      pointerleave: () => { n.style.transform = ''; },
+      pointercancel: () => { n.style.transform = ''; },
+      click: () => {
+        n.style.transform = '';
+        if (occupe || glisse) return;
+        const r = S.selectionner(P, c);
+        // RÈGLE 5 : un ordre impossible se refuse À VOIX HAUTE. Seul le REFUS
+        // passe en rouge — la carte, elle, s'annonce comme les autres : c'est
+        // le coup qui est impossible, pas elle.
+        if (r.ok) mot = '';
+        else { mot = `<span class="tb-refus">${r.pourquoi}</span>`; secouer(n); }
+        rendre();
+      },
+    },
+  }, [
+    el('span', { class: 'c-bandeau' }, [glyphe(c.id), el('span', { class: 'c-nom', text: c.nom })]),
+    el('span', { class: 'c-val', text: String(S.poudreDe(c)) }),
+  ]);
+  // La marque `neuve` est un ÉVÉNEMENT, pas un état : elle est retirée du DOM à
+  // la fin de l'animation, sinon la distribution repart à chaque carte touchée.
+  if (neuve) n.addEventListener('animationend', () => n.classList.remove('neuve'), { once: true });
+  return n;
+}
+function secouer(n) {
+  n.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(5px)' }, { transform: 'translateX(0)' }], { duration: 190 });
+}
+
+/* ---------------------------------------------------------------- l'écran */
+
+// LE COMPTE EST UNE BULLE POSÉE SUR LES CARTES, jamais une barre en travers de
+// l'écran : elle est là où l'on regarde, elle n'existe que s'il y a une volée,
+// et elle ne prend aucune place au plateau.
+function tableau() {
+  // IL N'Y A PAS D'AUTRE ENDROIT OÙ ÉCRIRE. Pas de phylactère, pas d'infobulle :
+  // à 375 px de large, un panneau flottant recouvre toujours quelque chose
+  // qu'on était en train de lire. Ce qui vient de se passer s'écrit ICI, sous
+  // le compte, et la bulle s'ouvre pour lui même sans volée composée.
+  const t = el('div', { class: `tableau${P.selection.length || mot ? ' arme' : ''}` });
+  const dire = () => { if (mot) t.appendChild(el('div', { class: 'tb-detail', html: mot })); };
+  if (!P.selection.length) { dire(); return t; }
+  const r = S.evaluer(P, P.selection);
+  t.appendChild(el('div', { class: 'tb-chiffre', text: String(r.total) }));
+  t.appendChild(el('div', {
+    class: 'tb-detail',
+    html: r.figureNom
+      ? `<b>${r.figureNom}</b>`
+      : (P.selection.length > 1 ? 'aucune figure' : 'de la poudre, et rien d’autre'),
+  }));
+  const manque = Math.max(0, P.prise.resistance - (P.pression + r.total));
+  t.appendChild(el('div', {
+    class: 'tb-geste',
+    html: manque === 0 ? '<b>elle amène son pavillon</b>'
+      : `resterait ${manque} en ${Math.max(0, P.bordees - 1)} bordée${P.bordees - 1 > 1 ? 's' : ''}`,
+  }));
+  dire();
+  return t;
+}
+
+// CE QU'IL RESTE AU PAQUET, ÉCRIT. Sur onze cartes, compter ce qui est passé
+// EST le jeu : le cacher ne créerait pas du suspense, seulement une comptabilité
+// à tenir sur un coin de table.
+function reste() {
+  const compte = S.resteParType(P);
+  return el('div', { class: 'reste', attrs: { 'aria-hidden': 'true' } }, [
+    el('span', { class: 'r-cle', text: 'au paquet' }),
+    ...CONTENU.cartes.map((t) => el('span', { class: 'r-type', attrs: { 'data-role': t.id } }, [
+      glyphe(t.id), el('b', { text: String(compte[t.id] || 0) }),
+    ])),
+    el('span', { class: 'r-cle', text: `· jouées ${P.defausse.length}` }),
+  ]);
+}
+
+function ecranChasse() {
+  const p = P.prise;
+  const s = el('div', { class: 'screen ecran-cartes ecran-simple' });
+
+  const mer = el('div', { class: 'mer' }, [
+    el('div', { class: 'etiquettes' }, [
+      el('div', { class: 'etiq nous' }, [
+        el('div', { class: 'e-nom', text: 'La Tortue' }),
+        el('div', { class: 'e-chif' }, [
+          el('span', { class: `e-fort${P.bordees <= 1 ? ' bas' : ''}`, text: `⚔ ${P.bordees}` }),
+          el('span', { class: 'e-mats', text: `${P.butin} 💰` }),
+        ]),
+      ]),
+      // LA JAUGE DE PRESSION SE REMPLIT VERS LA RÉSISTANCE. C'est la seule
+      // barre du jeu, et le seul compteur qui décide de la fin.
+      el('div', { class: 'etiq prise' }, [
+        el('div', { class: 'e-nom', text: p.nom }),
+        el('div', { class: 'jauge pression' }, [el('i', { attrs: { style: `width:${Math.min(100, (100 * P.pression) / p.resistance)}%` } })]),
+        el('div', { class: 'e-chif' }, [el('span', { class: 'e-fort', text: `${P.pression} / ${p.resistance}` })]),
+      ]),
+    ]),
+    el('div', { class: 'flotte' }, [
+      el('div', { class: 'coque nous' }, [el('canvas', { attrs: { id: 'c-nous' } })]),
+      el('div', { class: 'coque prise' }, [el('canvas', { attrs: { id: 'c-prise' } })]),
+    ]),
+    // La zone de dépôt n'existe que pendant le geste : une cible permanente
+    // serait un bouton de plus, et il n'y en a aucun.
+    el('div', { class: 'depot' }, [el('span', { text: 'lâche ici' })]),
+  ]);
+  s.appendChild(mer);
+
+  const main = el('div', { class: 'main' });
+  P.main.forEach((c) => main.appendChild(carteVue(c, neuves.indexOf(c.uid), neuves.includes(c.uid))));
+  s.appendChild(el('div', { class: 'ratelier' }, [tableau(), reste(), main]));
+  return s;
+}
+
+// LES DEUX FINS, et elles se disent différemment. « La prise est à nous » sur
+// une prise échappée serait un mensonge que le compteur de butin dément deux
+// lignes plus bas.
+function ecranFin() {
+  const p = P.prise || {};
+  const s = el('div', { class: 'screen ecran-cartes ecran-simple' });
+  s.appendChild(el('div', { class: 'ruban' }, [
+    el('div', { class: 'rb-txt' }, [
+      el('div', { class: 'rb-quoi', text: P.fini === 'echec' ? 'Rien à partager' : 'Le butin' }),
+      el('div', { class: 'rb-rang', text: `${P.prisesFaites} prise(s) sur ${CONTENU.prises.length}` }),
+    ]),
+    el('div', { class: 'rb-butin', text: `${P.butin} 💰` }),
+  ]));
+  const gagne = P.fini === 'prise';
+  s.appendChild(el('div', { class: `verdict${gagne ? '' : ' rate'}` }, [
+    el('h2', { text: gagne ? 'Elle amène son pavillon' : 'Elle s’échappe' }),
+    el('p', {
+      text: gagne
+        ? `${p.nom} se rend entière : ${p.gagne} 💰.`
+        : `Quatre bordées et ${p.nom} tient encore : elle force de voiles, et l’on n’a rien.`,
+    }),
+    el('p', { class: 'v-suite', text: `Pression ${P.pression} sur ${p.resistance} demandée.` }),
+  ]));
+  const suivante = CONTENU.prises[P.prisesFaites % CONTENU.prises.length];
+  s.appendChild(el('div', { class: 'suite' }, [
+    el('button', {
+      class: 'btn-level-1', text: `Reprendre la mer — ${suivante.nom}`, attrs: { type: 'button' },
+      on: { click: () => { engagerPrise(suivante); } },
+    }),
+  ]));
+  return s;
+}
+
+function engagerPrise(def) {
+  S.engager(P, def, rng);
+  neuves = P.main.map((c) => c.uid);
+  mot = '';
+  ecran = 'chasse';
+  rendre();
+}
+
+/* ------------------------------------------------------------- le geste
+   UN SEUL ORDRE, UN SEUL GESTE. On pousse la volée vers le haut, elle part.
+   Il n'y a pas de geste descendant : le rechargement n'existe pas dans cet
+   environnement, et une seconde zone de dépôt sur la largeur d'un pouce se
+   raterait avec la première. Monter puis redescendre annule. */
+function brancherGeste(scene) {
+  const ratelier = scene.querySelector('.ratelier');
+  const tab = scene.querySelector('.tableau');
+  const depot = scene.querySelector('.depot');
+  const aide = scene.querySelector('.tb-geste');
+  const aideTexte = aide ? aide.innerHTML : '';
+  let y0 = null, x0 = 0, dy = 0, dx = 0, montee = 0, franchi = false;
+  let paquet = [];
+
+  const dire = (h, cls) => {
+    if (tab) { tab.classList.remove('tire', 'annule'); if (cls) tab.classList.add(cls); }
+    if (aide) aide.innerHTML = h;
+  };
+  // TOUT CE QUI EST AU-DESSUS DU RÂTELIER EST UNE CIBLE. Une zone de la taille
+  // d'une carte demandait de viser, et un geste qui demande de viser est un
+  // bouton déguisé.
+  const surLeDepot = (x, y) => (ratelier ? y < ratelier.getBoundingClientRect().top : y < innerHeight * 0.6);
+
+  const debut = (e) => {
+    if (occupe || P.fini || !P.selection.length) return;
+    y0 = e.clientY; x0 = e.clientX; dy = 0; dx = 0; montee = 0; franchi = false;
+    paquet = [];
+  };
+  const bouge = (e) => {
+    if (y0 === null) return;
+    dy = e.clientY - y0; dx = e.clientX - x0;
+    montee = Math.min(montee, dy);
+    if (!franchi && Math.hypot(dx, dy) > 8) {
+      franchi = true; glisse = true;
+      // LA CAPTURE SE PREND AU FRANCHISSEMENT DU SEUIL, jamais au `pointerdown`
+      // (règle 8) : capturée dès l'appui, elle redirige aussi le `click` qui
+      // suit vers la zone capturante, et plus aucune carte ne peut être ajoutée.
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* souris relâchée */ }
+      // LES BOÎTES SONT MESURÉES UNE FOIS (règle 9) : relues à chaque
+      // `pointermove`, elles le sont DÉJÀ TRANSFORMÉES et le paquet tremble.
+      // DANS L'ORDRE DES DOIGTS, pas celui du DOM : `querySelectorAll` rend les
+      // cartes de gauche à droite, si bien qu'en choisissant de droite à gauche
+      // le tas se formait à l'autre bout de la main.
+      const ordre = P.selection.map((c) => scene.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
+      paquet = ordre.map((n) => {
+        const r = n.getBoundingClientRect();
+        n.style.transition = 'none';
+        return { n, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+      });
+    }
+    if (!franchi || !paquet.length) return;
+
+    // LES CARTES SE REGROUPENT EN PAQUET derrière la dernière touchée — celle
+    // qui est sous le doigt. On voit partir une volée, pas trois cartes en
+    // parallèle.
+    const tete = paquet[paquet.length - 1];
+    const k = Math.max(0, Math.min(1, -dy / 70));
+    paquet.forEach((p, i) => {
+      const rang = paquet.length - 1 - i;
+      const vers = (tete.cx - p.cx) * k + rang * 3 * k;
+      const monte = (tete.cy - p.cy) * k - rang * 3 * k;
+      p.n.style.transform = `translate(${dx + vers}px, ${dy + monte - 14}px) rotate(${rang * -2.5 * k}deg) scale(${1.04 + k * 0.06})`;
+      p.n.style.zIndex = String(20 + i);
+    });
+
+    const pret = surLeDepot(e.clientX, e.clientY);
+    if (depot) { depot.classList.toggle('vu', dy < 0); depot.classList.toggle('prete', pret); }
+    const annule = montee < -40 && dy > montee + 60;
+    if (annule) dire('↩ relâche : la volée est défaite', 'annule');
+    else if (pret) dire('↑ relâche n’importe où : la volée part', 'tire');
+    else dire('pousse vers le haut : la volée part', null);
+  };
+  const fin = (e) => {
+    if (y0 === null) return;
+    const surZone = e && e.clientX != null ? surLeDepot(e.clientX, e.clientY) : false;
+    const m = montee, d = dy, bougea = franchi;
+    y0 = null; franchi = false;
+    for (const p of paquet) { p.n.style.transition = ''; p.n.style.transform = ''; p.n.style.zIndex = ''; }
+    paquet = [];
+    if (depot) depot.classList.remove('vu', 'prete');
+    setTimeout(() => { glisse = false; }, 60);
+    if (!bougea) { dire(aideTexte, null); return; }
+    if (surZone && d < 0) { tirer(); return; }
+    // Monté puis redescendu : on renonce.
+    if (m < -40 && d > m + 60) { P.selection = []; mot = 'Volée défaite.'; rendre(); return; }
+    dire(aideTexte, null);
+  };
+
+  for (const z of [ratelier, tab].filter(Boolean)) {
+    z.addEventListener('pointerdown', debut);
+    z.addEventListener('pointermove', bouge);
+    z.addEventListener('pointerup', fin);
+    z.addEventListener('pointercancel', fin);
+  }
+  // LE CLAVIER DOUBLE LE GESTE : un geste raccourcit un ordre, il ne doit pas
+  // être le seul chemin.
+  scene.tabIndex = -1;
+  scene.addEventListener('keydown', (e) => {
+    if (occupe || !P.selection.length) return;
+    if (e.key === 'ArrowUp' || e.key === 'Enter') { e.preventDefault(); tirer(); }
+    if (e.key === 'Escape') { e.preventDefault(); P.selection = []; rendre(); }
+  });
+}
+
+/* ---------------------------------------------------- le score, en séquence
+   Un chiffre qui tombe tout fait ne se relie à rien. Joué carte par carte, le
+   joueur VOIT d'où vient chacun de ses points, dans l'ordre où il les a
+   construits, et il apprend le barème sans qu'on le lui explique.
+
+   180 ms d'écart, et l'ordre est celui du récit : les cartes une à une, puis le
+   NOM de la figure en grand — le seul moment où l'écran dit un mot plutôt qu'un
+   chiffre — puis le total, et seulement là les canons tirent. */
+const PAS_SEQUENCE = 180;
+
+function rouler(n, de, vers, duree = 260) {
+  if (!n) return;
+  const t0 = performance.now();
+  // La valeur de départ est TENUE DANS L'ANIMATION, jamais relue dans le DOM
+  // (règle 9) : deux roulements qui se chevauchent partiraient chacun d'un
+  // nombre à demi écrit.
+  const pas = (t) => {
+    const k = Math.min(1, (t - t0) / duree);
+    n.textContent = String(Math.round(de + (vers - de) * (1 - (1 - k) * (1 - k))));
+    if (k < 1) requestAnimationFrame(pas);
+  };
+  requestAnimationFrame(pas);
+}
+
+function jaillir(depuis, texte) {
+  const mer = laMer();
+  if (!mer || !depuis) return;
+  const r = depuis.getBoundingClientRect();
+  const m = mer.getBoundingClientRect();
+  const n = el('div', { class: 'jaillit', text: texte });
+  n.style.left = `${r.left + r.width / 2 - m.left}px`;
+  n.style.top = `${r.top - m.top}px`;
+  mer.appendChild(n);
+  n.animate([
+    { transform: 'translate(-50%, 0) scale(.7)', opacity: 0 },
+    { transform: 'translate(-50%, -14px) scale(1.15)', opacity: 1, offset: .25 },
+    { transform: 'translate(-50%, -46px) scale(1)', opacity: 0 },
+  ], { duration: 760, easing: 'cubic-bezier(.2,.9,.3,1)' }).onfinish = () => n.remove();
+}
+
+function bondir(n) {
+  if (!n) return;
+  n.animate([
+    { transform: 'translateY(-18px) scale(1.04)' },
+    { transform: 'translateY(-30px) scale(1.18)', offset: .35 },
+    { transform: 'translateY(-18px) scale(1.04)' },
+  ], { duration: 320, easing: 'cubic-bezier(.2,1.4,.35,1)' });
+}
+
+async function sequenceDuScore(r) {
+  const ecr = ecranCourant();
+  const mer = ecr && ecr.querySelector('.mer');
+  if (!mer) return;
+
+  // LA PROJECTION S'EFFACE PENDANT LA RÉSOLUTION : la bulle annonce le total
+  // avant qu'on lâche — c'est sa raison d'être — mais laissée en place, elle
+  // affiche la réponse à côté du compteur qui la construit.
+  ecr.classList.add('compte');
+  const nb = el('div', { class: 'cp-nb', text: '0' });
+  const compteur = el('div', { class: 'compteur' }, [nb]);
+  mer.appendChild(compteur);
+  requestAnimationFrame(() => compteur.classList.add('vu'));
+
+  // `prefers-reduced-motion` saute tout : le total est posé, on tire.
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    nb.textContent = String(r.total);
+    await attendre(420);
+    compteur.remove();
+    ecr.classList.remove('compte');
+    return;
+  }
+
+  let courant = 0;
+  const avancer = (l, depuis) => {
+    bondir(depuis);
+    if (l.poudre > 0) jaillir(depuis || compteur, `+${l.poudre}`);
+    rouler(nb, courant, courant + l.poudre);
+    courant += l.poudre;
+  };
+
+  for (const l of r.lignes.filter((x) => x.source === 'carte')) {
+    avancer(l, ecr.querySelector(`.carte[data-uid="${l.uid}"]`));
+    await attendre(PAS_SEQUENCE);
+  }
+  const fig = r.lignes.find((l) => l.source === 'figure');
+  if (fig) {
+    const titre = el('div', { class: 'figure-nom', text: fig.quoi.toUpperCase() });
+    mer.appendChild(titre);
+    titre.animate([
+      { transform: 'translate(-50%,-50%) scale(.5)', opacity: 0, letterSpacing: '10px' },
+      { transform: 'translate(-50%,-50%) scale(1.06)', opacity: 1, letterSpacing: '2px', offset: .3 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, letterSpacing: '2px', offset: .75 },
+      { transform: 'translate(-50%,-50%) scale(1.02)', opacity: 0, letterSpacing: '4px' },
+    ], { duration: 900, easing: 'cubic-bezier(.2,1.2,.3,1)' }).onfinish = () => titre.remove();
+    await attendre(240);
+    avancer(fig, null);
+    await attendre(PAS_SEQUENCE + 180);
+  }
+
+  compteur.classList.add('total');
+  if (r.total >= 40) {
+    compteur.classList.add('ardent');
+    for (const n of ecr.querySelectorAll('.carte.prise-en-main')) n.classList.add('embrase');
+  }
+  rouler(nb, courant, r.total, 320);
+  if (r.total >= 30) secousse(r.total >= 40 ? 9 : 4);
+  await attendre(520);
+  compteur.classList.remove('vu');
+  await attendre(200);
+  compteur.remove();
+  ecr.classList.remove('compte');
+}
+
+// L'ÉCRAN TREMBLE — sur `.mer`, jamais sur la page : secouer `body` déplacerait
+// aussi le râtelier, et les cartes qu'on vient de lâcher sauteraient avec le
+// décor, comme si le geste avait raté.
+function secousse(px, duree = 340) {
+  const m = laMer();
+  if (!px || !m || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const pas = [];
+  for (let i = 0; i <= 8; i++) {
+    const k = px * (1 - i / 8);
+    pas.push({ transform: `translate(${(i % 2 ? -k : k).toFixed(1)}px, ${((i % 3 ? k : -k) * .5).toFixed(1)}px)` });
+  }
+  pas.push({ transform: 'none' });
+  m.animate(pas, { duration: duree, easing: 'ease-out' });
+}
+
+/* ------------------------------------------------------------- le tour */
+
+async function tirer() {
+  if (occupe || P.fini || !P.selection.length) return;
+  occupe = true;
+  mot = '';
+  // LE SCORE SE JOUE D'ABORD, SUR LES CARTES ENCORE EN MAIN : `jouer()` les
+  // retire et `rendre()` les efface, donc joué après, il ferait bondir des
+  // cartes qui n'existent plus.
+  const projete = S.evaluer(P, P.selection);
+  await sequenceDuScore(projete);
+  const r = S.jouer(P);
+  rendre();
+
+  // COMBIEN DE BOULETS PARTENT, c'est la volée qui le dit : le nombre de
+  // bouches qui tirent EST l'échelle, avant même l'écran qui tremble.
+  await tir(r.total >= 40 ? 3 : r.total >= 20 ? 2 : 1);
+  const c = centre('c-prise', 0.5, 0.62);
+  fxFloatText(c.x, c.y, `+${r.total}`, 'puissance-nourri');
+  await attendre(420);
+
+  occupe = false;
+  if (P.fini) { ecran = 'fin'; rendre(); return; }
+  relever();
+  rendre();
+  ecranCourant()?.focus?.();
+}
+
+const ecranCourant = () => document.querySelector('.screen.ecran-cartes');
+
+/* ---------------------------------------------------------------- rendu */
+
+// LA LARGEUR D'UNE CARTE EST CALCULÉE UNE FOIS pour la main pleine, et ne bouge
+// plus : en `flex: 1`, la main changeait de forme sous le pouce à mesure qu'on
+// jouait. Jamais de largeur en pixels écrite en dur — celle-ci est mesurée.
+function calibrerCartes() {
+  const rat = document.querySelector('.ecran-cartes .ratelier');
+  if (!rat) return;
+  const gap = 5;
+  const large = Math.floor((rat.clientWidth - 14 - gap * (S.MAIN - 1)) / S.MAIN);
+  const s = ecranCourant();
+  s.style.setProperty('--carte-l', `${large}px`);
+  s.style.setProperty('--jeu-gap', `${gap}px`);
+  // 1 pour 1,45 : la proportion d'une carte à jouer.
+  s.style.setProperty('--carte-h', `${Math.round(large * 1.45)}px`);
+}
+
+function rendre() {
+  const r = app();
+  while (r.firstChild) r.removeChild(r.firstChild);
+  const s = ecran === 'fin' ? ecranFin() : ecranChasse();
+  r.appendChild(s);
+  if (ecran === 'chasse') { calibrerCartes(); peindreCoques(); brancherGeste(s); }
+  // La distribution est un ÉVÉNEMENT, pas un état : une fois les cartes
+  // arrivées, on oublie qui venait d'arriver — sans cet oubli, l'animation
+  // repart à chaque carte touchée.
+  neuves = [];
+}
+
+initFx();
+engagerPrise(CONTENU.prises[0]);
+
+// L'HORIZON EST POSÉ SUR LES NAVIRES, pas sur une fraction devinée : au tiers
+// supérieur des coques, si bien qu'on voit du ciel à travers les voiles hautes
+// et de l'eau derrière les coques. Il faut donc que la bande de mer ait été
+// mesurée — d'où l'appel APRÈS le premier rendu.
+function poserHorizon() {
+  const f = document.querySelector('.ecran-cartes .flotte');
+  if (!f) return 0.4;
+  const r = f.getBoundingClientRect();
+  return Math.max(0.2, Math.min(0.6, (r.top + r.height * 0.34) / innerHeight));
+}
+startOcean(document.getElementById('ocean'), { horizon: poserHorizon() });
+window.addEventListener('resize', () => { if (ecran === 'chasse') { calibrerCartes(); peindreCoques(); } });
+</script>
+</body>
+</html>
