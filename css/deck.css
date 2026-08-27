@@ -1502,7 +1502,7 @@
 
 /* AU-DELÀ DE 200, LES CARTES S'EMBRASENT. C'est la seule fois où une carte
    change de couleur : il faut que ça n'arrive presque jamais. */
-.screen.ecran-cartes .carte.embrase {
+.ecran-cartes .carte.embrase {
   border-color: #ffb648;
   box-shadow: 0 0 0 2px rgba(255,190,90,.6), 0 0 26px rgba(255,170,60,.75), 0 6px 14px rgba(0,0,0,.5);
   animation: embraser .5s ease-out;
@@ -1715,46 +1715,110 @@
   display: flex; align-items: flex-end; gap: 0;
 }
 .screen.ecran-cartes .paquet {
-  width: 44px; height: 44px; min-height: 44px; padding: 0;
+  width: 46px; height: 60px; min-height: 44px; padding: 0;
   background: none; border: 0; box-shadow: none;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
 }
+/* UN DOS DE CARTE DOIT RESSEMBLER À UNE CARTE. À 30 px sur de l'eau sombre, il
+   se lisait comme un bouton de plus et l'on ne le voyait pas — il a fallu qu'on
+   me dise qu'il avait disparu. Il a maintenant la proportion d'une carte, un
+   liséré clair qui le détache du fond, et une ombre portée. */
 .screen.ecran-cartes .paquet .pq-dos {
-  width: 30px; height: 40px; border-radius: 4px;
+  width: 42px; height: 58px; border-radius: 5px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  background: repeating-linear-gradient(45deg, #4a3116 0 3px, #3d2811 3px 6px);
-  border: 1.5px solid #1c1109;
-  box-shadow: inset 0 0 0 1px rgba(201,162,75,.35), 0 2px 5px rgba(0,0,0,.55);
+  background: repeating-linear-gradient(45deg, #5a3d1c 0 4px, #463014 4px 8px);
+  border: 2px solid #e8c877;
+  box-shadow: inset 0 0 0 2px #1c1109, 0 3px 8px rgba(0,0,0,.7);
   color: var(--gold-light, #e8c877);
   transition: transform .14s var(--ease-fast);
 }
 .screen.ecran-cartes .paquet:active .pq-dos { transform: translateY(2px) scale(.96); }
-.screen.ecran-cartes .paquet .pq-nb { font-family: var(--font-body); font-weight: 700; font-size: 12px; line-height: 1; }
+.screen.ecran-cartes .paquet .pq-nb { font-family: var(--font-body); font-weight: 700; font-size: 16px; line-height: 1; }
 .screen.ecran-cartes .paquet .pq-cle {
-  font-family: var(--font-body); font-size: 5.5px; letter-spacing: .3px;
+  font-family: var(--font-body); font-size: 6.5px; letter-spacing: .3px;
   text-transform: uppercase; color: #a5844c; line-height: 1;
 }
-/* Une défausse vide ne se donne pas des airs de paquet : elle s'efface. */
-.screen.ecran-cartes .paquet.defausse .pq-dos { opacity: .55; }
-
-.paquet-boite .pq-grille { display: flex; flex-direction: column; gap: 5px; padding: 6px 0; }
-.paquet-boite .pq-lot {
-  display: flex; align-items: center; gap: 8px;
-  background: #f2ead6; color: #241608;
-  border: 2px solid var(--m, #8a7f6c); border-radius: 6px; padding: 4px 8px;
+/* Une défausse VIDE se creuse au lieu de s'effacer : elle garde sa place, on
+   voit qu'il y a un emplacement, et rien dedans. */
+.screen.ecran-cartes .paquet.defausse.vide .pq-dos {
+  background: rgba(20, 14, 8, .5); border-style: dashed; border-color: #6b4a26;
+  box-shadow: inset 0 3px 8px rgba(0,0,0,.6); color: #8a6a3a;
 }
-.paquet-boite .pq-lot[data-role="boulet_rame"]  { --m: #8a7f6c; }
-.paquet-boite .pq-lot[data-role="boulet_rouge"] { --m: #b3261d; }
-.paquet-boite .pq-lot[data-role="mitraille"]    { --m: #6b7176; }
-.paquet-boite .pq-lot[data-role="chaine"]       { --m: #6f5d99; }
-.paquet-boite .pq-lot[data-role="barrique"]     { --m: #96633a; }
-.paquet-boite .pq-lot[data-role="feu"]          { --m: #8a3c10; background: #d8b48c; }
-.paquet-boite .pq-glyphe { width: 20px; height: 20px; flex: 0 0 auto; color: var(--m); }
-.paquet-boite .pq-glyphe svg { width: 100%; height: 100%; display: block; fill: currentColor; }
-.paquet-boite .pq-nom { font-family: var(--font-title); font-size: 13px; flex: 1 1 auto; }
-.paquet-boite .pq-poudre { font-family: var(--font-body); font-size: 9px; opacity: .7; }
-.paquet-boite .pq-x { font-family: var(--font-body); font-weight: 700; font-size: 14px; color: #7a3a10; }
+
+/* LE CONTENU D'UN PAQUET, EN PILES. Une liste de texte dit combien il reste ;
+   une pile de cartes le MONTRE — et c'est le même objet que celui qu'on tient
+   en main, donc rien à traduire. Trois cartes visibles au plus par famille,
+   décalées : au-delà, l'épaisseur ne se lit plus et c'est le compte écrit qui
+   parle. La défausse porte `jouees` et sort en gris : ces cartes-là sont
+   derrière nous. */
+.paquet-boite { --carte-l: 62px; --carte-h: 112px; }
+.paquet-boite .pq-grille {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 14px 10px; padding: 8px 0 2px;
+}
+.paquet-boite .pq-lot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.paquet-boite .pq-pile {
+  position: relative;
+  width: calc(var(--carte-l) * .7 + 12px);
+  height: calc(var(--carte-h) * .7 + 12px);
+}
+.paquet-boite .pq-pile .carte.mini {
+  position: absolute; border-width: 3px;
+  left: calc(var(--rang, 0) * 6px); top: calc(var(--rang, 0) * 6px);
+  transform: none; filter: none;
+}
+.paquet-boite.jouees .pq-pile .carte.mini { filter: grayscale(.9) brightness(.82); }
+.paquet-boite .pq-x {
+  font-family: var(--font-body); font-weight: 700; font-size: 14px; color: #e8c877;
+}
+
+.screen.ecran-cartes .ratelier { position: relative; }
+
+/* LES DEUX PAQUETS SONT SUR LE PLATEAU, pas sur le bois. Ils encadraient la
+   main et lui prenaient 98 px de large : les cartes rétrécissaient d'autant, et
+   le bois n'appartient qu'à la main. En bas à gauche de la mer — le bas à
+   droite est à sa carte à elle.
+
+   LA PLAQUE FAIT 30 px, LE BOUTON EN FAIT 44. Le doigt vise la cible, pas le
+   dessin (§2) : c'est la seule façon d'avoir un petit dos de carte sans une
+   cible qu'un pouce rate. Le bouton est transparent, seule la plaque se voit. */
+.screen.ecran-cartes .paquets {
+  position: absolute; z-index: 4; left: 2px; bottom: 0;
+  display: flex; align-items: flex-end; gap: 0;
+}
+.screen.ecran-cartes .paquet {
+  width: 46px; height: 60px; min-height: 44px; padding: 0;
+  background: none; border: 0; box-shadow: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+/* UN DOS DE CARTE DOIT RESSEMBLER À UNE CARTE. À 30 px sur de l'eau sombre, il
+   se lisait comme un bouton de plus et l'on ne le voyait pas — il a fallu qu'on
+   me dise qu'il avait disparu. Il a maintenant la proportion d'une carte, un
+   liséré clair qui le détache du fond, et une ombre portée. */
+.screen.ecran-cartes .paquet .pq-dos {
+  width: 42px; height: 58px; border-radius: 5px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: repeating-linear-gradient(45deg, #5a3d1c 0 4px, #463014 4px 8px);
+  border: 2px solid #e8c877;
+  box-shadow: inset 0 0 0 2px #1c1109, 0 3px 8px rgba(0,0,0,.7);
+  color: var(--gold-light, #e8c877);
+  transition: transform .14s var(--ease-fast);
+}
+.screen.ecran-cartes .paquet:active .pq-dos { transform: translateY(2px) scale(.96); }
+.screen.ecran-cartes .paquet .pq-nb { font-family: var(--font-body); font-weight: 700; font-size: 16px; line-height: 1; }
+.screen.ecran-cartes .paquet .pq-cle {
+  font-family: var(--font-body); font-size: 6.5px; letter-spacing: .3px;
+  text-transform: uppercase; color: #a5844c; line-height: 1;
+}
+/* Une défausse VIDE se creuse au lieu de s'effacer : elle garde sa place, on
+   voit qu'il y a un emplacement, et rien dedans. */
+.screen.ecran-cartes .paquet.defausse.vide .pq-dos {
+  background: rgba(20, 14, 8, .5); border-style: dashed; border-color: #6b4a26;
+  box-shadow: inset 0 3px 8px rgba(0,0,0,.6); color: #8a6a3a;
+}
+
 
 .screen.ecran-cartes .ratelier {
   flex: 0 0 auto; position: relative;
@@ -1799,13 +1863,23 @@
    ramé 1,5:1 · rouge 1,9:1 · mitraille 2,4:1 · chaîne 2,6:1 · barrique 2,3:1 —
    c'est peu, donc le cadre ne travaille jamais seul : le glyphe est de la même
    couleur, et le NOM aussi. Trois porteurs pour une information. */
-.screen.ecran-cartes .carte {
+/* UNE SEULE DÉFINITION, VALABLE PARTOUT OÙ L'ON MONTRE UNE CARTE — la main,
+   le listeau, et le contenu d'un paquet dans une modale. Le préfixe était
+   `.screen.ecran-cartes` : une modale n'est pas un écran, donc aucune de ces
+   règles ne s'y appliquait et les cartes en sortaient en glyphes nus (règle 3 :
+   un composant partagé n'a qu'UNE définition). La règle 2 du dépôt vise les
+   règles d'ÉCRAN, qui se battent avec `.screen { animation: fade }` ; une carte
+   ne se bat avec rien. */
+.ecran-cartes .carte {
   flex: 0 0 var(--carte-l, 62px);
   width: var(--carte-l, 62px); height: var(--carte-h, 90px);
   color: #241608;
   background: #f2ead6;
-  border: 3px solid var(--metier, #a89a86);
-  border-radius: 7px;
+  /* 5 px, et non 3 : à cinq cartes crème côte à côte, c'est le CADRE qui les
+     distingue, et un trait fin se lisait comme une ombre plutôt que comme une
+     couleur. */
+  border: 5px solid var(--metier, #a89a86);
+  border-radius: 8px;
   padding: 3px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: grab; user-select: none; position: relative; overflow: hidden;
@@ -1816,7 +1890,7 @@
 
 /* Le grain du carton, en multiply : sans lui, le crème est un aplat
    d'imprimerie et non du papier. */
-.screen.ecran-cartes .carte::after {
+.ecran-cartes .carte::after {
   content: ''; position: absolute; inset: 0; pointer-events: none;
   mix-blend-mode: multiply;
   background: linear-gradient(146deg, #ffffff 0%, #ffffff 46%, #f0ebe0 76%, #ded5c2 100%);
@@ -1824,14 +1898,14 @@
 
 /* LE GLYPHE, en grand, dans la couleur de la munition. Il monte en haut de la
    carte, là où était le bandeau. */
-.screen.ecran-cartes .carte .c-bandeau {
+.ecran-cartes .carte .c-bandeau {
   position: absolute; left: 0; right: 0; top: 2px; z-index: 2;
   height: 30%;
   color: var(--metier, #8a7a62);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 1px; overflow: hidden;
 }
-.screen.ecran-cartes .carte .c-bandeau svg {
+.ecran-cartes .carte .c-bandeau svg {
   height: 62%; width: auto; display: block; flex: 0 0 auto;
 }
 
@@ -1840,17 +1914,17 @@
    la voit sans lire un mot. Les teintes sont assombries par rapport aux
    bandeaux d'avant : elles étaient claires pour porter une encre sombre sur un
    fond sombre, elles doivent maintenant se détacher SUR du crème. */
-.screen.ecran-cartes .carte[data-role="boulet_rame"]  { --metier: #8a7f6c; }
+.ecran-cartes .carte[data-role="boulet_rame"]  { --metier: #8a7f6c; }
 /* Le boulet ROUGE est rouge, et la mitraille est GRISE : les munitions se
    nomment par leur couleur, et lui donner un or ou un bleu demandait
    d'apprendre une correspondance contre le nom même de la carte. */
-.screen.ecran-cartes .carte[data-role="boulet_rouge"] { --metier: #b3261d; }
-.screen.ecran-cartes .carte[data-role="mitraille"]    { --metier: #6b7176; }
-.screen.ecran-cartes .carte[data-role="chaine"]       { --metier: #6f5d99; }
-.screen.ecran-cartes .carte[data-role="barrique"]     { --metier: #96633a; }
+.ecran-cartes .carte[data-role="boulet_rouge"] { --metier: #b3261d; }
+.ecran-cartes .carte[data-role="mitraille"]    { --metier: #6b7176; }
+.ecran-cartes .carte[data-role="chaine"]       { --metier: #6f5d99; }
+.ecran-cartes .carte[data-role="barrique"]     { --metier: #96633a; }
 
-.screen.ecran-cartes .carte:active { cursor: grabbing; }
-.screen.ecran-cartes .carte.prise-en-main {
+.ecran-cartes .carte:active { cursor: grabbing; }
+.ecran-cartes .carte.prise-en-main {
   transform: translateY(-18px) scale(1.04);
   box-shadow: 0 0 0 2px var(--gold-light), 0 14px 20px rgba(0,0,0,.55);
   z-index: 5;
@@ -1858,7 +1932,7 @@
 /* Un homme qu'on ne peut pas jouer se DÉSATURE — il ne s'efface pas. Sous
    0,55 d'opacité, sa valeur cessait d'être lisible, et une carte qu'on ne
    peut pas lire ne dit plus pourquoi elle est refusée. */
-.screen.ecran-cartes .carte.muet {
+.ecran-cartes .carte.muet {
   opacity: .6; filter: saturate(.3) brightness(.82);
   box-shadow: 0 1px 2px rgba(0,0,0,.4); transform: translateY(4px);
 }
@@ -1866,19 +1940,19 @@
 /* LA VALEUR occupe le centre DU CHAMP LIBRE — les 74 % que le bandeau laisse —
    et fait 40 % de la hauteur de la carte. La marge la recentre dans ce qui
    reste, sinon elle était centrée sur la carte entière et frôlait le bandeau. */
-.screen.ecran-cartes .carte .c-val {
+.ecran-cartes .carte .c-val {
   font-family: var(--font-body); font-weight: 700;
   font-size: calc(var(--carte-h, 90px) * .4);
   line-height: 1; letter-spacing: -1px; z-index: 1;
   color: #241608;
 }
-.screen.ecran-cartes .carte .c-val { margin-top: 26%; }
+.ecran-cartes .carte .c-val { margin-top: 26%; }
 
 /* Le nom est en ENCRE SOMBRE, pas dans la couleur de la munition : à 7 px
    c'est du petit texte, qui demande 4,5:1, et aucune des cinq teintes n'y
    arrive sur le crème (3,0 à 4,7). La couleur reste au CADRE et au GLYPHE, qui
    sont des formes et se contentent de 3:1 — les cinq y sont. */
-.screen.ecran-cartes .carte .c-nom {
+.ecran-cartes .carte .c-nom {
   font-family: var(--font-title); font-size: 7px; line-height: 1; text-align: center;
   letter-spacing: .2px; max-width: 100%; padding: 0 2px; font-weight: 700; color: #241608;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1892,15 +1966,15 @@
 
 /* LA CARTE FEU GARDE SON TRAITEMENT À PART : c'est la seule carte qui ne sert
    à rien, et il faut le voir de loin. Son carton est roussi, pas crème. */
-.screen.ecran-cartes .carte.feu {
+.ecran-cartes .carte.feu {
   --metier: #8a3c10;
   background: #d8b48c; border-color: #8a3c10; color: #3a1c0c;
 }
 /* Une munition MOUILLÉE a pris l'eau : son carton est gondolé et terne. */
-.screen.ecran-cartes .carte.blesse { background: #d9d2c6; filter: saturate(.55); }
+.ecran-cartes .carte.blesse { background: #d9d2c6; filter: saturate(.55); }
 /* « mouillée » se loge sur la tranche droite, en vertical : le haut appartient
    au glyphe et au nom, le centre à la poudre. */
-.screen.ecran-cartes .carte .c-etat {
+.ecran-cartes .carte .c-etat {
   position: absolute; top: 50%; right: 2px; z-index: 2; color: #6a4a3a;
   transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl;
   font-size: 7.5px; font-weight: 700; opacity: .9; letter-spacing: .5px;
@@ -1914,15 +1988,15 @@
   30%  { opacity: .55; }
   100% { transform: translate(6px, -26px) scale(1.5); opacity: 0; }
 }
-.screen.ecran-cartes .carte .c-fumee { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
-.screen.ecran-cartes .carte .c-fumee::before,
-.screen.ecran-cartes .carte .c-fumee::after {
+.ecran-cartes .carte .c-fumee { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+.ecran-cartes .carte .c-fumee::before,
+.ecran-cartes .carte .c-fumee::after {
   content: ''; position: absolute; bottom: 26px; left: 34%;
   width: 13px; height: 13px; border-radius: 50%;
   background: radial-gradient(circle at 40% 40%, rgba(226,215,196,.85), rgba(140,128,110,0) 68%);
   animation: fumer 2.6s ease-out infinite;
 }
-.screen.ecran-cartes .carte .c-fumee::after { left: 52%; animation-delay: 1.1s; animation-duration: 3.1s; }
+.ecran-cartes .carte .c-fumee::after { left: 52%; animation-delay: 1.1s; animation-duration: 3.1s; }
 @media (prefers-reduced-motion: reduce) {
   .screen.ecran-cartes .carte .c-fumee { display: none; }
 }
@@ -1954,7 +2028,7 @@
   text-transform: uppercase; color: #a5844c; white-space: nowrap;
   writing-mode: vertical-rl; transform: rotate(180deg);
 }
-.screen.ecran-cartes .carte.mini {
+.ecran-cartes .carte.mini {
   width: calc(var(--carte-l, 62px) * .7); height: calc(var(--carte-h, 112px) * .7);
   flex: 0 0 auto; cursor: default;
   transform: translateY(6px) rotate(calc(var(--rang, 0) * 1.5deg - .75deg));
@@ -1963,11 +2037,11 @@
   transition: none;
   border-width: 1.5px;
 }
-.screen.ecran-cartes .carte.mini .c-nom { font-size: 5.5px; letter-spacing: 0; }
-.screen.ecran-cartes .carte.mini .c-niveau { font-size: 6px; right: 2px; }
-.screen.ecran-cartes .carte.mini .c-nom { font-size: 5px; }
-.screen.ecran-cartes .carte.mini .c-val { font-size: calc(var(--carte-h, 90px) * .28); }
-.screen.ecran-cartes .carte.mini .c-etat { font-size: 6px; }
+.ecran-cartes .carte.mini .c-nom { font-size: 5.5px; letter-spacing: 0; }
+.ecran-cartes .carte.mini .c-niveau { font-size: 6px; right: 2px; }
+.ecran-cartes .carte.mini .c-nom { font-size: 5px; }
+.ecran-cartes .carte.mini .c-val { font-size: calc(var(--carte-h, 90px) * .28); }
+.ecran-cartes .carte.mini .c-etat { font-size: 6px; }
 
 /* --- la distribution : on VOIT les hommes monter sur le pont --------------
    Une carte qui apparaît est un changement d'état ; une carte qui arrive est
@@ -1978,7 +2052,7 @@
   35%  { opacity: 1; }
   to   { transform: none; opacity: 1; }
 }
-.screen.ecran-cartes .carte.neuve {
+.ecran-cartes .carte.neuve {
   animation: distribuer .34s cubic-bezier(.2,.8,.3,1.05) backwards;
   animation-delay: calc(var(--rang, 0) * 70ms);
 }

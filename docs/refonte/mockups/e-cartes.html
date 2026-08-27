@@ -1002,7 +1002,8 @@ function ecranChasse() {
   // cible, pas le dessin (§2). C'est la seule façon d'avoir un petit dos de
   // carte sans une cible qu'un pouce rate.
   const paquetVu = (cls, cartes, titre, vide) => el('button', {
-    class: `paquet ${cls}`, attrs: { type: 'button', 'aria-label': `${titre} — ${cartes.length} cartes` },
+    class: `paquet ${cls}${cartes.length ? '' : ' vide'}`,
+    attrs: { type: 'button', 'aria-label': `${titre} — ${cartes.length} cartes` },
     on: { click: () => ouvrirPaquet(titre, cartes, vide) },
   }, [
     el('span', { class: 'pq-dos' }, [
@@ -1042,27 +1043,35 @@ function ecranChasse() {
 // ce qui lui reste, pas ce qui vient — sinon la pioche cesse d'être un pari.
 function ouvrirPaquet(titre, cartes, vide) {
   const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
-  const b = el('div', { class: 'modal ecran-cartes aide-boite paquet-boite' });
+  // `jouees` grise le contenu : la défausse montre des cartes déjà tirées.
+  const b = el('div', { class: `modal ecran-cartes aide-boite paquet-boite${titre === 'pioche' ? '' : ' jouees'}` });
   b.appendChild(el('h3', { text: `${titre} · ${cartes.length}` }));
   if (!cartes.length) b.appendChild(el('p', { text: vide }));
   else {
-    // DES JETONS, PAS DES CARTES. Les vraies cartes sont dessinées par
-    // `.screen.ecran-cartes .carte` (règle 2 du dépôt) : dans une modale, qui
-    // n'est pas un écran, aucune de ces règles ne s'applique et elles sortaient
-    // en glyphes nus de trois centimètres. Une ligne par munition dit la même
-    // chose, en moins de place et sans dupliquer une définition.
+    // DES CARTES EN PILES, PAS UNE LISTE. Une liste de texte dit combien il
+    // reste ; une pile de cartes le MONTRE — et c'est le même objet que celui
+    // qu'on tient en main, donc rien à traduire. Trois cartes visibles au plus
+    // par famille, décalées de 4 px : au-delà, l'épaisseur ne se lit plus et
+    // c'est le compte écrit qui parle.
+    //
+    // Elles s'affichent parce que la carte n'a plus qu'UNE définition CSS,
+    // `.ecran-cartes .carte` : sous `.screen.ecran-cartes`, aucune règle ne
+    // s'appliquait ici et elles sortaient en glyphes nus.
     const parId = {};
     for (const c of cartes) (parId[C.estFeu(c) ? 'feu' : c.id] ||= []).push(c);
     const grille = el('div', { class: 'pq-grille' });
     for (const [id, lot] of Object.entries(parId).sort((x, y) => y[1].length - x[1].length)) {
-      const def = CONTENU.munitions.find((m) => m.id === id);
-      const ligne = el('div', { class: 'pq-lot', attrs: { 'data-role': id } }, [
-        el('span', { class: 'pq-glyphe' }, [id === 'feu' ? null : munitionVue(id)]),
-        el('span', { class: 'pq-nom', text: def ? def.nom : 'Feu' }),
-        el('span', { class: 'pq-poudre', text: def ? `poudre ${def.poudre}` : 'ne tire pas' }),
+      const pile = el('div', { class: 'pq-pile' });
+      for (let i = 0; i < Math.min(3, lot.length); i++) {
+        pile.appendChild(el('div', {
+          class: `carte mini${id === 'feu' ? ' feu' : ''}`,
+          attrs: { 'data-role': id, 'aria-hidden': 'true', style: `--rang:${i}` },
+        }, contenuCarte(lot[0])));
+      }
+      grille.appendChild(el('div', { class: 'pq-lot' }, [
+        pile,
         el('span', { class: 'pq-x', text: `×${lot.length}` }),
-      ]);
-      grille.appendChild(ligne);
+      ]));
     }
     b.appendChild(grille);
   }
