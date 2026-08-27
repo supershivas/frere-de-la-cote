@@ -67,6 +67,10 @@ const PAGES = [
     } },
   { nom: 'jeu — recrutement', url: 'index.html#recrutement', pret: '.screen' },
   { nom: 'jeu — combat', url: 'index.html#bataille', pret: '.screen' },
+  // LE BANC D'ESSAI DU GESTE. Il n'a pas de règles à auditer, mais il a la
+  // barre de réglages la plus dense du dépôt — dix cibles tactiles sur deux
+  // rangées — et c'est exactement ce qu'un écran de 375 px ampute en silence.
+  { nom: 'F — le banc du geste', url: 'docs/refonte/mockups/f-gamefeel.html', pret: '.banc .main .carte' }
 ];
 
 // Depuis la carte, met le cap sur la première escale de chasse : viser puis

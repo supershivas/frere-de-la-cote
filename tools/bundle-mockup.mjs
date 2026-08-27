@@ -23,10 +23,36 @@ if (!entree) { console.error('usage: node tools/bundle-mockup.mjs <maquette.html
 const racine = resolve(dirname(new URL(import.meta.url).pathname), '..');
 const lire = (p) => readFileSync(resolve(racine, p), 'utf8');
 
-// DANS L'ORDRE DE DÉPENDANCE : les modules sont collés bout à bout dans une
-// seule portée, donc celui qui en utilise un autre doit venir après.
-const MODULES = ['src/caribbean.js', 'src/voyage.js', 'src/cartes.js',
-  'src/sprites.js', 'src/ocean.js', 'src/fx.js'];
+// LES MODULES SONT CEUX QUE LA MAQUETTE IMPORTE, ET RIEN QU'EUX — relevés
+// dans son `<script>`, puis suivis de proche en proche.
+//
+// La liste était FIXE, la même pour toutes les maquettes. Le jour où deux
+// modules ont porté le même nom de fonction — `attendre`, `secousse`, `onde`,
+// des primitives que tout le monde réécrit — le contrôle de doublon ci-dessous
+// a fait échouer TOUTES les maquettes, y compris celles qui n'importaient ni
+// l'un ni l'autre. Une seule portée ne pardonne pas les homonymes (règle 13),
+// mais elle n'a à contenir que ce dont la page se sert.
+//
+// L'ORDRE VIENT DES DÉPENDANCES, il n'est plus écrit à la main : à plat, celui
+// qui en utilise un autre doit venir après, et une liste tenue à la main finit
+// toujours par mentir.
+const importesPar = (src) => [...src.matchAll(/^\s*import[^;]*?from\s+['"]([^'"]+)['"];?\s*$/gm)]
+  .map((m) => m[1]).filter((r) => /^\.{0,2}\/?src\/|^\.\//.test(r))
+  .map((r) => 'src/' + r.replace(/^.*\//, ''));
+
+function modulesDe(racineSrc) {
+  const ordre = [], vu = new Set(), enCours = new Set();
+  const visiter = (m) => {
+    if (vu.has(m)) return;
+    if (enCours.has(m)) throw new Error(`cycle d'imports sur ${m}`);
+    enCours.add(m);
+    for (const d of importesPar(lire(m))) visiter(d);
+    enCours.delete(m); vu.add(m); ordre.push(m);   // les dépendances d'abord
+  };
+  for (const m of importesPar(racineSrc)) visiter(m);
+  return ordre;
+}
+
 const DONNEES = { CONTENU: 'data/equipage.json', METEO: 'data/weather.json', PHY: 'data/phylacteres.json' };
 
 // --- CSS : style.css et tout ce qu'elle @importe, dans l'ordre ---
@@ -36,6 +62,12 @@ function css(fichier) {
   return src.replace(/@import\s+(?:url\(\s*)?['"]([^'"]+)['"]\s*\)?\s*;?/g,
     (_, ref) => `\n/* ${ref} */\n${css('css/' + ref.replace(/^\.\//, ''))}\n`);
 }
+
+// --- la maquette d'abord : c'est elle qui dit quels modules embarquer ---
+const page = lire(entree);
+const bloc = page.match(/<script type="module">([\s\S]*?)<\/script>/);
+if (!bloc) throw new Error('pas de <script type="module"> dans la maquette');
+const MODULES = modulesDe(bloc[1]);
 
 // --- JS : les modules, désexportés et mis à plat ---
 //
@@ -48,6 +80,17 @@ const js = MODULES.map((m) => {
   for (const [ligne, cible] of [...src.matchAll(/^\s*import[^;]*?from\s+['"]([^'"]+)['"];?\s*$/gm)].map((x) => [x[0], x[1]])) {
     const fichier = cible.replace(/^\.\//, '');
     if (!embarques.has(fichier)) throw new Error(`${m} importe ${cible}, qui n'est pas dans MODULES`);
+    // UN MODULE NE PEUT PAS IMPORTER EN NAMESPACE. Les préfixes ne sont défaits
+    // que dans le corps de la maquette ; laissé dans un MODULE, un `C.estFeu(…)`
+    // survit à la mise à plat et le fichier autonome s'ouvre sur
+    // « C is not defined » : page blanche, une ligne en console, aucun autre
+    // signal. C'est exactement le défaut que la règle 13 décrit, et il est
+    // arrivé le jour où `src/carteVue.js` a été extrait de la maquette. On
+    // échoue ici plutôt que de livrer ça.
+    if (/^\s*import\s+\*\s+as\s/.test(ligne)) {
+      throw new Error(`${m} importe ${cible} en namespace (\`import * as …\`). `
+        + 'À plat, le préfixe reste et la page est blanche. Passe aux imports nommés.');
+    }
     src = src.replace(ligne, '');
   }
   return `/* ===== ${m} ===== */\n${src
@@ -56,9 +99,6 @@ const js = MODULES.map((m) => {
 }).join('\n\n');
 
 // --- le script de la maquette, privé de ses imports et de ses fetch ---
-const page = lire(entree);
-const bloc = page.match(/<script type="module">([\s\S]*?)<\/script>/);
-if (!bloc) throw new Error('pas de <script type="module"> dans la maquette');
 // Les préfixes de namespace (`import * as C from …` → `C.jouer`) n'ont plus
 // de sens une fois tout à plat : on les retire, quel que soit leur nom. C'est
 // ce qui manquait le jour où un second module a été importé de cette façon —
@@ -66,7 +106,10 @@ if (!bloc) throw new Error('pas de <script type="module"> dans la maquette');
 const alias = [...bloc[1].matchAll(/^import\s+\*\s+as\s+([A-Za-z_$][\w$]*)\s+from/gm)].map((m) => m[1]);
 let corps = bloc[1]
   .replace(/^import[\s\S]*?;\s*$/gm, '')
-  .replace(/const \[CONTENU, METEO, PHY\] = await Promise\.all\(\[[\s\S]*?\]\);/, '')
+  // Le `await Promise.all([...])` qui charge les JSON saute, quels que soient
+  // les noms qu'il destructure : une maquette qui n'a besoin que du contenu
+  // n'a pas à réclamer la météo pour que ce script la reconnaisse.
+  .replace(/const \[[^\]]*\]\s*=\s*await Promise\.all\(\[[\s\S]*?\]\);/, '')
   .replace(/const jget[^\n]*\n/, '');
 for (const a of alias) corps = corps.replace(new RegExp(`\\b${a}\\.([A-Za-z_$][\\w$]*)`, 'g'), '$1');
 
@@ -109,7 +152,10 @@ if (masques.length) {
     + 'en référence à soi-même : la page est blanche. Renomme la variable locale.');
 }
 
+// Seules les données CITÉES par la maquette sont embarquées : une constante
+// inutilisée, c'est un fichier autonome plus lourd pour rien.
 const donnees = Object.entries(DONNEES)
+  .filter(([nom]) => new RegExp(`\\b${nom}\\b`).test(corps))
   .map(([nom, f]) => `const ${nom} = ${lire(f)};`).join('\n');
 
 const html = `<!DOCTYPE html>

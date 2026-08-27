@@ -518,6 +518,7 @@ voulu : un homme qui ne changerait aucune règle ne serait qu'un texte.
 |---|---|
 | **Règles — pures, déterministes, sans DOM ni aléatoire** | |
 | `src/cartes.js` | **La chasse-partie en cartes.** Munitions, figures, évaluation, verbes de l'état-major, partage |
+| `src/gamefeel.js` | **Le ressenti du geste** : ressorts, paquet qu'on traîne, poussière, traînée, secousse, éclair, onde. Aucune règle, aucun DOM à lui — il reçoit un hôte |
 | `src/shipPlans.js` | Plans de pont par classe de coque (encore utilisé par la vue en profil) |
 | **Génération — c'est ici que l'aléatoire est permis** | |
 | `src/voyage.js` | **La progression sur la carte** : escales, actes, prise trouvée, épaves, rencontres |
@@ -525,6 +526,7 @@ voulu : un homme qui ne changerait aucune règle ne serait qu'un texte.
 | `src/sprites.js` | Générateur de navires |
 | `src/caribbean.js` | La Caraïbe réelle : lieux, côtes, distances (règles pures — `src/voyage.js` s'appuie dessus) |
 | **Présentation** | |
+| `src/carteVue.js` | **Le dedans d'une carte**, écrit une fois : glyphes, bandeau, poudre. La main, le listeau, la modale et le banc montrent le même objet |
 | `src/ui.js` | `el`, `mount`, `modal`, `bar` — les briques de tout écran |
 | `src/ocean.js` | Ciel et mer animés, en fond de tout écran « en mer » |
 | `src/fx.js` | Effets : fumée, éclats, nombres flottants |
@@ -692,6 +694,10 @@ structure à seuil l'a rouvert à **40** : avec quatre bordées seulement pour
 atteindre une résistance annoncée, une main mal lue ne se rattrape pas au tour
 suivant — il n'y a pas de tour suivant.
 
+L'audit mobile couvre aussi le banc du geste : c'est l'écran le plus dense du
+dépôt en cibles tactiles — dix, sur deux rangées de 44 px — et c'est
+exactement ce qu'un écran de 375 px ampute en silence.
+
 Pour ce que les tests de données ne voient pas :
 
 ```bash
@@ -718,6 +724,9 @@ une `<base href="../../../">` et chargent `css/style.css` et `src/*.js` : une
 maquette **utilise l'interface du jeu**, elle n'en réinvente pas une à côté. Si
 un composant manque, l'ajouter à `css/deck.css` et au design system — jamais
 dans un `<style>` de maquette.
+
+`f-gamefeel.html` est le **banc d'essai du geste** : cinq réglages du MÊME
+geste, comparés à récompense constante. Voir §9.
 
 `e-cartes.html` est la maquette vivante. `b2-combat.html`, `c-rade.html` et
 `d-breche.html` sont les trois échelles de combat abandonnées : à lire pour
@@ -760,3 +769,113 @@ seconde version du jeu à maintenir.
 Vanilla JS, ES modules, aucun bundler, aucune dépendance npm dans le jeu.
 Polices IM Fell English + Courier Prime, chargées depuis Google Fonts. Aucun
 asset image. Le CSS existant : ne pas écraser, ajouter à côté.
+
+---
+
+## 9. Le banc d'essai du geste
+
+`docs/refonte/mockups/f-gamefeel.html` — **cinq réglages du MÊME geste**, et
+non cinq gestes. Le geste du jeu est arrêté et n'est pas en question : toucher
+pour choisir, pousser le paquet vers le haut pour tirer, le tirer vers le bas
+pour recharger, monter puis redescendre pour annuler. Ce qu'on y compare, c'est
+ce que le paquet **pèse** sous le doigt, ce qu'il laisse derrière lui, et ce que
+le lâcher rend.
+
+### Deux axes, et ils sont indépendants
+
+**LE GESTE, I → V, ET CHAQUE CRAN AJOUTE AU PRÉCÉDENT.** C'est la seule façon
+d'attribuer une différence à une cause : cinq gestes indépendants se comparent
+deux à deux, et l'on finit par préférer celui qu'on vient d'essayer.
+
+| | Ce que le cran ajoute |
+|---|---|
+| **I — nu** | la référence : le paquet colle au doigt, sans masse ni retard. Le geste tel qu'il est aujourd'hui dans le jeu |
+| **II — ressort** | il traîne d'un cheveu derrière le doigt, dépasse d'un cheveu et revient. Le retour en main est un rebond |
+| **III — poids** | il penche dans le sens où on le lance, les cartes s'étagent avec du retard, l'ombre grandit à mesure qu'il monte, la zone de dépôt attire |
+| **IV — matière** | poussière au décollage, traînée derrière le paquet lancé, le râtelier **fléchit** quand on tire vers le bas |
+| **V — bordée** | le lâcher n'est plus un relâchement : le paquet **part**, avec la vitesse qu'avait le doigt, et va chercher l'impact |
+
+**LA PUISSANCE** — les cinq crans du jeu, sourd, sec, nourri, bordée, démontée,
+dont les seuils sont **relevés** sur la distribution réelle des volées et non
+choisis à l'œil. C'est le payoff, et il est **identique d'une variante à
+l'autre** : c'est ce qui permet de juger le geste à récompense constante.
+
+### Ce que le banc n'a pas, et pourquoi
+
+Pas de résistance, pas de bordées à dépenser, pas de prise à prendre : la main
+se refait toute seule, indéfiniment. **Un banc de gamefeel qui aurait aussi une
+condition de victoire mesurerait autre chose.** Il garde en revanche une
+**cible à frapper** — une coque générée, qui encaisse sans jamais couler :
+un lâcher sans impact ne se juge pas, on n'en sent que la moitié.
+
+La graine est fixe. Deux essais du même geste doivent pouvoir tomber sur la
+même main, sinon l'on compare deux ressentis ET deux mains, et l'on attribue
+au geste ce qui vient des cartes.
+
+### Les décisions qui ont coûté quelque chose
+
+- **UN RESSORT, PAS UNE COURBE DE BÉZIER.** Une transition CSS part d'un point
+  et arrive à un autre en un temps fixe ; si la cible change en cours de route
+  — et sous le doigt, elle change soixante fois par seconde — la transition
+  redémarre et le mouvement se hache. Un ressort n'a pas de durée : il a une
+  position, une vitesse et une cible. C'est la différence entre une carte qui
+  SUIT le doigt et une carte qui COLLE au doigt. L'amortissement est le seul
+  réglage qui compte, et **0,7 est là où est le plaisir** : elle dépasse d'un
+  cheveu et revient. Intégration à **pas fixe** de 1/240 s : intégré avec le
+  `dt` réel, un ressort raide explose dès qu'une frame est longue.
+- **L'ENTRÉE ET LA PEINTURE SONT SÉPARÉES.** `pointermove` n'enregistre que la
+  position et la vitesse ; c'est la boucle rAF qui vise et qui peint. Peint
+  dans le `pointermove`, le mouvement suit la cadence des événements du
+  pointeur — 120 Hz sur un téléphone, 60 sur un autre, irrégulière partout.
+- **UN SEUL MOTEUR POUR LES CINQ VARIANTES.** Elles ne changent que les CIBLES
+  des ressorts et leurs raideurs, jamais le solveur : cinq moteurs auraient
+  comparé cinq bugs.
+- **LE PAQUET CHANGE DE MAIN AU LÂCHER.** La boucle du geste est coupée et
+  celle du lâcher en ouvre une à elle. Deux boucles qui peignent les mêmes
+  nœuds se disputent la transformation, et celle du geste continuait de viser
+  un doigt qui n'est plus là.
+- **UNE CARTE BONDIT PAR SON RESSORT**, pas par `element.animate()`. Une
+  animation WAAPI sur `transform` remplace la transformation en ligne le temps
+  de l'animation : la carte sautait de sa position en l'air à sa position de
+  repos, puis revenait. Une impulsion sur le ressort passe par le même solveur
+  que tout le reste, donc elle **compose** au lieu d'écraser.
+- **LA VOLÉE SE PRÉSENTE AVANT DE SE RÉSOUDRE.** Lâché haut, le paquet restait
+  là où le doigt l'avait laissé — une fois sur deux sous le compteur et sous le
+  nom de la figure. Le seul moment où l'écran dit un MOT était couvert par trois
+  cartes. Il vient donc se ranger au même endroit à chaque fois, ce qui a
+  l'avantage second de comparer les cinq variantes sur la même image.
+- **LA PROJECTION RESTE EFFACÉE JUSQU'AU BOUT DU LÂCHER.** Retirée à la fin du
+  compte, la bulle revenait par-dessus la coque pendant que la volée s'y
+  écrasait, pour annoncer un total déjà tombé.
+- **LA TRAÎNÉE NE SE POSE QUE SI LE PAQUET VA VITE.** À chaque frame elle
+  maquille le mouvement au lieu de le souligner, et coûte trente nœuds par
+  seconde pour rien.
+- **LE BOIS FLÉCHIT** quand on tire la volée vers le bas. Le rechargement coûte
+  une ressource : il faut que le geste RÉSISTE, et une résistance qu'on ne voit
+  pas n'est qu'un seuil.
+
+### Sur les dépendances
+
+Le banc reste **sans dépendance**, et ce n'est pas de la coquetterie : le dépôt
+n'a pas de bundler, les maquettes chargent `src/*.js` en modules bruts, et
+`tools/bundle-mockup.mjs` doit pouvoir en faire un fichier autonome qui s'ouvre
+sans serveur. Un ressort tient en vingt lignes ; une bibliothèque de tween tient
+en quarante kilo-octets et en une résolution de CDN. Le jour où l'on en voudra
+une, `src/gamefeel.js` est le seul fichier à remplacer — le reste ne connaît que
+`Ressort` et `Paquet`.
+
+### Deux outils ont changé en même temps
+
+- **`tools/bundle-mockup.mjs` n'embarque plus que les modules que la maquette
+  importe**, relevés dans son `<script>` puis suivis de proche en proche, dans
+  l'ordre de leurs dépendances. La liste était fixe et la même pour toutes :
+  le jour où deux modules ont porté le même nom de fonction — `attendre`,
+  `secousse`, `onde`, des primitives que tout le monde réécrit — le contrôle de
+  doublon a fait échouer TOUTES les maquettes, y compris celles qui
+  n'importaient ni l'un ni l'autre.
+- **Il refuse maintenant un module qui importe en `import * as`.** Les préfixes
+  de namespace ne sont défaits que dans le corps de la maquette ; laissé dans un
+  MODULE, un `C.estFeu(…)` survit à la mise à plat et le fichier autonome
+  s'ouvre sur « C is not defined » — page blanche, une ligne en console, aucun
+  autre signal. C'est la règle 13, et elle a coûté un écran noir de plus le jour
+  où `src/carteVue.js` a été extrait de la maquette.

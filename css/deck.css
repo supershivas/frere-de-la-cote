@@ -1871,6 +1871,11 @@
    règles d'ÉCRAN, qui se battent avec `.screen { animation: fade }` ; une carte
    ne se bat avec rien. */
 .ecran-cartes .carte {
+  /* `--leve` va de 0 (posée sur le bois) à 1 (en l'air). C'est le geste qui la
+     pousse, frame par frame, et c'est l'OMBRE qui la lit : une carte qui monte
+     sans que son ombre grandisse glisse sur le plan de l'écran au lieu de s'en
+     décoller. Voir §18. */
+  --leve: 0;
   flex: 0 0 var(--carte-l, 62px);
   width: var(--carte-l, 62px); height: var(--carte-h, 90px);
   color: #241608;
@@ -2298,4 +2303,174 @@
 .tuto-mot button.passer {
   background: none; border-color: transparent; color: #6b4a26;
   font-family: var(--font-body); font-size: 10px; min-height: 36px; padding: 6px 8px; margin-left: 0;
+}
+
+/* ============================================================
+   §18 — LE BANC D'ESSAI DU GESTE
+   docs/refonte/mockups/f-gamefeel.html
+
+   CINQ RÉGLAGES DU MÊME GESTE, et non cinq gestes. Le geste du jeu est
+   arrêté — on touche pour choisir, on pousse la volée vers le haut, on la tire
+   vers le bas pour recharger — et ce qu'on compare ici, c'est le RESSENTI :
+   ce que le paquet pèse, ce qu'il laisse derrière lui, ce que le lâcher rend.
+   Un banc qui changerait aussi la mécanique ne dirait plus laquelle des deux
+   choses on préfère.
+
+   L'écran porte `.screen.ecran-cartes.banc` : tout §17 s'y applique — la mer,
+   le râtelier, la carte, la zone de dépôt, la poussière et les copeaux. Le
+   banc n'ajoute que sa barre de réglages. Une maquette utilise l'interface du
+   jeu, elle n'en réinvente pas une à côté.
+   ============================================================ */
+
+/* --- LA BARRE DE RÉGLAGES ------------------------------------------------
+   Deux rangées, et jamais trois : à 375 px de large, chaque rangée coûte
+   44 px de hauteur, et le banc doit laisser à la mer et au râtelier de quoi
+   se juger. La première rangée dit le GESTE, la seconde la PUISSANCE — ce sont
+   deux axes indépendants, et les mêler en une rangée de dix boutons donnait à
+   croire qu'on choisissait sur une seule échelle. */
+.screen.ecran-cartes.banc .bc-barre {
+  flex: 0 0 auto; display: flex; flex-direction: column; gap: 3px;
+  padding: 4px 6px 5px;
+  background: rgba(18, 14, 9, .82);
+  border-bottom: 1px solid var(--border, #4a3a24);
+}
+.screen.ecran-cartes.banc .bc-rangee { display: flex; align-items: center; gap: 3px; }
+.screen.ecran-cartes.banc .bc-cle {
+  flex: 0 0 auto; width: 30px;
+  font-family: var(--font-body); font-size: 7.5px; line-height: 1.1;
+  text-transform: uppercase; letter-spacing: .8px; color: #a5844c;
+}
+/* 44 px de HAUT, toujours : le doigt vise la cible, pas le dessin. La largeur,
+   elle, se partage — cinq crans sur 375 px font 60 px chacun, ce qui tient. */
+.screen.ecran-cartes.banc .bc-chip {
+  flex: 1 1 0; min-width: 0; min-height: 44px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; padding: 2px 1px;
+  background: rgba(58, 42, 24, .55);
+  border: 1px solid #5a4326; border-radius: 6px;
+  color: var(--parchment, #e6dcc3); cursor: pointer;
+  transition: background .14s var(--ease-fast), border-color .14s, transform .14s;
+}
+.screen.ecran-cartes.banc .bc-chip:active { transform: scale(.96); }
+.screen.ecran-cartes.banc .bc-chip .bc-rang {
+  font-family: var(--font-title); font-size: 13px; line-height: 1; color: var(--gold-dark, #a5844c);
+}
+.screen.ecran-cartes.banc .bc-chip .bc-nom {
+  font-family: var(--font-body); font-size: 7px; line-height: 1.1;
+  text-transform: uppercase; letter-spacing: .4px; color: #a5844c;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+.screen.ecran-cartes.banc .bc-chip[aria-pressed="true"] {
+  background: rgba(201, 162, 75, .22); border-color: var(--gold-light, #e8c877);
+}
+.screen.ecran-cartes.banc .bc-chip[aria-pressed="true"] .bc-rang { color: var(--gold-light, #e8c877); }
+.screen.ecran-cartes.banc .bc-chip[aria-pressed="true"] .bc-nom { color: var(--parchment, #e6dcc3); }
+
+/* CE QUE LA VARIANTE AJOUTE, écrit en toutes lettres. Un banc dont il faut
+   deviner ce qui a changé ne compare rien : on croit sentir une différence
+   qu'on a soi-même supposée. Une ligne, sous la barre. */
+.screen.ecran-cartes.banc .bc-note {
+  flex: 0 0 auto; min-height: 0;
+  padding: 3px 8px 4px; text-align: center;
+  font-family: var(--font-body); font-size: 8.5px; line-height: 1.35;
+  color: #c3b189; background: rgba(18, 14, 9, .6);
+  border-bottom: 1px solid rgba(74, 58, 36, .6);
+}
+.screen.ecran-cartes.banc .bc-note b { color: var(--gold-light, #e8c877); font-weight: 400; }
+
+/* --- LA CIBLE ------------------------------------------------------------
+   Un banc de gamefeel a besoin de quelque chose à FRAPPER : le lâcher sans
+   impact ne se juge pas, on ne sent que la moitié du geste. Une coque générée,
+   et rien d'autre — pas de résistance, pas de bordées, pas de prise. */
+.screen.ecran-cartes.banc .cible {
+  position: absolute; right: 6%; bottom: 0; width: 46%; z-index: 2;
+  display: flex; align-items: flex-end; justify-content: center;
+  overflow: hidden; pointer-events: none;
+}
+.screen.ecran-cartes.banc .cible canvas { width: 100%; height: auto; display: block; }
+
+/* --- CE QUI VOLE PENDANT LE GESTE ---------------------------------------
+   Règle 11 : posé DANS son hôte — la mer ou le râtelier — jamais sur la page
+   en `position: fixed`. Le repère d'un élément fixé dépend de ses ancêtres,
+   et c'est une hypothèse qu'on ne contrôle pas.
+   Ces trois-là sont des composants PARTAGÉS (règle 3) : une seule définition,
+   valable partout où `src/gamefeel.js` les pose. */
+.gf-grain, .gf-trainee, .gf-nb { position: absolute; pointer-events: none; }
+
+/* LA POUSSIÈRE DU BOIS. Des grains ternes et courts — c'est ce qui dit que la
+   carte a QUITTÉ le râtelier. Sans elle, elle glisse sur une vitre. */
+.gf-grain {
+  z-index: 7; border-radius: 50%;
+  background: rgba(214, 196, 152, .8);
+}
+/* LA TRAÎNÉE : une rémanence de la carte, qui se fane SUR PLACE. Elle ne se
+   pose que si le paquet va vite ; à chaque frame, elle maquille le mouvement
+   au lieu de le souligner. */
+.gf-trainee {
+  z-index: 5; border-radius: 8px;
+  background: rgba(242, 234, 214, .5);
+  box-shadow: 0 0 12px rgba(242, 234, 214, .25);
+}
+.gf-nb {
+  z-index: 8; font-family: var(--font-title); font-size: 20px;
+  color: var(--gold-light, #e8c877); text-shadow: 0 2px 6px rgba(0,0,0,.8);
+  white-space: nowrap;
+}
+.gf-nb.mult { color: #ffd9a0; }
+
+/* --- LE PAQUET QU'ON SOULÈVE --------------------------------------------
+   L'OMBRE DIT LA HAUTEUR. Une carte qui monte sans que son ombre grandisse
+   glisse sur le plan de l'écran ; c'est l'ombre, et elle seule, qui la
+   décolle du bois. `--leve` va de 0 (posée) à 1 (en l'air), et le geste la
+   pousse à chaque frame. */
+.ecran-cartes .carte.enlair {
+  box-shadow:
+    0 calc(2px + 10px * var(--leve)) calc(3px + 8px * var(--leve)) rgba(0,0,0,.45),
+    0 calc(6px + 22px * var(--leve)) calc(10px + 26px * var(--leve)) rgba(0,0,0,calc(.28 + .22 * var(--leve)));
+  filter: brightness(calc(1 + .10 * var(--leve)));
+}
+
+/* LE BOIS FLÉCHIT quand on tire la volée vers le bas. Le rechargement coûte
+   une ressource : il faut que le geste RÉSISTE, et une résistance qui ne se
+   voit pas n'est qu'un seuil. Le râtelier s'enfonce de quelques pixels, et
+   c'est tout — il ne doit jamais bouger assez pour décoller de son bord. */
+.screen.ecran-cartes.banc .ratelier {
+  --flechi: 0;
+  transform: translateY(calc(1px * var(--flechi)));
+}
+.screen.ecran-cartes.banc .ratelier.recharge::before {
+  background: linear-gradient(90deg, #7a3a22, #ffb08a 40%, #ffb08a 60%, #7a3a22);
+  box-shadow: 0 0 10px rgba(255, 176, 138, .5);
+}
+
+/* LE BOIS N'APPARTIENT QU'À LA MAIN, et ici plus qu'ailleurs. Le râtelier du
+   jeu réserve au-dessus des cartes la hauteur exacte de la RÉSERVE — les deux
+   munitions à venir, posées sur le listeau. Le banc n'a pas de réserve : c'est
+   le geste qu'on éprouve, pas l'information. Ces 92 px rendus vont aux CARTES,
+   qui sont l'objet même de l'essai — on ne juge pas le poids d'un paquet sur
+   des vignettes. */
+.screen.ecran-cartes.banc { --carte-l: 66px; --carte-h: 112px; }
+.screen.ecran-cartes.banc .ratelier { padding-top: 12px; }
+
+/* LA COUCHE OÙ TOUT VOLE (règle 11). Elle couvre l'écran du banc et lui seul :
+   posé sur `document.body` en `position: fixed`, le repère d'un élément dépend
+   de ses ancêtres — mesuré, un boulet à `translate(96px, 341px)` était rapporté
+   un écran plus bas, donc invisible, à chaque tir, depuis le premier jour. Un
+   décor qu'on contrôle est le seul repère fiable. */
+.screen.ecran-cartes.banc { position: relative; }
+.screen.ecran-cartes.banc .gf-vol {
+  position: absolute; inset: 0; z-index: 9;
+  pointer-events: none; overflow: hidden;
+}
+
+/* LA ZONE DE DÉPÔT ATTIRE. À l'approche, elle respire : c'est ce qui fait
+   qu'on la sent avant de l'atteindre, et qu'un lâcher réussi n'est pas une
+   surprise. `.prete` reste l'état franc — `.attire` est le chemin qui y mène. */
+.screen.ecran-cartes.banc .depot.attire {
+  background: rgba(241,196,15,.10);
+  box-shadow: inset 0 0 22px rgba(241,196,15,.18);
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen.ecran-cartes.banc .ratelier { transform: none; }
+  .ecran-cartes .carte.enlair { filter: none; }
 }

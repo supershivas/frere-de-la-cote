@@ -42,6 +42,7 @@ import { coastlines, places, routeEntre } from './src/caribbean.js';
 import { getGeneratedShip, drawGrid } from './src/sprites.js';
 import { startOcean, randomOceanScene } from './src/ocean.js';
 import { initFx, fxFloatText } from './src/fx.js';
+import { contenuCarte } from './src/carteVue.js';
 
 const el = (tag, o = {}, kids = []) => {
   const n = document.createElement(tag);
@@ -690,59 +691,11 @@ function aideDe(c) {
 
 /* ---------------------------------------------------------------- la main */
 
-// LA MUNITION EST UN SYMBOLE, dessiné. Cinq formes qu'on distingue à distance
-// de bras sans lire un mot — c'est ce qui permet de RECONNAÎTRE une figure, et
-// une figure qu'il faut lire pour la voir n'est pas une figure.
-// Dessiné en SVG et non en emoji : un emoji change de forme et de couleur d'un
-// téléphone à l'autre, et arrive en couleurs qui ne sont pas les nôtres.
-const GLYPHES = {
-  // Le boulet ramé : deux boulets liés par une barre.
-  boulet_rame: '<circle cx="5.4" cy="12" r="4"/><circle cx="18.6" cy="12" r="4"/><rect x="8.4" y="10.6" width="7.2" height="2.8" rx="1"/>',
-  // Le boulet rouge : un boulet et la chaleur qui en sort.
-  boulet_rouge: '<circle cx="12" cy="12.6" r="5.6"/>'
-    + '<path d="M12 1.6 L12 5 M5.6 4.4 L7.6 7 M18.4 4.4 L16.4 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>',
-  // La mitraille : une poignée de ferraille qui s'ouvre en gerbe.
-  mitraille: '<circle cx="12" cy="4.6" r="2.3"/><circle cx="6" cy="11.4" r="2.3"/><circle cx="18" cy="11.4" r="2.3"/>'
-    + '<circle cx="9" cy="19" r="2.3"/><circle cx="16" cy="18.4" r="2.3"/>',
-  // La chaîne : deux maillons qui s'accrochent.
-  chaine: '<rect x="2.4" y="8.2" width="10.4" height="7.6" rx="3.8" fill="none" stroke="currentColor" stroke-width="2.6"/>'
-    + '<rect x="11.2" y="8.2" width="10.4" height="7.6" rx="3.8" fill="none" stroke="currentColor" stroke-width="2.6"/>',
-  // La barrique : un fût, deux cercles de fer.
-  barrique: '<path d="M7.4 3.4 Q4.4 12 7.4 20.6 L16.6 20.6 Q19.6 12 16.6 3.4 Z"/>'
-    + '<path d="M5.4 8.6 L18.6 8.6 M5.4 15.4 L18.6 15.4" stroke="rgba(0,0,0,.34)" stroke-width="1.6" fill="none"/>',
-};
-function munitionVue(id) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('fill', 'currentColor');
-  svg.innerHTML = GLYPHES[id] || '<circle cx="12" cy="12" r="6"/>';
-  return svg;
-}
-
-// Le dedans d'une carte, écrit UNE fois : la main et la réserve montrent
-// exactement le même objet, à l'échelle près. Deux gabarits qui divergent, ce
-// serait deux cartes différentes pour la même munition.
-//
-// LE BORD EST L'ENSEIGNE, comme la couleur d'une carte à jouer : c'est lui qui
-// décide ce qui peut tirer ensemble, donc il porte le FOND. La MUNITION est le
-// bandeau : son nom se répète dans le paquet, et c'est cette répétition qui
-// rend les figures reconnaissables d'un coup d'œil.
-function contenuCarte(c) {
-  const estUnFeu = C.estFeu(c);
-  const bandeau = el('span', { class: 'c-bandeau' }, [
-    estUnFeu ? null : munitionVue(c.id),
-    el('span', { class: 'c-nom', text: estUnFeu ? 'Feu' : c.nom }),
-  ]);
-  return [
-    c.mouillee ? el('span', { class: 'c-etat', text: 'mouillée' }) : null,
-    estUnFeu ? el('span', { class: 'c-fumee' }) : null,
-    bandeau,
-    // LA POUDRE occupe le centre du champ libre. Toutes les munitions du même
-    // nom portent le même chiffre : c'est ce qui permet aux figures d'exister.
-    el('span', { class: 'c-val', text: estUnFeu ? '—' : String(C.poudreDe(c, P)) }),
-  ];
-}
+// LE DEDANS D'UNE CARTE vit dans `src/carteVue.js` : la main, le listeau de la
+// réserve, le contenu d'un paquet en modale et le banc d'essai du geste
+// montrent le MÊME objet. Règle 3 — un composant partagé n'a qu'une
+// définition, et deux gabarits qui divergent sont deux cartes différentes
+// pour la même munition.
 
 function carteVue(c, rang = 0, neuve = false) {
   const estUnFeu = C.estFeu(c);
@@ -783,7 +736,7 @@ function carteVue(c, rang = 0, neuve = false) {
         rendre();
       },
     },
-  }, contenuCarte(c));
+  }, contenuCarte(c, P));
   // La classe s'enlève dès que l'animation est finie : un marqueur qui reste
   // après coup est un état qui ment, et le jour où quelque chose le relit,
   // l'animation repart.
@@ -1031,7 +984,7 @@ function ecranChasse() {
       munitionsAVenir.map((c, i) => el('div', {
         class: `carte mini${C.estFeu(c) ? ' feu' : ''}${c.mouillee ? ' blesse' : ''}`,
         attrs: { style: `--rang:${i}`, 'data-role': C.estFeu(c) ? 'feu' : c.id },
-      }, contenuCarte(c))))
+      }, contenuCarte(c, P))))
     : null;
 
   s.appendChild(el('div', { class: 'ratelier' }, [tableau(), reserve, main]));
@@ -1066,7 +1019,7 @@ function ouvrirPaquet(titre, cartes, vide) {
         pile.appendChild(el('div', {
           class: `carte mini${id === 'feu' ? ' feu' : ''}`,
           attrs: { 'data-role': id, 'aria-hidden': 'true', style: `--rang:${i}` },
-        }, contenuCarte(lot[0])));
+        }, contenuCarte(lot[0], P)));
       }
       grille.appendChild(el('div', { class: 'pq-lot' }, [
         pile,

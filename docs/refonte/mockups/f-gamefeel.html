@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<base href="../../../">
+<title>F — le banc d'essai du geste</title>
+<!-- titre: Le banc du geste -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%8E%9A%3C/text%3E%3C/svg%3E">
+</head>
+<body data-bg="sea">
+<canvas id="ocean"></canvas>
+<div id="parchment"></div>
+<main id="app"></main>
+
+<script type="module">
+/* ============================================================
+   F — LE BANC D'ESSAI DU GESTE.
+
+   CE QU'ON COMPARE ICI, ET RIEN D'AUTRE : le RESSENTI du glissement. Le geste
+   du jeu est arrêté depuis longtemps et n'est pas en question — on touche des
+   munitions pour composer une volée, on pousse le paquet vers le haut pour
+   tirer, on le tire vers le bas pour recharger, monter puis redescendre annule.
+   Les cinq variantes ne changent pas une règle : elles changent ce que le
+   paquet PÈSE sous le doigt, ce qu'il laisse derrière lui, et ce que le lâcher
+   rend.
+
+   DEUX AXES INDÉPENDANTS, et c'est tout le banc :
+
+     LE GESTE     I → V, du paquet qui colle au doigt à la bordée lancée.
+                  Chaque cran AJOUTE au précédent plutôt que de le remplacer :
+                  sans quoi on compare cinq choses au lieu de mesurer un écart.
+
+     LA PUISSANCE cinq crans, ceux du jeu — sourd, sec, nourri, bordée,
+                  démontée — relevés sur la distribution réelle des volées.
+                  C'est le PAYOFF : ce que le lâcher rend. Il est identique
+                  d'une variante à l'autre, pour qu'on puisse juger le geste à
+                  récompense constante.
+
+   Rien ici n'est une règle : pas de résistance, pas de bordées à dépenser, pas
+   de prise à prendre. La main se refait toute seule, indéfiniment. Un banc de
+   gamefeel qui aurait aussi une condition de victoire mesurerait autre chose.
+
+   Ce qui vient du jeu, et n'est pas réinventé ici :
+     src/cartes.js      les règles, pures — pour une main et un score vrais
+     src/carteVue.js    LE DEDANS D'UNE CARTE, le même qu'au combat
+     src/gamefeel.js    ressorts, paquet, poussière, traînée, secousse, éclair
+     src/sprites.js     la coque de la cible, générée à l'exécution
+     src/ocean.js       le ciel et la mer animés
+     css/deck.css       §17 pour l'écran de cartes, §18 pour le banc
+   ============================================================ */
+
+import * as C from './src/cartes.js';
+import { contenuCarte } from './src/carteVue.js';
+import * as G from './src/gamefeel.js';
+import { getGeneratedShip, drawGrid } from './src/sprites.js';
+import { startOcean, randomOceanScene } from './src/ocean.js';
+
+const el = (tag, o = {}, kids = []) => {
+  const n = document.createElement(tag);
+  if (o.class) n.className = o.class;
+  if (o.text !== undefined) n.textContent = o.text;
+  if (o.html !== undefined) n.innerHTML = o.html;
+  if (o.attrs) for (const [k, v] of Object.entries(o.attrs)) n.setAttribute(k, v);
+  if (o.on) for (const [e, f] of Object.entries(o.on)) n.addEventListener(e, f);
+  for (const k of [].concat(kids)) if (k != null) n.appendChild(typeof k === 'string' ? document.createTextNode(k) : k);
+  return n;
+};
+const jget = async (p) => (await fetch(p)).json();
+const [CONTENU] = await Promise.all([jget('data/equipage.json')]);
+
+/* ------------------------------------------------------ les cinq gestes */
+
+/* CHAQUE CRAN AJOUTE AU PRÉCÉDENT. C'est la seule façon d'attribuer une
+   différence à une cause : cinq gestes indépendants se comparent deux à deux,
+   et l'on finit par préférer celui qu'on vient d'essayer.
+
+   Les réglages sont nommés d'après ce qu'ils font sentir, pas d'après leur
+   implémentation — `raideur` et `zeta` sont les deux seuls nombres du solveur,
+   tout le reste dit une intention. */
+const GESTES = [
+  {
+    rang: 'I', nom: 'nu', direct: true,
+    note: 'La <b>référence</b> — le paquet colle au doigt, sans masse ni retard. C’est le geste tel qu’il est aujourd’hui dans le jeu.',
+    raideur: 0, zeta: 0, leve: 14, tas: 70,
+    inclinaison: 0, etage: 0, ombre: false, aimant: 0,
+    trainee: 0, poussiere: 0, bois: 0, lancer: 0,
+  },
+  {
+    rang: 'II', nom: 'ressort', direct: false,
+    note: '<b>+ le ressort</b> — le paquet a une masse : il traîne d’un cheveu derrière le doigt, dépasse d’un cheveu et revient. Le retour en main est un rebond, plus une transition qui s’arrête net.',
+    raideur: 300, zeta: 0.72, leve: 14, tas: 70,
+    inclinaison: 0, etage: 0, ombre: false, aimant: 0,
+    trainee: 0, poussiere: 0, bois: 0, lancer: 0,
+  },
+  {
+    rang: 'III', nom: 'poids', direct: false,
+    note: '<b>+ le poids</b> — il penche dans le sens où on le lance, les cartes du dessous s’étagent avec du retard, et l’ombre grandit à mesure qu’il se décolle du bois.',
+    raideur: 320, zeta: 0.68, leve: 16, tas: 66,
+    inclinaison: 15, etage: 0.2, ombre: true, aimant: 0.16,
+    trainee: 0, poussiere: 0, bois: 0, lancer: 0,
+  },
+  {
+    rang: 'IV', nom: 'matière', direct: false,
+    note: '<b>+ la matière</b> — de la poussière au décollage, une traînée derrière le paquet lancé, et le râtelier qui <b>fléchit</b> quand on tire la volée vers le bas : le rechargement coûte une ressource, il faut qu’il résiste.',
+    raideur: 340, zeta: 0.66, leve: 18, tas: 64,
+    inclinaison: 17, etage: 0.22, ombre: true, aimant: 0.18,
+    trainee: 1, poussiere: 1, bois: 1, lancer: 0,
+  },
+  {
+    rang: 'V', nom: 'bordée', direct: false,
+    note: '<b>+ la bordée</b> — le lâcher n’est plus un relâchement : le paquet <b>part</b>, avec la vitesse qu’avait le doigt, file à la coque et s’y écrase. C’est le geste qui déclenche l’impact, plus un bouton qu’on relâche.',
+    raideur: 340, zeta: 0.64, leve: 18, tas: 62,
+    inclinaison: 19, etage: 0.24, ombre: true, aimant: 0.2,
+    trainee: 1, poussiere: 1, bois: 1, lancer: 1,
+  },
+];
+
+/* LES CINQ CRANS DE PUISSANCE sont ceux du jeu, et leurs seuils sont RELEVÉS,
+   pas choisis à l'œil : mesurée sur 2 800 volées d'un capitaine appliqué,
+   p25 = 60, médiane = 85, p75 = 128, p90 = 192, p99 = 325. Un cran qu'on voit
+   à chaque tour n'est pas une récompense, c'est un décor — d'où une démontée
+   à une volée sur cent.
+
+   `pression` est le total que la volée VAUT à ce cran. Le banc s'en sert pour
+   étalonner le score : la main est vraie, les munitions sont vraies, mais le
+   chiffre est celui qu'on veut éprouver. C'est la seule fiction du banc, et
+   elle est là pour qu'on puisse voir une démontée quand on veut plutôt que
+   d'attendre la centième volée. */
+const CRANS = [
+  { nom: 'sourd', dit: 'le carton claque', pression: 14, boulets: 1, secousse: 0, eclair: 0, onde: false, copeaux: 5, embrase: false },
+  { nom: 'sec', dit: 'un coup part', pression: 34, boulets: 1, secousse: 1.5, eclair: 0, onde: false, copeaux: 9, embrase: false },
+  { nom: 'nourri', dit: 'la coque encaisse', pression: 86, boulets: 2, secousse: 3, eclair: 0, onde: false, copeaux: 14, embrase: false },
+  { nom: 'bordée', dit: 'l’écran tremble', pression: 165, boulets: 3, secousse: 7, eclair: 0.6, onde: false, copeaux: 20, embrase: false },
+  { nom: 'démontée', dit: 'la mer recule', pression: 320, boulets: 3, secousse: 13, eclair: 1, onde: true, copeaux: 26, embrase: true },
+];
+
+/* 180 MS D'ÉCART, et c'est la mesure du dépôt : au-delà, on attend son tour au
+   lieu de le savourer. Une volée pleine tient dans ~1,6 s de séquence, à quoi
+   le banc ajoute la présentation, le lancer et l'impact — l'équivalent du `tir`
+   du jeu. Tout ce qui pouvait être rogné l'a été là, jamais sur les 180 ms :
+   c'est l'écart entre deux gains, et c'est lui qui rend le barème lisible. */
+const PAS_SEQUENCE = 180;
+
+/* --------------------------------------------------------------- l'état */
+
+let iGeste = 1;             // on ouvre sur II : la référence se juge par écart
+let iCran = 2;              // et sur « nourri », qui est la volée médiane
+let occupe = false;
+let glissa = false;         // un glissement ne doit pas valoir un clic (règle 8)
+
+// UNE GRAINE, PAS `Math.random` À LA VOLÉE. Deux essais du même geste doivent
+// pouvoir tomber sur la même main : sans quoi on compare deux ressentis ET
+// deux mains, et l'on attribue au geste ce qui vient des cartes.
+let graine = 20250827;
+const dé = () => {
+  graine = (graine * 1664525 + 1013904223) >>> 0;
+  return graine / 4294967296;
+};
+
+const P = C.nouvellePartie(CONTENU);
+P.pioche = C.melanger(P.deck, dé);
+const refaireLaMain = () => {
+  while (P.main.length < 5) {
+    if (!P.pioche.length) { P.pioche = C.melanger(P.defausse, dé); P.defausse = []; }
+    if (!P.pioche.length) break;
+    P.main.push(P.pioche.pop());
+  }
+};
+refaireLaMain();
+
+const geste = () => GESTES[iGeste];
+const cran = () => CRANS[iCran];
+const ecranEl = () => document.querySelector('.screen.ecran-cartes.banc');
+const merEl = () => document.querySelector('.banc .mer');
+const volEl = () => document.querySelector('.banc .gf-vol');
+
+/* ------------------------------------------------------------- la cible */
+
+// UN BANC DE GAMEFEEL A BESOIN DE QUELQUE CHOSE À FRAPPER. Le lâcher sans
+// impact ne se juge pas : on ne sent que la moitié du geste, et la moitié la
+// moins intéressante. Une coque générée, et rien de plus — elle n'a ni points
+// de vie ni résistance, elle encaisse indéfiniment.
+//
+// RÈGLE 7 : une coque générée se dessine avec SA palette. Lui passer une
+// couleur unique fait retomber chaque caractère inconnu dessus, et le navire
+// sort en aplat monochrome, sans voiles ni pavillon, sans qu'aucune erreur
+// soit levée.
+const SPEC_CIBLE = {
+  seed: 9137, hullClass: 4, hullShape: 'ronde', sailsPerMast: 3, jibs: 2, wear: 1,
+  colors: { hull: '#6b4a26', sail: '#f0e6cc', faction: '#c8a227' },
+  flag: { motif: 'Croix', bg: '#f0e6cc', sym: '#a3242a', accent: '#c8a227' },
+  trim: 'doré', emblem: 'grand',
+};
+
+function peindreLaCible() {
+  const boite = document.querySelector('.banc .cible');
+  const cv = boite && boite.querySelector('canvas');
+  if (!cv) return;
+  const g = getGeneratedShip(SPEC_CIBLE);
+  const grille = (g.grid || g).map((r) => (typeof r === 'string' ? r : r.join('')));
+  const cols = grille[0].length, rows = grille.length;
+  const eau = g.waterY != null ? g.waterY : rows - 1;
+  // RÈGLE 9 : la taille du pixel se calcule sur la hauteur DISPONIBLE, mesurée
+  // sur la mer — jamais sur le canvas lui-même. Dimensionner un canvas d'après
+  // son propre parent, dont la hauteur vient du canvas, le fait rétrécir d'un
+  // cran à chaque repeinte.
+  const mer = merEl();
+  const dispo = mer ? mer.getBoundingClientRect().height * 0.62 : 120;
+  const px = Math.max(1, Math.min(5, Math.floor(dispo / (eau + 1))));
+
+  const off = document.createElement('canvas');
+  off.width = cols * px; off.height = rows * px;
+  drawGrid(off, grille, { color: g.palette, flag: '', facing: -1, waterRow: eau });
+  cv.width = cols * px; cv.height = (eau + 1) * px;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(off, 0, 0);
+  cv.dataset.pont = String(Math.round((eau - 3) * px));
+}
+
+// OÙ LE BOULET FRAPPE : le BORDÉ, entre le pont et l'eau — pas le milieu de
+// l'image, qui tombe dans les voiles. Le repère est relevé à la peinture.
+function pointDImpact() {
+  const cv = document.querySelector('.banc .cible canvas');
+  if (!cv) return { x: innerWidth * 0.7, y: innerHeight * 0.3 };
+  const r = cv.getBoundingClientRect();
+  const pont = Number(cv.dataset.pont || 0);
+  const k = cv.height ? pont / cv.height : 0.6;
+  return { x: r.left + r.width * 0.5, y: r.top + r.height * (k + (1 - k) * 0.55) };
+}
+
+/* --------------------------------------------------------------- l'écran */
+
+function chipsDe(cle, liste, actif, choisir, rendreChip) {
+  return el('div', { class: 'bc-rangee' }, [
+    el('span', { class: 'bc-cle', text: cle }),
+    ...liste.map((x, i) => el('button', {
+      class: 'bc-chip',
+      attrs: { type: 'button', 'aria-pressed': String(i === actif) },
+      on: { click: () => { if (!occupe) { choisir(i); dessiner(); } } },
+    }, rendreChip(x, i))),
+  ]);
+}
+
+function barre() {
+  return el('div', { class: 'bc-barre' }, [
+    chipsDe('geste', GESTES, iGeste, (i) => { iGeste = i; }, (g) => [
+      el('span', { class: 'bc-rang', text: g.rang }),
+      el('span', { class: 'bc-nom', text: g.nom }),
+    ]),
+    chipsDe('main', CRANS, iCran, (i) => { iCran = i; }, (c, i) => [
+      el('span', { class: 'bc-rang', text: '▮'.repeat(i + 1) }),
+      el('span', { class: 'bc-nom', text: c.nom }),
+    ]),
+  ]);
+}
+
+// LE TABLEAU NE GARDE QUE LE COMPTE DE LA VOLÉE, comme dans le jeu, et se
+// réduit à une ligne quand il n'y en a pas. Sa hauteur suit son contenu :
+// une réserve fixe n'existait que parce que trois contenus de longueurs
+// différentes s'y succédaient.
+function tableau() {
+  const t = el('div', { class: `tableau${P.selection.length ? ' arme' : ''}` });
+  if (!P.selection.length) {
+    t.appendChild(el('div', { class: 'tb-geste', text: 'Touche des munitions, puis pousse la volée vers le haut.' }));
+    return t;
+  }
+  const n = P.selection.length;
+  t.appendChild(el('div', { class: 'tb-total', html: `<b>${cran().pression}</b> de pression — <i>${cran().nom}</i>` }));
+  // `figureDe` rend un IDENTIFIANT (`triplette`), pas un nom : c'est
+  // `evaluer` qui porte le nom affichable, dans `synergies`. Le nom est du
+  // contenu, l'identifiant est une clé — les confondre, c'est écrire
+  // « triplette » en minuscules dans l'interface le jour où le nom change.
+  const fig = C.evaluer(P, P.selection).synergies[0] || 'aucune figure';
+  t.appendChild(el('div', { class: 'tb-detail', text: `${n} munition${n > 1 ? 's' : ''} · ${fig}` }));
+  t.appendChild(el('div', { class: 'tb-geste', html: '↑ la volée part · ↓ on recharge' }));
+  return t;
+}
+
+function carteVue(c, rang, neuve) {
+  const pris = P.selection.includes(c);
+  const n = el('button', {
+    class: `carte${pris ? ' prise-en-main' : ''}${neuve ? ' neuve' : ''}`,
+    attrs: {
+      type: 'button', 'aria-pressed': String(pris), style: `--rang:${rang}`,
+      'data-uid': String(c.uid), 'data-role': c.id,
+      'aria-label': `${c.nom}, poudre ${C.poudreDe(c, P)}`,
+    },
+    on: {
+      // UN RETOUR SOUS LE DOIGT, avant même que l'état change : la carte
+      // s'enfonce à l'appui et remonte au relâchement. C'est ce qui fait la
+      // différence entre toucher un bouton et manipuler un objet.
+      pointerdown: () => { if (!occupe) n.style.transform = 'translateY(-4px) scale(.97)'; },
+      pointerup: () => { n.style.transform = ''; },
+      pointerleave: () => { n.style.transform = ''; },
+      pointercancel: () => { n.style.transform = ''; },
+      click: () => {
+        n.style.transform = '';
+        // RÈGLE 8 : un glissement qui vient de finir ne doit pas valoir un
+        // clic. La capture du pointeur redirige le `click` vers la zone
+        // capturante ; sans ce garde-fou, chaque lâcher rajoutait une carte.
+        if (occupe || glissa) return;
+        if (P.selection.includes(c)) P.selection = P.selection.filter((x) => x !== c);
+        else if (P.selection.length < 3) P.selection = [...P.selection, c];
+        else return;
+        dessiner();
+      },
+    },
+  }, contenuCarte(c, P));
+  if (neuve) n.addEventListener('animationend', () => n.classList.remove('neuve'), { once: true });
+  return n;
+}
+
+let neuves = [];
+function dessiner() {
+  const vieux = ecranEl();
+  const s = el('div', { class: 'screen ecran-cartes banc' });
+
+  s.appendChild(barre());
+  s.appendChild(el('div', { class: 'bc-note', html: geste().note }));
+
+  const mer = el('div', { class: 'mer' });
+  mer.appendChild(el('div', { class: 'cible' }, [el('canvas')]));
+  // LA ZONE DE DÉPÔT n'existe que pendant le geste : une cible permanente
+  // serait un bouton de plus, et il n'y en a aucun. On lâche N'IMPORTE OÙ
+  // au-dessus du bois — une zone de la taille d'une carte demandait de viser,
+  // et un geste qui demande de viser est un bouton déguisé.
+  mer.appendChild(el('div', { class: 'depot' }, [el('span', { text: 'lâche ici' })]));
+  // LA COUCHE OÙ TOUT VOLE (règle 11). Elle couvre l'écran du banc et lui
+  // seul : le repère d'un élément posé sur `document.body` en `position: fixed`
+  // dépend de ses ancêtres — mesuré, un boulet à `translate(96px, 341px)` était
+  // rapporté un écran plus bas, donc invisible, à chaque tir.
+  s.appendChild(mer);
+  s.appendChild(el('div', { class: 'gf-vol', attrs: { 'aria-hidden': 'true' } }));
+
+  const main = el('div', { class: 'main' });
+  P.main.forEach((c) => main.appendChild(carteVue(c, neuves.indexOf(c.uid), neuves.includes(c.uid))));
+  s.appendChild(el('div', { class: 'ratelier' }, [tableau(), main]));
+  neuves = [];
+
+  const hote = document.getElementById('app');
+  if (vieux) vieux.remove();
+  hote.appendChild(s);
+  peindreLaCible();
+  brancherGeste(s);
+  s.focus();
+  return s;
+}
+
+/* -------------------------------------------------------------- le geste */
+
+/* UN SEUL MOTEUR POUR LES CINQ VARIANTES. Elles ne changent que les CIBLES des
+   ressorts et leurs raideurs, jamais le solveur : c'est ce qui les rend
+   comparables. Cinq moteurs différents auraient comparé cinq bugs.
+
+   L'ENTRÉE ET LA PEINTURE SONT SÉPARÉES. `pointermove` ne fait qu'enregistrer
+   la position et la vitesse ; c'est la boucle rAF qui vise et qui peint. Peint
+   dans le `pointermove`, le mouvement suit la cadence des événements du
+   pointeur — 120 Hz sur un téléphone, 60 sur un autre, irrégulière partout —
+   et le ressort recevait des `dt` qui n'étaient pas ceux de l'écran. */
+function brancherGeste(s) {
+  const ratelier = s.querySelector('.ratelier');
+  const tab = s.querySelector('.tableau');
+  const depot = s.querySelector('.depot');
+  const aide = s.querySelector('.tb-geste');
+  const aideTexte = aide ? aide.innerHTML : '';
+
+  let y0 = null, x0 = 0, dx = 0, dy = 0, montee = 0, franchi = false;
+  let ptX = 0, ptY = 0, vx = 0, vy = 0, tPrec = 0, xPrec = 0, yPrec = 0;
+  let paq = null, arret = null, tTrainee = 0;
+
+  const dire = (h, cls) => {
+    if (tab) { tab.classList.remove('tire', 'annule'); if (cls) tab.classList.add(cls); }
+    if (aide) aide.innerHTML = h;
+  };
+  // TOUT CE QUI EST AU-DESSUS DU RÂTELIER EST UNE CIBLE.
+  const surLeDepot = (y) => y < ratelier.getBoundingClientRect().top;
+
+  const relacher = () => {
+    if (arret) { arret(); arret = null; }
+    if (paq) { paq.rendre(); paq = null; }
+    if (depot) depot.classList.remove('vu', 'prete', 'attire');
+    if (ratelier) { ratelier.classList.remove('recharge'); ratelier.style.removeProperty('--flechi'); }
+    for (const n of s.querySelectorAll('.carte')) n.classList.remove('enlair');
+  };
+
+  /* LA BOUCLE. Elle vise, elle peint, elle s'arrête toute seule quand tous les
+     ressorts dorment : une boucle rAF qui tourne en permanence pour un geste
+     d'une seconde tient le téléphone éveillé pour rien. */
+  const peindre = (dt) => {
+    if (!paq) return false;
+    const g = geste();
+    const tete = paq.tete;
+    const k = Math.max(0, Math.min(1, -dy / g.tas));   // 0 → posées, 1 → en tas
+
+    // L'AIMANT : à l'approche de la zone, le paquet est TIRÉ vers elle. C'est
+    // ce qui fait qu'un lâcher réussi n'est jamais une surprise — on sent la
+    // cible avant de l'atteindre. Il ne remplace pas la zone : elle accepte
+    // toujours n'importe quel point au-dessus du bois.
+    let ax = 0, ay = 0;
+    if (g.aimant && y0 !== null && surLeDepot(ptY) && dy < 0) {
+      const cd = G.centre(depot);
+      ax = (cd.x - (tete.cx + dx)) * g.aimant;
+      ay = (cd.y - (tete.cy + dy)) * g.aimant;
+    }
+    // L'INCLINAISON VIENT DE LA VITESSE, pas de la position : c'est ce qui la
+    // fait lire comme de l'inertie plutôt que comme un angle décoratif.
+    const incl = g.inclinaison
+      ? Math.max(-g.inclinaison, Math.min(g.inclinaison, vx * 0.02))
+      : 0;
+
+    paq.viser((m, rang) => {
+      const vers = (tete.cx - m.cx) * k + rang * 3 * k;
+      const monte = (tete.cy - m.cy) * k - rang * 3 * k;
+      m.x.cible = dx + vers + ax;
+      m.y.cible = dy + monte - g.leve * k + ay;
+      m.rot.cible = rang * -2.5 * k + incl * Math.max(0, 1 - rang * 0.2);
+      m.ech.cible = 1.04 + k * 0.06;
+      // L'ÉTAGEMENT : plus une carte est loin de la tête, plus son ressort est
+      // mou. Elles arrivent en éventail au lieu d'arriver en bloc, et le paquet
+      // se lit comme un objet articulé plutôt que comme une image collée.
+      if (g.etage) {
+        const mou = 1 - Math.min(0.55, rang * g.etage);
+        m.x.raideur = g.raideur * mou; m.y.raideur = g.raideur * mou;
+      }
+      // L'OMBRE DIT LA HAUTEUR. Sans elle, une carte qui monte glisse sur le
+      // plan de l'écran au lieu de s'en décoller.
+      if (g.ombre) m.n.style.setProperty('--leve', k.toFixed(3));
+    });
+    paq.peindre(dt);
+
+    // LA TRAÎNÉE ne se pose que si le paquet va VITE, et pas à chaque frame :
+    // à chaque frame elle maquille le mouvement au lieu de le souligner, et
+    // coûte trente nœuds par seconde pour rien.
+    const t = performance.now();
+    if (g.trainee && Math.hypot(vx, vy) > 850 && t - tTrainee > 42) {
+      tTrainee = t;
+      G.trainee(volEl(), tete.n, { opacite: 0.26 });
+    }
+    // LE BOIS FLÉCHIT sous la volée qu'on tire vers le bas. Le rechargement
+    // coûte une ressource : il faut que le geste RÉSISTE, et une résistance
+    // qu'on ne voit pas n'est qu'un seuil.
+    if (g.bois) ratelier.style.setProperty('--flechi', String(Math.max(0, Math.min(7, dy * 0.13))));
+    return true;
+  };
+
+  const debut = (e) => {
+    if (occupe || !P.selection.length) return;
+    y0 = e.clientY; x0 = e.clientX; dy = 0; dx = 0; montee = 0; franchi = false;
+    ptX = e.clientX; ptY = e.clientY;
+    xPrec = e.clientX; yPrec = e.clientY; tPrec = performance.now();
+    vx = 0; vy = 0;
+  };
+
+  const bouge = (e) => {
+    if (y0 === null) return;
+    ptX = e.clientX; ptY = e.clientY;
+    dy = e.clientY - y0; dx = e.clientX - x0;
+    montee = Math.min(montee, dy);
+
+    // LA VITESSE, LISSÉE. Brute, elle saute d'un événement à l'autre — deux
+    // `pointermove` séparés d'une milliseconde donnent une vitesse absurde — et
+    // l'inclinaison qui en dépend clignotait. Moyenne glissante sur 0,25.
+    const t = performance.now();
+    const dt = Math.max(1, t - tPrec) / 1000;
+    if (dt < 0.2) {
+      vx += (((e.clientX - xPrec) / dt) - vx) * 0.25;
+      vy += (((e.clientY - yPrec) / dt) - vy) * 0.25;
+    }
+    xPrec = e.clientX; yPrec = e.clientY; tPrec = t;
+
+    if (!franchi && Math.hypot(dx, dy) > 8) {
+      franchi = true; glissa = true;
+      // RÈGLE 8 : LA CAPTURE SE PREND ICI, au franchissement du seuil, jamais
+      // au `pointerdown`. Prise plus tôt, elle redirige aussi le `click` qui
+      // suit vers la zone capturante et non vers la carte touchée : plus aucune
+      // munition ne peut être ajoutée à la volée, et rien ne le signale.
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* souris relâchée */ }
+
+      // RÈGLE 9 : LES BOÎTES SONT MESURÉES UNE FOIS, ici, avant la première
+      // transformation. Relues à chaque `pointermove`, elles reviennent DÉJÀ
+      // transformées, la position calculée dépend de la précédente, et les
+      // cartes tremblent.
+      // DANS L'ORDRE DES DOIGTS, pas dans celui du DOM : `querySelectorAll`
+      // rend les cartes de gauche à droite, si bien qu'en sélectionnant de
+      // droite à gauche le tas se formait à l'autre bout de la main.
+      const g = geste();
+      const noeuds = P.selection.map((c) => s.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
+      paq = new G.Paquet(noeuds, { raideur: g.raideur || 300, zeta: g.zeta || 0.75, direct: g.direct });
+      for (const n of noeuds) n.classList.add('enlair');
+
+      // LA POUSSIÈRE DU BOIS : c'est la seule chose qui dit que la carte a
+      // QUITTÉ le râtelier. Sans elle, elle glisse sur une vitre.
+      if (g.poussiere) {
+        for (const m of paq.membres) {
+          G.poussiere(volEl(), { x: m.cx, y: m.cy + 42 }, { n: 6, force: 1 });
+        }
+      }
+      arret = G.boucle(peindre);
+    }
+    if (!franchi) return;
+
+    const recharge = montee > -40 && dy > 44;
+    const pret = !recharge && dy < 0 && surLeDepot(ptY);
+    if (depot) {
+      depot.classList.toggle('vu', !recharge && dy < 0);
+      depot.classList.toggle('prete', pret);
+      depot.classList.toggle('attire', !recharge && dy < 0 && !pret);
+    }
+    if (ratelier) ratelier.classList.toggle('recharge', recharge);
+    const annule = montee < -40 && dy > montee + 60;
+    if (recharge) dire('↓ relâche : ces munitions repartent au fond, on en reprend autant', 'tire');
+    else if (annule) dire('↩ relâche : la volée est défaite', 'annule');
+    else if (pret) dire('↑ relâche n’importe où : la volée part', 'tire');
+    else dire('vers le haut : la volée part · vers le bas : on recharge', null);
+  };
+
+  const fin = () => {
+    if (y0 === null) return;
+    const m = montee, d = dy, bougea = franchi, surZone = surLeDepot(ptY);
+    const vFinX = vx, vFinY = vy;
+    y0 = null; franchi = false;
+    // Le glissement ne se démarque qu'APRÈS le `click` que le navigateur va
+    // encore envoyer : remis à faux tout de suite, chaque lâcher ajoutait une
+    // carte à la volée qui vient de partir.
+    setTimeout(() => { glissa = false; }, 60);
+
+    if (!bougea) { relacher(); dire(aideTexte, null); return; }
+    if (m > -40 && d > 44) { relacher(); rechargerLaMain(); return; }
+    if (surZone && d < 0) {
+      // LE PAQUET CHANGE DE MAIN. La boucle du geste est coupée ici et
+      // `tirer()` en ouvre une à lui : deux boucles qui peignent les mêmes
+      // nœuds se disputeraient la transformation, et celle du geste continuait
+      // de viser un doigt qui n'est plus là.
+      const p = paq; paq = null;
+      if (arret) { arret(); arret = null; }
+      if (depot) depot.classList.remove('vu', 'prete', 'attire');
+      if (ratelier) { ratelier.classList.remove('recharge'); ratelier.style.removeProperty('--flechi'); }
+      tirer(p, vFinX, vFinY);
+      return;
+    }
+    // Monté puis redescendu, ou lâché sur le bois : on renonce. Les ressorts
+    // ramènent les cartes ; ils ne sont coupés qu'une fois endormis.
+    if (paq) {
+      paq.viser((mb) => { mb.x.cible = 0; mb.y.cible = 0; mb.rot.cible = 0; mb.ech.cible = 1; });
+      dx = 0; dy = 0;
+      const fini = () => { relacher(); P.selection = []; dessiner(); };
+      if (geste().direct || G.reduit()) fini();
+      else setTimeout(fini, 260);
+    } else relacher();
+    dire(aideTexte, null);
+  };
+
+  for (const z of [ratelier, tab].filter(Boolean)) {
+    z.addEventListener('pointerdown', debut);
+    z.addEventListener('pointermove', bouge);
+    z.addEventListener('pointerup', fin);
+    z.addEventListener('pointercancel', fin);
+  }
+  // LE CLAVIER DOUBLE LE GESTE : un geste raccourcit un ordre, il ne doit
+  // jamais être le seul chemin.
+  s.tabIndex = -1;
+  s.addEventListener('keydown', (e) => {
+    if (occupe || !P.selection.length) return;
+    if (e.key === 'ArrowUp' || e.key === 'Enter') { e.preventDefault(); tirer(null, 0, -600); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); rechargerLaMain(); }
+    if (e.key === 'Escape') { e.preventDefault(); P.selection = []; dessiner(); }
+  });
+
+  // La cible est repeinte à chaque changement de taille : sa hauteur en pixels
+  // dépend de la bande de mer, qui dépend de l'écran.
+  addEventListener('resize', peindreLaCible, { once: true });
+}
+
+/* ------------------------------------------------------- le rechargement */
+
+function rechargerLaMain() {
+  if (occupe || !P.selection.length) return;
+  const partis = P.selection;
+  P.main = P.main.filter((c) => !partis.includes(c));
+  P.pioche = [...partis, ...P.pioche];    // au FOND du paquet : on pioche avec pop()
+  P.selection = [];
+  const avant = P.main.map((c) => c.uid);
+  refaireLaMain();
+  neuves = P.main.filter((c) => !avant.includes(c.uid)).map((c) => c.uid);
+  dessiner();
+}
+
+/* --------------------------------------------------- le lâcher, et après */
+
+/* LA CARTE BONDIT PAR SON RESSORT, et non par une animation à part.
+   `element.animate()` sur `transform` remplace la transformation en ligne le
+   temps de l'animation : la carte aurait sauté de sa position en l'air à sa
+   position de repos, puis serait revenue. Une IMPULSION sur le ressort
+   d'échelle passe par le même solveur que tout le reste, donc elle compose
+   avec la position au lieu de l'écraser. */
+function bondir(m) {
+  if (!m || G.reduit()) return;
+  m.ech.v += 7;
+  m.rot.v += (Math.random() < 0.5 ? -1 : 1) * 90;
+}
+
+/* LE SCORE SE JOUE EN SÉQUENCE, JAMAIS D'UN COUP. Un chiffre qui tombe tout
+   fait ne se relie à rien ; joué carte par carte, le joueur voit d'où vient
+   chacun de ses points, dans l'ordre où il les a construits, et il apprend le
+   barème sans qu'on le lui explique.
+
+   ELLE TOURNE SUR LES CARTES ENCORE EN MAIN. Jouée après le retrait, elle
+   ferait bondir des cartes qui n'existent plus.
+
+   LE CHIFFRE EST CELUI DU CRAN, pas celui des munitions : c'est la seule
+   fiction du banc, et elle est là pour qu'on puisse éprouver une démontée
+   quand on veut plutôt que d'attendre la centième volée. Les munitions vraies
+   se partagent ce total au prorata de ce qu'elles valent, si bien que les
+   nombres qui montent restent plausibles. */
+async function sequenceDuScore(paq) {
+  const s = ecranEl(), mer = merEl();
+  if (!mer) return;
+  const q = cran();
+  s.classList.add('compte');
+  const nb = el('div', { class: 'cp-nb', text: '0' });
+  const compteur = el('div', { class: 'compteur' }, [nb]);
+  mer.appendChild(compteur);
+  requestAnimationFrame(() => compteur.classList.add('vu'));
+
+  // MOUVEMENT RÉDUIT : on pose le total et on passe. Pas de séquence à
+  // regarder, mais pas non plus un chiffre surgi de nulle part.
+  if (G.reduit()) {
+    nb.textContent = String(q.pression);
+    await G.attendre(380);
+    compteur.remove();
+    return;
+  }
+
+  const r = C.evaluer(P, P.selection);
+  const brut = r.lignes.filter((l) => l.source === 'carte');
+  const somme = brut.reduce((t, l) => t + (l.poudre || 0), 0) || 1;
+  const figure = r.lignes.find((l) => l.source === 'figure');
+  // La figure garde sa part du total, les munitions se partagent le reste.
+  const partFigure = figure ? Math.round(q.pression * 0.34) : 0;
+  const reste = q.pression - partFigure;
+
+  let courant = 0;
+  for (let i = 0; i < brut.length; i++) {
+    const l = brut[i];
+    const gain = i === brut.length - 1
+      ? reste - courant
+      : Math.round(reste * ((l.poudre || 0) / somme));
+    const mb = paq.membres.find((x) => x.n.dataset.uid === String(l.uid));
+    bondir(mb);
+    if (gain > 0 && mb) G.jaillir(volEl(), G.centre(mb.n, 0.5, 0.1), `+${gain}`);
+    G.rouler(nb, courant, courant + gain);
+    courant += gain;
+    await G.attendre(PAS_SEQUENCE);
+  }
+
+  // LE NOM DE LA FIGURE, EN GRAND ET AU CENTRE. Le seul moment où l'écran dit
+  // un MOT plutôt qu'un chiffre — et c'est ce qui fait qu'une triplette se
+  // retient.
+  if (figure) {
+    const titre = el('div', { class: 'figure-nom', text: String(figure.quoi).toUpperCase() });
+    mer.appendChild(titre);
+    titre.animate([
+      { transform: 'translate(-50%,-50%) scale(.5)', opacity: 0, letterSpacing: '10px' },
+      { transform: 'translate(-50%,-50%) scale(1.06)', opacity: 1, letterSpacing: '2px', offset: .3 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, letterSpacing: '2px', offset: .75 },
+      { transform: 'translate(-50%,-50%) scale(1.02)', opacity: 0, letterSpacing: '4px' },
+    ], { duration: 900, easing: 'cubic-bezier(.2,1.2,.3,1)' }).onfinish = () => titre.remove();
+    await G.attendre(240);
+    G.rouler(nb, courant, q.pression, 300);
+    await G.attendre(PAS_SEQUENCE + 160);
+  }
+
+  compteur.classList.add('total');
+  if (q.embrase) {
+    compteur.classList.add('ardent');
+    for (const mb of paq.membres) mb.n.classList.add('embrase');
+  }
+  G.rouler(nb, courant, q.pression, 320);
+  await G.attendre(320);
+  compteur.classList.remove('vu');
+  await G.attendre(140);
+  compteur.remove();
+  // `.compte` N'EST PAS RETIRÉE ICI. Elle efface la projection — la bulle qui
+  // annonce le total avant qu'on lâche — et il reste le lancer et l'impact à
+  // jouer. Retirée à la fin du compte, la bulle revenait par-dessus la coque
+  // pendant que la volée s'y écrasait, pour annoncer un total déjà tombé.
+  // C'est `dessiner()` qui la solde, en refaisant l'écran.
+}
+
+/* LA VOLÉE SE PRÉSENTE AVANT DE SE RÉSOUDRE. Lâché haut, le paquet restait
+   exactement où le doigt l'avait laissé — c'est-à-dire, une fois sur deux, sous
+   le compteur qui construit le score et sous le nom de la figure. Le seul
+   moment où l'écran dit un MOT plutôt qu'un chiffre était couvert par trois
+   cartes.
+
+   Il vient donc se ranger au même endroit à chaque fois, sous le compteur :
+   la séquence se lit, et les cinq variantes se comparent sur la même image
+   plutôt que chacune là où le geste l'a laissée. La montée elle-même reste
+   entièrement au doigt — c'est APRÈS le lâcher que le paquet se range. */
+function presenterLePaquet(paq) {
+  const mer = merEl();
+  if (!mer) return G.attendre(0);
+  const r = mer.getBoundingClientRect();
+  const but = { x: r.left + r.width * 0.5, y: r.top + r.height * 0.76 };
+  paq.viser((m, rang) => {
+    m.x.regler(200, 0.8).cible = but.x - m.cx + rang * 4;
+    m.y.regler(200, 0.8).cible = but.y - m.cy - rang * 4;
+    m.rot.cible = rang * -3;
+    m.ech.regler(220, 0.8).cible = 1;
+  });
+  return G.attendre(geste().direct ? 0 : 150);
+}
+
+/* LE LANCER — variante V, et elle seule. Le lâcher n'est plus un
+   relâchement : le paquet PART, avec la vitesse qu'avait le doigt, et c'est
+   lui qui va chercher l'impact.
+
+   IL NE PEINT PAS. Il déplace la cible des ressorts sur la coque et leur
+   INJECTE la vitesse du geste ; c'est la boucle de `tirer()` qui peint, comme
+   pour tout le reste. Une transition CSS aurait effacé cette vitesse, et le
+   lancer aurait eu la même allure quel que soit le geste qui l'a produit —
+   c'est-à-dire qu'il n'aurait plus rien eu d'un lancer. */
+function lancerLePaquet(paq, vFinX, vFinY) {
+  const but = pointDImpact();
+  paq.viser((m, rang) => {
+    m.x.regler(130, 1).cible = but.x - m.cx;
+    m.y.regler(130, 1).cible = but.y - m.cy;
+    m.rot.cible = (rang % 2 ? -1 : 1) * (30 + rang * 14);
+    m.ech.regler(100, 1).cible = 0.35;
+    // 0,45 et non 1 : à pleine vitesse du doigt, le paquet dépassait la coque
+    // et repartait de l'autre côté avant que le ressort le rattrape.
+    m.x.v += vFinX * 0.45; m.y.v += vFinY * 0.45;
+  });
+  return G.attendre(260);
+}
+
+/* SANS LE LANCER — variantes I à IV — la volée s'efface sur place. L'opacité
+   seule : animer la transformation ici la disputerait à la boucle qui peint. */
+function evanouirLePaquet(paq) {
+  paq.viser((m) => { m.ech.cible = 0.72; });
+  for (const m of paq.membres) {
+    m.n.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-in', fill: 'forwards' });
+  }
+  return G.attendre(200);
+}
+
+/* L'IMPACT. Les crans S'AJOUTENT : chacun garde ce que fait celui d'en dessous
+   et ajoute une chose. Cinq effets indépendants auraient donné cinq animations
+   au lieu d'une échelle. */
+async function impact() {
+  const q = cran(), mer = merEl(), but = pointDImpact();
+  if (q.eclair) G.eclair(mer, q.eclair);
+  G.copeaux(mer, but, { n: q.copeaux, force: 0.7 + iCran * 0.15 });
+  G.secousse(mer, q.secousse);
+  if (q.onde) G.onde(mer, but);
+  G.jaillir(volEl(), but, `+${q.pression}`, q.embrase ? 'mult' : '');
+  await G.attendre(q.onde ? 400 : 260);
+}
+
+async function tirer(paq, vFinX = 0, vFinY = -600) {
+  if (occupe || !P.selection.length) return;
+  occupe = true;
+
+  // LE CLAVIER DOUBLE LE GESTE, donc il doit passer par la MÊME chorégraphie :
+  // sans paquet, il n'y aurait ni séquence, ni lancer, ni bond — la flèche du
+  // haut aurait donné un autre jeu que le glissement, et le banc n'aurait plus
+  // mesuré qu'une seule des deux entrées.
+  if (!paq) {
+    const g = geste();
+    const s0 = ecranEl();
+    const noeuds = P.selection.map((c) => s0.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
+    paq = new G.Paquet(noeuds, { raideur: g.raideur || 300, zeta: g.zeta || 0.75, direct: g.direct });
+    for (const n of noeuds) n.classList.add('enlair');
+    const tete = paq.tete;
+    paq.viser((m, rang) => {
+      m.y.cible = -90 - rang * 3;
+      m.x.cible = tete.cx - m.cx + rang * 3;
+      m.rot.cible = rang * -2.5;
+      m.ech.cible = 1.1;
+      if (g.ombre) m.n.style.setProperty('--leve', '1');
+    });
+  }
+
+  // UNE SEULE BOUCLE, et elle appartient au lâcher. Elle ne vise plus rien :
+  // les cibles sont posées par la séquence, par le lancer ou par
+  // l'évanouissement, et elle se contente d'intégrer et de peindre.
+  let traine = false, tT = 0;
+  const arret = paq ? G.boucle((dt) => {
+    paq.peindre(dt);
+    const now = performance.now();
+    if (traine && now - tT > 34) { tT = now; G.trainee(volEl(), paq.tete.n, { opacite: 0.22 }); }
+    return true;
+  }) : null;
+
+  if (paq) { await presenterLePaquet(paq); await sequenceDuScore(paq); }
+
+  // LE LANCER PASSE APRÈS LA SÉQUENCE : la séquence fait bondir les cartes,
+  // donc elles doivent encore être en l'air quand elle tourne. Lancées
+  // d'abord, elle aurait animé des cartes déjà écrasées sur la coque.
+  if (paq) {
+    if (geste().lancer) { traine = geste().trainee > 0; await lancerLePaquet(paq, vFinX, vFinY); }
+    else await evanouirLePaquet(paq);
+  }
+  if (arret) arret();
+
+  await impact();
+
+  if (paq) paq.rendre();
+  const partis = P.selection;
+  P.main = P.main.filter((c) => !partis.includes(c));
+  P.defausse.push(...partis);
+  P.selection = [];
+  const avant = P.main.map((c) => c.uid);
+  refaireLaMain();
+  neuves = P.main.filter((c) => !avant.includes(c.uid)).map((c) => c.uid);
+  occupe = false;
+  dessiner();
+}
+
+/* --------------------------------------------------------------- au feu */
+
+startOcean(document.getElementById('ocean'), { horizon: 0.34 });
+randomOceanScene('brise');
+dessiner();
+addEventListener('resize', peindreLaCible);
+</script>
+</body>
+</html>

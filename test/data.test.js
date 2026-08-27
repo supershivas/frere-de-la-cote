@@ -299,7 +299,12 @@ test('combat randomness is confined to the legacy engine', () => {
   // and forbids it only in resolution. Each file below generates; the combat
   // engine (src/battle.js) and its screen appear nowhere here, and a separate
   // test in battle.test.js proves the engine reaches for no entropy at all.
-  const expected = ['src/map.js', 'src/ocean.js', 'src/fx.js', 'src/sprites.js',
+  // `src/gamefeel.js` est du DÉCOR, comme `src/fx.js` : la dispersion d'un
+  // grain de poussière ou d'un copeau se tire au sort, et doit l'être — deux
+  // impacts identiques au pixel près se lisent comme un bug d'affichage. Il ne
+  // décide rien : aucune de ses fonctions ne rend de valeur au jeu, elles
+  // peignent. La règle 1 vise `src/cartes.js`, et un test séparé l'y tient.
+  const expected = ['src/map.js', 'src/ocean.js', 'src/fx.js', 'src/gamefeel.js', 'src/sprites.js',
     'src/screens/event.js', 'src/screens/port.js', 'src/screens/treasure.js',
     'src/screens/editor.js', 'src/screens/shipyard.js', 'src/state.js', 'src/debug.js',
     'src/run.js'];
