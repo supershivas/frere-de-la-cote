@@ -1444,6 +1444,79 @@
    à la place de la réplique d'équipage, tant que le doigt reste posé — voir
    `direDansLeTableau()`. RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN.  */
 
+/* --- LE SCORE JOUÉ EN SÉQUENCE -------------------------------------------
+   Un chiffre qui tombe tout fait ne se relie à rien. Joué carte par carte, le
+   joueur voit d'où vient chacun de ses points, dans l'ordre où il les a
+   construits — et il apprend le barème sans qu'on le lui explique.
+
+   Tout vit dans `.mer` : c'est le seul endroit qui puisse trembler sans
+   emporter le râtelier et la main avec lui. */
+.screen.ecran-cartes .compteur {
+  position: absolute; z-index: 9; left: 50%; top: 52%;
+  transform: translate(-50%, -50%) scale(.8); opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s var(--ease-fast), transform .22s cubic-bezier(.2,1.3,.35,1);
+  background: rgba(20, 12, 8, .82);
+  border: 2px solid var(--gold-dark); border-radius: 12px;
+  padding: 4px 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.6);
+}
+.screen.ecran-cartes .compteur.vu { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.screen.ecran-cartes .compteur .cp-nb {
+  font-family: var(--font-body); font-weight: 700; font-size: 40px; line-height: 1.1;
+  color: var(--gold-light, #e8c877); text-shadow: 0 2px 6px rgba(0,0,0,.7);
+  font-variant-numeric: tabular-nums;
+}
+/* Le total : le cadre se resserre et le chiffre grossit d'un cran. */
+.screen.ecran-cartes .compteur.total { border-color: var(--gold-light, #e8c877); }
+.screen.ecran-cartes .compteur.total .cp-nb { font-size: 52px; }
+/* Au-delà de 200, l'or vif. */
+.screen.ecran-cartes .compteur.ardent { border-color: #ffe9a8; box-shadow: 0 0 34px rgba(255,205,110,.55), 0 8px 24px rgba(0,0,0,.6); }
+.screen.ecran-cartes .compteur.ardent .cp-nb {
+  color: #ffd76a;
+  text-shadow: 0 0 8px #fff, 0 0 26px rgba(255,190,80,.95), 0 3px 0 rgba(90,40,10,.85);
+}
+
+/* LE CHIFFRE QUI JAILLIT de ce qui vient de se déclencher — jamais d'un point
+   moyen : c'est ce qui relie le gain à sa cause. */
+.screen.ecran-cartes .mer .jaillit {
+  position: absolute; z-index: 10; pointer-events: none;
+  font-family: var(--font-body); font-weight: 700; font-size: 20px;
+  color: #fdf3d6; text-shadow: 0 2px 4px rgba(0,0,0,.8), 0 0 10px rgba(255,220,150,.6);
+  white-space: nowrap;
+}
+.screen.ecran-cartes .mer .jaillit.mult { color: #ffd76a; font-size: 24px; }
+
+/* LE NOM DE LA FIGURE, en grand et au centre : le seul moment où l'écran dit
+   un mot plutôt qu'un chiffre, et ce qui fait qu'une triplette se retient. */
+.screen.ecran-cartes .mer .figure-nom {
+  /* AU-DESSUS du compteur, jamais dessus : les deux étaient centrés au même
+     endroit et « PAIRE » s'écrivait en travers du chiffre. */
+  position: absolute; z-index: 11; left: 50%; top: 38%;
+  transform: translate(-50%, -50%);
+  pointer-events: none; white-space: nowrap;
+  font-family: var(--font-title); font-size: 30px; letter-spacing: 2px;
+  color: #fdf3d6;
+  text-shadow: 0 0 10px rgba(255,205,110,.9), 0 3px 0 rgba(60,28,8,.9), 0 6px 18px rgba(0,0,0,.7);
+}
+
+/* AU-DELÀ DE 200, LES CARTES S'EMBRASENT. C'est la seule fois où une carte
+   change de couleur : il faut que ça n'arrive presque jamais. */
+.screen.ecran-cartes .carte.embrase {
+  border-color: #ffb648;
+  box-shadow: 0 0 0 2px rgba(255,190,90,.6), 0 0 26px rgba(255,170,60,.75), 0 6px 14px rgba(0,0,0,.5);
+  animation: embraser .5s ease-out;
+}
+@keyframes embraser {
+  0% { filter: brightness(1); }
+  35% { filter: brightness(1.5) saturate(1.3); }
+  100% { filter: brightness(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen.ecran-cartes .carte.embrase { animation: none; }
+  .screen.ecran-cartes .compteur { transition: none; }
+}
+
 /* --- L'ÉCHELLE DE PUISSANCE ----------------------------------------------
    Cinq crans qui S'AJOUTENT. Tout vit dans `.mer` et jamais sur la page :
    secouer `body` déplacerait aussi le râtelier et la main, et les cartes qu'on
@@ -1522,6 +1595,14 @@
   opacity: 1; transform: translateX(-50%);
   box-shadow: 0 6px 18px rgba(0,0,0,.5);
 }
+/* PENDANT LA SÉQUENCE, LA PROJECTION S'EFFACE. Elle annonce le total avant
+   qu'on lâche — c'est sa raison d'être, rien n'est caché — mais laissée en
+   place pendant la résolution, elle affichait la réponse à côté du compteur qui
+   la construit, et il n'y avait plus rien à regarder monter. */
+.screen.ecran-cartes.compte .tableau.arme { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.94); }
+/* Le phylactère aussi : une réplique d'équipage est une respiration, et elle
+   n'a rien à faire par-dessus le compteur qui construit le score. */
+.screen.ecran-cartes.compte .phylactere { opacity: 0; }
 /* LE GROS CHIFFRE, seul et centré : c'est tout ce qu'on vient chercher. */
 .screen.ecran-cartes .tb-chiffre {
   font-family: var(--font-body); font-weight: 700; font-size: 30px; line-height: 1;

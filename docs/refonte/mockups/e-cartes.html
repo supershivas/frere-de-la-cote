@@ -827,7 +827,7 @@ function etatMajor() {
     const n = el('button', {
       class: `officier${ordre ? ' ordre' : ''}${fait ? ' fait' : ''}`,
       text: h.nom[0],
-      attrs: { type: 'button', 'aria-label': `${h.nom} — ${h.texte}` },
+      attrs: { type: 'button', 'aria-label': `${h.nom} — ${h.texte}`, 'data-homme': h.id },
       on: {
         click: () => {
           if (!ordre || fait) { souffler(`<b>${h.nom}</b>, ${h.titre} · ${h.texte}`); return; }
@@ -1311,9 +1311,167 @@ function onde(pt) {
   ], { duration: 620, easing: 'cubic-bezier(.15,.8,.3,1)' }).onfinish = () => o.remove();
 }
 
+/* ============================ LE SCORE SE JOUE EN SÉQUENCE ================
+   Il n'apparaît JAMAIS d'un coup. Chaque carte se déclenche à son tour, puis
+   les modificateurs d'équipage, puis le nom de la figure, puis le total roule —
+   et seulement là les canons tirent.
+
+   Pourquoi : un chiffre qui tombe tout fait ne se relie à rien. Joué en
+   séquence, le joueur VOIT d'où vient chacun de ses points, dans l'ordre où il
+   les a construits, et il apprend le barème sans qu'on le lui explique.
+
+   180 ms d'écart : assez pour que chaque temps se distingue, assez peu pour que
+   trois cartes tiennent en une demi-seconde. Une volée pleine avec figure et
+   modificateurs dure environ 1,6 s — au-delà, on attend son tour au lieu de le
+   savourer.
+
+   `prefers-reduced-motion` : tout est sauté, le total est posé, on tire. */
+const PAS_SEQUENCE = 180;
+
+// Le compteur qui roule. On n'interpole pas la VALEUR affichée depuis celle
+// qu'on lit à l'écran — on la tient dans l'état de l'animation. Relire le DOM
+// pour en repartir, c'est tirer une valeur stable d'une entrée qui bouge
+// (règle 9), et deux roulements qui se chevauchent partaient alors chacun d'un
+// nombre à demi écrit.
+function rouler(n, de, vers, duree = 260) {
+  if (!n) return;
+  const t0 = performance.now();
+  const pas = (t) => {
+    const k = Math.min(1, (t - t0) / duree);
+    const doux = 1 - (1 - k) * (1 - k);
+    n.textContent = String(Math.round(de + (vers - de) * doux));
+    if (k < 1) requestAnimationFrame(pas);
+  };
+  requestAnimationFrame(pas);
+}
+
+// Ce qui doit bondir pour une ligne donnée : la carte, le portrait d'un homme,
+// ou rien — auquel cas le jaillissement part du compteur lui-même.
+// `ecr` et non `scene` : `src/ocean.js` déclare déjà un `scene` au premier
+// niveau, et dans le fichier autonome tous les modules partagent une portée
+// (règle 11). Le bundler l'a refusé, ce qui est exactement son office.
+function sourceDe(ecr, l) {
+  if (l.source === 'carte' && l.uid != null) return ecr.querySelector(`.carte[data-uid="${l.uid}"]`);
+  if (l.source === 'homme' && l.id) return ecr.querySelector(`.officier[data-homme="${l.id}"]`);
+  if (l.source === 'munition' && l.id) return ecr.querySelector(`.carte.prise-en-main[data-role="${l.id}"]`);
+  return null;
+}
+
+// Le chiffre qui JAILLIT de l'élément, vers le haut. Il part de ce qui vient de
+// se déclencher, jamais d'un point moyen : c'est ce qui relie le gain à sa cause.
+function jaillir(depuis, texte, cls = '') {
+  const mer = document.querySelector('.ecran-cartes .mer');
+  if (!mer || !depuis) return;
+  const r = depuis.getBoundingClientRect();
+  const m = mer.getBoundingClientRect();
+  const n = el('div', { class: `jaillit ${cls}`, text: texte });
+  n.style.left = `${r.left + r.width / 2 - m.left}px`;
+  n.style.top = `${r.top - m.top}px`;
+  mer.appendChild(n);
+  n.animate([
+    { transform: 'translate(-50%, 0) scale(.7)', opacity: 0 },
+    { transform: 'translate(-50%, -14px) scale(1.15)', opacity: 1, offset: .25 },
+    { transform: 'translate(-50%, -46px) scale(1)', opacity: 0 },
+  ], { duration: 760, easing: 'cubic-bezier(.2,.9,.3,1)' }).onfinish = () => n.remove();
+}
+
+function bondir(n) {
+  if (!n) return;
+  n.animate([
+    { transform: 'translateY(-18px) scale(1.04)' },
+    { transform: 'translateY(-30px) scale(1.18)', offset: .35 },
+    { transform: 'translateY(-18px) scale(1.04)' },
+  ], { duration: 320, easing: 'cubic-bezier(.2,1.4,.35,1)' });
+}
+
+async function sequenceDuScore(r) {
+  const ecr = ecranCourant();
+  const mer = ecr && ecr.querySelector('.mer');
+  if (!mer) return;
+  const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // La projection s'efface le temps de la résolution : elle annonce le total
+  // avant qu'on lâche, mais laissée en place pendant la séquence elle affichait
+  // la réponse à côté du compteur qui la construit.
+  ecr.classList.add('compte');
+  const nb = el('div', { class: 'cp-nb', text: '0' });
+  const compteur = el('div', { class: 'compteur' }, [nb]);
+  mer.appendChild(compteur);
+  requestAnimationFrame(() => compteur.classList.add('vu'));
+
+  // Mouvement réduit : on pose le total et on passe. Pas de séquence à
+  // regarder, mais pas non plus de chiffre surgi de nulle part.
+  if (reduit) {
+    nb.textContent = String(r.total);
+    await attendre(420);
+    compteur.remove();
+    ecr.classList.remove('compte');
+    return;
+  }
+
+  // L'ORDRE DE LA SÉQUENCE n'est pas celui du calcul : les cartes d'abord,
+  // puis ce que l'équipage y ajoute, puis la figure — qui est le point
+  // d'orgue — puis la chaîne, qui double tout.
+  const cartes = r.lignes.filter((l) => l.source === 'carte');
+  const mods = r.lignes.filter((l) => ['homme', 'relique', 'munition'].includes(l.source));
+  const figure = r.lignes.find((l) => l.source === 'figure');
+  const chaine = r.lignes.find((l) => l.source === 'chaine');
+
+  let courant = 0;
+  const avancer = (l) => {
+    const gain = l.poudre || 0;
+    const src = sourceDe(ecr, l);
+    bondir(src);
+    if (gain > 0) jaillir(src || compteur, l.facteur ? `×${l.facteur}` : `+${gain}`, l.facteur ? 'mult' : '');
+    rouler(nb, courant, courant + gain);
+    courant += gain;
+  };
+
+  for (const l of cartes) { avancer(l); await attendre(PAS_SEQUENCE); }
+  for (const l of mods) { avancer(l); await attendre(PAS_SEQUENCE); }
+
+  // LE NOM DE LA FIGURE, EN GRAND ET AU CENTRE. C'est le seul moment où
+  // l'écran dit un mot plutôt qu'un chiffre, et c'est ce qui fait qu'une
+  // triplette se retient.
+  if (figure) {
+    const titre = el('div', { class: 'figure-nom', text: figure.quoi.toUpperCase() });
+    mer.appendChild(titre);
+    titre.animate([
+      { transform: 'translate(-50%,-50%) scale(.5)', opacity: 0, letterSpacing: '10px' },
+      { transform: 'translate(-50%,-50%) scale(1.06)', opacity: 1, letterSpacing: '2px', offset: .3 },
+      { transform: 'translate(-50%,-50%) scale(1)', opacity: 1, letterSpacing: '2px', offset: .75 },
+      { transform: 'translate(-50%,-50%) scale(1.02)', opacity: 0, letterSpacing: '4px' },
+    ], { duration: 900, easing: 'cubic-bezier(.2,1.2,.3,1)' }).onfinish = () => titre.remove();
+    await attendre(240);
+    avancer(figure);
+    await attendre(PAS_SEQUENCE + 180);
+  }
+  if (chaine) { avancer(chaine); await attendre(PAS_SEQUENCE + 120); }
+
+  // LE TOTAL, ET CE QU'IL DÉCLENCHE. Au-delà de 100 l'écran tremble ; au-delà
+  // de 200 les cartes s'embrasent et le chiffre passe en or vif.
+  compteur.classList.add('total');
+  if (r.total >= 200) {
+    compteur.classList.add('ardent');
+    for (const n of ecr.querySelectorAll('.carte.prise-en-main')) n.classList.add('embrase');
+    eclair(1);
+  }
+  rouler(nb, courant, r.total, 320);
+  if (r.total >= 100) secousse(r.total >= 200 ? 9 : 4, 380);
+  await attendre(560);
+  compteur.classList.remove('vu');
+  await attendre(200);
+  compteur.remove();
+  ecr.classList.remove('compte');
+}
+
 async function tirer() {
   if (occupe || P.fini || !P.selection.length) return;
   occupe = true;
+  // LE SCORE SE JOUE D'ABORD, SUR LES CARTES ENCORE EN MAIN. `jouer()` les
+  // retire de la main et `rendre()` les efface du DOM : joué après, la séquence
+  // aurait fait bondir des cartes qui n'existent plus.
+  await sequenceDuScore(C.evaluer(P, P.selection));
   const r = C.jouer(P);
   rendre();
 

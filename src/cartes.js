@@ -138,22 +138,36 @@ export function evaluer(P, cartes) {
   const synergies = [];
 
   /* --- ce que les munitions valent ------------------------------------- */
+  //
+  // CHAQUE LIGNE DIT D'OÙ ELLE VIENT. `source` et `uid`/`id` ne changent rien au
+  // compte : ils servent à l'écran, qui joue le score EN SÉQUENCE et doit savoir
+  // quoi faire bondir à chaque étape — la carte, le portrait d'un homme, la
+  // figure. Sans cette provenance, l'interface aurait dû deviner en relisant les
+  // noms, et un nom est du contenu qui change.
   let poudre = 0;
   for (const c of cartes) {
-    if (estFeu(c)) { lignes.push({ quoi: 'Feu', note: 'encombre la volée', poudre: 0 }); continue; }
-    if (c.mouillee) { lignes.push({ quoi: c.nom, note: 'mouillée — elle ne prend pas', poudre: 0 }); continue; }
+    if (estFeu(c)) { lignes.push({ quoi: 'Feu', note: 'encombre la volée', poudre: 0, source: 'carte', uid: c.uid }); continue; }
+    if (c.mouillee) { lignes.push({ quoi: c.nom, note: 'mouillée — elle ne prend pas', poudre: 0, source: 'carte', uid: c.uid }); continue; }
+    // LA BASE D'ABORD, LE DOUBLEMENT ENSUITE, et en deux lignes : le total est
+    // le même, mais l'écran peut donner son temps à chacun — la carte saute,
+    // puis Etcheverry tressaute et son ×2 part de LUI.
+    const base = c.poudre || 0;
     const v = poudreDe(c, P);
-    const double = c.id === 'boulet_rouge' && aHomme(P, 'etcheverry');
-    lignes.push({ quoi: c.nom, note: double ? 'Etcheverry le sort du fourneau' : null, poudre: v });
-    poudre += v;
+    lignes.push({ quoi: c.nom, note: null, poudre: base, source: 'carte', uid: c.uid });
+    poudre += base;
+    if (v > base) {
+      lignes.push({ quoi: 'Etcheverry', note: 'le sort du fourneau', poudre: v - base,
+        facteur: 2, source: 'homme', id: 'etcheverry', uid: c.uid });
+      poudre += v - base;
+    }
   }
-  const ajoute = (n, quoi, note) => { poudre += n; lignes.push({ quoi, note, poudre: n }); };
-  if (P.reliques.includes('caronades')) ajoute(6, 'Caronades', null);
+  const ajoute = (n, quoi, note, meta = {}) => { poudre += n; lignes.push({ quoi, note, poudre: n, ...meta }); };
+  if (P.reliques.includes('caronades')) ajoute(6, 'Caronades', null, { source: 'relique', id: 'caronades' });
 
   // LE BOULET ROUGE MET LE FEU À TOUTE LA VOLÉE. Il portait « +0,5 de fureur »,
   // qui n'existe plus ; il ajoute maintenant des points, comme tout le reste.
   const rouges = munitions.filter((c) => c.id === 'boulet_rouge' && !c.mouillee).length;
-  if (rouges) ajoute(4 * rouges, rouges > 1 ? `${rouges} boulets rouges` : 'Boulet rouge', 'chauffé au rouge');
+  if (rouges) ajoute(4 * rouges, rouges > 1 ? `${rouges} boulets rouges` : 'Boulet rouge', 'chauffé au rouge', { source: 'munition', id: 'boulet_rouge' });
 
   /* --- ce que leur assortiment ajoute ----------------------------------- */
   const fig = figureDe(cartes);
@@ -171,19 +185,23 @@ export function evaluer(P, cartes) {
   if (fig) {
     const F = FIGURES[fig];
     synergies.push(F.nom);
-    ajoute(F.pts, F.nom, F.note);
+    ajoute(F.pts, F.nom, F.note, { source: 'figure', id: fig });
     // Les grappins paient la figure la plus difficile à réunir.
-    if (fig === 'triplette' && P.reliques.includes('grappins')) ajoute(8, 'Grappins neufs', 'la triplette est tenue');
+    if (fig === 'triplette' && P.reliques.includes('grappins')) ajoute(8, 'Grappins neufs', 'la triplette est tenue', { source: 'relique', id: 'grappins' });
   }
 
   // Gohier ouvre la rencontre : la PREMIÈRE volée porte davantage.
-  if (aHomme(P, 'gohier') && P.bordees === bordeesDe(P)) ajoute(10, 'Gohier', 'la première volée de la rencontre');
+  if (aHomme(P, 'gohier') && P.bordees === bordeesDe(P)) ajoute(10, 'Gohier', 'la première volée de la rencontre', { source: 'homme', id: 'gohier' });
 
   // LA CHAÎNE d'une volée précédente DOUBLE celle-ci. C'est le seul produit qui
   // reste, et il tient parce qu'il ne se lit pas au moment du calcul : il a été
   // décidé au tour d'avant, et le tableau montre le total déjà doublé.
   let total = poudre;
-  if (P.chaine) { lignes.push({ quoi: 'Chaîne', note: 'la volée précédente double celle-ci', poudre: total }); total *= 2; }
+  if (P.chaine) {
+    lignes.push({ quoi: 'Chaîne', note: 'la volée précédente double celle-ci', poudre: total,
+      facteur: 2, source: 'chaine' });
+    total *= 2;
+  }
 
   return {
     lignes, synergies, figure: fig,

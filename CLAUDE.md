@@ -192,6 +192,44 @@ progression ne vient plus que de l'état-major et des reliques (on ne recrute
 plus de cartes dans le deck), soit environ +55 % de pression. Une résistance
 au-dessus de ~380 n'est atteignable par personne.
 
+### LE SCORE SE JOUE EN SÉQUENCE, jamais d'un coup
+
+Un chiffre qui tombe tout fait ne se relie à rien. Joué carte par carte, le
+joueur **voit d'où vient chacun de ses points**, dans l'ordre où il les a
+construits, et il apprend le barème sans qu'on le lui explique.
+
+**180 ms d'écart**, et l'ordre est celui du récit et non celui du calcul :
+
+1. **chaque carte** à son tour — elle bondit (scale 1,18), un `+8` jaillit
+   d'elle vers le haut, le compteur roule ;
+2. **les modificateurs d'équipage**, chacun le sien — le portrait tressaute, le
+   `×2` jaillit **de lui** ;
+3. **le nom de la figure**, en grand au centre : « TRIPLETTE ». Le seul moment
+   où l'écran dit un mot plutôt qu'un chiffre, et ce qui fait qu'une figure se
+   retient ;
+4. **le total roule**, et **seulement là les canons tirent**.
+
+Une volée pleine dure ~1,6 s. Au-delà, on attend son tour au lieu de le
+savourer.
+
+- **La séquence tourne AVANT `jouer()`**, sur les cartes encore en main :
+  `jouer()` les retire et `rendre()` les efface, donc jouée après elle aurait
+  fait bondir des cartes qui n'existent plus.
+- **Chaque ligne de `evaluer()` dit d'où elle vient** (`source`, `uid`/`id`,
+  `facteur`). Ça ne change rien au compte : sans cette provenance, l'interface
+  aurait dû deviner en relisant les noms — et un nom est du contenu qui change.
+- **La projection s'efface pendant la résolution.** La bulle annonce le total
+  avant qu'on lâche — c'est sa raison d'être, rien n'est caché — mais laissée en
+  place elle affichait la réponse à côté du compteur qui la construit.
+- **Le compteur roule depuis une valeur tenue dans l'animation**, jamais relue
+  dans le DOM : relire pour repartir, c'est tirer une valeur stable d'une entrée
+  qui bouge (règle 9), et deux roulements qui se chevauchent partaient chacun
+  d'un nombre à demi écrit.
+- **Au-delà de 100 l'écran tremble ; au-delà de 200 les cartes s'embrasent** et
+  le chiffre passe en or vif. C'est la seule fois où une carte change de
+  couleur : il faut que ça n'arrive presque jamais.
+- **`prefers-reduced-motion` saute tout** : le total est posé, on tire.
+
 ### Un seul ordre, un seul geste
 
 Rien en bas de l'écran, et **pas de largage** : les cartes reposent sur le
