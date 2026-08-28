@@ -15,7 +15,7 @@ bas (règle 11), une règle CSS d'apparence correcte sans effet depuis des mois
 ## Ton passage complet
 
 ```bash
-node test/run.js                                   # 192 vérifications, zéro dépendance
+node test/run.js                                   # 199 vérifications, zéro dépendance
 python3 -m http.server 8000 &
 npm i playwright-core                              # dev only ; le jeu reste sans dépendance
 CHROMIUM_PATH=$(which chromium) node tools/mobile-audit.mjs

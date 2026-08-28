@@ -43,6 +43,26 @@ six. Le biais par défaut est donc le retrait.
   (règle 10). Une carte posée avec `unshift` part au fond et n'arrive jamais en
   main — c'est arrivé à la carte Feu du brûlot, l'effet le plus visible de la
   prise, invisible, sans que rien ne le signale.
+- **Une carte est dans exactement UNE zone.** `pioche`, `main`, `defausse` se
+  partagent les mêmes objets — jamais des copies. Déplacer, c'est retirer d'un
+  tas ET poser dans l'autre : une carte retirée sans être posée disparaît en
+  silence, et une carte posée sans être retirée se duplique. Ni l'une ni l'autre
+  ne lève d'erreur ; on perd une partie sur une main légèrement fausse et l'on
+  cherche le défaut dans le barème.
+  - `P.deck` est la **maîtresse liste**, pas une zone : c'est elle que
+    `retirerDeLaPartie` doit trancher aussi, sinon la barrique ne jette que pour
+    une rencontre.
+  - `P.selection` n'est **pas une zone** : c'est une marque posée sur des cartes
+    qui restent en main.
+  - La carte **Feu** est la seule exception, et par construction : le brûlot la
+    pousse sur la pioche sans la mettre au deck, elle n'appartient pas au paquet
+    du joueur, et elle sort en étant jouée. Toute autre exception est un bug.
+  - Les suites `cartes — les zones` et `simple — les zones` tiennent tout cela.
+    Si tu ajoutes une zone ou un déplacement, étends-les dans le même mouvement.
+- **La pioche vide se rebat depuis la défausse**, et le tarissement complet est
+  un cas défini, pas un `break` accidentel. Sur le plateau F c'est le cas
+  NORMAL : trois cartes par volée et quatre bordées font douze cartes tirées
+  d'un paquet de onze.
 - **Un ordre impossible rend `false`**, avec son pourquoi (règle 5). Jamais un
   `return` muet : un refus silencieux consomme le geste du joueur.
 - **Sa carte touche la MAIN, pas la coque** — nous n'en avons pas. Aucune

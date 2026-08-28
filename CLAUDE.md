@@ -776,7 +776,7 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 192 vérifications, zéro dépendance
+node test/run.js          # 199 vérifications, zéro dépendance
 ```
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
@@ -801,6 +801,14 @@ le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
   est optimale, le joueur exécute un calcul, il ne choisit rien.
 - **« les trois fins »** — résistance atteinte, coque à zéro, quatre bordées
   tirées. Chacune rend un butin différent, et seule la première rend tout.
+- **« les zones »** — une carte est dans exactement une zone, du premier tour au
+  dernier. C'est l'invariant d'un jeu de cartes qui ne se voit JAMAIS quand il
+  casse : une munition dupliquée n'est qu'une main un peu chanceuse, une
+  munition perdue qu'un paquet un peu court. `P.deck` est la maîtresse liste et
+  non une zone — `retirerDeLaPartie` doit y trancher aussi, sinon la barrique ne
+  jette que pour une rencontre. `P.selection` est une marque, pas un tas. La
+  carte Feu est la seule carte d'une zone qui n'est pas au deck, parce qu'elle
+  n'est pas à nous.
 
 Dans `voyage.test.js` : on part toujours du même coin, on ne saute pas d'un
 bout de la mer à l'autre, et **chaque escale dit ce qu'elle est avant qu'on y

@@ -242,3 +242,66 @@ test('l’échelle des prises reste jouable de bout en bout', () => {
   }
   empty(bad, 'chaque prise doit être gagnable et perdable');
 });
+
+// LES ZONES. Onze cartes, et c'est précisément ce qui rend l'invariant vital
+// ici : ce plateau demande au joueur de SAVOIR ce qui reste, parce qu'il l'a vu
+// passer. Une carte dupliquée ou perdue ne casse rien de visible — elle rend
+// simplement fausse la seule connaissance que le plateau récompense, et la
+// ligne « au paquet » posée sur le bois se met à mentir.
+suite('simple — les zones');
+
+test('les onze cartes sont toujours quelque part, et à un seul endroit', () => {
+  const fautes = [];
+  for (const prise of CONTENU.prises) {
+    for (let s = 1; s <= 20; s++) {
+      const { P, rng } = partie(prise, s * 17);
+      for (let tour = 0; tour < 8 && !P.fin; tour++) {
+        const ou = new Map();
+        for (const [nom, tas] of [['main', P.main], ['pioche', P.pioche], ['defausse', P.defausse]])
+          for (const x of tas) { if (!ou.has(x)) ou.set(x, []); ou.get(x).push(nom); }
+        for (const [x, zs] of ou)
+          if (zs.length > 1) fautes.push(`${prise.id}/${s}: ${x.nom} est à la fois en ${zs.join(' et en ')}`);
+        if (ou.size !== 11) fautes.push(`${prise.id}/${s}/t${tour}: ${ou.size} cartes en jeu au lieu de onze`);
+        for (const x of P.selection)
+          if (!P.main.includes(x)) fautes.push(`${prise.id}/${s}: une carte sélectionnée n'est plus en main`);
+        const volee = S.meilleureVolee(P);
+        if (!volee || !volee.length) break;
+        for (const x of volee) S.selectionner(P, x);
+        S.jouer(P); S.completer(P, rng);
+      }
+    }
+  }
+  empty(fautes, 'les onze cartes ne se comptent plus');
+});
+
+test('« au paquet » dit la vérité, tour après tour', () => {
+  // La ligne posée sur le bois est le seul relevé du plateau. Si elle s'écarte
+  // du contenu réel de la pioche, cacher le compte aurait mieux valu que le
+  // donner faux.
+  const { P, rng } = partie(SANS_FIN, 3);
+  for (let tour = 0; tour < 6 && !P.fin; tour++) {
+    const dit = S.resteParType(P);
+    const vrai = {};
+    for (const x of P.pioche) vrai[x.id] = (vrai[x.id] || 0) + 1;
+    for (const id of new Set([...Object.keys(dit), ...Object.keys(vrai)]))
+      equal(dit[id] || 0, vrai[id] || 0, `« au paquet » annonce ${dit[id] || 0} ${id} pour ${vrai[id] || 0} en pioche`);
+    const volee = S.meilleureVolee(P);
+    if (!volee || !volee.length) break;
+    for (const x of volee) S.selectionner(P, x);
+    S.jouer(P); S.completer(P, rng);
+  }
+});
+
+test('la défausse se rebat : onze cartes ne suffisent pas à quatre bordées', () => {
+  // Trois cartes par volée, quatre bordées : douze cartes tirées d'un paquet de
+  // onze. Le rebattage n'est donc pas un cas limite ici, c'est le cas NORMAL —
+  // et sans lui la dernière bordée se jouerait à une main dépeuplée, en
+  // silence.
+  const { P, rng } = partie(SANS_FIN, 9);
+  // Tout à la défausse — la main COMPRISE : une carte qu'on retire d'un tas
+  // sans la poser dans un autre est exactement la faute que ce test surveille.
+  P.defausse.push(...P.pioche.splice(0), ...P.main.splice(0));
+  S.completer(P, rng);
+  assert(P.main.length > 0, 'pioche vide et défausse pleine : la main est restée vide');
+  equal(P.main.length + P.pioche.length + P.defausse.length, 11, 'le rebattage a perdu ou fabriqué des cartes');
+});

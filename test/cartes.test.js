@@ -633,3 +633,103 @@ test('the line-of-battle ship is out of reach of a starting crew', () => {
   for (let s = 1; s <= 40; s++) if (duel(CONTENU.prises[4], s * 613, true)) bons++;
   assert(bons <= 4, `le vaisseau tombe ${bons}/40 avec l'équipage de départ — la progression n'a rien à vendre`);
 });
+
+// LES ZONES. Une carte est quelque part, et à un seul endroit. C'est
+// l'invariant qui, dans un jeu de cartes, ne se voit jamais quand il casse :
+// une munition dupliquée n'est qu'une main un peu chanceuse, une munition
+// perdue n'est qu'un paquet un peu court, et ni l'une ni l'autre ne lève
+// d'erreur. On perd une partie sur une main légèrement fausse, et l'on cherche
+// le défaut dans le barème.
+//
+// Le partage est le suivant, et il est exact :
+//
+//   `P.deck` est la MAÎTRESSE LISTE, pas une zone. `pioche`, `main` et
+//   `defausse` se la partagent — les mêmes objets, jamais des copies.
+//   `retirerDeLaPartie` doit donc trancher dans `deck` AUSSI, sinon la barrique
+//   ne jette que pour une rencontre et la carte revient au réengagement.
+//
+//   `P.selection` n'est PAS une zone : c'est une marque posée sur des cartes
+//   qui restent en main. Compter ses cartes comme un quatrième tas ferait voir
+//   des doublons partout.
+//
+//   Une carte FEU est la seule exception, et par construction : le brûlot la
+//   pousse sur la pioche sans la mettre au deck, parce qu'elle n'appartient pas
+//   au paquet du joueur. Elle sort en étant jouée (`jouer` ne la défausse pas)
+//   ou par une barrique, et elle ne survit pas à la rencontre.
+suite('cartes — les zones');
+
+const zonesDe = (P) => {
+  const ou = new Map();
+  for (const [nom, tas] of [['main', P.main], ['pioche', P.pioche], ['defausse', P.defausse]])
+    for (const c of tas) { if (!ou.has(c)) ou.set(c, []); ou.get(c).push(nom); }
+  return ou;
+};
+
+test('une carte est dans exactement une zone, du premier tour au dernier', () => {
+  const fautes = [];
+  for (const prise of CONTENU.prises) {
+    for (let s = 1; s <= 20; s++) {
+      const { P, rng } = partie(prise, s * 31);
+      for (let tour = 0; tour < 12 && !P.fin; tour++) {
+        const ou = zonesDe(P);
+        for (const [c, zs] of ou)
+          if (zs.length > 1) fautes.push(`${prise.id}/${s}: ${c.nom} est à la fois en ${zs.join(' et en ')}`);
+        // La maîtresse liste, aux Feu près — qui n'en font jamais partie.
+        const compte = [...ou.keys()].filter((c) => !C.estFeu(c)).length;
+        if (compte !== P.deck.length)
+          fautes.push(`${prise.id}/${s}/t${tour}: ${compte} cartes dans les zones pour ${P.deck.length} au deck`);
+        for (const c of P.selection)
+          if (!P.main.includes(c)) fautes.push(`${prise.id}/${s}: une carte sélectionnée n'est plus en main`);
+        const volee = C.meilleureVolee(P);
+        if (!volee || !volee.length) break;
+        for (const c of volee) C.selectionner(P, c);
+        C.jouer(P); C.riposter(P); C.completer(P, rng);
+      }
+    }
+  }
+  empty(fautes, 'les zones ne se partagent plus les cartes proprement');
+});
+
+test('la barrique jette hors de la MAÎTRESSE liste, pas seulement de la main', () => {
+  // Une carte jetée par-dessus bord qui resterait au deck reviendrait au
+  // réengagement : l'amincissement redeviendrait une défausse, et la barrique
+  // n'aurait plus de verbe propre.
+  const { P } = partie(CONTENU.prises[0], 7);
+  const avant = P.deck.length;
+  const cible = P.main.find((c) => c.id !== 'barrique') || P.main[0];
+  C.retirerDeLaPartie(P, cible);
+  equal(P.deck.length, avant - 1, 'la carte est sortie des zones mais pas du deck');
+  for (const tas of [P.main, P.pioche, P.defausse, P.deck, P.selection])
+    assert(!tas.includes(cible), 'la carte jetée traîne encore dans un tas');
+});
+
+test('le paquet ne se tarit jamais : la défausse se rebat quand la pioche est vide', () => {
+  // Sans rebattage, une pioche vide fait échouer la relève en SILENCE : la main
+  // se remplit à moitié et le joueur croit à une mauvaise donne.
+  const { P, rng } = partie(CONTENU.prises[0], 5);
+  P.defausse.push(...P.pioche.splice(0));
+  assert(P.defausse.length > 0, 'la mise en place du test est fausse');
+  P.main.splice(0);
+  C.completer(P, rng);
+  assert(P.main.length > 0, 'pioche vide et défausse pleine : la main est restée vide');
+  empty(P.main.filter((c) => !P.deck.includes(c) && !C.estFeu(c)),
+    'le rebattage a fabriqué des cartes qui ne sont pas au deck');
+});
+
+test('une carte Feu ne reste jamais dans le paquet du joueur', () => {
+  // Elle vient du brûlot, elle n'est pas à nous. Jouée, elle ne se défausse
+  // pas ; jetée par une barrique, elle disparaît. Dans les deux cas elle ne
+  // doit pas se retrouver au deck, sinon le brûlot amocherait la partie et non
+  // la rencontre.
+  const { P, rng } = partie(CONTENU.prises[0], 11);
+  const feu = { ...CONTENU.munitions[0], id: 'feu', nom: 'Feu', poudre: 0, bord: 'babord', uid: ++faux };
+  P.pioche.push(feu);
+  P.main.splice(0);
+  C.completer(P, rng);
+  assert(P.main.includes(feu), 'la carte Feu poussée sur le dessus n’arrive pas en main (règle 10)');
+  assert(!P.deck.includes(feu), 'la carte Feu s’est glissée dans la maîtresse liste');
+  C.selectionner(P, feu);
+  C.jouer(P);
+  assert(!P.defausse.includes(feu), 'la carte Feu est retombée dans la défausse : elle reviendra');
+  assert(!P.main.includes(feu), 'la carte Feu est restée en main après avoir été jouée');
+});
