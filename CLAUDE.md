@@ -420,35 +420,34 @@ sert `tools/mobile-audit.mjs`.
 - **Les cartes ont une largeur fixe**, calculée pour la main pleine. En
   `flex: 1` elles s'élargissaient à mesure qu'on en jouait : la main changeait
   de forme sous le pouce.
-- **La carte porte DEUX couleurs, pas une.** Le fond dit le bord, le bandeau
-  dit la munition. Un seul aplat ne pouvait dire qu'une des deux choses.
-- **LES DEUX FAMILLES DE COULEUR SONT SÉPARÉES, et c'est la règle qui prime :
-  le fond est TOUJOURS SOMBRE et dit le bord, le bandeau TOUJOURS CLAIR et dit
-  la munition.** Le rouge et le vert appartenaient aux deux à la fois — le rouge
-  disait canonnier ET bâbord, le vert charpentier ET tribord — et rien ne
-  permettait de savoir laquelle des deux choses une couleur nommait. Les fonds
-  gardent le rouge et le vert, mais **très sourds** (bâbord `#5c2620`, tribord
-  `#1a4433`) : des teintes de carton, pas des signaux. Les munitions passent à une
-  **famille claire** qui ne peut être confondue avec aucun fond — ramé pierre
-  `#d9d2c4`, rouge or `#e0a93c`, mitraille bleu `#6fa8c9`, chaîne violet
-  `#9b8bbd`, barrique bois `#c08b5c` — en encre sombre `#241608`, la même pour
-  les cinq. Ne jamais rendre une couleur de munition rouge ou verte : elles
-  appartiennent aux bords.
+- **LA CARTE EST CRÈME, ET SON CADRE DIT LA MUNITION.** Elle a porté deux
+  couleurs — un fond sombre pour le bord, un bandeau clair pour la munition —
+  tant que bâbord et tribord décidaient de ce qui pouvait tirer ensemble. Ce
+  bord est **retiré** : il ne reste qu'une chose à dire par carte, et une carte
+  qui n'a qu'une chose à dire n'a pas besoin de deux aplats. Le carton reprend
+  sa couleur de carton (`#f2ead6`), et le cadre — **5 px, pas un liséré** —
+  porte tout. À 1 px il se lisait comme une ombre.
+- **TROIS PORTEURS POUR UNE SEULE INFORMATION : le cadre, le glyphe et LA
+  VALEUR**, tous trois dans la couleur du type. Le chiffre était en encre
+  sombre : la chose la plus grande de la carte ne disait rien de ce qu'on
+  assortit, l'œil allait au chiffre et la couleur restait sur la tranche.
 - **CINQ MUNITIONS, CINQ COULEURS**, et c'est la répétition qui rend les figures
-  lisibles : deux bandeaux de la même couleur côte à côte SONT une paire, et on
-  la voit sans lire un mot. Une figure qu'il faut lire pour la voir n'est pas
-  une figure.
-- **Le BORD porte le fond, la MUNITION porte le bandeau.** C'est le bord qui
-  décide ce qui tire ensemble, donc c'est lui qu'on doit voir en premier : il
-  est l'enseigne, comme une couleur aux cartes à jouer, et il n'en existe que
-  deux. L'inverse avait été essayé (le type en fond, le bord en tranche de
-  5 px) : la tranche se perdait dans le fond.
-- **La munition est un BANDEAU PLEIN**, toute la largeur, 26 % de la hauteur,
-  dans sa propre couleur (voir la règle des deux familles ci-dessus), avec un
-  **glyphe SVG** au centre : boulet, voile, haches croisées, planche. Pas un emoji : un emoji change de
-  forme et de couleur d'un téléphone à l'autre. Le glyphe se dimensionne sur la
-  HAUTEUR du bandeau ; mesuré sur la largeur de la carte, il poussait le nom
-  dehors.
+  lisibles : deux cadres de la même couleur côte à côte SONT une paire, et on la
+  voit sans lire un mot. Une figure qu'il faut lire pour la voir n'est pas une
+  figure. Les teintes sont **sombres**, puisqu'elles se détachent maintenant sur
+  du crème et non plus sur un fond noir : ramé fonte `#6f6553`, rouge `#b3261d`,
+  mitraille acier `#2f6f8f`, chaîne violet `#6f5d99`, barrique bois `#96633a`.
+- **DEUX GRIS NE FONT PAS DEUX COULEURS.** Le ramé (`#8a7f6c`) et la mitraille
+  (`#6b7176`) étaient deux gris à **1,26:1 l'un de l'autre**, sans hue ni écart
+  de clarté : la même couleur à 5 px de cadre — et ce sont les deux munitions
+  les plus nombreuses du paquet, celles qu'il faut justement assortir. Le ramé
+  est descendu vers la fonte, la mitraille a repris son bleu d'acier. **Seul le
+  boulet rouge se nomme par sa couleur**, et lui seul la garde par obligation ;
+  les autres noms ne disent aucune teinte, donc aucune teinte ne leur est due.
+- **Le glyphe est un SVG, jamais un emoji** : un emoji change de forme et de
+  couleur d'un téléphone à l'autre. Il monte en haut de la carte, là où était le
+  bandeau, et se dimensionne sur la HAUTEUR de ce champ ; mesuré sur la largeur
+  de la carte, il poussait le nom dehors.
 - **Les cartes se rangent derrière CELLE QU'ON TIENT**, pas derrière la dernière
   du DOM ni derrière la dernière choisie. `querySelectorAll` rend les cartes de
   gauche à droite, si bien qu'en sélectionnant de droite à gauche le tas se
@@ -459,11 +458,12 @@ sert `tools/mobile-audit.mjs`.
 - **On lâche la volée N'IMPORTE OÙ au-dessus du bois.** La zone de dépôt faisait
   la taille d'une carte : il fallait viser, et un geste qui demande de viser est
   un bouton déguisé.
-- **Le bandeau est toujours en haut.** Il était collé en haut ou en bas selon
-  que l'homme servait à l'avant ou à l'arrière ; l'avant et l'arrière sont
-  retirés, et c'est une chose de moins à décoder sur chaque carte.
-- **Une main se lit alors comme des jetons** : deux fonds, quatre couleurs de
-  bandeau, et pas un mot à lire.
+- **Le glyphe est toujours en haut.** Le bandeau qu'il a remplacé était collé en
+  haut ou en bas selon que l'homme servait à l'avant ou à l'arrière ; l'avant et
+  l'arrière sont retirés, et c'est une chose de moins à décoder sur chaque
+  carte.
+- **Une main se lit alors comme des jetons** : cinq couleurs de cadre, et pas un
+  mot à lire.
 - **La carte est au rapport 1 pour 1,45**, la proportion d'une carte à jouer.
   À 1 pour 2,5 elle était une lame, et le centre restait vide entre le haut et
   le pied. La valeur occupe ce centre et fait 40 % de la hauteur ; le nom passe
@@ -473,11 +473,11 @@ sert `tools/mobile-audit.mjs`.
   doigt. Un seul dégradé en `multiply`, et rien d'autre.
 - **Un niveau ne s'affiche que s'il existe**, en étoiles. « niv. 0 » sur douze
   cartes, c'était douze fois la même information vide.
-- **La valeur est la chose la plus lisible de la carte.** Contrastes mesurés de
-  l'encre crème `#f7efd8` sur les deux fonds : bâbord 10,4:1 · tribord 9,5:1 ;
-  de l'encre `#241608` sur les quatre bandeaux : pierre 11,7 · or 8,3 · bleu
-  6,8 · violet 5,7 ; et de chaque bandeau contre chaque fond, du moins au plus
-  contrasté : violet sur tribord 3,6:1, pierre sur bâbord 8:1.
+- **La valeur est la chose la plus lisible de la carte.** Elle fait 36 px en
+  gras — du GRAND texte, qui demande 3:1 — et les cinq teintes sont toutes
+  au-dessus du seuil du PETIT texte sur le crème `#f2ead6` : ramé 4,8:1 · rouge
+  5,5:1 · mitraille 4,6:1 · chaîne 4,7:1 · barrique 4,2:1. C'est ce qui permet
+  de lui donner la couleur du type sans rien perdre en lisibilité.
 - **Un homme injouable se DÉSATURE, il ne s'efface pas** : sous 0,55
   d'opacité sa valeur cesse d'être lisible, et une carte qu'on ne peut pas
   lire ne dit plus pourquoi elle est refusée.

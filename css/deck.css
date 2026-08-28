@@ -1859,10 +1859,10 @@
    aplats. Le carton reprend sa couleur de carton, et le cadre porte tout.
 
    Trois pixels, pas un liséré : à cinq cartes sur 375 px, un trait de 1 px ne
-   se distingue pas d'une ombre. Contrastes du cadre sur le crème, mesurés :
-   ramé 1,5:1 · rouge 1,9:1 · mitraille 2,4:1 · chaîne 2,6:1 · barrique 2,3:1 —
-   c'est peu, donc le cadre ne travaille jamais seul : le glyphe est de la même
-   couleur, et le NOM aussi. Trois porteurs pour une information. */
+   se distingue pas d'une ombre. Le cadre ne travaille jamais seul : le glyphe
+   est de la même couleur, et LA VALEUR aussi — trois porteurs pour une seule
+   information. Contrastes mesurés sur le crème #f2ead6 : ramé 4,8:1 ·
+   rouge 5,5:1 · mitraille 4,6:1 · chaîne 4,7:1 · barrique 4,2:1. */
 /* UNE SEULE DÉFINITION, VALABLE PARTOUT OÙ L'ON MONTRE UNE CARTE — la main,
    le listeau, et le contenu d'un paquet dans une modale. Le préfixe était
    `.screen.ecran-cartes` : une modale n'est pas un écran, donc aucune de ces
@@ -1920,12 +1920,16 @@
    redonnait les cinq teintes une seconde fois — deux définitions pour la même
    information, donc deux occasions de diverger (règle 3). Portée par le seul
    `data-role`, elle vaut partout où un type s'annonce. */
-.ecran-cartes [data-role="boulet_rame"]  { --metier: #8a7f6c; }
-/* Le boulet ROUGE est rouge, et la mitraille est GRISE : les munitions se
-   nomment par leur couleur, et lui donner un or ou un bleu demandait
-   d'apprendre une correspondance contre le nom même de la carte. */
+/* DEUX GRIS NE FONT PAS DEUX COULEURS. Le boulet ramé était #8a7f6c et la
+   mitraille #6b7176 : 1,26:1 l'un contre l'autre, deux teintes sans hue, donc
+   la même couleur à 5 px de cadre et à un mètre de l'œil — et ce sont les deux
+   munitions les plus nombreuses du paquet, celles qu'il faut assortir. Le ramé
+   descend vers la FONTE (plus sombre, franchement chaud), la mitraille reprend
+   son BLEU d'acier. Seul le boulet ROUGE se nomme par sa couleur, et lui seul
+   la garde par obligation. */
+.ecran-cartes [data-role="boulet_rame"]  { --metier: #6f6553; }
 .ecran-cartes [data-role="boulet_rouge"] { --metier: #b3261d; }
-.ecran-cartes [data-role="mitraille"]    { --metier: #6b7176; }
+.ecran-cartes [data-role="mitraille"]    { --metier: #2f6f8f; }
 .ecran-cartes [data-role="chaine"]       { --metier: #6f5d99; }
 .ecran-cartes [data-role="barrique"]     { --metier: #96633a; }
 
@@ -1945,12 +1949,19 @@
 
 /* LA VALEUR occupe le centre DU CHAMP LIBRE — les 74 % que le bandeau laisse —
    et fait 40 % de la hauteur de la carte. La marge la recentre dans ce qui
-   reste, sinon elle était centrée sur la carte entière et frôlait le bandeau. */
+   reste, sinon elle était centrée sur la carte entière et frôlait le bandeau.
+
+   ELLE EST DE LA COULEUR DU CADRE, et c'est le troisième porteur du type. En
+   encre sombre, elle était la chose la plus grande de la carte et ne disait
+   rien de ce qu'on assortit : l'œil allait au chiffre, la couleur restait sur
+   la tranche. Elle fait 36 px en gras — du GRAND texte, qui demande 3:1 — et
+   les cinq teintes sont entre 4,2 et 5,5:1 sur le crème, donc au-dessus même
+   du seuil du petit texte. */
 .ecran-cartes .carte .c-val {
   font-family: var(--font-body); font-weight: 700;
   font-size: calc(var(--carte-h, 90px) * .4);
   line-height: 1; letter-spacing: -1px; z-index: 1;
-  color: #241608;
+  color: var(--metier, #241608);
 }
 .ecran-cartes .carte .c-val { margin-top: 26%; }
 
