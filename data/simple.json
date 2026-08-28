@@ -1,29 +1,48 @@
 {
-  "_doc": "LA VOLÉE NUE — le contenu du plateau simplifié (src/simple.js, docs/refonte/mockups/f-simple.html). ONZE CARTES, TROIS TYPES : quatre boulets ramés, quatre mitrailles, trois boulets rouges. Une carte n'a qu'un NOM et une POUDRE — aucun effet, aucun bord, aucun niveau. La puissance d'une volée, c'est la somme des poudres plus ce que la figure ajoute, et rien d'autre. Ajouter un type ou changer le paquet ne demande aucune ligne de code.",
+  "_doc": "LA VOLÉE NUE — le contenu du jeu (src/simple.js, docs/refonte/mockups/f-simple.html). ONZE CARTES, CINQ TYPES, TROIS RARETÉS : deux communes à trois exemplaires (6), deux peu communes à deux (4), une rare à un seul (1). Une carte n'a qu'un NOM, une POUDRE et une RARETÉ — aucun effet, aucun bord, aucun niveau. La puissance d'une volée, c'est la somme des poudres plus ce que la figure ajoute, et rien d'autre. LA RARETÉ EST UNE FRÉQUENCE, PAS UN POUVOIR : elle ne dit que le nombre d'exemplaires au paquet. Changer le paquet ou ajouter un type ne demande aucune ligne de code.",
   "cartes": [
-    {
-      "id": "boulet_rame",
-      "nom": "Boulet ramé",
-      "poudre": 6,
-      "texte": "Deux boulets liés par une barre. Le rang courant : quatre au paquet, et c'est avec eux qu'on fait ses paires."
-    },
     {
       "id": "mitraille",
       "nom": "Mitraille",
       "poudre": 4,
-      "texte": "Des clous et de la ferraille. La plus faible du paquet — mais il y en a quatre, et une triplette de mitraille vaut mieux qu'un boulet rouge seul."
+      "rarete": "commune",
+      "texte": "Des clous et de la ferraille. La plus faible du paquet — mais il y en a trois, et une triplette de mitraille vaut mieux que la Carcasse toute seule."
+    },
+    {
+      "id": "boulet_rame",
+      "nom": "Boulet ramé",
+      "poudre": 6,
+      "rarete": "commune",
+      "texte": "Deux boulets liés par une barre. Le rang courant : trois au paquet, et la triplette qu'on vise le plus souvent."
+    },
+    {
+      "id": "boulet_chaine",
+      "nom": "Boulet à chaîne",
+      "poudre": 8,
+      "rarete": "peu_commune",
+      "texte": "Deux demi-boulets au bout d'une chaîne. Deux au paquet : une paire, au mieux."
     },
     {
       "id": "boulet_rouge",
       "nom": "Boulet rouge",
       "poudre": 10,
-      "texte": "Chauffé au rouge dans le fourneau. Trois au paquet, et pas un de plus : c'est la carte qu'on attend, et celle qu'on compte."
+      "rarete": "peu_commune",
+      "texte": "Chauffé au rouge dans le fourneau. Deux au paquet, et pas un de plus : c'est la carte qu'on attend, et celle qu'on compte."
+    },
+    {
+      "id": "carcasse",
+      "nom": "Carcasse",
+      "poudre": 16,
+      "rarete": "rare",
+      "texte": "Un boulet creux bourré de matière incendiaire. Une seule au paquet, et elle est seule de son espèce : aucune figure ne la prendra jamais."
     }
   ],
   "deck": {
-    "boulet_rame": 4,
-    "mitraille": 4,
-    "boulet_rouge": 3
+    "mitraille": 3,
+    "boulet_rame": 3,
+    "boulet_chaine": 2,
+    "boulet_rouge": 2,
+    "carcasse": 1
   },
   "figures": [
     {
@@ -45,8 +64,9 @@
       "nom": "Barque longue",
       "rang": "petite prise",
       "hullClass": 6,
-      "resistance": 104,
-      "butin": 14
+      "resistance": 120,
+      "butin": 14,
+      "prise_mesuree": "100%"
     },
     {
       "id": "flute",
@@ -54,31 +74,55 @@
       "rang": "marchand",
       "hullClass": 4,
       "resistance": 132,
-      "butin": 20
+      "butin": 20,
+      "prise_mesuree": "88%"
     },
     {
       "id": "galion",
       "nom": "Galion d'argent",
       "rang": "gros porteur",
       "hullClass": 2,
-      "resistance": 140,
-      "butin": 28
+      "resistance": 136,
+      "butin": 28,
+      "prise_mesuree": "78%"
     },
     {
       "id": "fregate",
       "nom": "Frégate royale",
       "rang": "escorte",
       "hullClass": 3,
-      "resistance": 150,
-      "butin": 36
+      "resistance": 146,
+      "butin": 36,
+      "prise_mesuree": "37%"
     },
     {
       "id": "vaisseau",
       "nom": "Vaisseau de ligne",
       "rang": "vaisseau",
       "hullClass": 1,
-      "resistance": 166,
-      "butin": 48
+      "resistance": 150,
+      "butin": 48,
+      "prise_mesuree": "23%"
+    }
+  ],
+  "raretes": [
+    {
+      "id": "commune",
+      "nom": "Commune",
+      "exemplaires": 3,
+      "texte": "Trois au paquet. C'est avec elles qu'on fait ses triplettes — ce sont les seules qui puissent en former."
+    },
+    {
+      "id": "peu_commune",
+      "nom": "Peu commune",
+      "exemplaires": 2,
+      "texte": "Deux au paquet. De quoi faire une paire, jamais une triplette."
+    },
+    {
+      "id": "rare",
+      "nom": "Rare",
+      "exemplaires": 1,
+      "texte": "Une seule au paquet. Elle ne s'assortit avec rien : elle ne vaut que sa poudre, et c'est pour ça qu'elle est grosse."
     }
   ]
 }

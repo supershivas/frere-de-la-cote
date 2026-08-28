@@ -1,6 +1,6 @@
 // Assemble une maquette en UN SEUL fichier autonome.
 //
-//   node tools/bundle-mockup.mjs docs/refonte/mockups/e-cartes.html dist/e-cartes.html
+//   node tools/bundle-mockup.mjs docs/mockups/jeu.html dist/jeu.html
 //
 // Pourquoi : la maquette du dépôt charge les vrais modules et les vraies
 // feuilles par HTTP — c'est ce qui garantit qu'elle ne réinvente pas
@@ -28,7 +28,7 @@ const lire = (p) => readFileSync(resolve(racine, p), 'utf8');
 // est écrit une fois pour toutes ; CE QUI CHANGE D'UNE MAQUETTE À L'AUTRE, ce
 // sont les modules qu'elle importe, et ils se LISENT dans la maquette plutôt
 // que de se redéclarer ici. Deux plateaux coexistent (`e-cartes.html` et
-// `f-simple.html`) et n'ont pas les mêmes règles : une liste figée aurait
+// `jeu.html`) et n'ont pas les mêmes règles : une liste figée aurait
 // embarqué les deux dans chacun, ou — bien pire, parce que rien ne le signale —
 // livré une page muette pour celui qui n'était pas dans la liste.
 const ORDRE = ['src/caribbean.js', 'src/voyage.js', 'src/cartes.js', 'src/simple.js',

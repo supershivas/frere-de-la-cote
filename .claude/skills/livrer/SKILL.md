@@ -20,9 +20,9 @@ relecture.
 Les deux fichiers sortent du même outil, à la même commande :
 
 ```bash
-node tools/bundle-mockup.mjs docs/refonte/mockups/e-cartes.html dist/e-cartes.html
-# → dist/e-cartes.html          le jeu seul, autonome     (téléphone)
-# → dist/e-cartes-desktop.html  le même, dans un châssis   (banc)
+node tools/bundle-mockup.mjs docs/mockups/jeu.html dist/jeu.html
+# → dist/jeu.html          le jeu seul, autonome     (téléphone)
+# → dist/jeu-desktop.html  le même, dans un châssis   (banc)
 ```
 
 L'outil lit dans la maquette les modules qu'elle importe et les données qu'elle
@@ -55,7 +55,7 @@ l'intérêt de l'exercice.
 ```bash
 python3 - <<'PY'
 import re, pathlib
-for src in ('dist/e-cartes.html', 'dist/e-cartes-desktop.html'):
+for src in ('dist/jeu.html', 'dist/jeu-desktop.html'):
     h = pathlib.Path(src).read_text(encoding='utf-8')
     i = h.rfind('</body>')                      # LE DERNIER, jamais le premier
     j = h.find('<body'); j = h.find('>', j) + 1

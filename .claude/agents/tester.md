@@ -15,13 +15,13 @@ bas (règle 11), une règle CSS d'apparence correcte sans effet depuis des mois
 ## Ton passage complet
 
 ```bash
-node test/run.js                                   # 199 vérifications, zéro dépendance
+node test/run.js                                   # LE JEU — 21 vérifications
+node test/archives.js                              # les modules écartés — 182
 python3 -m http.server 8000 &
 npm i playwright-core                              # dev only ; le jeu reste sans dépendance
 CHROMIUM_PATH=$(which chromium) node tools/mobile-audit.mjs
 CHROMIUM_PATH=$(which chromium) node tools/contrast-audit.mjs
-node tools/bundle-mockup.mjs docs/refonte/mockups/e-cartes.html dist/e-cartes.html
-node tools/bundle-mockup.mjs docs/refonte/mockups/f-simple.html dist/f-simple.html
+node tools/bundle-mockup.mjs docs/mockups/jeu.html dist/jeu.html
 ```
 
 Et tu **ouvres** les fichiers autonomes produits : le bundle est le seul endroit
@@ -44,11 +44,17 @@ Deux natures, et il faut savoir laquelle casse.
 
 - `tools/mobile-audit.mjs` ne lit que les `:hover` CSS : un aperçu construit dans
   un `mouseenter` lui échappe. Cherche-les au grep.
-- `tools/playtest.mjs` vise encore `index.html`, c'est-à-dire l'ancien moteur : il
-  ne couvre PAS les deux maquettes vivantes. Dis-le quand tu t'en sers.
+- `tools/playtest.mjs` vise encore `index.html`, c'est-à-dire l'ancien moteur :
+  il ne couvre PAS le jeu. Dis-le quand tu t'en sers.
+- **Un test peut passer sans rien éprouver.** Deux de ce dépôt bouclaient sur
+  `meilleureVolee(P).length`, qui vaut `undefined` puisque la fonction rend un
+  objet : la boucle sortait au premier tour, le test ne jouait jamais, et il
+  passait. Quand un test te paraît important, casse ce qu'il garde et vérifie
+  qu'il tombe.
 - Les données ne disent pas tout : une résistance écrite dans
-  `data/equipage.json` peut avoir dérivé de ce que `CLAUDE.md` annonce. Compare
-  les deux à chaque passage — c'est déjà arrivé.
+  `data/simple.json` peut avoir dérivé de ce que `CLAUDE.md` annonce. Compare
+  les deux à chaque passage — on a déjà trouvé trois échelles contradictoires
+  dans le document, dont aucune n'était celle de la donnée.
 
 ## Ton rapport
 

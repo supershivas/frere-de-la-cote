@@ -1,6 +1,6 @@
 ---
 name: nouvelle-regle
-description: Ajouter, changer ou RETIRER une règle de jeu — une munition, une figure, un homme de l'état-major, une relique, une intention de prise. Impose le partage donnée/code, le test qui mesure la décision, et la question du retrait avant celle de l'ajout.
+description: Ajouter, changer ou RETIRER une règle de jeu — un type de carte, une rareté, la composition du paquet, une figure, une prise. Impose le partage donnée/code, le test qui mesure la décision, et la question du retrait avant celle de l'ajout.
 ---
 
 # Avant d'ajouter, demander ce qu'on retire
@@ -15,22 +15,23 @@ six. Le biais par défaut est donc le retrait.
 ## Les trois questions, dans l'ordre
 
 1. **Est-ce que ça a déjà été essayé et jeté ?** Lis le tableau « Ce qui a été
-   RETIRÉ » de `CLAUDE.md` §1, la §2 et la §9 de `docs/refonte/brief.md`, et
-   `docs/refonte/notes-2025-refonte.md` avant de rouvrir une question de combat.
+   RETIRÉ » de `CLAUDE.md` §1, la §2 et la §9 de `docs/archives/brief.md`, et
+   `docs/archives/notes-2025-refonte.md` avant de rouvrir une question de combat.
    Bâbord/tribord, les métiers, l'avant/l'arrière, les mâts, l'encrassement, la
    météo en combat, les règles de prise, la fureur, la panachée : chacun a un
    coût écrit en face. Ne les reconstruis pas.
-2. **Est-ce de la donnée ou du code ?** Une munition, une prise, une relique, le
-   nom / le titre / le texte / le prix d'un homme → `data/equipage.json` (ou
-   `data/simple.json`), **zéro ligne de code**. Le **verbe** d'un homme de
-   l'état-major → `src/cartes.js`. C'est la seule chose du jeu qui demande du
-   code, et c'est voulu.
-3. **Est-ce que ça change une règle ?** Un homme qui n'apporterait qu'un bonus
-   chiffré serait une munition de plus. **Un objet qui ne change aucune règle
-   n'est qu'un texte.** Quand un objet perd son verbe parce qu'un système est
-   retiré, on lui en donne un neuf plutôt que de le supprimer — c'est ainsi que
-   les écouvillons donnent une place de plus dans la volée et que la Hune coupe
-   la première annonce.
+2. **Est-ce de la donnée ou du code ?** Un type de carte, sa poudre, sa rareté,
+   la composition du paquet, une prise et sa résistance, le barème d'une
+   figure → `data/simple.json`, **zéro ligne de code**. `src/simple.js` ne
+   connaît ni les noms ni les nombres — il ne connaît que les figures. Si ton
+   changement demande du code, ce n'est pas du contenu : dis-le, et justifie la
+   règle.
+3. **La rareté est-elle restée une FRÉQUENCE ?** Elle dit un nombre
+   d'exemplaires, et rien d'autre. Une rareté qui accorderait en plus un bonus
+   serait une seconde chose à lire sur chaque carte — précisément ce que ce
+   plateau a été monté pour ne pas avoir. Sa seule conséquence, et c'est
+   l'équilibre entier du paquet : **seules les communes (3 exemplaires) peuvent
+   former une triplette, et la rare (1) ne s'assortit avec rien.**
 
 ## Les contraintes qui ne se négocient pas
 
@@ -48,27 +49,25 @@ six. Le biais par défaut est donc le retrait.
   tas ET poser dans l'autre : une carte retirée sans être posée disparaît en
   silence, et une carte posée sans être retirée se duplique. Ni l'une ni l'autre
   ne lève d'erreur ; on perd une partie sur une main légèrement fausse et l'on
-  cherche le défaut dans le barème.
-  - `P.deck` est la **maîtresse liste**, pas une zone : c'est elle que
-    `retirerDeLaPartie` doit trancher aussi, sinon la barrique ne jette que pour
-    une rencontre.
-  - `P.selection` n'est **pas une zone** : c'est une marque posée sur des cartes
-    qui restent en main.
-  - La carte **Feu** est la seule exception, et par construction : le brûlot la
-    pousse sur la pioche sans la mettre au deck, elle n'appartient pas au paquet
-    du joueur, et elle sort en étant jouée. Toute autre exception est un bug.
-  - Les suites `cartes — les zones` et `simple — les zones` tiennent tout cela.
-    Si tu ajoutes une zone ou un déplacement, étends-les dans le même mouvement.
+  cherche le défaut dans le barème. `P.selection` n'est **pas une zone** : c'est
+  une marque posée sur des cartes qui restent en main. La suite
+  `simple — les zones` tient tout cela ; si tu ajoutes une zone ou un
+  déplacement, étends-la dans le même mouvement.
 - **La pioche vide se rebat depuis la défausse**, et le tarissement complet est
-  un cas défini, pas un `break` accidentel. Sur le plateau F c'est le cas
-  NORMAL : trois cartes par volée et quatre bordées font douze cartes tirées
-  d'un paquet de onze.
+  un cas défini, pas un `break` accidentel. Ici c'est le cas NORMAL : trois
+  cartes par volée et quatre bordées font douze cartes tirées d'un paquet de
+  onze.
+- **LES RÉSISTANCES SE RELISENT À CHAQUE FOIS QUE LE PAQUET CHANGE.** Un type,
+  un exemplaire, une poudre : les cinq se remesurent (`Skill(equilibrage)`).
+  Sans exception — c'est arrivé à chaque changement de paquet de ce dépôt.
 - **Un ordre impossible rend `false`**, avec son pourquoi (règle 5). Jamais un
   `return` muet : un refus silencieux consomme le geste du joueur.
-- **Sa carte touche la MAIN, pas la coque** — nous n'en avons pas. Aucune
-  intention ne vise une coque que nous n'avons pas ; un test le tient.
-- **Les deux plateaux restent séparés** (§1 bis). Pas de drapeau dans
-  `cartes.js` pour simuler `simple.js`.
+- **DEUX FINS, PAS TROIS.** Résistance atteinte, ou quatre bordées tirées. La
+  coque et la coulée sont parties avec le plateau E : une seconde façon de
+  gagner qui rendait moins était une exception de plus.
+- **Le plateau E ne se rouvre pas.** `src/cartes.js` et
+  `docs/archives/mockups/e-cartes.html` sont écartés. Ne rapatrie pas un de
+  leurs systèmes « juste celui-là ».
 
 ## Ce qu'il faut écrire, à chaque fois
 

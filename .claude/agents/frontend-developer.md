@@ -47,7 +47,7 @@ Ne construis rien sur `src/battle.js`, `flotte.js`, `breche.js`, `hex.js`,
 - `node test/run.js` — vert.
 - `Skill(audit-ecran)` — mobile + contraste, sur le rendu réel.
 - Le **fichier autonome** se construit et s'ouvre :
-  `node tools/bundle-mockup.mjs docs/refonte/mockups/<x>.html dist/<x>.html`.
+  `node tools/bundle-mockup.mjs docs/mockups/<x>.html dist/<x>.html`.
   Règle 13 : dans le bundle, tous les modules partagent une portée — une `const`
   de maquette qui masque un `let` de module rend une page blanche.
 - **Deux URLs, toujours** (`Skill(livrer)`), sans qu'on ait à le demander.

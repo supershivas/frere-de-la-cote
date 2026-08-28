@@ -4,193 +4,104 @@ Roguelite naval en cartes, sur téléphone. JS vanilla, ES modules, aucun
 bundler, aucune dépendance npm dans le jeu, aucun asset image — les navires
 sont générés à l'exécution.
 
+**CE DOCUMENT NE DÉCRIT QUE LE JEU ACTUEL.** Tout ce qui a été essayé puis
+écarté vit dans `docs/archives/`, avec la raison de son retrait. C'est une
+règle de tenue du document autant qu'une règle de conception : un document qui
+décrit trois jeux dont deux sont morts ne dit plus lequel il faut construire.
+
 ---
 
-## 1. Ce qu'on construit maintenant
+## 1. Le jeu : LA VOLÉE NUE
 
-**Un jeu de cartes façon Balatro.** Une main d'hommes d'équipage, on en joue
-de une à cinq, la combinaison porte un nom, le nom donne une **puissance** et
-un **multiplicateur**, et le produit tombe dans la coque de la prise. Trois
-volées pour l'abattre. Entre deux prises, on recrute et on achète.
-
-C'est la **proposition E**, et elle remplace les trois échelles de combat qui
-s'affrontaient avant (un contre un, la rade, la grille tactique). Le débat qui
-bloquait le chantier est tranché : cette question-là est fermée.
+**Onze cartes, cinq types, un seul ordre.** On touche une à trois cartes, on
+pousse vers le haut, la volée part. La puissance vient du TYPE des cartes et de
+ce que la MAIN assortit — une paire, une triplette. Il n'y a pas de troisième
+chose à savoir.
 
 | | |
 |---|---|
-| La maquette | `docs/refonte/mockups/e-cartes.html` |
-| Les règles | `src/cartes.js` — pures, sans dé |
-| Le contenu | `data/equipage.json` — munitions, paquet, état-major, prises, reliques |
-| Les tests | `test/cartes.test.js` |
-| Version jouable | `node tools/bundle-mockup.mjs docs/refonte/mockups/e-cartes.html dist/e-cartes.html` |
+| La maquette | `docs/mockups/jeu.html` |
+| Les règles | `src/simple.js` — pures, sans dé |
+| Le contenu | `data/simple.json` — les cinq types, le paquet, les cinq prises |
+| Les tests | `test/simple.test.js` — `node test/run.js` |
+| Le CSS | `css/deck.css` §17.4 — le reste vient de §17, tel quel |
+| Version jouable | `node tools/bundle-mockup.mjs docs/mockups/jeu.html dist/jeu.html` |
 
 ### La boucle, en une page
 
-1. **La carte** (`src/voyage.js` + `src/caribbean.js`) — **fermée pour
-   l'instant** : `CARTE_OUVERTE = false` dans la maquette fait entrer
-   directement au combat, parce que c'est le combat qu'on éprouve. Rien n'est
-   supprimé, et `retourAuJeu()` est le seul chemin de retour.
-2. **Une prise** annonce d'abord sa **RÉSISTANCE** : la pression qu'il faut lui
-   mettre pour qu'elle amène son pavillon. C'est l'ante du jeu. On a **quatre
-   bordées** pour l'atteindre et **trois rechargements** pour se refaire une
-   main sans tirer ; la main se remplit **à ras** après chacun.
-3. Elle a aussi une coque : c'est le risque de l'envoyer par le fond avant
-   qu'elle ait amené.
-4. Elle **annonce sa carte un tour à l'avance**, écrite en toutes lettres.
-   Rien n'est caché, rien n'est tiré au dé — et une **mitraille** dans la volée
-   la coupe.
-5. **Une main** de cinq munitions. On en joue une à trois, d'un seul bord. Puis
-   la prise joue la carte qu'elle avait annoncée — sur notre MAIN, jamais sur
-   une coque que nous n'avons pas.
-6. **Les trois fins.** Résistance atteinte → **la prise**, butin plein. Coque à
-   zéro avant → **coulée**, on ne repêche que 30 %. Plus une bordée → **elle
-   s'échappe**, et l'on n'a rien. Les deux premières sont des victoires ; seul
-   le butin diffère.
+1. **Une prise annonce sa RÉSISTANCE** : la pression qu'il faut lui mettre pour
+   qu'elle amène son pavillon. C'est l'ante du jeu, et elle est écrite en
+   toutes lettres avant qu'on joue.
+2. **Une main de cinq cartes.** On en joue une à trois, prises comme on veut.
+3. **Quatre bordées**, pas une de plus. La main se remplit **à ras** après
+   chacune.
+4. **DEUX FINS.** Résistance atteinte → **la prise**, butin plein. Plus une
+   bordée → **elle s'échappe**, et l'on n'a rien. Il n'y a pas de troisième
+   sortie : on ne peut pas couler, et l'on ne perd qu'en manquant le seuil.
+5. Les cinq prises s'enchaînent, et c'est tout.
 
-### LE DECK EST FAIT DE MUNITIONS, PAS D'HOMMES
+### ONZE CARTES, CINQ TYPES, TROIS RARETÉS
 
-C'est la décision qui commande toutes les autres. Un deck d'hommes nommés ne
-pouvait pas former de **figures** : chaque carte était unique, aucune main ne
-ressemblait à une autre, il n'y avait rien à reconnaître et « la volée la plus
-forte » se lisait d'un coup d'œil. Cinq munitions génériques et répétées, comme
-les figures d'un jeu de 52, et l'assortiment devient le jeu.
+| Rareté | Exemplaires | Types | Ce que ça décide |
+|---|---|---|---|
+| **Commune** | 3 chacune | Mitraille (4), Boulet ramé (6) | **Les seules qui puissent former une triplette** |
+| **Peu commune** | 2 chacune | Boulet à chaîne (8), Boulet rouge (10) | Une paire, jamais une triplette |
+| **Rare** | 1 | Carcasse (16) | **Ne s'assortit avec rien** — elle ne vaut que sa poudre |
 
-| Munition | Poudre | Ce qu'elle fait |
-|---|---|---|
-| **Boulet ramé** | 8 | le rang courant : de la poudre, rien d'autre |
-| **Boulet rouge** | 6 | fureur +0,5 |
-| **Mitraille** | 4 | **annule la carte annoncée par la prise** |
-| **Chaîne** | 5 | la **prochaine** volée compte double sa fureur |
-| **Barrique** | 0 | retire une munition ratée **de la partie** |
+Onze en tout : 2×3 + 2×2 + 1.
 
-Chacune existe en plusieurs exemplaires, **à bâbord ET à tribord** — sans quoi
-la moitié des figures ne serait jouable que d'un bord, et le choix du bord
-cesserait d'en être un. Dix-sept par bord, trente-quatre en tout : assez pour
-tenir une rencontre sans rebattre la défausse.
+**LA RARETÉ EST UNE FRÉQUENCE, PAS UN POUVOIR.** Elle ne dit que le nombre
+d'exemplaires au paquet. Le jour où une rareté accorde en plus un bonus, elle
+devient une seconde chose à lire sur chaque carte — exactement ce que ce plateau
+a été monté pour ne pas avoir. Toute sa conséquence tient dans la colonne de
+droite du tableau, et cette conséquence est l'équilibre entier du paquet.
 
-**LES FIGURES portent sur les munitions**, et c'est tout le score :
+**UN PAQUET QU'ON COMPTE SUR LES DOIGTS.** Au troisième tour, un joueur SAIT ce
+qui reste, parce qu'il l'a vu passer : c'est la seule connaissance que ce
+plateau demande, et la seule qu'il récompense. D'où la ligne **« au paquet »**
+posée sur le bois — cacher le compte ne ferait pas du suspense, seulement une
+comptabilité à tenir sur un coin de table.
 
-| Figure | Poudre |
-|---|---|
-| trois fois la même munition | +34 |
-| trois munitions toutes différentes | +14 |
-| deux identiques | +6 |
+### LA PUISSANCE VIENT DE DEUX CHOSES
 
-`poudre = pression`, tout s'additionne. **LA FUREUR EST RETIRÉE** : « 17 × 2,5 »
-demandait au joueur un produit de tête avant de savoir ce que sa volée valait,
-et à trois cartes près du seuil, c'est exactement le calcul qu'il ne faut pas
-avoir à faire. Les figures valent des POINTS — et leur ÉCART est ce qui paie le
-rechargement : serrées, elles se valaient et améliorer sa main ne rapportait
-plus rien. La **chaîne**
-s'applique APRÈS toutes les additions, parce qu'elle porte sur leur somme :
-c'est ce qui en fait une mise en place plutôt qu'un bonus de plus. Et elle arme
-la volée SUIVANTE, jamais la sienne — l'ordre d'écriture compte, sinon une
-chaîne se double elle-même.
+Le TYPE de chaque carte, et ce que la MAIN assortit : **paire +8**,
+**triplette +24**. Tout s'additionne. Il n'y a pas de troisième chose à savoir —
+ni fureur, ni multiplicateur, ni bord, ni effet de carte, ni riposte, ni
+rechargement, ni coque. La **panachée** elle-même est retirée : trois types
+différents ne valent rien, parce qu'une seconde condition, en sens inverse de la
+première, est une règle de plus à vérifier.
 
-### L'ÉQUIPAGE A QUITTÉ LE DECK : c'est l'état-major
+**Une triplette de la plus faible bat la rare toute seule** — 36 contre 16.
+C'est tout le plateau en une ligne : si la carte la plus chère gagnait toujours,
+il n'y aurait rien à assortir et la main ne dirait rien. Un test le tient, et il
+va chercher la plus faible et la rare dans la donnée plutôt que de les nommer.
 
-Cinq hommes nommés au plus, **visibles en permanence**, qui ne se jouent jamais
-et changent chacun **une règle**. Ils remplacent à la fois les officiers et les
-recrues : deux façons de payer pour deux sortes d'hommes, c'était une
-distinction que l'écran ne montrait jamais.
+**LA MULTIPLICATION EST BANNIE, ET LE PRODUIT AVEC ELLE.** « 17 × 2,5 »
+demandait au joueur un produit de tête avant de savoir ce que sa volée valait ;
+à trois cartes près du seuil, c'est exactement le calcul qu'il ne faut pas avoir
+à faire. Les figures valent des POINTS.
 
-| Homme | Son verbe |
-|---|---|
-| **Etcheverry**, chef de pièce | les boulets rouges comptent double |
-| **Coudray**, maître canonnier | voit les 2 prochaines munitions de la pioche |
-| **Toussaint**, maître d'équipage | *une fois par rencontre* : retire une munition de la main |
-| **Gohier**, bosco | la première volée de chaque rencontre a fureur +1 |
-| **Ozanne**, quartier-maître | *une fois par rencontre* : rejoue la volée précédente |
+### LES RÉSISTANCES SONT MESURÉES, jamais choisies à l'œil
 
-**Un homme qui n'apporterait qu'un bonus chiffré serait une munition de plus.**
-Leur nom, leur titre, leur texte et leur prix sont du contenu ; leur **verbe est
-du code**, dans `src/cartes.js` — la seule chose du jeu qui demande une ligne de
-code pour être ajoutée, et c'est voulu.
+**120 · 132 · 136 · 146 · 150.** Sur 3 000 rencontres jouées à la meilleure
+volée, sur **trois familles de graines** dont les résultats s'écartent de moins
+d'un point, elles donnent des prises à **100 %, 88 %, 78 %, 37 % et 23 %**.
 
-**L'état-major se montre même VIDE**, en UNE case et non en cinq : il ne
-s'affichait pas du tout tant qu'on n'avait engagé personne, pour ne pas poser
-cinq carrés vides. Le prix de cette économie était plus élevé qu'elle —
-l'état-major est la SEULE progression du jeu depuis que le deck ne se recrute
-plus, et un joueur qui commence ne pouvait pas deviner qu'il existe.
+**Elles ne veulent rien dire hors du paquet qui les a produites.** Le jour où le
+paquet change — un type, un exemplaire, une poudre — elles se relisent toutes
+les cinq. C'est arrivé à chaque changement de paquet de ce dépôt, sans
+exception, et c'est le test `l'échelle est mesurée` qui le dira.
 
-Il est **dans le flux, en rang sous les plaques**, et non en colonne dans le
-coin haut-droit : là, il recouvrait la plaque de la prise, c'est-à-dire la jauge
-de pression — le seul chiffre que le joueur regarde.
+**IL N'Y A AUCUNE PROGRESSION** — ni état-major, ni relique, ni recrutement.
+L'échelle doit donc tenir ENTIÈRE dans ce qu'un joueur atteint avec onze cartes :
+la meilleure volée possible vaut 44, et une résistance qu'aucune main ne peut
+couvrir ne serait pas un défi, seulement un mur.
 
-Deux d'entre eux agissent **sur ordre** : leur initiale s'allume tant qu'ils
-n'ont pas servi, s'éteint après. Toussaint retire la munition **désignée** et
-non la pire — sinon il ferait double emploi avec la barrique, qui jette la pire
-toute seule. Ozanne **remet** la volée en main, il ne la tire pas : c'est au
-joueur de la lâcher, avec la bordée que ça coûte.
-
-### Ce qui a été RETIRÉ, et qu'il ne faut pas reconstruire
-
-Le jeu était devenu trop chargé : sept systèmes à tenir en tête devant un écran
-de 375 px. Chacun de ceux-ci était défendable seul, aucun ne l'était ensemble.
-
-| Retiré | Ce qu'il coûtait |
-|---|---|
-| **Bâbord et tribord** — `bordDe`, `bordDeLaVolee`, `data-bord`, les deux moitiés du paquet | Une main sur deux était à moitié injouable, et la moitié des tours devenait une attente. Ce qui décide, ce sont les FIGURES : assortir, et non trier. |
-| **Les métiers, les quarts, les valeurs individuelles, la distinction recrue/officier** | Un deck d'hommes tous différents ne peut pas former de figures. Une munition n'a qu'un **bord** et une poudre, la même pour toutes celles du même nom. |
-| **L'avant et l'arrière** — `SEUIL_GREEMENT`, `boutDe`, la position du bandeau | Le bout ne servait qu'à ouvrir le tir au gréement. |
-| **Les mâts et le démâtage** — `mats`, `matsMax`, `regreement` | Un compteur, un seuil de puissance et un décompte de repousse, pour un seul effet : empêcher la carte annoncée. |
-| **L'encrassement des bords** — `encrasse`, `encrasseTours`, les deux soupapes, l'écouvillon | Trois règles pour une seule contrainte. Il ne reste que celle qui se voit : une volée est d'un seul bord. |
-| **La météo en combat** — `damageMult` | Une même main valait deux chiffres selon le ciel, qu'il fallait lire avant de compter. Elle reste le **décor** : ciel, houle, pluie. |
-| **Les règles de prise** — `lest`, `cuirasse`, `franc_bord`, `riposte` | Quatre exceptions à retenir pour cinq navires, chacune corrigeant le total après coup. |
-| **Les PV de La Tortue et la riposte chiffrée** | On ne peut plus couler. On perd en **manquant le seuil**, et c'est la seule façon. |
-
-**La variété vient de l'ÉTAT-MAJOR et des RELIQUES, pas des règles de base.**
-C'est la contrepartie de ces coupes : à chaque fois, les objets qui ont perdu
-leur verbe en ont reçu un neuf plutôt que d'être supprimés — les écouvillons
-donnent une place de plus dans la volée, la Hune coupe la première annonce de la
-rencontre, les grappins paient la triplette. **Un objet qui ne change aucune
-règle n'est qu'un texte.**
-
-### Les trois choses qui font la décision
-
-**AUCUNE CONTRAINTE DE COMPOSITION.** Une volée, c'est une à trois munitions de
-la main, prises comme on veut. Bâbord et tribord ont été **retirés** : ils
-interdisaient de mêler les deux côtés, ce qui rendait une main sur deux à moitié
-injouable et transformait la moitié des tours en attente plutôt qu'en décision.
-Mesuré, leur retrait multiplie par **2,8** la pression médiane d'une volée (de
-~30 à 85), puisque la main joue toujours ses trois meilleures — les résistances
-ont été réétalonnées d'autant dans le même mouvement (barque 230, flûte 265,
-galion 300, frégate 335, vaisseau 375).
-
-**LA FIGURE — ce qu'on assortit.** Trois fois la même munition, trois toutes
-différentes, ou une paire. C'est le cœur du jeu, et la seule raison d'être du
-deck de munitions : deux bandeaux de la même couleur côte à côte SONT une paire,
-et on la voit sans lire un mot.
-
-**LE RECHARGEMENT — quand renoncer à tirer.** Trois par rencontre. On tire la
-volée vers le **bas** : ces munitions-là repartent au fond du paquet, on en
-reprend autant, et la prise **ne joue pas sa carte**. C'est la seconde monnaie,
-et elle ne se convertit pas dans la première. Mesuré, un capitaine qui s'en sert
-prend la barque **58 fois sur 60** contre **45**, et la flûte **37** contre
-**19**.
-
-**SA CARTE TOUCHE LA MAIN, PAS LA COQUE** — nous n'en avons pas. Mouillage (la
-meilleure munition en main perd sa poudre), brûlot (une carte Feu), grappin (la
-meilleure munition repart au fond du paquet), belle manœuvre (un rechargement de
-moins), colmatage (la pression retombe de 12). Ce qu'elle nous prend, ce sont
-des munitions et des coups. **Une mitraille dans la volée la coupe** : c'est le
-seul moyen de l'empêcher, et il coûte une des trois places.
-
-**LES RÉSISTANCES SE RELISENT À CHAQUE FOIS QUE LE PAQUET CHANGE.** Le paquet
-de munitions frappe environ **deux fois plus fort** que l'ancien paquet d'hommes
-— les figures sont atteignables, précisément parce que les munitions se
-répètent — et les résistances ont dû être réétalonnées d'autant (barque 90 →
-175, flûte 140 → 230, galion 210 → 285, frégate 300 → 330, vaisseau 420 → 380).
-Sans quoi l'acte 1 se gagnait 60 fois sur 60 et le rechargement ne décidait plus
-de rien. **Et la coque suit la résistance** : au-dessus d'elle la prise amène son
-pavillon, en dessous elle s'enfonce avant — c'est ce croisement, et lui seul, qui
-fait que les petites prises se rendent et les grosses coulent.
-
-L'échelle doit aussi tenir dans ce qu'un joueur ÉQUIPÉ peut atteindre : la
-progression ne vient plus que de l'état-major et des reliques (on ne recrute
-plus de cartes dans le deck), soit environ +55 % de pression. Une résistance
-au-dessus de ~380 n'est atteignable par personne.
+**Le choix compte, et beaucoup.** Mêmes graines, mêmes mains : un capitaine qui
+lit sa main prend la flûte **86 fois sur 100**, un capitaine qui pose les trois
+premières cartes venues **0 fois**. Si cet écart se referme, la volée nue n'est
+plus qu'une addition qu'on exécute — et c'est le plateau qu'il faut jeter, pas
+le test.
 
 ### LE SCORE SE JOUE EN SÉQUENCE, jamais d'un coup
 
@@ -202,12 +113,10 @@ construits, et il apprend le barème sans qu'on le lui explique.
 
 1. **chaque carte** à son tour — elle bondit (scale 1,18), un `+8` jaillit
    d'elle vers le haut, le compteur roule ;
-2. **les modificateurs d'équipage**, chacun le sien — le portrait tressaute, le
-   `×2` jaillit **de lui** ;
-3. **le nom de la figure**, en grand au centre : « TRIPLETTE ». Le seul moment
+2. **le nom de la figure**, en grand au centre : « TRIPLETTE ». Le seul moment
    où l'écran dit un mot plutôt qu'un chiffre, et ce qui fait qu'une figure se
    retient ;
-4. **le total roule**, et **seulement là les canons tirent**.
+3. **le total roule**, et **seulement là les canons tirent**.
 
 Une volée pleine dure ~1,6 s. Au-delà, on attend son tour au lieu de le
 savourer.
@@ -215,9 +124,9 @@ savourer.
 - **La séquence tourne AVANT `jouer()`**, sur les cartes encore en main :
   `jouer()` les retire et `rendre()` les efface, donc jouée après elle aurait
   fait bondir des cartes qui n'existent plus.
-- **Chaque ligne de `evaluer()` dit d'où elle vient** (`source`, `uid`/`id`,
-  `facteur`). Ça ne change rien au compte : sans cette provenance, l'interface
-  aurait dû deviner en relisant les noms — et un nom est du contenu qui change.
+- **Chaque ligne de `evaluer()` dit d'où elle vient** (`source`, `uid`/`id`).
+  Ça ne change rien au compte : sans cette provenance, l'interface aurait dû
+  deviner en relisant les noms — et un nom est du contenu qui change.
 - **La projection s'efface pendant la résolution.** La bulle annonce le total
   avant qu'on lâche — c'est sa raison d'être, rien n'est caché — mais laissée en
   place elle affichait la réponse à côté du compteur qui la construit.
@@ -225,9 +134,6 @@ savourer.
   dans le DOM : relire pour repartir, c'est tirer une valeur stable d'une entrée
   qui bouge (règle 9), et deux roulements qui se chevauchent partaient chacun
   d'un nombre à demi écrit.
-- **Au-delà de 100 l'écran tremble ; au-delà de 200 les cartes s'embrasent** et
-  le chiffre passe en or vif. C'est la seule fois où une carte change de
-  couleur : il faut que ça n'arrive presque jamais.
 - **`prefers-reduced-motion` saute tout** : le total est posé, on tire.
 
 ### Un seul ordre, un seul geste
@@ -235,59 +141,40 @@ savourer.
 Rien en bas de l'écran, et **pas de largage** : les cartes reposent sur le
 râtelier de bois, il n'y a pas d'espace sous elles, et une seconde cible pour
 un second ordre demanderait deux zones de dépôt sur la largeur d'un pouce.
-Jouer une volée d'un seul homme faible coûte exactement ce que coûtait un
-largage — un tour.
 
 | geste | effet |
 |---|---|
-| poser le doigt sur un homme | le tableau dit ce qu'il fait, tant qu'on le tient |
-| toucher un homme | il rejoint la volée |
-| pousser un homme non choisi | il **rejoint la volée** et part avec elle — on ne choisit pas ce qu'on pousse |
+| poser le doigt sur une carte | l'écran dit ce qu'elle fait, tant qu'on la tient |
+| toucher une carte | elle rejoint la volée |
+| pousser une carte non choisie | elle **rejoint la volée** et part avec elle |
 | pousser la volée vers le haut | la **zone de dépôt s'ouvre sous La Tortue** ; lâcher dedans, la volée part |
-| tirer la volée vers le bas | **rechargement** : ces hommes repartent au fond, on en reprend autant, la prise ne riposte pas |
 | monter puis redescendre | on renonce, la volée est défaite |
 
-**ON NE CHOISIT PAS CE QU'ON POUSSE.** Un glissement qui part d'une munition non
+**PAS DE GESTE DESCENDANT.** Le rechargement n'existe pas ici, donc le râtelier
+n'est la cible de rien et il n'y a qu'une seule zone de dépôt.
+
+**ON NE CHOISIT PAS CE QU'ON POUSSE.** Un glissement qui part d'une carte non
 choisie l'ajoute à la volée — la première comme la troisième — et la volée part
 avec elle. C'est le cas le plus courant du jeu, et il coûtait deux gestes :
 toucher, puis pousser. L'ajout se fait **au franchissement du seuil**, jamais à
 l'appui — avant le seuil rien n'est décidé, le geste reste un appui, donc un
-`click`, donc la sélection ordinaire. Les deux chemins ne se marchent pas
-dessus, et une munition injouable ne part pas : le refus s'écrit à la touche,
-comme avant. Volée pleine, la munition poussée est refusée à voix haute
-(secousse + ligne rouge) et le geste emmène la volée déjà composée. La bulle se
-refait **en place** pendant le geste (`rafraichirTableau`) — un `rendre()` en
-plein glissement jetterait les cartes qu'on tient et le râtelier qui a capturé
-le pointeur.
-
-Le geste descendant n'a **pas de seconde zone de dépôt** : le râtelier lui-même
-s'allume, parce qu'il n'y a pas de place sous les cartes pour poser une cible et
-que deux zones sur la largeur d'un pouce se rateraient l'une l'autre. Il résiste
-sur 44 px — la même mesure que la cible tactile minimale — parce qu'un
-rechargement coûte une ressource et ne doit pas arriver en reposant le pouce.
+`click`, donc la sélection ordinaire. Volée pleine, la carte poussée est refusée
+à voix haute (secousse + ligne rouge) et le geste emmène la volée déjà composée.
+La bulle se refait **en place** pendant le geste — un `rendre()` en plein
+glissement jetterait les cartes qu'on tient et le râtelier qui a capturé le
+pointeur.
 
 Dès le début du glissement les cartes **se regroupent** en paquet et se
-redressent : on voit partir une volée, pas trois cartes en parallèle. Les
-flèches du clavier doublent le geste — un geste raccourcit un ordre, il ne
+redressent : on voit partir une volée, pas trois cartes en parallèle. **Les
+flèches du clavier doublent le geste** — un geste raccourcit un ordre, il ne
 doit pas être le seul chemin.
 
-### Le tutoriel dort
-
-`TUTORIEL_OUVERT = false` dans la maquette : les sept étapes, leurs conditions
-et le projecteur restent en place, seule l'entrée est fermée. Il sera repris en
-temps voulu ; ce qui suit décrit ce qu'il fait quand on le rallume.
-
-
-
-Sept étapes, un projecteur sur ce qu'il faut regarder, une phrase dite par un
-homme de l'équipage. **Aucune touche n'est bloquée, aucune action n'est
-forcée** : une étape se termine quand le joueur a fait la chose, pas quand il
-a appuyé sur « suivant », et une étape dont la condition est déjà vraie est
-sautée. Un tutoriel qui pilote apprend à obéir, pas à jouer. Il se retient
-dans `localStorage` ; `?sansTuto` et `?sansOuverture` le coupent, ce dont se
-sert `tools/mobile-audit.mjs`.
-
 ### Ce que l'écran montre, et où
+
+L'écran n'a que ce dont il a besoin : la jauge de pression, le compteur de
+bordées, les deux coques, la ligne du paquet, la main. Pas d'état-major, pas de
+pastilles de conditions, pas de carte d'intention, pas de phylactère, pas de
+tutoriel, pas de carte des Caraïbes, pas de boutique.
 
 - **LE COMPTE EST UNE BULLE POSÉE SUR LES CARTES**, en absolu au-dessus du
   bois — pas une barre en travers de l'écran. La barre vivait loin de ce qu'elle
@@ -295,294 +182,144 @@ sert `tools/mobile-audit.mjs`.
   avec son contenu : les navires MONTAIENT** quand on composait une volée,
   puisque la mer prend la place qui reste. `.mer` garde maintenant sa part, et
   la bulle ne prend rien.
-- **DEUX DOS DE CARTE SUR LE BOIS, AUX DEUX BOUTS DU LISTEAU** : la **pioche à
-  gauche**, la **défausse à droite**, juste au-dessus des cartes en main. Un dos
-  dit ce qu'il reste par sa seule présence, là où une ligne de texte demandait
-  d'être déchiffrée. Ils ont encadré la main un temps et lui prenaient 98 px de
-  large — les cartes rétrécissaient d'autant ; posés dans la bande que le
-  râtelier ménage AU-DESSUS d'elle, ils ne lui prennent pas un pixel. **La
-  largeur du bois n'appartient qu'à la main**, sa hauteur non. Ils sont passés
-  par la mer entre-temps : ils y recouvraient la coque de notre navire, et
-  surtout la pioche s'y trouvait loin de l'endroit d'où les cartes arrivent.
-- **La plaque fait 30 px, le BOUTON en fait 44.** Le doigt vise la cible, pas le
-  dessin (§2) : c'est la seule façon d'avoir un petit dos de carte sans une
-  cible qu'un pouce rate. Le bouton est transparent, seule la plaque se voit.
-- **Le contenu d'un paquet se montre en JETONS, pas en cartes.** Une modale
-  n'est pas un écran : aucune règle `.screen.ecran-cartes .carte` ne s'y
-  applique (règle 2), et les cartes en sortaient en glyphes nus de trois
-  centimètres.
-- **TROIS CONTENUS QUI S'EXCLUENT, TROIS ENDROITS.** Le tableau portait à la
-  fois la carte annoncée par la prise, le compte de la volée et les répliques
-  d'équipage : trois choses qui ne pouvaient pas s'afficher ensemble, et dont
-  la plus bavarde chassait toujours la plus utile.
-  - **Ce que sa carte fait** s'écrit **sous sa carte, dans la mer**, en deux
-    lignes au plus, et **toujours** — c'était à l'autre bout de l'écran et
-    seulement au doigt, si bien qu'on composait sa volée sans savoir contre
-    quoi. Rien sur QUAND elle la joue : le pied de la carte dit déjà « fin du
-    tour ». Le champ `dit` des intentions est cette version courte ; `texte`
-    reste la longue, pour le doigt et la modale.
-  - **Les répliques d'équipage** passent en **phylactère au-dessus de La
-    Tortue**, quatre secondes, puis s'effacent. Une réplique est une
-    respiration, pas un état — `souffler()`, et non `dire()`, qui est déjà pris
-    par la consigne de geste. **L'échéance est portée par l'état**
-    (`motJusqua`), pas par le minuteur : `rendre()` refait tout le DOM à chaque
-    carte touchée, et un minuteur relancé à chaque rendu aurait gardé la
-    réplique à l'écran pendant toute la composition d'une volée — exactement le
-    défaut qu'on répare.
-  - **Le tableau ne garde que le compte de la volée**, et se réduit à une seule
-    ligne quand il n'y en a pas : « Touche des munitions du même bord. » Sa
-    hauteur suit son contenu — `min-height: 0` sur `.tableau` ET sur
-    `.tb-detail`. La réserve de 58 px n'existait que parce que trois contenus
-    de longueurs différentes s'y succédaient.
-- **Sa carte d'intention est une carte** : le même gabarit que les nôtres —
-  bandeau de tête, nom, grand chiffre, pied — en noir et rouge, posée à plat
-  sous son navire. Un rectangle horizontal avec du texte dedans n'est pas une
-  carte, c'est une boîte de plus à lire.
-- **Tout s'explique à l'appui, jamais au survol — ET DANS LE TABLEAU, jamais
-  au-dessus.** Il n'y a plus d'infobulle flottante : à 375 px de large, elle
-  recouvrait la mer, la carte d'intention ou la main, où qu'on l'ancre.
-  **RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN.** Ce qu'une carte a à
-  dire s'écrit à la place de la réplique d'équipage, en une ligne — nom, bord,
-  poudre, effet — **tant que le doigt reste posé dessus** ; au relâchement le
-  tableau reprend son contenu. Un refus s'écrit au même endroit, en rouge, et
-  lui seul : l'homme s'annonce comme les autres, c'est le coup qui est
-  impossible, pas elle. Une pastille de météo, un homme de l'état-major, sa
-  carte à elle se
-  TOUCHENT plutôt qu'ils ne se tiennent : leur texte reste jusqu'au prochain
-  rendu (`tenir: true`).
-- **La hauteur du tableau suit son contenu.** Elle a été réservée un temps, le
-  bloc recevant tour à tour trois choses de longueurs très différentes ; les
-  deux autres sont parties ailleurs (voir ci-dessus), la réserve n'a plus
-  d'objet.
-- **LES CARTES SORTENT DE LA PIOCHE**, elles n'apparaissent pas — la relève vole
-  du dos posé au bout du listeau jusqu'à sa place, décalée d'une carte à l'autre.
-  On compte les hommes reçus sans lire un chiffre. Tant que les paquets
-  flottaient sur la mer, « depuis la droite » était une direction convenue ;
-  posée sur le bois, la pioche est un OBJET, et une carte qui en sort doit en
-  sortir vraiment. L'écart est **mesuré carte par carte** (`partirDeLaPioche`) et
-  passé au keyframe en `--dx`/`--dy` : il dépend de la largeur de l'écran et du
-  rang dans la main, et aucune valeur écrite en dur ne peut le suivre. Il se
-  prend en `offsetLeft`/`offsetTop` **en remontant la chaîne des `offsetParent`
-  jusqu'au râtelier** — la carte porte déjà l'animation quand on la mesure, donc
-  sa boîte est transformée (règle 9), et les deux éléments n'ont pas le même
-  repère : la carte est dans `.main`, non positionnée, le dos dans `.paquets`,
-  qui l'est. Lire les deux crûment donnait un écart faux de 7 px, assez peu pour
-  passer inaperçu et assez pour que la carte ne sorte pas du paquet. La marque
-  `neuve` est un ÉVÉNEMENT, pas un état : elle est oubliée après le rendu et
-  retirée du DOM à la fin de l'animation — sinon la distribution repartait à
-  chaque homme touché.
-- **La carte Feu fume**, en boucle : c'est la seule carte qui ne sert à rien,
-  il faut le voir de loin.
 - **La jauge de PRESSION est la barre qu'on regarde** : elle se REMPLIT vers la
-  résistance annoncée, avec le chiffre en toutes lettres. La coque passe en
-  seconde ligne, plus fine — elle ne dit plus qu'un risque, celui d'envoyer la
-  prise par le fond avant qu'elle ait amené son pavillon. Sa classe CSS est
+  résistance annoncée, avec le chiffre en toutes lettres. Sa classe CSS est
   `.jauge.bordage` et non `.jauge.coque` : `.coque` est DÉJÀ la boîte d'un
   navire dans la bande de mer, et la jauge qui en portait le nom héritait de sa
   marge haute de 22 px — une barre de 4 px haute de 26, sans une erreur levée.
-- **Les deux compteurs de la rencontre sont sur le ruban** — `⚔ 4` et `↻ 3` —
-  à gauche du butin. C'est la ressource du jeu : elle ne se lit pas dans un
-  sous-menu.
-- **La pioche dit sa COMPOSITION, jamais son ordre** : posée sur le bois du
-  râtelier, à gauche de la réserve, elle donne ce qui reste — combien, par
-  bord, par munition. Ce qu'un joueur a le droit de savoir, c'est ce qui lui
-  reste, pas ce qui vient. Les deux informations de paquet se lisent au même
-  endroit.
-- **Ce qui vient est visible** : les deux prochains hommes de la pioche, face
-  visible,
-  à 0,7× et enfoncés dans le listeau du râtelier. C'est une fenêtre voulue sur
-  l'ordre, et la seule. Ni le bandeau ni la réserve ne se touchent — c'est de
-  l'information, pas une cible.
+- **Le compteur de bordées est sur le ruban** — `⚔ 4` — à gauche du butin.
+  C'est la ressource du jeu : elle ne se lit pas dans un sous-menu.
+- **LA LIGNE « AU PAQUET » dit la COMPOSITION, jamais l'ordre** : ce qui reste,
+  par type. Ce qu'un joueur a le droit de savoir, c'est ce qui lui reste, pas ce
+  qui vient. Un test vérifie qu'elle ne ment jamais, tour après tour.
+- **Tout s'explique à l'appui, jamais au survol.** Il n'y a pas d'infobulle
+  flottante : à 375 px de large, elle recouvrait la mer ou la main, où qu'on
+  l'ancre. **RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN.** Un refus
+  s'écrit au même endroit, en rouge, et lui seul : la carte s'annonce comme les
+  autres, c'est le coup qui est impossible, pas elle.
+- **LES CARTES SORTENT DE LA PIOCHE**, elles n'apparaissent pas — la relève vole
+  du dos posé au bout du listeau jusqu'à sa place, décalée d'une carte à l'autre.
+  L'écart est **mesuré carte par carte** et passé au keyframe en `--dx`/`--dy` :
+  il dépend de la largeur de l'écran et du rang dans la main, et aucune valeur
+  écrite en dur ne peut le suivre. Il se prend en `offsetLeft`/`offsetTop` **en
+  remontant la chaîne des `offsetParent` jusqu'au râtelier** — la carte porte
+  déjà l'animation quand on la mesure, donc sa boîte est transformée (règle 9),
+  et les deux éléments n'ont pas le même repère. Lire les deux crûment donnait un
+  écart faux de 7 px, assez peu pour passer inaperçu et assez pour que la carte
+  ne sorte pas du paquet. La marque `neuve` est un ÉVÉNEMENT, pas un état : elle
+  est oubliée après le rendu et retirée du DOM à la fin de l'animation — sinon la
+  distribution repartait à chaque carte touchée.
+- **LA CARTE EST CRÈME, ET SON CADRE DIT LE TYPE.** Le carton reprend sa couleur
+  de carton (`#f2ead6`), et le cadre — **5 px, pas un liséré** — porte tout. À
+  1 px il se lisait comme une ombre.
+- **TROIS PORTEURS POUR UNE SEULE INFORMATION : le cadre, le glyphe et LA
+  VALEUR**, tous trois dans la couleur du type. Le chiffre était en encre
+  sombre : la chose la plus grande de la carte ne disait rien de ce qu'on
+  assortit, l'œil allait au chiffre et la couleur restait sur la tranche.
+- **CINQ TYPES, CINQ COULEURS**, et c'est la répétition qui rend les figures
+  lisibles : deux cadres de la même couleur côte à côte SONT une paire, et on la
+  voit sans lire un mot. Une figure qu'il faut lire pour la voir n'est pas une
+  figure. Mitraille acier `#2f6f8f` · ramé fonte `#6f6553` · chaîne violet
+  `#6f5d99` · rouge `#b3261d` · **Carcasse charbon `#2b2723`**.
+- **DEUX GRIS NE FONT PAS DEUX COULEURS.** Le ramé et la mitraille ont été deux
+  gris à **1,26:1 l'un de l'autre**, sans hue ni écart de clarté : la même
+  couleur à 5 px de cadre — et ce sont les deux types les plus nombreux du
+  paquet, ceux qu'il faut justement assortir.
+- **LA RARE SE DIT PAR LA CLARTÉ, pas par une cinquième teinte.** Quatre hues se
+  partagent déjà le cercle ; en ajouter une pour la Carcasse l'aurait posée à
+  11,8° du ramé, soit le défaut ci-dessus sous un autre nom. Le charbon est à
+  15 % de clarté quand les quatre autres tiennent entre 37 et 48 % : il se sépare
+  de chacune par au moins 2,27:1, et la seule carte unique du paquet est aussi
+  la seule qui soit sombre.
+- **ET L'INSTRUMENT À NE PAS UTILISER POUR CELA EST LE RAPPORT DE CONTRASTE.**
+  Deux couleurs de même clarté donnent ~1:1 même quand tout les sépare — le
+  rouge contre l'acier sortent à 1,18:1, et ils ne se confondent jamais. Ce qui
+  a fait le défaut des deux gris, ce n'était pas le 1,26:1 : c'était **0° de
+  teinte ET 0 point de saturation**. Le contraste mesure la lisibilité d'un
+  texte sur son fond, pas la distinction de deux teintes entre elles.
+- **La valeur est la chose la plus lisible de la carte.** Elle fait 36 px en
+  gras, et les cinq teintes sont toutes au-dessus du seuil du PETIT texte sur le
+  crème : acier 4,6:1 · fonte 4,8:1 · chaîne 4,7:1 · rouge 5,5:1 · charbon
+  12,4:1.
+- **Le glyphe est un SVG, jamais un emoji** : un emoji change de forme et de
+  couleur d'un téléphone à l'autre. Il monte en haut de la carte et se
+  dimensionne sur la HAUTEUR de ce champ ; mesuré sur la largeur de la carte, il
+  poussait le nom dehors. **Le dessin dit aussi la rareté** : les deux communes
+  sont les deux formes les plus simples, et la Carcasse est la seule qui soit
+  percée et fumante — la seule du paquet à être unique.
+- **La carte est au rapport 1 pour 1,45**, la proportion d'une carte à jouer.
+  À 1 pour 2,5 elle était une lame, et le centre restait vide entre le haut et
+  le pied. La valeur occupe ce centre et fait 40 % de la hauteur ; le nom passe
+  en pied, petit — c'est de la saveur, pas une décision.
+- **Les cartes ont une largeur fixe**, calculée pour la main pleine. En
+  `flex: 1` elles s'élargissaient à mesure qu'on en jouait : la main changeait
+  de forme sous le pouce.
+- **Pas de trame sur le carton.** Deux quadrillages en
+  `repeating-linear-gradient` donnaient du grain à l'arrêt et vibraient dès que
+  la carte bougeait sous le doigt. Un seul dégradé en `multiply`, et rien
+  d'autre.
+- **Les cartes se rangent derrière CELLE QU'ON TIENT**, pas derrière la dernière
+  du DOM ni derrière la dernière choisie. `querySelectorAll` rend les cartes de
+  gauche à droite, si bien qu'en sélectionnant de droite à gauche le tas se
+  formait à l'autre bout de la main. La carte du `pointerdown` passe en fin
+  d'ordre.
+- **On lâche la volée N'IMPORTE OÙ au-dessus du bois.** La zone de dépôt faisait
+  la taille d'une carte : il fallait viser, et un geste qui demande de viser est
+  un bouton déguisé.
 - **La flottaison ne se montre pas, la HOULE si.** `drawGrid` coupe la coque à
   la ligne d'eau ; le bas de la boîte `.coque` EST cette ligne, et il est en
   `overflow: hidden`. Les navires s'y **enfoncent et remontent** — jamais
   au-dessus, sinon leurs mâts sortaient de la bande de mer et se faisaient
-  couper — si bien qu'on voit plus ou moins de bordé selon la houle, sans
-  qu'une seule vague soit dessinée. Le pilonnement et le tangage sont en
-  **quadrature**, un quart de période d'écart : en phase, les deux se
-  confondaient en un balancement de métronome. L'amplitude se compte en rangs
-  de coque (3 px le rang), plafonnée à cinq — au-delà, il ne restait qu'une
-  mâture posée sur l'eau. Trois tentatives pour la rendre visible ont été essayées et
+  couper. Le pilonnement et le tangage sont en **quadrature**, un quart de
+  période d'écart : en phase, les deux se confondaient en un balancement de
+  métronome. L'amplitude se compte en rangs de coque (3 px le rang), plafonnée à
+  cinq. Trois tentatives pour rendre la houle plus visible ont été essayées et
   retirées — un bord mangé en creux et en bosses, une frange d'écume, puis un
-  train d'ondes traversant toute la scène avec les coques s'y enfonçant. Les
-  trois se remarquaient plus que la mer elle-même. **Ne pas les reconstruire.**
+  train d'ondes traversant toute la scène. Les trois se remarquaient plus que la
+  mer elle-même. **Ne pas les reconstruire.**
+- **L'horizon est posé sur les navires** — `startOcean(canvas, { horizon })`,
+  calculé au tiers supérieur des coques : du ciel derrière les voiles hautes, de
+  l'eau derrière les coques.
 - **Un boulet est une bille de fonte** : petite, noire, mate. Grosse et dorée,
   elle ressemblait à une bulle de savon. Ce qui la rend visible sur une mer
   sombre, c'est son cerne clair et son sillage, pas sa taille.
 - **Un impact n'est pas une explosion.** Un boulet dans un bordé de chêne ne
   fait pas de boule de feu : un choc clair très bref, une masse de poussière
-  terreuse, et surtout **du bois qui vole**. C'est le bois qui dit que la
-  coque a pris ; la fumée seule dit « quelque chose a explosé ». Et il frappe
-  **le bordé**, entre le pont et l'eau — repères relevés à la peinture
+  terreuse, et surtout **du bois qui vole**. C'est le bois qui dit que la coque
+  a pris ; la fumée seule dit « quelque chose a explosé ». Et il frappe **le
+  bordé**, entre le pont et l'eau — repères relevés à la peinture
   (`dataset.pont`, `dataset.flottaison`), jamais un pourcentage de l'image.
-- **Une route de mer contourne la terre.** `routeEntre(a, b)` (dans
-  `src/caribbean.js`) rend la courbe la plus courte qui reste sur l'eau. Deux
-  précautions, toutes deux payées d'un détour absurde à l'écran : les côtes
-  sont **érodées** avant le test, parce qu'un port est sur le trait de côte et
-  que sans cela aucune route ne passait ; et l'on garde **le premier** écart
-  qui passe, donc le plus petit.
-- **Le cap se valide par un bouton.** Toucher une escale vise et dit ce qu'on y
-  trouve ; c'est le bouton nommé qui part. « Touche encore pour confirmer »
-  n'était écrit nulle part avant d'avoir visé.
-- **Les conditions sont UNE cible de 44 px** — météo, règle de la prise,
-  reliques — qui les ouvre toutes. Trois puces de 17 px de haut étaient trois
-  cibles qu'un pouce rate, et l'audit mobile les relevait.
-- **La zone de dépôt est sous le nôtre**, et n'existe que pendant le geste.
-  Les deux se répondent : sa carte à elle, notre cible à nous.
-- **L'horizon est posé sur les navires** — `startOcean(canvas, { horizon })`,
-  calculé au tiers supérieur des coques : du ciel derrière les voiles hautes,
-  de l'eau derrière les coques.
-- **Les cartes ont une largeur fixe**, calculée pour la main pleine. En
-  `flex: 1` elles s'élargissaient à mesure qu'on en jouait : la main changeait
-  de forme sous le pouce.
-- **LA CARTE EST CRÈME, ET SON CADRE DIT LA MUNITION.** Elle a porté deux
-  couleurs — un fond sombre pour le bord, un bandeau clair pour la munition —
-  tant que bâbord et tribord décidaient de ce qui pouvait tirer ensemble. Ce
-  bord est **retiré** : il ne reste qu'une chose à dire par carte, et une carte
-  qui n'a qu'une chose à dire n'a pas besoin de deux aplats. Le carton reprend
-  sa couleur de carton (`#f2ead6`), et le cadre — **5 px, pas un liséré** —
-  porte tout. À 1 px il se lisait comme une ombre.
-- **TROIS PORTEURS POUR UNE SEULE INFORMATION : le cadre, le glyphe et LA
-  VALEUR**, tous trois dans la couleur du type. Le chiffre était en encre
-  sombre : la chose la plus grande de la carte ne disait rien de ce qu'on
-  assortit, l'œil allait au chiffre et la couleur restait sur la tranche.
-- **CINQ MUNITIONS, CINQ COULEURS**, et c'est la répétition qui rend les figures
-  lisibles : deux cadres de la même couleur côte à côte SONT une paire, et on la
-  voit sans lire un mot. Une figure qu'il faut lire pour la voir n'est pas une
-  figure. Les teintes sont **sombres**, puisqu'elles se détachent maintenant sur
-  du crème et non plus sur un fond noir : ramé fonte `#6f6553`, rouge `#b3261d`,
-  mitraille acier `#2f6f8f`, chaîne violet `#6f5d99`, barrique bois `#96633a`.
-- **DEUX GRIS NE FONT PAS DEUX COULEURS.** Le ramé (`#8a7f6c`) et la mitraille
-  (`#6b7176`) étaient deux gris à **1,26:1 l'un de l'autre**, sans hue ni écart
-  de clarté : la même couleur à 5 px de cadre — et ce sont les deux munitions
-  les plus nombreuses du paquet, celles qu'il faut justement assortir. Le ramé
-  est descendu vers la fonte, la mitraille a repris son bleu d'acier. **Seul le
-  boulet rouge se nomme par sa couleur**, et lui seul la garde par obligation ;
-  les autres noms ne disent aucune teinte, donc aucune teinte ne leur est due.
-- **Le glyphe est un SVG, jamais un emoji** : un emoji change de forme et de
-  couleur d'un téléphone à l'autre. Il monte en haut de la carte, là où était le
-  bandeau, et se dimensionne sur la HAUTEUR de ce champ ; mesuré sur la largeur
-  de la carte, il poussait le nom dehors.
-- **Les cartes se rangent derrière CELLE QU'ON TIENT**, pas derrière la dernière
-  du DOM ni derrière la dernière choisie. `querySelectorAll` rend les cartes de
-  gauche à droite, si bien qu'en sélectionnant de droite à gauche le tas se
-  formait à l'autre bout de la main — c'est `P.selection` qui garde l'ordre des
-  doigts. Mais la dernière choisie n'est pas non plus la bonne tête : en
-  saisissant une autre carte de la volée, le paquet allait se ranger ailleurs
-  que sous le doigt. La carte du `pointerdown` passe en fin d'ordre.
-- **On lâche la volée N'IMPORTE OÙ au-dessus du bois.** La zone de dépôt faisait
-  la taille d'une carte : il fallait viser, et un geste qui demande de viser est
-  un bouton déguisé.
-- **Le glyphe est toujours en haut.** Le bandeau qu'il a remplacé était collé en
-  haut ou en bas selon que l'homme servait à l'avant ou à l'arrière ; l'avant et
-  l'arrière sont retirés, et c'est une chose de moins à décoder sur chaque
-  carte.
-- **Une main se lit alors comme des jetons** : cinq couleurs de cadre, et pas un
-  mot à lire.
-- **La carte est au rapport 1 pour 1,45**, la proportion d'une carte à jouer.
-  À 1 pour 2,5 elle était une lame, et le centre restait vide entre le haut et
-  le pied. La valeur occupe ce centre et fait 40 % de la hauteur ; le nom passe
-  en pied, petit — c'est de la saveur, pas une décision.
-- **Pas de trame sur le carton.** Deux quadrillages en `repeating-linear-gradient`
-  donnaient du grain à l'arrêt et vibraient dès que la carte bougeait sous le
-  doigt. Un seul dégradé en `multiply`, et rien d'autre.
-- **Un niveau ne s'affiche que s'il existe**, en étoiles. « niv. 0 » sur douze
-  cartes, c'était douze fois la même information vide.
-- **La valeur est la chose la plus lisible de la carte.** Elle fait 36 px en
-  gras — du GRAND texte, qui demande 3:1 — et les cinq teintes sont toutes
-  au-dessus du seuil du PETIT texte sur le crème `#f2ead6` : ramé 4,8:1 · rouge
-  5,5:1 · mitraille 4,6:1 · chaîne 4,7:1 · barrique 4,2:1. C'est ce qui permet
-  de lui donner la couleur du type sans rien perdre en lisibilité.
-- **Un homme injouable se DÉSATURE, il ne s'efface pas** : sous 0,55
-  d'opacité sa valeur cesse d'être lisible, et une carte qu'on ne peut pas
-  lire ne dit plus pourquoi elle est refusée.
-- **Le schéma de coque est retiré avec le quart.** Il montrait un quart — bord
-  ET bout — sur une coque vue de dessus. Un homme n'a plus qu'un bord, et le
-  fond de sa carte le dit déjà.
-- **Le poste est un DESSIN, pas une abréviation** : une coque vue de dessus,
-  proue en haut, coupée en quatre, le quart de l'homme allumé à la couleur de
-  son bord. « BÂ · AV » demandait d'apprendre un code avant de pouvoir jouer.
 - **Un boulet fait trois choses distinctes, et on doit les distinguer** : la
   bouffée sort du sabord (relevé dans la grille du navire, pas inventé) et part
   vers l'extérieur ; les copeaux volent loin et retombent ; la fumée d'incendie
-  monte lentement et **ne s'arrête pas** tant que la coque brûle. Peinte dans
-  le canvas, elle ne bougeait qu'à la repeinte — un incendie figé.
+  monte lentement et **ne s'arrête pas** tant que la coque brûle.
 - **On ne dit jamais « elle » de l'adversaire.** Un pronom sans antécédent à
-  l'écran ne dit pas de quoi on parle : le navire ? la prise ? la cargaison ?
-  la mer ? On nomme la chose — « le navire adverse », « la prise », « la
-  coque », ou son nom propre.
+  l'écran ne dit pas de quoi on parle : le navire ? la prise ? la cargaison ? la
+  mer ? On nomme la chose — « le navire adverse », « la prise », « la coque », ou
+  son nom propre.
 
-## 1 bis. L'AUTRE PLATEAU : la volée nue
+### CE QUI A ÉTÉ RETIRÉ, et qu'il ne faut pas reconstruire
 
-Un **second environnement**, monté à côté du premier et non à sa place. Onze
-cartes, trois types, un seul ordre. On éprouve une question et une seule : **que
-reste-t-il quand on retire tout ?**
+Le jeu a compté jusqu'à **sept systèmes** à tenir en tête devant un écran de
+375 px. Chacun était défendable seul, aucun ne l'était ensemble. Le détail de
+chaque retrait, avec ses mesures, est dans `docs/archives/`.
 
-| | |
+| Retiré | Ce qu'il coûtait |
 |---|---|
-| La maquette | `docs/refonte/mockups/f-simple.html` |
-| Les règles | `src/simple.js` — pures, sans dé |
-| Le contenu | `data/simple.json` — trois types, le paquet, les cinq prises |
-| Les tests | `test/simple.test.js` |
-| Le CSS | `css/deck.css` §17.4 — le reste vient de §17, tel quel |
+| **TOUT LE PLATEAU E** — `src/cartes.js`, `docs/archives/mockups/e-cartes.html` : l'état-major, les reliques, la carte annoncée, les rechargements, la coulée, le tutoriel, la carte des Caraïbes, la boutique | Monté À CÔTÉ de celui-ci pour éprouver une question : que reste-t-il quand on retire tout ? La réponse a tenu. Neuf systèmes de plus, pour un jeu que la volée nue rend en trois règles |
+| **Bâbord et tribord** | Une main sur deux était à moitié injouable, et la moitié des tours devenait une attente. Ce qui décide, ce sont les FIGURES : assortir, et non trier |
+| **Les métiers, les quarts, les valeurs individuelles** | Un deck d'hommes tous différents ne peut pas former de figures : chaque carte était unique, aucune main ne ressemblait à une autre, et « la volée la plus forte » se lisait d'un coup d'œil |
+| **L'avant et l'arrière**, **les mâts et le démâtage**, **l'encrassement** | Un compteur, un seuil et un décompte de repousse, pour un seul effet chacun |
+| **La météo en combat** | Une même main valait deux chiffres selon le ciel, qu'il fallait lire avant de compter. Elle reste le **décor** : ciel, houle, pluie |
+| **La fureur et le multiplicateur** | « 17 × 2,5 » demandait un produit de tête avant de savoir ce que la volée valait |
+| **Le rechargement** | Une seconde monnaie qui ne se convertit pas dans la première — juste, mais c'est une ressource de plus à suivre, et un second geste à apprendre |
+| **La coque et la coulée** | Une seconde façon de gagner qui rendait moins était une exception de plus. On perd en **manquant le seuil**, et c'est la seule façon |
+| **La panachée** (trois types différents) | Une seconde condition, en sens inverse de la première, est une règle de plus à vérifier |
 
-**LES DEUX ENVIRONNEMENTS COEXISTENT.** `e-cartes.html` et `src/cartes.js` ne
-sont pas touchés : ils gardent l'état-major, les reliques, la carte annoncée,
-les rechargements, la coulée et les cinq munitions. Ne pas fondre l'un dans
-l'autre, et ne pas mettre un drapeau dans `cartes.js` pour simuler celui-ci —
-deux jeux derrière un `if` sont deux jeux qu'on ne peut plus juger séparément.
+**Un système qu'il faut rattraper par une exception est un système à retirer,
+pas à corriger.**
 
-**ONZE CARTES : 4 boulets ramés (6), 4 mitrailles (4), 3 boulets rouges (10).**
-Un paquet qu'on compte sur les doigts. Au troisième tour, un joueur SAIT ce qui
-reste, parce qu'il l'a vu passer : c'est la seule connaissance que ce plateau
-demande, et la seule qu'il récompense. D'où la ligne **« au paquet »** posée sur
-le bois — cacher le compte ne ferait pas du suspense, seulement une
-comptabilité à tenir sur un coin de table.
-
-**LA PUISSANCE VIENT DE DEUX CHOSES.** Le TYPE de chaque carte, et ce que la
-MAIN assortit : **paire +8**, **triplette +24**. Tout s'additionne. Il n'y a pas
-de troisième chose à savoir — ni fureur, ni multiplicateur, ni bord, ni effet de
-carte, ni riposte, ni rechargement, ni coque. La **panachée** elle-même est
-retirée : trois types différents ne valent rien, parce qu'une seconde condition,
-en sens inverse de la première, est une règle de plus à vérifier.
-
-**Une triplette de la plus faible bat un boulet rouge seul** — 36 contre 10.
-C'est tout le plateau en une ligne : si la carte la plus chère gagnait toujours,
-il n'y aurait rien à assortir et la main ne dirait rien. Un test le tient.
-
-**DEUX FINS, PAS TROIS.** Résistance atteinte → la prise, butin plein. Plus une
-bordée (quatre) → elle s'échappe, et l'on n'a rien. La coulée est partie avec la
-coque : une seconde façon de gagner qui rendait moins était une exception de
-plus.
-
-**LES RÉSISTANCES SONT MESURÉES, pas choisies à l'œil** : 104 · 132 · 140 · 150
-· 166. Sur 2 000 rencontres jouées à la meilleure volée, le total de quatre
-bordées donne p25 = 142, médiane = 146, p75 = 166 — d'où des prises à 100 %,
-89 %, 77 %, 36 % et 24 %. **Il n'y a AUCUNE progression** dans ce plateau (ni
-état-major, ni relique, ni recrutement), donc l'échelle doit tenir entière dans
-ce qu'un joueur atteint avec onze cartes : une résistance au-dessus de ~175
-n'est atteignable par personne.
-
-**Le choix compte encore, et beaucoup.** Mêmes graines, mêmes mains : un
-capitaine qui lit sa main prend la flûte **89 fois sur 100**, un capitaine qui
-pose les trois premières cartes venues **2 fois**. Si cet écart se referme, la
-volée nue n'est plus qu'une addition qu'on exécute — et c'est le plateau qu'il
-faut jeter, pas le test.
-
-**UN SEUL GESTE, ET PAS DE GESTE DESCENDANT.** On touche une à trois cartes, on
-pousse vers le haut, la volée part ; monter puis redescendre annule. Le
-rechargement n'existe pas ici, donc le râtelier n'est la cible de rien et il n'y
-a qu'une zone de dépôt. Les flèches du clavier doublent le geste.
-
-**L'écran n'a que ce dont il a besoin** : la jauge de pression, le compteur de
-bordées, les deux coques, la ligne du paquet, la main. Pas d'état-major, pas de
-pastilles de conditions, pas de carte d'intention, pas de phylactère, pas de
-tutoriel, pas de carte des Caraïbes, pas de boutique — les cinq prises
-s'enchaînent, et c'est tout.
-
-**Le score se joue en séquence**, comme dans l'autre plateau : chaque carte à
-son tour, puis le nom de la figure en grand, puis le total, et seulement là les
-canons tirent.
+---
 
 ## 2. Les deux contraintes qui priment sur le reste
 
@@ -594,15 +331,12 @@ tient pas. Ce n'est pas une passe de mise en page à la fin.
 - **Jamais de largeur fixe en pixels.** `#app { overflow-x: hidden }` ampute
   **en silence** : pas d'ascenseur, pas d'erreur, la moitié du jeu absente.
   C'est le pire défaut possible parce que rien ne le signale — mesuré à 51 %
-  d'un ancien plateau hors écran, et 47 % des cartes de recrutement du jeu.
+  d'un ancien plateau hors écran.
 - **44 × 44 px minimum** pour tout ce qui se touche.
 - **Le survol ne porte aucune information.** Première touche = viser, et
   l'écran dit exactement ce que l'action ferait ; seconde = confirmer.
-  Sélectionner une carte n'engage rien.
 - **Les ordres sont des gestes, pas des boutons** (voir §1). Seuil 44 px, la
-  même mesure que la cible tactile minimale ; le glissement vers le bas
-  résiste, parce que larguer coûte une ressource et ne doit pas arriver en
-  reposant le pouce. Le clavier double les gestes.
+  même mesure que la cible tactile minimale. Le clavier double les gestes.
 - L'instrument : `node tools/mobile-audit.mjs`, qui **échoue** si un écran
   ampute ou déborde.
 
@@ -618,25 +352,18 @@ tient pas. Ce n'est pas une passe de mise en page à la fin.
 C'est la contrainte « mobile d'abord » rendue vérifiable en un clic. Avec une
 seule adresse, on ouvre la maquette en 1 400 px de large : tout y tient, donc
 tout va bien, donc **on ne voit rien** — et c'est exactement ainsi qu'un écran
-amputé traverse une relecture. La seconde adresse n'est pas un confort : c'est
-le seul moyen de regarder l'écran de référence quand l'appareil n'est pas sous
-la main.
-
-**Les deux fichiers sortent du même outil, à la même commande :**
+amputé traverse une relecture.
 
 ```bash
-node tools/bundle-mockup.mjs docs/refonte/mockups/f-simple.html dist/f-simple.html
-# → dist/f-simple.html          le jeu seul, autonome        (l'URL du téléphone)
-# → dist/f-simple-desktop.html  le même, dans un châssis      (l'URL du banc)
+node tools/bundle-mockup.mjs docs/mockups/jeu.html dist/jeu.html
+# → dist/jeu.html          le jeu seul, autonome     (l'URL du téléphone)
+# → dist/jeu-desktop.html  le même, dans un châssis  (l'URL du banc)
 ```
 
 Le banc porte le jeu dans une **iframe `srcdoc`**, jamais dans une transformée
 d'échelle : un `transform: scale()` ment sur tout ce qui compte — les media
-queries, `innerWidth`, la taille réelle d'une cible en pixels CSS. L'iframe
-donne au document une vraie fenêtre de 375, 390 ou 412 px, les trois appareils
-de `mobile-audit`, et l'on bascule de l'un à l'autre. Le châssis **ne rétrécit
-jamais** : sur une fenêtre courte, la page défile — un banc d'essai qui ampute
-ce qu'il montre ne vaut rien.
+queries, `innerWidth`, la taille réelle d'une cible en pixels CSS. Le châssis
+**ne rétrécit jamais** : sur une fenêtre courte, la page défile.
 
 Pour publier, il faut retirer le squelette du document (`<!DOCTYPE>`, `<html>`,
 `<head>`, `<body>`), que l'hébergeur remet lui-même. **Le corps se prend jusqu'au
@@ -647,11 +374,10 @@ adresses montrent alors la même page.
 
 ### Le contenu est de la donnée, la règle est du code
 
-Ajouter une munition, une prise ou une relique ne doit demander **aucune ligne de
-code** : tout est dans `data/equipage.json`, y compris la composition du
-paquet. En face, le *verbe* d'un homme de l'état-major est une règle, donc il
-vit dans `src/cartes.js` — c'est la seule chose qui demande du code, et c'est
-voulu : un homme qui ne changerait aucune règle ne serait qu'un texte.
+Ajouter un type de carte, changer le paquet, ajouter une prise ne doit demander
+**aucune ligne de code** : tout est dans `data/simple.json`, y compris la
+composition du paquet et les raretés. `src/simple.js` ne connaît ni les noms ni
+les nombres — il ne connaît que les figures.
 
 ---
 
@@ -660,35 +386,35 @@ voulu : un homme qui ne changerait aucune règle ne serait qu'un texte.
 | Module | Rôle |
 |---|---|
 | **Règles — pures, déterministes, sans DOM ni aléatoire** | |
-| `src/cartes.js` | **La chasse-partie en cartes.** Munitions, figures, évaluation, verbes de l'état-major, partage |
-| `src/simple.js` | **La volée nue** (§1 bis) : onze cartes, trois types, paire et triplette. L'autre plateau, à côté et non à la place |
-| `src/shipPlans.js` | Plans de pont par classe de coque (encore utilisé par la vue en profil) |
+| `src/simple.js` | **Le jeu.** Types, figures, évaluation, zones, la rencontre |
 | **Génération — c'est ici que l'aléatoire est permis** | |
-| `src/voyage.js` | **La progression sur la carte** : escales, actes, prise trouvée, épaves, rencontres |
-| `src/rencontre.js` | Tirage d'ouverture : météo, pavillon, phylactères |
 | `src/sprites.js` | Générateur de navires |
-| `src/caribbean.js` | La Caraïbe réelle : lieux, côtes, distances (règles pures — `src/voyage.js` s'appuie dessus) |
 | **Présentation** | |
 | `src/ui.js` | `el`, `mount`, `modal`, `bar` — les briques de tout écran |
 | `src/ocean.js` | Ciel et mer animés, en fond de tout écran « en mer » |
 | `src/fx.js` | Effets : fumée, éclats, nombres flottants |
-| `src/deckView.js` | Rendu en profil : le sprite généré sert de cadre au plan |
-| `src/run.js` | État de partie : archétypes, chasse-partie, moral, légitimité |
 | **Styles** | |
-| `css/deck.css` | Le CSS de la refonte. **§17 = l'écran de cartes, §17.2 = la carte, §17.3 = le tutoriel, §17.4 = la volée nue** |
+| `css/deck.css` | **§17 = l'écran de cartes, §17.2 = la carte, §17.4 = la volée nue** |
 | `css/components.css` | Composants **partagés** : jauges, boutons `.btn-level-*`, modales |
 | `css/style.css` | Ce qui appartient à **un écran**, et rien d'autre |
 | **Outils** | |
-| `tools/bundle-mockup.mjs` | Fond une maquette en un fichier autonome, à partir des mêmes sources |
+| `tools/bundle-mockup.mjs` | Fond la maquette en deux fichiers autonomes, à partir des mêmes sources |
 | `tools/mobile-audit.mjs` | Amputation, cibles tactiles, débordement — échoue |
 | `tools/contrast-audit.mjs` | Contrastes mesurés sur les pixels rendus |
-| **Écarté — ne rien construire dessus** | `src/battle.js`, `src/flotte.js`, `src/breche.js`, `src/hex.js`, `src/combat.js`, `src/map.js`, `src/abilities.js`, les anciens `src/screens/*` |
+| **ÉCARTÉ — ne rien construire dessus** | `src/cartes.js`, `src/voyage.js`, `src/caribbean.js`, `src/rencontre.js`, `src/deckView.js`, `src/shipPlans.js`, `src/run.js`, `src/battle.js`, `src/flotte.js`, `src/breche.js`, `src/hex.js`, `src/combat.js`, `src/map.js`, `src/abilities.js`, les anciens `src/screens/*` |
+
+Les modules écartés restent sur le disque : ils disent ce qui a été essayé, et
+c'est la seule chose qui empêche de le reconstruire. Leurs tests tournent par
+`node test/archives.js`, jamais par `node test/run.js`.
 
 ---
 
 ## 4. Les treize règles qui ont chacune coûté un bug
 
-**1. Aucune entropie dans la résolution.** `src/cartes.js` ne doit jamais
+Elles valent toutes pour le code vivant, même quand l'exemple qui les a écrites
+vient d'un plateau depuis écarté — c'est le bug qui compte, pas le décor.
+
+**1. Aucune entropie dans la résolution.** `src/simple.js` ne doit jamais
 contenir `Math.random`, `Date.now` ni `crypto` — un test échoue s'ils y
 apparaissent, **y compris dans un commentaire**. Le battage et la pioche
 prennent un `rng` en argument parce qu'ils relèvent de la *génération* ;
@@ -724,15 +450,14 @@ une règle transversale, écrire ce qui la mesurera.
 livrée, pavillon) : lui passer une couleur unique fait retomber chaque
 caractère inconnu sur cette couleur, et le navire sort en **aplat monochrome**,
 sans voiles ni pavillon — sans qu'aucune erreur ne soit levée. Toujours
-`drawGrid(cv, g.grid, { color: g.palette })`. `drawGrid` avertit maintenant en
-console quand des caractères tombent hors palette.
+`drawGrid(cv, g.grid, { color: g.palette })`.
 
 **8. Ne jamais capturer le pointeur avant que le geste soit un glissement.**
 `setPointerCapture` dès le `pointerdown` redirige aussi le `click` qui suit
 vers la zone capturante, pas vers l'élément touché. Conséquence observée : une
-fois un homme sélectionné, plus aucune touche n'en sélectionnait un second, et
-rien ne le signalait — la carte s'illuminait bien au premier appui. La capture
-se prend au franchissement du seuil (8 px), pas avant.
+fois une carte sélectionnée, plus aucune touche n'en sélectionnait une seconde,
+et rien ne le signalait — la carte s'illuminait bien au premier appui. La
+capture se prend au franchissement du seuil (8 px), pas avant.
 
 **9. Ne jamais tirer une valeur STABLE d'une entrée qui BOUGE.** Trois fois le
 même bug. Le canvas d'une coque était dimensionné d'après la hauteur de son
@@ -745,10 +470,9 @@ retiraient au sort soixante fois par seconde et le ciel clignotait. Une forme
 vient d'une graine, une mesure se prend une fois — jamais de ce qui change.
 
 **10. On pioche avec `pop()` : la fin du tableau est le DESSUS du paquet.**
-La carte Feu du brûlot était posée avec `unshift`, donc au fond de la pioche :
-elle n'arrivait jamais en main. L'effet le plus visible de la prise était
-invisible, et rien ne le signalait. Un test tire maintenant la carte pour
-vérifier qu'elle arrive.
+Une carte posée avec `unshift` part au FOND de la pioche et n'arrive jamais en
+main. C'est arrivé à la carte la plus visible d'un plateau depuis écarté :
+l'effet principal d'une prise était invisible, et rien ne le signalait.
 
 **11. Ce qui vole appartient au DÉCOR, pas à la page.** Les boulets, les
 copeaux et la fumée étaient posés sur `document.body` en `position: fixed`.
@@ -762,9 +486,7 @@ coordonnées relatives à elle.
 **12. Une masse translucide se peint EN UNE FOIS.** Six ellipses semi-
 transparentes empilées laissent voir tous leurs recouvrements : on lit six
 bulles, jamais un nuage ni une bouffée de poudre. Un nuage est un seul chemin
-fermé (base plate, bosses en arcs) rempli d'un coup ; une bouffée est un seul
-élément dont les lobes sont des dégradés du même `background`. La règle vaut
-partout où de la fumée, de la brume ou de l'écume se superpose.
+fermé (base plate, bosses en arcs) rempli d'un coup.
 
 **13. Dans le fichier autonome, tous les modules partagent une portée.** Une
 `const scene` dans la maquette et une `let scene` dans `src/ocean.js` donnent
@@ -776,73 +498,54 @@ maintenant sur un nom déclaré deux fois plutôt que de livrer ça.
 ## 5. Tests
 
 ```bash
-node test/run.js          # 199 vérifications, zéro dépendance
+node test/run.js          # LE JEU — 21 vérifications, zéro dépendance
+node test/archives.js     # les modules écartés — 182 vérifications
 ```
+
+**LA SUITE DU JEU NE COURT QUE SUR CE QUI EST VIVANT.** Elle a longtemps tenu
+onze douzièmes de ses vérifications ailleurs : 2 287 lignes gardaient des
+modules écartés, contre 244 pour le plateau qu'on joue. Un total vert qui ne dit
+rien du jeu en cours est pire qu'un total rouge.
 
 **Deux natures de tests, et il faut savoir laquelle casse.**
 
 *Les détecteurs de clé erronée* — identifiants qui ne correspondent pas à leur
-clé, références pendantes, rôles inconnus. C'est la classe de bug qui a coulé
+clé, références pendantes, raretés inconnues. C'est la classe de bug qui a coulé
 le prototype précédent et qu'aucune vérification de syntaxe n'attrape.
 
-*Les tests qui mesurent une décision de conception.* Dans `cartes.test.js` :
+*Les tests qui mesurent une décision de conception* :
 
-- **« la promesse du tour »** — ce que la prise fera est annoncé avant qu'on
-  joue, et une mitraille dans la volée l'empêche vraiment. Si l'annonce ment, le
-  tour redevient un pari et tout le reste ne sert à rien.
-- **« est-ce que choisir compte ? »** — les mêmes mains, sur les mêmes
-  graines, jouées par un capitaine appliqué et par un maladroit. Le maladroit
-  doit perdre nettement.
-- **« le rechargement est la vraie seconde monnaie »** — le test le plus
-  important du dépôt. Les mêmes mains, sur les mêmes graines : un capitaine qui
-  dépense ses trois rechargements contre un qui les garde. Mesuré, l'écart est
-  de 13 prises sur 60 sur la barque et de **18 sur la flûte**. Il échoue si
-  l'écart se referme, et c'est bien le point : tant qu'une seule ligne de jeu
-  est optimale, le joueur exécute un calcul, il ne choisit rien.
-- **« les trois fins »** — résistance atteinte, coque à zéro, quatre bordées
-  tirées. Chacune rend un butin différent, et seule la première rend tout.
+- **« est-ce que choisir compte ? »** — les mêmes mains, sur les mêmes graines,
+  jouées par un capitaine appliqué et par un maladroit. Mesuré sur la flûte :
+  86 prises sur 100 contre 0. Si cet écart se referme, le joueur exécute une
+  addition, il ne choisit rien.
+- **« l'échelle est mesurée »** — les cinq prises forment une vraie échelle, du
+  certain au presque impossible, et chaque barreau se distingue du précédent.
+  Si deux barreaux se rejoignent, il y a deux prises qui font le même jeu.
+- **« une triplette de la plus faible bat la rare toute seule »** — le plateau
+  en une ligne. Il va chercher la plus faible et la rare dans la donnée plutôt
+  que de les nommer, donc il suit le paquet quand le paquet change.
+- **« LA RARETÉ EST UNE FRÉQUENCE, PAS UN POUVOIR »** — chaque rareté dit un
+  nombre d'exemplaires, et rien d'autre.
+- **« les deux fins »** — résistance atteinte, quatre bordées tirées. Il n'y en
+  a pas de troisième.
 - **« les zones »** — une carte est dans exactement une zone, du premier tour au
   dernier. C'est l'invariant d'un jeu de cartes qui ne se voit JAMAIS quand il
-  casse : une munition dupliquée n'est qu'une main un peu chanceuse, une
-  munition perdue qu'un paquet un peu court. `P.deck` est la maîtresse liste et
-  non une zone — `retirerDeLaPartie` doit y trancher aussi, sinon la barrique ne
-  jette que pour une rencontre. `P.selection` est une marque, pas un tas. La
-  carte Feu est la seule carte d'une zone qui n'est pas au deck, parce qu'elle
-  n'est pas à nous.
-
-Dans `voyage.test.js` : on part toujours du même coin, on ne saute pas d'un
-bout de la mer à l'autre, et **chaque escale dit ce qu'elle est avant qu'on y
-aille**. Le jour où l'un des trois cesse d'être vrai, la carte redevient une
-liste de nœuds.
-
-- **« les figures sont faites de munitions »** — c'est la raison d'être du
-  deck, et le test dit à la fois ce que chaque figure vaut et pourquoi elle
-  peut exister. Avec les mêmes assertions : **la chaîne arme la volée
-  SUIVANTE**, jamais la sienne, et **la barrique jette hors de la PARTIE**,
-  un Feu d'abord.
-- **« chacun des cinq hommes change une règle »** — un homme qui n'apporterait
-  qu'un bonus chiffré serait une munition de plus.
-- **« sa carte touche la main »** — aucune intention ne vise une coque que
-  nous n'avons pas, et une partie jouée jusqu'au bout ne finit jamais en
-  naufrage.
+  casse : une carte dupliquée n'est qu'une main un peu chanceuse, une carte
+  perdue qu'un paquet un peu court. `P.selection` est une marque, pas un tas.
+  Déplacer, c'est retirer d'un tas ET poser dans l'autre.
+- **« au paquet dit la vérité »** — la seule connaissance que ce plateau
+  récompense, c'est de savoir ce qui reste. Si la ligne s'écarte du contenu réel
+  de la pioche, mieux valait cacher le compte que le donner faux.
 
 **Un seuil qui casse là est une décision à prendre, pas un test à assouplir.**
-C'est ce test qui a écrit la moitié des règles ci-dessus, y compris celles qui
-ont fini par être retirées : le tir au gréement à la majorité partait par
-accident une fois sur deux, un mât perdu définitivement faisait du démâtage la
-seule tactique du jeu, un charpentier glissé dans chaque volée rendait plus de
-coque que la prise n'en enlevait. Chaque correctif tenait — et à la fin il y en
-avait sept à tenir en tête à la fois. **Un système qu'il faut rattraper par une
-exception est un système à retirer, pas à corriger.**
 
-C'est lui, encore, qui a tranché la structure. Sous le score additif, l'écart
-entre le capitaine appliqué et le maladroit était de 15 prises sur 60 ; le
-passage au score à deux axes (poudre × fureur) l'a fait tomber à 6, parce que
-la multiplication récompense DEUX FOIS le fait de jouer beaucoup de cartes. La
-relève de deux ne compensait plus ce que la multiplication rapportait. La
-structure à seuil l'a rouvert à **40** : avec quatre bordées seulement pour
-atteindre une résistance annoncée, une main mal lue ne se rattrape pas au tour
-suivant — il n'y a pas de tour suivant.
+**Chaque test de cette suite doit MORDRE.** Deux d'entre eux ont été écrits
+faux et passaient quand même : l'un bouclait sur `meilleureVolee(P).length`,
+qui vaut `undefined` puisque la fonction rend un objet — la boucle sortait au
+premier tour et le test ne jouait jamais. Un test qui ne joue pas passe.
+Éprouve-les par MUTATION : casse l'invariant exprès et vérifie qu'une suite, et
+une seule, tombe.
 
 Pour ce que les tests de données ne voient pas :
 
@@ -859,36 +562,28 @@ le DOM déclare « 0 échec » sur un écran illisible.
 
 **L'audit mobile** ouvre chaque écran sur trois téléphones et **échoue** si
 l'un ampute ou déborde. Sa limite est écrite dans son en-tête : il ne lit que
-les `:hover` CSS et raterait un aperçu construit dans un `mouseenter`.
+les `:hover` CSS et raterait un aperçu construit dans un `mouseenter`. Les deux
+audits ne visitent QUE le jeu : mesurer un écran que personne n'ouvre ne dit
+rien de celui qu'on joue.
 
 ---
 
 ## 6. Maquettes
 
-`docs/refonte/mockups/` — maquettes **jouables**, pas des images. Elles portent
-une `<base href="../../../">` et chargent `css/style.css` et `src/*.js` : une
-maquette **utilise l'interface du jeu**, elle n'en réinvente pas une à côté. Si
-un composant manque, l'ajouter à `css/deck.css` et au design system — jamais
-dans un `<style>` de maquette.
-
-`e-cartes.html` et `f-simple.html` sont les deux maquettes vivantes — la
-chasse-partie complète et la volée nue (§1 bis), montées côte à côte pour
-qu'on puisse les comparer plutôt que d'en fondre une dans l'autre.
-`b2-combat.html`, `c-rade.html` et
-`d-breche.html` sont les trois échelles de combat abandonnées : à lire pour
-savoir ce qui a été essayé, à ne pas reprendre. `profil.html` et
-`role-equipage-mockup.html` sont antérieures et ne suivent aucune de ces
-règles.
+`docs/mockups/jeu.html` — **la maquette EST le jeu**, jouable, pas une image.
+Elle porte une `<base href="../../">` et charge `css/style.css` et `src/*.js` :
+elle **utilise l'interface du jeu**, elle n'en réinvente pas une à côté. Si un
+composant manque, l'ajouter à `css/deck.css` et au design system — jamais dans
+un `<style>` de maquette.
 
 Tout ce qui sert au développement — graine, état de la pioche, barème — vit
 derrière un bouton **roue crantée**, jamais dans l'écran de jeu.
 
-Pour donner une version à essayer : `tools/bundle-mockup.mjs` produit **deux**
-fichiers uniques, sans serveur, à partir des mêmes sources — le jeu seul, et le
-jeu dans un châssis de téléphone. Voir §2, « on livre deux URLs, toujours ». Il
-n'y a pas de seconde version du jeu à maintenir : l'outil lit dans la maquette
-les modules qu'elle importe et les fichiers de données qu'elle charge, plutôt
-que d'en tenir sa propre liste.
+`docs/archives/mockups/` — les maquettes abandonnées : `e-cartes.html` (la
+chasse-partie complète, dont la volée nue est la réponse), `b2-combat.html`,
+`c-rade.html` et `d-breche.html` (les trois échelles de combat), `profil.html`
+et `role-equipage-mockup.html` (antérieures, elles ne suivent aucune de ces
+règles). **À lire pour savoir ce qui a été essayé, à ne pas reprendre.**
 
 ---
 
@@ -896,20 +591,20 @@ que d'en tenir sa propre liste.
 
 | Fichier | Contenu |
 |---|---|
-| `docs/refonte/brief.md` | Le brief d'origine. Sa **section 2** (suppressions) et sa **section 9** (pistes écartées) font toujours foi : elles évitent de reconstruire ce qui a été essayé et rejeté |
-| `docs/refonte/PLAN.md` | **Où en est le chantier** : ce qui est fait, ce qui reste, et le tableau de ce que les mesures ont imposé au jeu |
-| `docs/refonte/notes-2025-refonte.md` | **L'ancienne version de ce fichier.** Tout l'état du chantier « trois échelles de combat » : ce qui était bloqué, pourquoi, et ce que chaque proposition valait. À lire avant de rouvrir une question de combat |
+| `CLAUDE.md` | **Ce fichier : le jeu actuel, et rien d'autre** |
+| `docs/audit-2026-08.md` | L'audit des branches, la bascule sur la volée nue, et ce qu'il reste à faire |
 | `design-system.html` | Interface : palette, composants vivants, contrastes, mobile |
 | `histoire.html` | Le monde : contexte 1640-1697, figures historiques |
+| **Archives — à lire, jamais à reprendre** | |
+| `docs/archives/brief.md` | Le brief d'origine. Sa **section 2** (suppressions) et sa **section 9** (pistes écartées) restent le meilleur relevé de ce qui a été rejeté et pourquoi |
+| `docs/archives/PLAN.md` | L'ordre de marche du chantier « grille tactique », tranché et fermé |
+| `docs/archives/notes-2025-refonte.md` | L'état du chantier « trois échelles de combat » |
 
-### Déviations actées par rapport au brief
-
-- **La météo est du DÉCOR** (`data/weather.json`) : le ciel, la houle, la
-  pluie. Son `damageMult` a été retiré du combat — une même main valait deux
-  chiffres selon le ciel, qu'il fallait lire avant de compter. Ne pas la
-  remettre dans les règles ; ne pas la supprimer non plus.
-- **La réputation à trois factions et le Kraken Mécanique sont supprimés.**
-- **La carte macro est la vraie Caraïbe**, départ à l'Île de la Tortue.
+**RÈGLE DE TENUE.** Quand une décision est prise, ce qu'elle remplace descend
+dans `docs/archives/` avec sa raison — il ne reste jamais deux versions d'une
+règle dans ce document. C'est l'audit d'août 2026 qui a imposé cette règle : on
+y trouvait **trois échelles de résistances contradictoires**, dont aucune n'était
+celle de la donnée.
 
 ---
 

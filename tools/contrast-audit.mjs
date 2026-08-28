@@ -71,24 +71,17 @@ await audit('chasse-partie — clauses cochées', async()=>{ await p.evaluate(()
 await audit('carte', async()=>{ await p.evaluate(()=>[...document.querySelectorAll('.btn-level-1')].find(x=>/Signer/i.test(x.textContent)).click()); await p.waitForTimeout(1000); });
 await audit('combat', goto('#bataille'));
 
-// La maquette B2 : c'est elle qu'on regarde en ce moment, et sa carte
-// d'ouverture empile des petits textes sur fond sombre — exactement la classe
-// de bug qui a rendu la lettre de marque illisible.
-const B2 = 'http://localhost:8000/docs/refonte/mockups/b2-combat.html';
-await audit('B2 — carte d\'ouverture', async()=>{ await p.goto(B2); await p.waitForSelector('.rc-carte'); await p.waitForTimeout(900); });
-await audit('B2 — combat engagé', async()=>{ await p.click('.rc-carte .btn-level-1'); await p.waitForTimeout(700); });
-await audit('B2 — outils de maquette', async()=>{ await p.click('.rc-gear'); await p.waitForTimeout(500); });
-
-// La rade (proposition C) : beaucoup de petits libellés posés directement sur
-// la mer animée, sans panneau derrière — la situation la plus fragile de tout
-// le jeu pour le contraste.
-const C = 'http://localhost:8000/docs/refonte/mockups/c-rade.html';
-await audit('C — la rade', async()=>{ await p.goto(C); await p.waitForSelector('.fl-rade'); await p.waitForTimeout(900); });
-await audit('C — une escadre visée', async()=>{ await p.click('.fl-bande.ici .fl-escadre'); await p.waitForTimeout(400); });
-
-// La rade tactique (proposition D) : des étiquettes minuscules posées sur une
-// grille dont la teinte change de case en case.
-const Dm = 'http://localhost:8000/docs/refonte/mockups/d-breche.html';
-await audit('D — la rade tactique', async()=>{ await p.goto(Dm); await p.waitForSelector('.hx-scene'); await p.waitForTimeout(1000); });
-await audit('D — un bâtiment choisi', async()=>{ await p.click('.hx-fiche'); await p.waitForTimeout(400); });
+// LE JEU. Ses libellés sont posés sur une mer animée qui va du bleu nuit au
+// ciel de midi — la situation la plus fragile du dépôt pour le contraste, et
+// celle que seul un échantillonnage des PIXELS peut mesurer.
+//
+// Les trois maquettes abandonnées (B2, C, D) sont sorties de cet audit le jour
+// où la volée nue est devenue le jeu : elles sont archivées, et mesurer la
+// lisibilité d'un écran que personne n'ouvre ne dit rien de celle du jeu.
+const JEU = 'http://localhost:8000/docs/mockups/jeu.html';
+await audit('le jeu — la volée nue', async()=>{ await p.goto(JEU); await p.waitForSelector('.ecran-simple .main .carte'); await p.waitForTimeout(1000); });
+await audit('le jeu — une volée composée', async()=>{
+  for (const c of (await p.$$('.ecran-simple .main .carte')).slice(0, 3)) await c.click().catch(()=>{});
+  await p.waitForTimeout(500);
+});
 await b.close();

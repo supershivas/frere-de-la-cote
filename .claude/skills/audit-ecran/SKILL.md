@@ -39,7 +39,7 @@ qu'un audit qui remonte le DOM déclare « 0 échec » sur un écran illisible.
 
 - `mobile-audit` ne lit que les `:hover` **CSS** : un aperçu construit dans un
   `mouseenter` lui échappe entièrement. `grep -rn "mouseenter\|mouseover" src
-  docs/refonte/mockups`.
+  docs/mockups`.
 - Sa liste d'écrans, en tête du fichier, contient encore les trois maquettes
   ABANDONNÉES (B2, C, D) et pas nécessairement l'écran que tu viens de toucher.
   **Vérifie que ton écran y est** — un audit qui ne visite pas la page ne dit

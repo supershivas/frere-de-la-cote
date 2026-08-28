@@ -1684,8 +1684,11 @@
 /* Un refus s'écrit au MÊME endroit, en rouge — et lui seul : l'homme s'annonce
    comme les autres, c'est le coup qui est impossible, pas lui. */
 .screen.ecran-cartes .tb-detail .tb-refus { color: #f0a090; display: block; }
+/* `--gold-dark` sortait à 4,45:1 sur la projection de volée — sous le 4,5:1 dû,
+   de cinq centièmes. Une marge de cinq centièmes n'est pas une marge : elle
+   bascule au premier changement de fond derrière. */
 .screen.ecran-cartes .tb-geste {
-  font-size: 9px; color: var(--gold-dark); letter-spacing: .4px; margin-top: 2px;
+  font-size: 9px; color: #d8bd86; letter-spacing: .4px; margin-top: 2px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .screen.ecran-cartes .tb-refus { color: var(--hp); }
@@ -1897,11 +1900,22 @@
    descend vers la FONTE (plus sombre, franchement chaud), la mitraille reprend
    son BLEU d'acier. Seul le boulet ROUGE se nomme par sa couleur, et lui seul
    la garde par obligation. */
-.ecran-cartes [data-role="boulet_rame"]  { --metier: #6f6553; }
-.ecran-cartes [data-role="boulet_rouge"] { --metier: #b3261d; }
-.ecran-cartes [data-role="mitraille"]    { --metier: #2f6f8f; }
-.ecran-cartes [data-role="chaine"]       { --metier: #6f5d99; }
-.ecran-cartes [data-role="barrique"]     { --metier: #96633a; }
+/* LA RARE SE DIT PAR LA CLARTÉ, PAS PAR UNE CINQUIÈME TEINTE. Quatre hues se
+   partagent déjà le cercle ; en ajouter une pour la Carcasse l'aurait posée à
+   11,8° du ramé — soit exactement le défaut réparé au-dessus, sous un autre
+   nom. Le charbon #2b2723 est à 15 % de clarté quand les quatre autres tiennent
+   entre 37 et 48 % : il se sépare de chacune par au moins 2,27:1, et la seule
+   carte unique du paquet est aussi la seule qui soit sombre.
+
+   Et l'instrument à ne PAS utiliser ici est le rapport de contraste : deux
+   couleurs de même clarté donnent ~1:1 même quand tout les sépare — le rouge
+   contre l'acier sortent à 1,18:1. Ce qui a fait le défaut des deux gris, ce
+   n'était pas le 1,26:1, c'était 0° de teinte ET 0 point de saturation. */
+.ecran-cartes [data-role="mitraille"]     { --metier: #2f6f8f; }  /* commune    · acier   */
+.ecran-cartes [data-role="boulet_rame"]   { --metier: #6f6553; }  /* commune    · fonte   */
+.ecran-cartes [data-role="boulet_chaine"] { --metier: #6f5d99; }  /* peu commune · violet */
+.ecran-cartes [data-role="boulet_rouge"]  { --metier: #b3261d; }  /* peu commune · rouge  */
+.ecran-cartes [data-role="carcasse"]      { --metier: #2b2723; }  /* RARE       · charbon */
 
 .ecran-cartes .carte:active { cursor: grabbing; }
 .ecran-cartes .carte.prise-en-main {
@@ -2331,8 +2345,16 @@
   text-shadow: 0 1px 2px rgba(0,0,0,.7);
   pointer-events: none;
 }
+/* MESURÉ SUR LES PIXELS, PAS SUR LA RÈGLE. À #a5844c, ces deux libellés
+   sortaient de l'audit de contraste à 2,3:1 et 2,8:1 pour 8 px de haut — donc
+   très en dessous du 4,5:1 dû au petit texte, sur le chêne huilé du râtelier et
+   sur les cartes qui passent derrière. Ils portent la seule information de
+   comptage du plateau : « au paquet » et « jouées N ». Un libellé de 8 px qu'on
+   ne peut pas lire ne coûte rien à retirer et tout à laisser — celui-ci est
+   remonté vers le parchemin clair plutôt que retiré, parce que la ligne qu'il
+   nomme est la seule connaissance que ce jeu récompense. */
 .screen.ecran-cartes.ecran-simple .r-cle {
-  font-size: 8px; text-transform: uppercase; letter-spacing: 1.2px; color: #a5844c;
+  font-size: 8px; text-transform: uppercase; letter-spacing: 1.2px; color: #e8d5aa;
 }
 /* Le glyphe et le compte, dans la couleur du type — la même que le cadre de la
    carte, parce que c'est la même chose qu'on nomme. */
@@ -2343,4 +2365,24 @@
 .screen.ecran-cartes.ecran-simple .r-type svg { width: 13px; height: 13px; display: block; }
 .screen.ecran-cartes.ecran-simple .r-type b {
   font-size: 13px; font-weight: 700; color: #f3e7c8;
+}
+
+/* LA CARTE MONTE DU BOIS, elle ne vient pas de la droite. Ce plateau n'a PAS de
+   dos de pioche : le paquet s'y dit par la ligne « au paquet », pas par un
+   objet posé sur le listeau. `partirDeLaPioche()` n'a donc rien à mesurer, et
+   toutes les cartes retombaient sur la valeur de repli — `--dx: 120px`, « depuis
+   la droite », qui était une direction convenue du temps où les paquets
+   flottaient sur la mer.
+
+   Mesuré : à 375 px, la carte la plus à droite de la main partait de x = 426
+   pour une fenêtre de 375, soit **106 px entièrement hors de l'écran**. Comme
+   `#app` masque le débordement, elle ne « sortait » de nulle part : elle
+   glissait depuis le bord, et l'audit mobile la comptait amputée — à raison.
+
+   Sans pioche à viser, le seul point de départ honnête est le bois lui-même :
+   la carte monte, et ne se déplace pas latéralement. `--dx: 0` ne peut, par
+   construction, sortir d'aucun écran. */
+.screen.ecran-cartes.ecran-simple .carte.neuve {
+  --dx: 0px;
+  --dy: 26px;
 }

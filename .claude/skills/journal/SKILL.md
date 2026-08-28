@@ -44,17 +44,20 @@ parties :
 **Le défaut le plus fréquent de ce dépôt est l'écart entre le document et la
 donnée.** Les chiffres cités dans `CLAUDE.md` ont été réétalonnés plusieurs fois
 et le texte ne suit pas toujours : on y trouve des échelles de résistances qui ne
-sont plus celles de `data/equipage.json`.
+sont plus celles de `data/simple.json`.
 
 À chaque passage, vérifie et corrige les trois qui doivent coïncider :
 
 ```bash
-python3 -c "import json;print([(p['id'],p['resistance'],p['pv']) for p in json.load(open('data/equipage.json'))['prises']])"
-grep -n "résistance\|resistance\|barque [0-9]" CLAUDE.md docs/refonte/PLAN.md
+python3 -c "import json;print([(p['id'],p['resistance']) for p in json.load(open('data/simple.json'))['prises']])"
+grep -n "résistance\|resistance\|barque [0-9]" CLAUDE.md
 ```
 
 Et laisse une seule valeur citée à chaque endroit. Deux échelles écrites dans le
 même document sont pires qu'aucune : on ne sait plus laquelle est le jeu.
 
-`docs/refonte/PLAN.md` demande la même vigilance — il décrit encore un chantier
-de grille tactique que §1 de `CLAUDE.md` déclare tranché et fermé.
+**LA RÈGLE DE TENUE.** Quand une décision est prise, ce qu'elle remplace descend
+dans `docs/archives/` avec sa raison — il ne reste jamais deux versions d'une
+règle dans `CLAUDE.md`. C'est l'audit d'août 2026 qui l'a imposée : on y trouvait
+trois échelles de résistances contradictoires, dont aucune n'était celle de la
+donnée.

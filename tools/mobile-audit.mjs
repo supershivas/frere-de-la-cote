@@ -35,41 +35,17 @@ const ECRANS = [
 ];
 
 const PAGES = [
-  { nom: 'B2 — carte', url: 'docs/refonte/mockups/b2-combat.html', pret: '.rc-carte' },
-  { nom: 'B2 — combat', url: 'docs/refonte/mockups/b2-combat.html', pret: '.rc-carte',
-    apres: async (p) => { await p.click('.rc-carte .btn-level-1'); } },
-  { nom: 'C — la rade', url: 'docs/refonte/mockups/c-rade.html', pret: '.fl-rade' },
-  { nom: 'D — la rade tactique', url: 'docs/refonte/mockups/d-breche.html', pret: '.hx-scene' },
-  { nom: 'E — la carte', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture&sansTuto', pret: '.ecran-cartes .chart' },
-  { nom: 'E — la chasse-partie', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture&sansTuto', pret: '.ecran-cartes .chart',
-    apres: async (p) => { await capSurUneChasse(p); } },
-  { nom: 'E — le partage', url: 'docs/refonte/mockups/e-cartes.html?sansOuverture&sansTuto', pret: '.ecran-cartes .chart',
-    apres: async (p) => {
-      // Joue la première prise jusqu'au partage : la boutique est un écran à
-      // part entière, et c'est là que 47 % des cartes de recrutement du jeu
-      // réel sortaient hors de l'écran. L'écran de jeu n'a plus de bouton —
-      // on passe par le clavier, qui double les gestes précisément pour que
-      // l'écran reste pilotable sans le pouce.
-      if (!(await capSurUneChasse(p))) return;
-      for (let tour = 0; tour < 16; tour += 1) {
-        if (await p.$('.partage')) break;
-        for (let k = 0; k < 3; k += 1) {
-          const c = await p.$$('.carte:not(.muet):not(.prise-en-main)');
-          if (c[0]) await c[0].click().catch(() => {});
-        }
-        if (!(await p.$('.carte.prise-en-main'))) break;
-        await p.$eval('.screen.ecran-cartes', (n) => {
-          n.focus();
-          n.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
-        });
-        await p.waitForTimeout(2500);
-      }
-    } },
-  // F — LA VOLÉE NUE. Elle entre directement au combat : il n'y a ni carte, ni
-  // ouverture, ni tutoriel à passer. Le second passage joue jusqu'à la fin de
-  // la rencontre pour mesurer l'écran de butin, qui est un écran à part entière.
-  { nom: 'F — la volée nue', url: 'docs/refonte/mockups/f-simple.html', pret: '.ecran-simple .main .carte' },
-  { nom: 'F — le butin', url: 'docs/refonte/mockups/f-simple.html', pret: '.ecran-simple .main .carte',
+  // LES ÉCRANS DU JEU, ET EUX SEULS. B2, C, D et E ont été retirés de cette
+  // liste le jour où la volée nue est devenue le jeu : ils sont ÉCARTÉS, et un
+  // audit qui les visite encore coûte trois passages sur trois téléphones pour
+  // mesurer des écrans que personne ne joue — tout en donnant l'impression que
+  // la couverture est large. Un instrument doit mesurer ce qui est vivant.
+  //
+  // LA VOLÉE NUE entre directement au combat : il n'y a ni carte, ni ouverture,
+  // ni tutoriel à passer. Le second passage joue jusqu'à la fin de la rencontre
+  // pour mesurer l'écran de butin, qui est un écran à part entière.
+  { nom: 'le jeu — la volée nue', url: 'docs/mockups/jeu.html', pret: '.ecran-simple .main .carte' },
+  { nom: 'le jeu — le butin', url: 'docs/mockups/jeu.html', pret: '.ecran-simple .main .carte',
     apres: async (p) => {
       for (let tour = 0; tour < 8; tour += 1) {
         if (await p.$('.verdict')) break;
@@ -85,26 +61,7 @@ const PAGES = [
         await p.waitForTimeout(2500);
       }
     } },
-  { nom: 'jeu — recrutement', url: 'index.html#recrutement', pret: '.screen' },
-  { nom: 'jeu — combat', url: 'index.html#bataille', pret: '.screen' },
 ];
-
-// Depuis la carte, met le cap sur la première escale de chasse : viser puis
-// confirmer, comme un joueur. Rend `false` si aucune n'est ouverte.
-async function capSurUneChasse(p) {
-  const epingles = await p.$$('.epingle.ouverte');
-  for (const e of epingles) {
-    await e.click().catch(() => {});
-    await p.waitForTimeout(220);
-    const ou = await p.$eval('.cap .c-ou', (n) => n.textContent).catch(() => '');
-    if (/prise/i.test(ou)) {
-      await e.click().catch(() => {});
-      await p.waitForTimeout(1500);
-      return true;
-    }
-  }
-  return false;
-}
 
 // Tout est mesuré DANS la page : c'est le seul endroit où l'on connaît la
 // géométrie réelle après mise en page.
@@ -123,6 +80,24 @@ const MESURE = (min) => {
     return null;
   };
 
+  // NOMMER UN ÉLÉMENT, Y COMPRIS UN SVG. `n.className` sur un élément SVG rend
+  // un SVGAnimatedString, pas une chaîne : le rapport affichait
+  // « [object SVGAnimatedStrin » — sur la classe d'élément que ce détecteur
+  // attrape le plus souvent. Un rapport qui ne sait pas nommer ce qu'il a
+  // trouvé oblige à refaire l'enquête à la main. On donne aussi la lignée :
+  // un glyphe amputé ne se répare jamais sur le glyphe, toujours sur le bloc
+  // qui le porte.
+  const nommer = (n) => {
+    const cl = n.getAttribute && n.getAttribute('class');
+    const soi = n.tagName.toLowerCase() + (cl ? '.' + cl.trim().split(/\s+/).join('.') : '');
+    const lignee = [];
+    for (let a = n.parentElement; a && lignee.length < 3 && a !== document.body; a = a.parentElement) {
+      const c = a.getAttribute && a.getAttribute('class');
+      lignee.push(a.tagName.toLowerCase() + (c ? '.' + c.trim().split(/\s+/)[0] : ''));
+    }
+    return lignee.length ? `${soi} < ${lignee.join(' < ')}` : soi;
+  };
+
   const ampute = [];
   const interessants = document.querySelectorAll('svg, canvas, .hx-scene, .fl-bande, .deck, .screen > *');
   for (const n of interessants) {
@@ -134,7 +109,7 @@ const MESURE = (min) => {
     if (!a) continue;
     const perdu = Math.max(0, -r.left) + Math.max(0, r.right - vue.w);
     ampute.push({
-      quoi: (n.className || n.tagName).toString().slice(0, 24),
+      quoi: nommer(n).slice(0, 96),
       largeur: Math.round(r.width),
       perduPx: Math.round(perdu),
       perduPct: Math.round((100 * perdu) / r.width),
@@ -151,7 +126,7 @@ const MESURE = (min) => {
     if (getComputedStyle(n).display === 'none') continue;
     if (r.width >= min && r.height >= min) continue;
     petites.push({
-      quoi: (n.className || n.tagName).toString().slice(0, 24),
+      quoi: nommer(n).slice(0, 96),
       w: Math.round(r.width), h: Math.round(r.height),
     });
   }

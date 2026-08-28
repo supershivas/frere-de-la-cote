@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
-<base href="../../../">
+<base href="../../">
 <title>F — la volée nue (maquette jouable)</title>
 <!-- titre: La volée nue -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,24 +19,33 @@
 
 <script type="module">
 /* ============================================================
-   F — LA VOLÉE NUE.
+   LA VOLÉE NUE — LE JEU.
 
    ONZE CARTES SUR UN RÂTELIER, ET RIEN D'AUTRE. On en touche une à trois, on
    pousse le paquet vers le haut, il part. La puissance vient du TYPE des
    cartes et de ce que la MAIN assortit — une paire, une triplette. Il n'y a
    pas de troisième chose à savoir.
 
-   C'EST UN AUTRE ENVIRONNEMENT, PAS UNE RÉÉCRITURE DE `e-cartes.html`. Celui-ci
-   reste entier, avec son état-major, ses reliques, sa carte annoncée, ses
-   rechargements et ses cinq munitions. Ici, tout cela est absent — non pas
-   caché derrière un drapeau, absent : c'est ce qu'on éprouve.
+   CE FICHIER EST LE JEU. Il s'est d'abord appelé `f-simple.html` et fut monté
+   À CÔTÉ de `e-cartes.html` pour éprouver une question : que reste-t-il quand
+   on retire tout ? La réponse a tenu, et c'est ce plateau-ci qui est resté.
+   `e-cartes.html` et `src/cartes.js` — l'état-major, les reliques, la carte
+   annoncée, les rechargements, la coulée — sont ÉCARTÉS : ils restent sur le
+   disque pour qu'on sache ce qui a été essayé, et l'on ne construit rien
+   dessus.
+
+   ONZE CARTES, CINQ TYPES, TROIS RARETÉS : deux communes à trois exemplaires,
+   deux peu communes à deux, une rare à un seul. La rareté est une FRÉQUENCE et
+   non un pouvoir — elle ne dit que le nombre d'exemplaires, et sa conséquence
+   tient en une ligne : seules les communes peuvent former une triplette, et la
+   rare ne s'assortit avec rien.
 
    Ce qui vient du jeu, et n'est pas réinventé ici :
      src/simple.js      les règles, pures et sans dé
      src/sprites.js     les coques, générées à l'exécution
      src/ocean.js       le ciel et la mer animés
      src/fx.js          les nombres flottants
-     data/simple.json   les trois types, le paquet, les cinq prises
+     data/simple.json   les cinq types, le paquet, les cinq prises
      css/style.css      l'interface (§17 et §17.4 de css/deck.css)
 
    MOBILE D'ABORD : rien en bas de l'écran qu'un râtelier de bois, un seul
@@ -306,16 +315,29 @@ async function tir(nb) {
 
 /* ---------------------------------------------------------------- la carte */
 
-// LA CARTE EST UN SYMBOLE, DESSINÉ. Trois formes qu'on distingue à distance de
+// LA CARTE EST UN SYMBOLE, DESSINÉ. Cinq formes qu'on distingue à distance de
 // bras sans lire un mot — c'est ce qui permet de RECONNAÎTRE une paire, et une
 // figure qu'il faut lire pour la voir n'est pas une figure. En SVG et non en
 // emoji : un emoji change de forme et de couleur d'un téléphone à l'autre.
+//
+// LE COMPTE DE BOULETS DIT LA RARETÉ, en plus de la couleur du cadre. Les deux
+// communes sont les deux formes les plus simples ; la Carcasse est la seule qui
+// soit percée et fumante, parce qu'elle est la seule du paquet à être unique.
 const GLYPHES = {
   boulet_rame: '<circle cx="5.4" cy="12" r="4"/><circle cx="18.6" cy="12" r="4"/><rect x="8.4" y="10.6" width="7.2" height="2.8" rx="1"/>',
   boulet_rouge: '<circle cx="12" cy="12.6" r="5.6"/>'
     + '<path d="M12 1.6 L12 5 M5.6 4.4 L7.6 7 M18.4 4.4 L16.4 7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>',
   mitraille: '<circle cx="12" cy="4.6" r="2.3"/><circle cx="6" cy="11.4" r="2.3"/><circle cx="18" cy="11.4" r="2.3"/>'
     + '<circle cx="9" cy="19" r="2.3"/><circle cx="16" cy="18.4" r="2.3"/>',
+  // Deux demi-boulets au bout d'une chaîne : les maillons la distinguent de la
+  // barre rigide du ramé, qui est la forme dont il faut le plus la séparer.
+  boulet_chaine: '<circle cx="5.2" cy="12" r="3.7"/><circle cx="18.8" cy="12" r="3.7"/>'
+    + '<path d="M9 12 h1.6 M12.2 12 h1.6 M15.4 12 h1.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>',
+  // Un boulet CREUX, percé de ses évents, et la fumée qui en sort. C'est la
+  // seule carte du paquet dont le dessin n'est pas un plein.
+  carcasse: '<path d="M12 6.6 a5.9 5.9 0 1 0 0.01 0" fill="none" stroke="currentColor" stroke-width="2.4"/>'
+    + '<circle cx="10.1" cy="12.4" r="1.15"/><circle cx="14" cy="14.2" r="1.15"/>'
+    + '<path d="M12 5.2 c-1.5 -1.3 0.9 -2.2 -0.5 -3.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>',
 };
 function glyphe(id) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
