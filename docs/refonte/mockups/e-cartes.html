@@ -993,10 +993,13 @@ function ecranChasse() {
   // La zone de dépôt vit SOUS NOTRE NAVIRE : c'est là que la volée doit
   // arriver. Elle n'apparaît que pendant le geste — une cible permanente
   // serait un bouton de plus, et il n'y en a aucun.
-  // LES DEUX PAQUETS SONT SUR LE PLATEAU, pas sur le bois. Ils encadraient la
-  // main et lui prenaient 98 px de large, donc les cartes rétrécissaient
-  // d'autant ; le bois n'appartient qu'à la main. Petits, en bas à gauche de la
-  // mer — le bas à droite est à sa carte à elle.
+  // LES DEUX PAQUETS SONT SUR LE BOIS, aux deux bouts du listeau : la PIOCHE à
+  // GAUCHE, la DÉFAUSSE à DROITE, juste au-dessus des cartes en main. Ils ont
+  // encadré la main un temps et lui prenaient 98 px de large — les cartes
+  // rétrécissaient d'autant ; posés dans la bande libre AU-DESSUS d'elle, ils
+  // ne lui prennent rien. Ils étaient ensuite passés en bas à gauche de la mer,
+  // où ils recouvraient la coque de notre navire et où la pioche était loin de
+  // l'endroit d'où les cartes arrivent.
   //
   // La plaque visible fait 30 px, mais le BOUTON en fait 44 : le doigt vise la
   // cible, pas le dessin (§2). C'est la seule façon d'avoir un petit dos de
@@ -1011,10 +1014,10 @@ function ecranChasse() {
       el('span', { class: 'pq-cle', text: titre === 'pioche' ? 'pioche' : 'jouées' }),
     ]),
   ]);
-  mer.appendChild(el('div', { class: 'paquets' }, [
+  const paquets = el('div', { class: 'paquets' }, [
     paquetVu('pioche', P.pioche, 'pioche', 'La pioche est vide — elle se refait de la défausse.'),
     paquetVu('defausse', P.defausse, 'défausse', 'Rien de joué pour l’instant.'),
-  ]));
+  ]);
 
   mer.appendChild(el('div', { class: 'depot' }, [el('span', { text: 'lâche ici' })]));
   s.appendChild(mer);
@@ -1034,7 +1037,7 @@ function ecranChasse() {
       }, contenuCarte(c))))
     : null;
 
-  s.appendChild(el('div', { class: 'ratelier' }, [tableau(), reserve, main]));
+  s.appendChild(el('div', { class: 'ratelier' }, [tableau(), paquets, reserve, main]));
   return s;
 }
 
@@ -1155,6 +1158,10 @@ function brancherGeste(scene) {
     // l'ajoute — la première comme la troisième. Elle sera choisie au
     // FRANCHISSEMENT DU SEUIL et pas avant : un appui simple doit rester un
     // appui, donc un `click`, donc la sélection ordinaire.
+    // Les deux paquets sont posés sur le bois : un appui dessus est un appui sur
+    // un BOUTON, pas le début d'un geste. Sans ça, ouvrir la pioche avec une
+    // volée composée emmenait la volée au lieu d'ouvrir le paquet.
+    if (e.target.closest && e.target.closest('.paquet')) return;
     const n = e.target.closest ? e.target.closest('.carte') : null;
     const c = n && P.main.find((m) => String(m.uid) === n.dataset.uid);
     if (c && !P.selection.includes(c) && C.peutJouer(P, c).ok) pousse = { c, n };
@@ -2059,8 +2066,8 @@ function calibrerCartes() {
   const gap = 5;
   // LA MAIN REPREND TOUTE LA LARGEUR DU RÂTELIER. Les deux paquets l'ont
   // encadrée un temps et lui prenaient 98 px : les cartes rétrécissaient
-  // d'autant. Ils sont remontés sur le plateau, où il y a de la place — le bois
-  // n'appartient qu'à la main.
+  // d'autant. Ils sont posés dans la bande libre AU-DESSUS d'elle, où il y a de
+  // la place — la largeur du bois n'appartient qu'à la main.
   const large = Math.floor((rat.clientWidth - 14 - gap * (n - 1)) / n);
   const s = document.querySelector('.screen.ecran-cartes');
   s.style.setProperty('--carte-l', `${large}px`);
@@ -2068,6 +2075,42 @@ function calibrerCartes() {
   // 1 pour 1,45 : la proportion d'une carte à jouer. À 1 pour 2,5 la carte
   // était une lame, et le centre restait vide entre le haut et le pied.
   s.style.setProperty('--carte-h', `${Math.round(large * 1.45)}px`);
+}
+
+// LES CARTES SORTENT DE LA PIOCHE, et non d'un point fixe hors écran. Tant que
+// les deux paquets flottaient sur la mer, « depuis la droite » était une
+// direction convenue ; posée au bout du listeau, la pioche est un OBJET, et une
+// carte qui en sort doit en sortir vraiment.
+//
+// L'écart se prend en `offsetLeft`/`offsetTop`, JAMAIS en
+// `getBoundingClientRect` : la carte porte déjà l'animation au moment où on la
+// mesure, donc sa boîte est transformée et l'on tirerait une valeur stable
+// d'une entrée qui bouge (règle 9). Les positions de mise en page, elles, ne
+// bougent pas.
+//
+// ET ON REMONTE LA CHAÎNE DES `offsetParent` jusqu'au râtelier : les deux
+// n'ont pas le même. La carte est dans `.main`, qui n'est pas positionnée, donc
+// son repère est le râtelier ; le dos est dans `.paquets`, qui l'est, donc son
+// repère est `.paquets`. Lire les deux crûment mesurait un écart faux de la
+// largeur exacte du décalage de `.paquets` — 7 px, assez peu pour passer
+// inaperçu et assez pour que la carte ne sorte pas du paquet.
+function posDans(n, racine) {
+  let x = 0, y = 0;
+  for (let e = n; e && e !== racine; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; }
+  return [x, y];
+}
+function partirDeLaPioche() {
+  const rat = document.querySelector('.ecran-cartes .ratelier');
+  const dos = rat && rat.querySelector('.paquet.pioche .pq-dos');
+  if (!dos) return;
+  const [dx0, dy0] = posDans(dos, rat);
+  const px = dx0 + dos.offsetWidth / 2;
+  const py = dy0 + dos.offsetHeight / 2;
+  for (const n of rat.querySelectorAll('.carte.neuve')) {
+    const [cx, cy] = posDans(n, rat);
+    n.style.setProperty('--dx', `${Math.round(px - (cx + n.offsetWidth / 2))}px`);
+    n.style.setProperty('--dy', `${Math.round(py - (cy + n.offsetHeight / 2))}px`);
+  }
 }
 
 function rendre() {
@@ -2079,7 +2122,7 @@ function rendre() {
         : ecran === 'rencontre' ? ecranRencontre()
           : ecranChasse();
   r.appendChild(s);
-  if (ecran === 'chasse') { calibrerCartes(); peindreCoques(); brancherGeste(s); }
+  if (ecran === 'chasse') { calibrerCartes(); partirDeLaPioche(); peindreCoques(); brancherGeste(s); }
   // La distribution est un ÉVÉNEMENT, pas un état : une fois les cartes
   // arrivées, on oublie qui venait d'arriver. Sans cet oubli, l'animation
   // repartait à chaque rendu — c'est-à-dire à chaque homme touché.

@@ -295,12 +295,15 @@ sert `tools/mobile-audit.mjs`.
   avec son contenu : les navires MONTAIENT** quand on composait une volée,
   puisque la mer prend la place qui reste. `.mer` garde maintenant sa part, et
   la bulle ne prend rien.
-- **DEUX DOS DE CARTE SUR LE PLATEAU** : la pioche et la défausse, petites, en
-  bas à gauche de la mer — le bas à droite est à sa carte à elle. Un dos dit ce
-  qu'il reste par sa seule présence, là où une ligne de texte demandait d'être
-  déchiffrée. Elles ont encadré la main un temps et lui prenaient 98 px de
-  large : les cartes rétrécissaient d'autant. **Le bois n'appartient qu'à la
-  main.**
+- **DEUX DOS DE CARTE SUR LE BOIS, AUX DEUX BOUTS DU LISTEAU** : la **pioche à
+  gauche**, la **défausse à droite**, juste au-dessus des cartes en main. Un dos
+  dit ce qu'il reste par sa seule présence, là où une ligne de texte demandait
+  d'être déchiffrée. Ils ont encadré la main un temps et lui prenaient 98 px de
+  large — les cartes rétrécissaient d'autant ; posés dans la bande que le
+  râtelier ménage AU-DESSUS d'elle, ils ne lui prennent pas un pixel. **La
+  largeur du bois n'appartient qu'à la main**, sa hauteur non. Ils sont passés
+  par la mer entre-temps : ils y recouvraient la coque de notre navire, et
+  surtout la pioche s'y trouvait loin de l'endroit d'où les cartes arrivent.
 - **La plaque fait 30 px, le BOUTON en fait 44.** Le doigt vise la cible, pas le
   dessin (§2) : c'est la seule façon d'avoir un petit dos de carte sans une
   cible qu'un pouce rate. Le bouton est transparent, seule la plaque se voit.
@@ -351,11 +354,23 @@ sert `tools/mobile-audit.mjs`.
   bloc recevant tour à tour trois choses de longueurs très différentes ; les
   deux autres sont parties ailleurs (voir ci-dessus), la réserve n'a plus
   d'objet.
-- **Les cartes arrivent, elles n'apparaissent pas** : la relève vole depuis la
-  droite, décalée d'une carte à l'autre. On compte les hommes reçus sans lire
-  un chiffre. La marque `neuve` est un ÉVÉNEMENT, pas un état : elle est
-  oubliée après le rendu et retirée du DOM à la fin de l'animation — sinon la
-  distribution repartait à chaque homme touché.
+- **LES CARTES SORTENT DE LA PIOCHE**, elles n'apparaissent pas — la relève vole
+  du dos posé au bout du listeau jusqu'à sa place, décalée d'une carte à l'autre.
+  On compte les hommes reçus sans lire un chiffre. Tant que les paquets
+  flottaient sur la mer, « depuis la droite » était une direction convenue ;
+  posée sur le bois, la pioche est un OBJET, et une carte qui en sort doit en
+  sortir vraiment. L'écart est **mesuré carte par carte** (`partirDeLaPioche`) et
+  passé au keyframe en `--dx`/`--dy` : il dépend de la largeur de l'écran et du
+  rang dans la main, et aucune valeur écrite en dur ne peut le suivre. Il se
+  prend en `offsetLeft`/`offsetTop` **en remontant la chaîne des `offsetParent`
+  jusqu'au râtelier** — la carte porte déjà l'animation quand on la mesure, donc
+  sa boîte est transformée (règle 9), et les deux éléments n'ont pas le même
+  repère : la carte est dans `.main`, non positionnée, le dos dans `.paquets`,
+  qui l'est. Lire les deux crûment donnait un écart faux de 7 px, assez peu pour
+  passer inaperçu et assez pour que la carte ne sorte pas du paquet. La marque
+  `neuve` est un ÉVÉNEMENT, pas un état : elle est oubliée après le rendu et
+  retirée du DOM à la fin de l'animation — sinon la distribution repartait à
+  chaque homme touché.
 - **La carte Feu fume**, en boucle : c'est la seule carte qui ne sert à rien,
   il faut le voir de loin.
 - **La jauge de PRESSION est la barre qu'on regarde** : elle se REMPLIT vers la
