@@ -32,6 +32,17 @@ const ECRANS = [
   { nom: 'iPhone SE', w: 375, h: 667 },
   { nom: 'iPhone 14', w: 390, h: 844 },
   { nom: 'Pixel 7', w: 412, h: 915 },
+  // LE BUREAU. « Mobile d'abord » reste la règle (§2) et l'écran de référence
+  // reste 375 × 667 : celui-ci ne l'assouplit pas, il couvre un usage NOUVEAU.
+  // Les maquettes sont publiées et se partagent par un lien — elles sont donc
+  // AUSSI regardées sur un grand écran, où `deck.css` §18.2 tient le plateau à
+  // 400 px et le centre. Rien ne vérifiait ce rendu-là.
+  //
+  // ON N'Y MESURE PAS LES CIBLES TACTILES : une souris n'est pas un pouce, et
+  // les 44 px du design-system §12.2 sont une mesure de doigt. Les compter ici
+  // ferait crier l'outil sur des écrans hérités pour un défaut qui n'en est pas
+  // un à la souris — et un outil qui crie pour rien finit par ne plus être lu.
+  { nom: 'Bureau', w: 1280, h: 800, bureau: true },
 ];
 
 const PAGES = [
@@ -175,7 +186,8 @@ for (const ecran of ECRANS) {
   for (const page of PAGES) {
     const ctx = await b.newContext({
       viewport: { width: ecran.w, height: ecran.h },
-      deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+      deviceScaleFactor: ecran.bureau ? 1 : 2,
+      isMobile: !ecran.bureau, hasTouch: !ecran.bureau,
     });
     const p = await ctx.newPage();
     await p.goto('http://localhost:8000/' + page.url);
@@ -184,6 +196,9 @@ for (const ecran of ECRANS) {
     if (page.apres) { await page.apres(p).catch(() => {}); await p.waitForTimeout(500); }
 
     const m = await p.evaluate(MESURE, CIBLE_MIN);
+    // Sur le bureau, seules l'amputation et le débordement comptent : ce sont
+    // des défauts de mise en page, et ils sont vrais quel que soit le pointeur.
+    if (ecran.bureau) { m.petites = []; m.hoverSeul = 0; }
     const dur = m.ampute.length || m.debordeH;
     if (dur) echecs++;
     const etat = dur ? '✗' : m.petites.length ? '~' : '✓';

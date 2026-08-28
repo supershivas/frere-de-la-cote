@@ -10,6 +10,7 @@ import './hex.test.js';
 import './breche.test.js';
 import './cartes.test.js';
 import './voyage.test.js';
+import './gestes.test.js';
 
 console.log('\n  Frères de la Côte — data & integrity checks');
 await run();

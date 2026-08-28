@@ -519,6 +519,7 @@ voulu : un homme qui ne changerait aucune règle ne serait qu'un texte.
 | **Règles — pures, déterministes, sans DOM ni aléatoire** | |
 | `src/cartes.js` | **La chasse-partie en cartes.** Munitions, figures, évaluation, verbes de l'état-major, partage |
 | `src/gamefeel.js` | **Le ressenti du geste** : ressorts, paquet qu'on traîne, poussière, traînée, secousse, éclair, onde. Aucune règle, aucun DOM à lui — il reçoit un hôte |
+| `src/gestes.js` | **Les cinq caractères du banc** : amarre, poids mort, poudrière, timonerie, bordée. Dans un module et non dans la maquette, pour qu'un test puisse les lire |
 | `src/shipPlans.js` | Plans de pont par classe de coque (encore utilisé par la vue en profil) |
 | **Génération — c'est ici que l'aléatoire est permis** | |
 | `src/voyage.js` | **La progression sur la carte** : escales, actes, prise trouvée, épaves, rencontres |
@@ -695,8 +696,43 @@ atteindre une résistance annoncée, une main mal lue ne se rattrape pas au tour
 suivant — il n'y a pas de tour suivant.
 
 L'audit mobile couvre aussi le banc du geste : c'est l'écran le plus dense du
-dépôt en cibles tactiles — dix, sur deux rangées de 44 px — et c'est
+dépôt en cibles tactiles — onze, sur deux rangées de 44 px — et c'est
 exactement ce qu'un écran de 375 px ampute en silence.
+
+### « Ça marche » n'est pas « ça se distingue »
+
+Dans `gestes.test.js` : **chacun des cinq caractères du banc doit allumer un
+levier que les quatre autres laissent éteint.** C'est le test qui manquait, et
+son absence a coûté une livraison entière. Le premier banc empilait cinq crans
+qui s'ajoutaient ; ses tests vérifiaient que les cinq FONCTIONNENT — la volée
+part, la main se refait, rien en console — et tous passaient. Mesuré ensuite sur
+le rendu, avec le même glissement pour toutes : **29, 34, 32 et 32 px** de
+retard derrière le doigt, **0°** de rotation partout, la même échelle à trois
+décimales. L'échelle vivait dans le code et nulle part sur l'écran.
+
+Le même test interdit un différenciateur **branché sur ce que le geste ne
+produit pas**. C'était l'autre moitié du défaut : l'inclinaison se calculait sur
+la vitesse HORIZONTALE et la traînée s'armait à 850 px/s, alors que le geste du
+jeu est une poussée droite dont la vitesse médiane, relevée à l'instrument, est
+de **647 px/s**. Deux effets parfaitement peints, jamais déclenchés.
+
+### Le troisième instrument : `tools/geste-audit.mjs`
+
+Il rejoue **le même glissement synthétique** sur les cinq caractères et échoue
+si deux d'entre eux se ressemblent — moins de 15 px d'écart de retard, moins de
+5° d'angle, et le même décor. `gestes.test.js` regarde la CONFIGURATION,
+celui-ci regarde le RENDU, et **aucun des deux ne suffit** : une configuration
+distincte peut se peindre à l'identique, et deux rendus distincts peuvent l'être
+par accident.
+
+```
+│ caractère    retard  cabrage  rotation  décor
+│ amarre           8px       0°        0°  amarres×3
+│ poids mort      55px      18°        0°  —
+│ poudrière       23px       0°        0°  mote×20 grain×42 empreinte×3
+│ timonerie      136px       0°       25°  visee×1
+│ bordée          15px       0°        0°  trainee×6
+```
 
 Pour ce que les tests de données ne voient pas :
 
@@ -711,9 +747,23 @@ CHROMIUM_PATH=$(which chromium) node tools/contrast-audit.mjs
 calculés : les fonds sont peints par un canvas, si bien qu'un audit qui remonte
 le DOM déclare « 0 échec » sur un écran illisible.
 
-**L'audit mobile** ouvre chaque écran sur trois téléphones et **échoue** si
-l'un ampute ou déborde. Sa limite est écrite dans son en-tête : il ne lit que
-les `:hover` CSS et raterait un aperçu construit dans un `mouseenter`.
+**L'audit mobile** ouvre chaque écran sur trois téléphones **et sur un
+bureau**, et **échoue** si l'un ampute ou déborde. Sa limite est écrite dans son
+en-tête : il ne lit que les `:hover` CSS et raterait un aperçu construit dans un
+`mouseenter`.
+
+**LE BUREAU N'ASSOUPLIT PAS « MOBILE D'ABORD ».** L'écran de référence reste
+375 × 667 (§2). Il couvre un usage NOUVEAU : les maquettes sont publiées et se
+partagent par un lien, donc elles sont aussi regardées sur un grand écran — où
+`deck.css` §18.2 tient le plateau à 400 px et le centre, parce qu'étirée sur
+1 280 px la main se sépare et l'on jugerait un geste que personne ne fera dans
+ces proportions. Ce cadre a vécu quelques heures dans l'emballage de l'artifact,
+c'est-à-dire dans une **seconde source** : exactement ce que
+`tools/bundle-mockup.mjs` existe pour éviter.
+
+Le bureau **ne mesure pas les cibles tactiles** : les 44 px du design-system
+§12.2 sont une mesure de doigt, pas de souris. Un outil qui crie pour rien finit
+par ne plus être lu.
 
 ---
 
@@ -725,8 +775,9 @@ maquette **utilise l'interface du jeu**, elle n'en réinvente pas une à côté.
 un composant manque, l'ajouter à `css/deck.css` et au design system — jamais
 dans un `<style>` de maquette.
 
-`f-gamefeel.html` est le **banc d'essai du geste** : cinq réglages du MÊME
-geste, comparés à récompense constante. Voir §9.
+`f-gamefeel.html` est le **banc d'essai du geste** : cinq caractères du même
+geste, comparés à récompense constante, avec le geste actuel du jeu superposé en
+filigrane. Voir §9.
 
 `e-cartes.html` est la maquette vivante. `b2-combat.html`, `c-rade.html` et
 `d-breche.html` sont les trois échelles de combat abandonnées : à lire pour
@@ -774,85 +825,124 @@ asset image. Le CSS existant : ne pas écraser, ajouter à côté.
 
 ## 9. Le banc d'essai du geste
 
-`docs/refonte/mockups/f-gamefeel.html` — **cinq réglages du MÊME geste**, et
-non cinq gestes. Le geste du jeu est arrêté et n'est pas en question : toucher
-pour choisir, pousser le paquet vers le haut pour tirer, le tirer vers le bas
-pour recharger, monter puis redescendre pour annuler. Ce qu'on y compare, c'est
-ce que le paquet **pèse** sous le doigt, ce qu'il laisse derrière lui, et ce que
-le lâcher rend.
+`docs/refonte/mockups/f-gamefeel.html` — **cinq caractères du geste**, comparés
+à récompense constante. Le geste du jeu est arrêté et n'est pas en question :
+toucher pour choisir, pousser le paquet vers le haut pour tirer, le tirer vers
+le bas pour recharger. Ce qu'on compare, c'est ce que le paquet **pèse** sous le
+doigt, ce qu'il laisse derrière lui, et ce que le lâcher rend.
 
-### Deux axes, et ils sont indépendants
+### CINQ CARACTÈRES, ET NON CINQ CRANS
 
-**LE GESTE, I → V, ET CHAQUE CRAN AJOUTE AU PRÉCÉDENT.** C'est la seule façon
-d'attribuer une différence à une cause : cinq gestes indépendants se comparent
-deux à deux, et l'on finit par préférer celui qu'on vient d'essayer.
+Le premier banc empilait cinq crans qui s'ajoutaient — c'était la bonne
+intuition pour rendre une différence ATTRIBUABLE, et elle a produit quatre crans
+indistinguables. Chacun ajoutait trop peu, et ce peu était branché sur ce que le
+geste ne produit pas. **L'attribution est maintenant le rôle du fantôme**, ce
+qui libère les cinq boutons pour porter cinq propositions entières.
 
-| | Ce que le cran ajoute |
-|---|---|
-| **I — nu** | la référence : le paquet colle au doigt, sans masse ni retard. Le geste tel qu'il est aujourd'hui dans le jeu |
-| **II — ressort** | il traîne d'un cheveu derrière le doigt, dépasse d'un cheveu et revient. Le retour en main est un rebond |
-| **III — poids** | il penche dans le sens où on le lance, les cartes s'étagent avec du retard, l'ombre grandit à mesure qu'il monte, la zone de dépôt attire |
-| **IV — matière** | poussière au décollage, traînée derrière le paquet lancé, le râtelier **fléchit** quand on tire vers le bas |
-| **V — bordée** | le lâcher n'est plus un relâchement : le paquet **part**, avec la vitesse qu'avait le doigt, et va chercher l'impact |
+| | La question qu'il pose | Sa signature |
+|---|---|---|
+| **I — l'amarre** | *est-ce que ça résiste ?* | Les cartes sont **tenues**. Une aussière se tend du râtelier au doigt, le carton s'incline vers son ancrage, et à 44 px elle **casse**. Tant qu'elle tient, la carte ne suit qu'au dixième : c'est ce qui fait qu'on TIRE dessus au lieu de la déplacer |
+| **II — le poids mort** | *est-ce que ça pèse ?* | 55 px de retard mesurés, le paquet **cabre** de 18° quand on accélère, les cartes du dessous s'ouvrent en arc résiduel, l'ombre grandit pendant toute la course |
+| **III — la poudrière** | *est-ce que c'est sale ?* | Bouffée de poussière au décollage, **sciure en suspension** en permanence, braises qui ne tombent que des boulets rouges, et le râtelier garde **la marque** de la carte enlevée |
+| **IV — la timonerie** | *est-ce que ça vise ?* | Passé la moitié de la course, la coque **capte** le paquet — 136 px de dérive mesurés — les cartes penchent vers elle, une ligne de visée se tend, la coque se raidit |
+| **V — la bordée** | *est-ce que ça part ?* | Le lâcher **est** le coup : le paquet file avec la vitesse réelle du doigt, culbute, frappe, et **le compte ne monte qu'après**. Ailleurs la séquence s'intercale entre le geste et l'impact, et l'on ne relie plus l'un à l'autre |
+
+**LA SIGNATURE N'EST PAS UNE ÉTIQUETTE**, c'est ce que `gestes.test.js` exige de
+trouver : deux caractères qui la partageraient seraient le même sous deux noms.
 
 **LA PUISSANCE** — les cinq crans du jeu, sourd, sec, nourri, bordée, démontée,
-dont les seuils sont **relevés** sur la distribution réelle des volées et non
-choisis à l'œil. C'est le payoff, et il est **identique d'une variante à
-l'autre** : c'est ce qui permet de juger le geste à récompense constante.
+dont les seuils sont **relevés** sur la distribution réelle des volées. C'est le
+payoff, et il est **identique d'un caractère à l'autre** : c'est ce qui permet
+de juger le geste à récompense constante.
+
+### LE FANTÔME, ET POURQUOI IL REMPLACE L'EMPILEMENT
+
+Un bouton **👻**, allumé d'office, superpose **le geste du jeu tel qu'il est
+aujourd'hui** en filigrane sous celui qu'on essaie : même main, même glissement,
+deux paquets peints en parallèle. On VOIT les cinquante pixels de retard au lieu
+de les déduire.
+
+C'est l'instrument du banc, pas une option. **Comparer deux gestes en alternant
+entre eux, c'est comparer deux souvenirs** — et l'on préfère toujours celui
+qu'on vient d'essayer. C'est précisément ce que l'empilement I→V cherchait à
+éviter, et il le payait en rendant les crans minuscules.
+
+- **Le fantôme est fait de CLONES**, jamais des cartes elles-mêmes : deux
+  boucles qui peindraient les mêmes nœuds se disputeraient la transformation.
+- **Il a SA couche, sous les cartes.** Posé dans `.gf-vol` avec la poussière et
+  les traînées — z-index 9, au-dessus du râtelier — il se peignait PAR-DESSUS le
+  vrai paquet : une référence qui recouvre ce qu'elle sert à comparer ne compare
+  rien. Trois couches, et leur ordre est tout : `.gf-spectre` (3), `.ratelier`
+  (5), `.gf-vol` (9). Le râtelier doit porter un z-index EXPLICITE — sans lui il
+  vaut `auto`, et une couche à 3 passe devant.
 
 ### Ce que le banc n'a pas, et pourquoi
 
 Pas de résistance, pas de bordées à dépenser, pas de prise à prendre : la main
 se refait toute seule, indéfiniment. **Un banc de gamefeel qui aurait aussi une
 condition de victoire mesurerait autre chose.** Il garde en revanche une
-**cible à frapper** — une coque générée, qui encaisse sans jamais couler :
-un lâcher sans impact ne se juge pas, on n'en sent que la moitié.
+**cible à frapper** — une coque générée qui encaisse sans jamais couler : un
+lâcher sans impact ne se juge pas, on n'en sent que la moitié.
 
-La graine est fixe. Deux essais du même geste doivent pouvoir tomber sur la
-même main, sinon l'on compare deux ressentis ET deux mains, et l'on attribue
-au geste ce qui vient des cartes.
+La graine est fixe. Deux essais du même geste doivent pouvoir tomber sur la même
+main, sinon l'on compare deux ressentis ET deux mains, et l'on attribue au geste
+ce qui vient des cartes.
 
 ### Les décisions qui ont coûté quelque chose
 
 - **UN RESSORT, PAS UNE COURBE DE BÉZIER.** Une transition CSS part d'un point
-  et arrive à un autre en un temps fixe ; si la cible change en cours de route
-  — et sous le doigt, elle change soixante fois par seconde — la transition
+  et arrive à un autre en un temps fixe ; si la cible change en cours de route —
+  et sous le doigt, elle change soixante fois par seconde — la transition
   redémarre et le mouvement se hache. Un ressort n'a pas de durée : il a une
-  position, une vitesse et une cible. C'est la différence entre une carte qui
-  SUIT le doigt et une carte qui COLLE au doigt. L'amortissement est le seul
-  réglage qui compte, et **0,7 est là où est le plaisir** : elle dépasse d'un
-  cheveu et revient. Intégration à **pas fixe** de 1/240 s : intégré avec le
-  `dt` réel, un ressort raide explose dès qu'une frame est longue.
+  position, une vitesse et une cible. Intégration à **pas fixe** de 1/240 s :
+  intégré avec le `dt` réel, un ressort raide explose dès qu'une frame est
+  longue.
 - **L'ENTRÉE ET LA PEINTURE SONT SÉPARÉES.** `pointermove` n'enregistre que la
-  position et la vitesse ; c'est la boucle rAF qui vise et qui peint. Peint
-  dans le `pointermove`, le mouvement suit la cadence des événements du
-  pointeur — 120 Hz sur un téléphone, 60 sur un autre, irrégulière partout.
-- **UN SEUL MOTEUR POUR LES CINQ VARIANTES.** Elles ne changent que les CIBLES
-  des ressorts et leurs raideurs, jamais le solveur : cinq moteurs auraient
-  comparé cinq bugs.
-- **LE PAQUET CHANGE DE MAIN AU LÂCHER.** La boucle du geste est coupée et
-  celle du lâcher en ouvre une à elle. Deux boucles qui peignent les mêmes
-  nœuds se disputent la transformation, et celle du geste continuait de viser
-  un doigt qui n'est plus là.
+  position et la vitesse ; c'est la boucle rAF qui vise et qui peint. Peint dans
+  le `pointermove`, le mouvement suit la cadence des événements du pointeur —
+  120 Hz sur un téléphone, 60 sur un autre, irrégulière partout.
+- **UN SEUL MOTEUR POUR LES CINQ.** Ils ne changent que les CIBLES des ressorts
+  et le décor, jamais le solveur : cinq moteurs auraient comparé cinq bugs
+  plutôt que cinq propositions.
+- **LE CABRAGE EST UN `rotateX`**, donc une vraie inclinaison dans la
+  profondeur, et il exige une `perspective` sur le parent — sans elle il aplatit
+  la carte d'une fraction de pixel et le caractère entier disparaît. En 2D on ne
+  pouvait faire pencher le paquet que de CÔTÉ, ce qu'une poussée droite vers le
+  haut ne justifie jamais : c'est ce qui rendait l'inclinaison invisible.
+- **L'ÉVENTAIL A BESOIN D'UN DÉCALAGE RÉSIDUEL.** Quand toutes les cartes
+  convergent vers le même point, assouplir leurs ressorts change leur
+  trajectoire mais pas leur destination : l'éventail se referme avant qu'on le
+  voie.
+- **L'OMBRE SUIT LA COURSE, PAS LE TAS.** Calée sur les 70 px du regroupement,
+  elle saturait au cinquième du geste et ne disait plus rien ensuite : elle
+  s'allumait au lieu de grandir. Une ombre qui s'allume dit « en l'air ou pas » ;
+  une ombre qui grandit dit DE COMBIEN, et c'est tout ce qu'on lui demande.
+- **LES AIGUILLES PENCHENT, ELLES NE PIVOTENT PAS.** Le cap brut vers la coque
+  vaut ~166° quand le paquet est au-dessus d'elle : les cartes arrivaient tête en
+  bas, illisibles, et le geste avait l'air cassé plutôt que guidé. Bornées à 40°,
+  elles disent la même chose et se lisent.
+- **LA TAILLE D'UN GRAIN DÉCIDE S'IL EXISTE.** Dix-huit grains de 2 px lâchés
+  sous le pouce sont parfaitement peints et parfaitement invisibles.
+- **LE PAQUET CHANGE DE MAIN AU LÂCHER.** La boucle du geste est coupée et celle
+  du lâcher en ouvre une à elle. Deux boucles qui peignent les mêmes nœuds se
+  disputent la transformation, et celle du geste continuait de viser un doigt qui
+  n'est plus là.
 - **UNE CARTE BONDIT PAR SON RESSORT**, pas par `element.animate()`. Une
-  animation WAAPI sur `transform` remplace la transformation en ligne le temps
-  de l'animation : la carte sautait de sa position en l'air à sa position de
-  repos, puis revenait. Une impulsion sur le ressort passe par le même solveur
-  que tout le reste, donc elle **compose** au lieu d'écraser.
-- **LA VOLÉE SE PRÉSENTE AVANT DE SE RÉSOUDRE.** Lâché haut, le paquet restait
-  là où le doigt l'avait laissé — une fois sur deux sous le compteur et sous le
-  nom de la figure. Le seul moment où l'écran dit un MOT était couvert par trois
-  cartes. Il vient donc se ranger au même endroit à chaque fois, ce qui a
-  l'avantage second de comparer les cinq variantes sur la même image.
+  animation WAAPI sur `transform` remplace la transformation en ligne le temps de
+  l'animation : la carte sautait de sa position en l'air à sa position de repos,
+  puis revenait. Une impulsion sur le ressort passe par le même solveur, donc
+  elle **compose** au lieu d'écraser.
+- **UN NETTOYAGE DIFFÉRÉ VÉRIFIE QU'IL PARLE ENCORE DU MÊME PAQUET.** Entre le
+  lâcher et la fin du retour, 260 ms passent — de quoi qu'un autre chemin ait
+  déjà refait l'écran. Sans garde-fou, le minuteur repeignait des nœuds détachés
+  et déclenchait un second rendu par-dessus le premier.
+- **LA VOLÉE SE PRÉSENTE AVANT DE SE RÉSOUDRE** (sauf la bordée, dont c'est tout
+  le propos de ne pas le faire). Lâché haut, le paquet restait là où le doigt
+  l'avait laissé — une fois sur deux sous le compteur et sous le nom de la
+  figure, c'est-à-dire sur le seul moment où l'écran dit un MOT.
 - **LA PROJECTION RESTE EFFACÉE JUSQU'AU BOUT DU LÂCHER.** Retirée à la fin du
   compte, la bulle revenait par-dessus la coque pendant que la volée s'y
   écrasait, pour annoncer un total déjà tombé.
-- **LA TRAÎNÉE NE SE POSE QUE SI LE PAQUET VA VITE.** À chaque frame elle
-  maquille le mouvement au lieu de le souligner, et coûte trente nœuds par
-  seconde pour rien.
-- **LE BOIS FLÉCHIT** quand on tire la volée vers le bas. Le rechargement coûte
-  une ressource : il faut que le geste RÉSISTE, et une résistance qu'on ne voit
-  pas n'est qu'un seuil.
 
 ### Sur les dépendances
 
@@ -868,14 +958,14 @@ une, `src/gamefeel.js` est le seul fichier à remplacer — le reste ne connaît
 
 - **`tools/bundle-mockup.mjs` n'embarque plus que les modules que la maquette
   importe**, relevés dans son `<script>` puis suivis de proche en proche, dans
-  l'ordre de leurs dépendances. La liste était fixe et la même pour toutes :
-  le jour où deux modules ont porté le même nom de fonction — `attendre`,
+  l'ordre de leurs dépendances. La liste était fixe et la même pour toutes : le
+  jour où deux modules ont porté le même nom de fonction — `attendre`,
   `secousse`, `onde`, des primitives que tout le monde réécrit — le contrôle de
   doublon a fait échouer TOUTES les maquettes, y compris celles qui
   n'importaient ni l'un ni l'autre.
 - **Il refuse maintenant un module qui importe en `import * as`.** Les préfixes
   de namespace ne sont défaits que dans le corps de la maquette ; laissé dans un
-  MODULE, un `C.estFeu(…)` survit à la mise à plat et le fichier autonome
-  s'ouvre sur « C is not defined » — page blanche, une ligne en console, aucun
-  autre signal. C'est la règle 13, et elle a coûté un écran noir de plus le jour
-  où `src/carteVue.js` a été extrait de la maquette.
+  MODULE, un `C.estFeu(…)` survit à la mise à plat et le fichier autonome s'ouvre
+  sur « C is not defined » — page blanche, une ligne en console, aucun autre
+  signal. C'est la règle 13, et elle a coûté un écran noir de plus le jour où
+  `src/carteVue.js` a été extrait de la maquette.

@@ -59,6 +59,7 @@ import { contenuCarte } from './src/carteVue.js';
 import * as G from './src/gamefeel.js';
 import { getGeneratedShip, drawGrid } from './src/sprites.js';
 import { startOcean, randomOceanScene } from './src/ocean.js';
+import { GESTES, REFERENCE } from './src/gestes.js';
 
 const el = (tag, o = {}, kids = []) => {
   const n = document.createElement(tag);
@@ -75,62 +76,11 @@ const [CONTENU] = await Promise.all([jget('data/equipage.json')]);
 
 /* ------------------------------------------------------ les cinq gestes */
 
-/* CHAQUE CRAN AJOUTE AU PRÉCÉDENT. C'est la seule façon d'attribuer une
-   différence à une cause : cinq gestes indépendants se comparent deux à deux,
-   et l'on finit par préférer celui qu'on vient d'essayer.
+// LES CARACTÈRES VIVENT DANS `src/gestes.js`, pas ici. Un test doit pouvoir
+// les lire : le premier banc gardait sa table dans la maquette, et rien ne
+// pouvait donc vérifier que les cinq se DISTINGUENT — ce qu'elles ne faisaient
+// pas. Voir `test/gestes.test.js` et `tools/geste-audit.mjs`.
 
-   Les réglages sont nommés d'après ce qu'ils font sentir, pas d'après leur
-   implémentation — `raideur` et `zeta` sont les deux seuls nombres du solveur,
-   tout le reste dit une intention. */
-const GESTES = [
-  {
-    rang: 'I', nom: 'nu', direct: true,
-    note: 'La <b>référence</b> — le paquet colle au doigt, sans masse ni retard. C’est le geste tel qu’il est aujourd’hui dans le jeu.',
-    raideur: 0, zeta: 0, leve: 14, tas: 70,
-    inclinaison: 0, etage: 0, ombre: false, aimant: 0,
-    trainee: 0, poussiere: 0, bois: 0, lancer: 0,
-  },
-  {
-    rang: 'II', nom: 'ressort', direct: false,
-    note: '<b>+ le ressort</b> — le paquet a une masse : il traîne d’un cheveu derrière le doigt, dépasse d’un cheveu et revient. Le retour en main est un rebond, plus une transition qui s’arrête net.',
-    raideur: 300, zeta: 0.72, leve: 14, tas: 70,
-    inclinaison: 0, etage: 0, ombre: false, aimant: 0,
-    trainee: 0, poussiere: 0, bois: 0, lancer: 0,
-  },
-  {
-    rang: 'III', nom: 'poids', direct: false,
-    note: '<b>+ le poids</b> — il penche dans le sens où on le lance, les cartes du dessous s’étagent avec du retard, et l’ombre grandit à mesure qu’il se décolle du bois.',
-    raideur: 320, zeta: 0.68, leve: 16, tas: 66,
-    inclinaison: 15, etage: 0.2, ombre: true, aimant: 0.16,
-    trainee: 0, poussiere: 0, bois: 0, lancer: 0,
-  },
-  {
-    rang: 'IV', nom: 'matière', direct: false,
-    note: '<b>+ la matière</b> — de la poussière au décollage, une traînée derrière le paquet lancé, et le râtelier qui <b>fléchit</b> quand on tire la volée vers le bas : le rechargement coûte une ressource, il faut qu’il résiste.',
-    raideur: 340, zeta: 0.66, leve: 18, tas: 64,
-    inclinaison: 17, etage: 0.22, ombre: true, aimant: 0.18,
-    trainee: 1, poussiere: 1, bois: 1, lancer: 0,
-  },
-  {
-    rang: 'V', nom: 'bordée', direct: false,
-    note: '<b>+ la bordée</b> — le lâcher n’est plus un relâchement : le paquet <b>part</b>, avec la vitesse qu’avait le doigt, file à la coque et s’y écrase. C’est le geste qui déclenche l’impact, plus un bouton qu’on relâche.',
-    raideur: 340, zeta: 0.64, leve: 18, tas: 62,
-    inclinaison: 19, etage: 0.24, ombre: true, aimant: 0.2,
-    trainee: 1, poussiere: 1, bois: 1, lancer: 1,
-  },
-];
-
-/* LES CINQ CRANS DE PUISSANCE sont ceux du jeu, et leurs seuils sont RELEVÉS,
-   pas choisis à l'œil : mesurée sur 2 800 volées d'un capitaine appliqué,
-   p25 = 60, médiane = 85, p75 = 128, p90 = 192, p99 = 325. Un cran qu'on voit
-   à chaque tour n'est pas une récompense, c'est un décor — d'où une démontée
-   à une volée sur cent.
-
-   `pression` est le total que la volée VAUT à ce cran. Le banc s'en sert pour
-   étalonner le score : la main est vraie, les munitions sont vraies, mais le
-   chiffre est celui qu'on veut éprouver. C'est la seule fiction du banc, et
-   elle est là pour qu'on puisse voir une démontée quand on veut plutôt que
-   d'attendre la centième volée. */
 const CRANS = [
   { nom: 'sourd', dit: 'le carton claque', pression: 14, boulets: 1, secousse: 0, eclair: 0, onde: false, copeaux: 5, embrase: false },
   { nom: 'sec', dit: 'un coup part', pression: 34, boulets: 1, secousse: 1.5, eclair: 0, onde: false, copeaux: 9, embrase: false },
@@ -148,8 +98,13 @@ const PAS_SEQUENCE = 180;
 
 /* --------------------------------------------------------------- l'état */
 
-let iGeste = 1;             // on ouvre sur II : la référence se juge par écart
+let iGeste = 0;             // on ouvre sur l'amarre : c'est la plus tranchée
 let iCran = 2;              // et sur « nourri », qui est la volée médiane
+// LE FANTÔME EST ALLUMÉ D'OFFICE. C'est l'instrument du banc, pas une option :
+// sans lui on compare deux souvenirs, et l'on préfère toujours celui qu'on
+// vient d'essayer. Il s'éteint pour juger un caractère seul, une fois qu'on
+// sait ce qu'il fait.
+let fantomeOn = true;
 let occupe = false;
 let glissa = false;         // un glissement ne doit pas valoir un clic (règle 8)
 
@@ -178,6 +133,8 @@ const cran = () => CRANS[iCran];
 const ecranEl = () => document.querySelector('.screen.ecran-cartes.banc');
 const merEl = () => document.querySelector('.banc .mer');
 const volEl = () => document.querySelector('.banc .gf-vol');
+// Le fantôme a SA couche, sous les cartes : voir §18.1 de deck.css.
+const spectreEl = () => document.querySelector('.banc .gf-spectre');
 
 /* ------------------------------------------------------------- la cible */
 
@@ -248,11 +205,25 @@ function chipsDe(cle, liste, actif, choisir, rendreChip) {
 }
 
 function barre() {
+  // LE FANTÔME se pose AU BOUT de la rangée des gestes, et non sur une
+  // troisième : il ne se choisit pas contre les cinq caractères, il se
+  // superpose à celui qu'on essaie. Une rangée de plus coûterait 44 px pris
+  // à la mer, et dirait qu'il y a trois axes là où il y en a deux.
+  const fantomeChip = el('button', {
+    class: 'bc-chip bc-fantome',
+    attrs: { type: 'button', 'aria-pressed': String(fantomeOn),
+      'aria-label': 'Superposer le geste actuel du jeu, en filigrane', title: 'le geste actuel, en filigrane' },
+    on: { click: () => { if (!occupe) { fantomeOn = !fantomeOn; dessiner(); } } },
+  }, [el('span', { class: 'bc-rang', text: '👻' })]);
   return el('div', { class: 'bc-barre' }, [
-    chipsDe('geste', GESTES, iGeste, (i) => { iGeste = i; }, (g) => [
-      el('span', { class: 'bc-rang', text: g.rang }),
-      el('span', { class: 'bc-nom', text: g.nom }),
-    ]),
+    (() => {
+      const r = chipsDe('geste', GESTES, iGeste, (i) => { iGeste = i; }, (g) => [
+        el('span', { class: 'bc-rang', text: g.rang }),
+        el('span', { class: 'bc-nom', text: g.nom }),
+      ]);
+      r.appendChild(fantomeChip);
+      return r;
+    })(),
     chipsDe('main', CRANS, iCran, (i) => { iCran = i; }, (c, i) => [
       el('span', { class: 'bc-rang', text: '▮'.repeat(i + 1) }),
       el('span', { class: 'bc-nom', text: c.nom }),
@@ -336,6 +307,7 @@ function dessiner() {
   // dépend de ses ancêtres — mesuré, un boulet à `translate(96px, 341px)` était
   // rapporté un écran plus bas, donc invisible, à chaque tir.
   s.appendChild(mer);
+  s.appendChild(el('div', { class: 'gf-spectre', attrs: { 'aria-hidden': 'true' } }));
   s.appendChild(el('div', { class: 'gf-vol', attrs: { 'aria-hidden': 'true' } }));
 
   const main = el('div', { class: 'main' });
@@ -354,98 +326,176 @@ function dessiner() {
 
 /* -------------------------------------------------------------- le geste */
 
-/* UN SEUL MOTEUR POUR LES CINQ VARIANTES. Elles ne changent que les CIBLES des
-   ressorts et leurs raideurs, jamais le solveur : c'est ce qui les rend
-   comparables. Cinq moteurs différents auraient comparé cinq bugs.
+/* UN SEUL MOTEUR, CINQ CARACTÈRES. Le solveur ne change jamais : ce sont les
+   CIBLES des ressorts et le décor qui changent. Cinq moteurs auraient comparé
+   cinq bugs plutôt que cinq propositions.
 
-   L'ENTRÉE ET LA PEINTURE SONT SÉPARÉES. `pointermove` ne fait qu'enregistrer
-   la position et la vitesse ; c'est la boucle rAF qui vise et qui peint. Peint
+   L'ENTRÉE ET LA PEINTURE SONT SÉPARÉES. `pointermove` n'enregistre que la
+   position et la vitesse ; c'est la boucle rAF qui vise et qui peint. Peint
    dans le `pointermove`, le mouvement suit la cadence des événements du
-   pointeur — 120 Hz sur un téléphone, 60 sur un autre, irrégulière partout —
-   et le ressort recevait des `dt` qui n'étaient pas ceux de l'écran. */
+   pointeur — 120 Hz sur un téléphone, 60 sur un autre, irrégulière partout — et
+   le ressort recevrait des `dt` qui ne sont pas ceux de l'écran. */
 function brancherGeste(s) {
   const ratelier = s.querySelector('.ratelier');
   const tab = s.querySelector('.tableau');
   const depot = s.querySelector('.depot');
+  const cible = s.querySelector('.cible');
   const aide = s.querySelector('.tb-geste');
   const aideTexte = aide ? aide.innerHTML : '';
 
   let y0 = null, x0 = 0, dx = 0, dy = 0, montee = 0, franchi = false;
   let ptX = 0, ptY = 0, vx = 0, vy = 0, tPrec = 0, xPrec = 0, yPrec = 0;
-  let paq = null, arret = null, tTrainee = 0;
+  let paq = null, arret = null, tTrainee = 0, tBraise = 0;
+  // Le décor propre à chaque caractère, monté au franchissement du seuil et
+  // démonté au lâcher. Rien ne survit à un geste.
+  let cordes = null, rompu = false, ligne = null, effacerMotes = null;
+  let empreintes = [], spectre = null;
 
   const dire = (h, cls) => {
     if (tab) { tab.classList.remove('tire', 'annule'); if (cls) tab.classList.add(cls); }
     if (aide) aide.innerHTML = h;
   };
-  // TOUT CE QUI EST AU-DESSUS DU RÂTELIER EST UNE CIBLE.
+  // TOUT CE QUI EST AU-DESSUS DU RÂTELIER EST UNE CIBLE. Une zone de la taille
+  // d'une carte demanderait de viser, et un geste qui demande de viser est un
+  // bouton déguisé.
   const surLeDepot = (y) => y < ratelier.getBoundingClientRect().top;
 
-  const relacher = () => {
+  const demonter = () => {
     if (arret) { arret(); arret = null; }
-    if (paq) { paq.rendre(); paq = null; }
+    if (cordes) { cordes.retirer(); cordes = null; }
+    if (ligne) { ligne.retirer(); ligne = null; }
+    if (effacerMotes) { effacerMotes(); effacerMotes = null; }
+    for (const f of empreintes) f(); empreintes = [];
+    if (spectre) { spectre.retirer(); spectre = null; }
+    if (cible) cible.classList.remove('raidie');
     if (depot) depot.classList.remove('vu', 'prete', 'attire');
     if (ratelier) { ratelier.classList.remove('recharge'); ratelier.style.removeProperty('--flechi'); }
-    for (const n of s.querySelectorAll('.carte')) n.classList.remove('enlair');
+    rompu = false;
   };
+  const relacher = () => { demonter(); if (paq) { paq.rendre(); paq = null; } };
 
-  /* LA BOUCLE. Elle vise, elle peint, elle s'arrête toute seule quand tous les
-     ressorts dorment : une boucle rAF qui tourne en permanence pour un geste
-     d'une seconde tient le téléphone éveillé pour rien. */
+  /* LA BOUCLE. Elle vise, elle peint, et elle s'arrête toute seule : une boucle
+     rAF qui tourne en permanence pour un geste d'une seconde tient le téléphone
+     éveillé pour rien. */
   const peindre = (dt) => {
     if (!paq) return false;
     const g = geste();
     const tete = paq.tete;
-    const k = Math.max(0, Math.min(1, -dy / g.tas));   // 0 → posées, 1 → en tas
+    const k = Math.max(0, Math.min(1, -dy / g.tas));        // 0 posées, 1 en tas
+    // L'OMBRE SUIT LA COURSE, PAS LE TAS. Calée sur `tas` — 70 px — elle
+    // saturait au cinquième du geste et ne disait plus rien pendant les 280 px
+    // suivants : elle s'allumait au lieu de grandir.
+    const leve = Math.max(0, Math.min(1, -dy / g.course));
+    const vitesse = Math.hypot(vx, vy);
 
-    // L'AIMANT : à l'approche de la zone, le paquet est TIRÉ vers elle. C'est
-    // ce qui fait qu'un lâcher réussi n'est jamais une surprise — on sent la
-    // cible avant de l'atteindre. Il ne remplace pas la zone : elle accepte
-    // toujours n'importe quel point au-dessus du bois.
-    let ax = 0, ay = 0;
-    if (g.aimant && y0 !== null && surLeDepot(ptY) && dy < 0) {
-      const cd = G.centre(depot);
-      ax = (cd.x - (tete.cx + dx)) * g.aimant;
-      ay = (cd.y - (tete.cy + dy)) * g.aimant;
+    /* --- I · L'AMARRE : tant qu'elle tient, la carte ne suit qu'au dixième.
+       C'est ce qui fait qu'on TIRE dessus au lieu de la déplacer, et c'est la
+       seule façon de faire SENTIR un seuil : un seuil invisible se franchit par
+       accident, et le joueur ne sait ni ce qu'il a fait ni comment le refaire. */
+    let suivi = 1, tension = 0;
+    if (g.amarre) {
+      const dist = Math.hypot(dx, dy);
+      tension = Math.min(1, dist / g.rupture);
+      if (!rompu && dist >= g.rupture) {
+        rompu = true;
+        if (cordes) { cordes.casser(); cordes = null; }
+        // LE RECUL : la vitesse est INJECTÉE dans les ressorts. Poser la
+        // position aurait fait sauter le paquet ; une impulsion le fait partir.
+        const ang = Math.atan2(dy, dx);
+        paq.viser((m) => { m.x.v += Math.cos(ang) * g.recul; m.y.v += Math.sin(ang) * g.recul; });
+      }
+      suivi = rompu ? 1 : g.retenue;
+      if (cordes) {
+        cordes.maj(paq.membres.map((m) => ({ de: { x: m.cx, y: m.cy }, vers: { x: ptX, y: ptY } })), tension);
+      }
     }
-    // L'INCLINAISON VIENT DE LA VITESSE, pas de la position : c'est ce qui la
-    // fait lire comme de l'inertie plutôt que comme un angle décoratif.
-    const incl = g.inclinaison
-      ? Math.max(-g.inclinaison, Math.min(g.inclinaison, vx * 0.02))
+
+    /* --- IV · LA TIMONERIE : passé la moitié de la course, la coque CAPTE le
+       paquet. C'est elle qui répond au geste, et non l'inverse — le glissement
+       devient une visée. C'est le seul caractère qui touche à la jouabilité :
+       un aimant change ce qu'on peut rater. */
+    let ax = 0, ay = 0, but = null, prise = 0;
+    if (g.visee && leve > g.viseeDepart) {
+      but = pointDImpact();
+      prise = Math.min(1, (leve - g.viseeDepart) / (1 - g.viseeDepart)) * g.visee;
+      ax = (but.x - (tete.cx + dx)) * prise;
+      ay = (but.y - (tete.cy + dy)) * prise;
+      if (cible) cible.classList.add('raidie');
+      if (ligne) ligne.maj({ x: tete.cx + dx + ax, y: tete.cy + dy + ay }, but, prise / g.visee);
+    } else if (cible) cible.classList.remove('raidie');
+
+    /* --- II · LE CABRAGE, sur la vitesse TOTALE. Le premier banc le calculait
+       sur la seule vitesse horizontale : une poussée droite vers le haut n'en
+       produit aucune, et le caractère entier restait éteint — 0° mesuré sur
+       cinq variantes sur cinq. */
+    const cabre = g.cabrage
+      ? Math.max(-g.cabrage, Math.min(g.cabrage, -vy * 0.028 + Math.abs(vx) * 0.004))
       : 0;
 
     paq.viser((m, rang) => {
-      const vers = (tete.cx - m.cx) * k + rang * 3 * k;
-      const monte = (tete.cy - m.cy) * k - rang * 3 * k;
-      m.x.cible = dx + vers + ax;
-      m.y.cible = dy + monte - g.leve * k + ay;
-      m.rot.cible = rang * -2.5 * k + incl * Math.max(0, 1 - rang * 0.2);
+      // L'ÉVENTAIL (II) : les cartes du dessous gardent un décalage RÉSIDUEL.
+      // Convergeant toutes vers le même point, assouplir leurs ressorts
+      // changeait leur trajectoire mais pas leur destination : l'éventail se
+      // refermait avant qu'on le voie.
+      const serre = g.evantail ? 0.55 : 1;
+      const vers = (tete.cx - m.cx) * k * serre + rang * (g.evantail || 3) * k;
+      const monte = (tete.cy - m.cy) * k * serre - rang * 3 * k;
+      m.x.cible = dx * suivi + vers + ax;
+      m.y.cible = dy * suivi + monte - g.leve * k + ay;
+      m.incl.cible = cabre;
       m.ech.cible = 1.04 + k * 0.06;
-      // L'ÉTAGEMENT : plus une carte est loin de la tête, plus son ressort est
-      // mou. Elles arrivent en éventail au lieu d'arriver en bloc, et le paquet
-      // se lit comme un objet articulé plutôt que comme une image collée.
-      if (g.etage) {
-        const mou = 1 - Math.min(0.55, rang * g.etage);
-        m.x.raideur = g.raideur * mou; m.y.raideur = g.raideur * mou;
+      if (but) {
+        // LES CARTES S'ORIENTENT VERS LA COQUE, mais elles PENCHENT, elles ne
+        // pivotent pas. Le cap brut vaut ~166° quand le paquet est au-dessus de
+        // la cible — mesuré — et les cartes arrivaient tête en bas : illisibles,
+        // et le geste avait l'air cassé plutôt que guidé. Bornées à 40°, elles
+        // se couchent vers la coque comme une aiguille contrariée, ce qui dit
+        // la même chose et se lit.
+        const cap = G.capVers({ x: m.cx + dx, y: m.cy + dy }, but);
+        const penche = Math.max(-40, Math.min(40, cap > 90 ? 180 - cap : cap < -90 ? -180 - cap : cap));
+        m.rot.cible = penche * prise / g.visee;
+      } else if (g.amarre && !rompu) {
+        // Avant la rupture, la carte s'incline vers SON ancrage : c'est la
+        // corde qui la tient, et cela doit se voir sur le carton aussi.
+        m.rot.cible = Math.max(-14, Math.min(14, dx * 0.16));
+      } else {
+        m.rot.cible = rang * (g.evantail ? -7 : -2.5) * k;
       }
-      // L'OMBRE DIT LA HAUTEUR. Sans elle, une carte qui monte glisse sur le
-      // plan de l'écran au lieu de s'en décoller.
-      if (g.ombre) m.n.style.setProperty('--leve', k.toFixed(3));
+      m.n.style.setProperty('--leve', leve.toFixed(3));
     });
     paq.peindre(dt);
 
-    // LA TRAÎNÉE ne se pose que si le paquet va VITE, et pas à chaque frame :
-    // à chaque frame elle maquille le mouvement au lieu de le souligner, et
-    // coûte trente nœuds par seconde pour rien.
+    // Le fantôme suit le geste du jeu ACTUEL, sans ressort ni retard : c'est la
+    // référence, et c'est en la voyant dessous qu'on lit ce que la variante
+    // ajoute.
+    if (spectre) spectre.maj(dx, dy);
+
     const t = performance.now();
-    if (g.trainee && Math.hypot(vx, vy) > 850 && t - tTrainee > 42) {
+    /* --- V · LA TRAÎNÉE, seuil à 400 px/s. Le premier banc la posait à 850 :
+       mesurée sur un glissement réel, la vitesse médiane est de 647 px/s et le
+       seuil n'était franchi qu'une fois sur dix-huit. Elle n'apparaissait
+       jamais. Elle ne se pose toujours pas à chaque frame : à ce rythme elle
+       maquille le mouvement au lieu de le souligner. */
+    if (g.trainee && vitesse > g.trainee && t - tTrainee > 40) {
       tTrainee = t;
       G.trainee(volEl(), tete.n, { opacite: 0.26 });
+    }
+    /* --- III · LES BRAISES ne tombent que des boulets rouges. Un effet qui
+       sort de toutes les cartes est un filtre ; un effet qui sort d'UNE carte
+       est une propriété de cette carte. */
+    if (g.motes && t - tBraise > 120) {
+      tBraise = t;
+      for (const m of paq.membres) {
+        if (m.n.dataset.role === 'boulet_rouge') {
+          const r = m.n.getBoundingClientRect();
+          G.braises(volEl(), { x: r.left + r.width / 2, y: r.top + r.height * 0.6 }, 2);
+        }
+      }
     }
     // LE BOIS FLÉCHIT sous la volée qu'on tire vers le bas. Le rechargement
     // coûte une ressource : il faut que le geste RÉSISTE, et une résistance
     // qu'on ne voit pas n'est qu'un seuil.
-    if (g.bois) ratelier.style.setProperty('--flechi', String(Math.max(0, Math.min(7, dy * 0.13))));
+    ratelier.style.setProperty('--flechi', String(Math.max(0, Math.min(7, dy * 0.13))));
     return true;
   };
 
@@ -465,7 +515,7 @@ function brancherGeste(s) {
 
     // LA VITESSE, LISSÉE. Brute, elle saute d'un événement à l'autre — deux
     // `pointermove` séparés d'une milliseconde donnent une vitesse absurde — et
-    // l'inclinaison qui en dépend clignotait. Moyenne glissante sur 0,25.
+    // tout ce qui en dépend clignote. Moyenne glissante sur 0,25.
     const t = performance.now();
     const dt = Math.max(1, t - tPrec) / 1000;
     if (dt < 0.2) {
@@ -481,27 +531,7 @@ function brancherGeste(s) {
       // suit vers la zone capturante et non vers la carte touchée : plus aucune
       // munition ne peut être ajoutée à la volée, et rien ne le signale.
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* souris relâchée */ }
-
-      // RÈGLE 9 : LES BOÎTES SONT MESURÉES UNE FOIS, ici, avant la première
-      // transformation. Relues à chaque `pointermove`, elles reviennent DÉJÀ
-      // transformées, la position calculée dépend de la précédente, et les
-      // cartes tremblent.
-      // DANS L'ORDRE DES DOIGTS, pas dans celui du DOM : `querySelectorAll`
-      // rend les cartes de gauche à droite, si bien qu'en sélectionnant de
-      // droite à gauche le tas se formait à l'autre bout de la main.
-      const g = geste();
-      const noeuds = P.selection.map((c) => s.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
-      paq = new G.Paquet(noeuds, { raideur: g.raideur || 300, zeta: g.zeta || 0.75, direct: g.direct });
-      for (const n of noeuds) n.classList.add('enlair');
-
-      // LA POUSSIÈRE DU BOIS : c'est la seule chose qui dit que la carte a
-      // QUITTÉ le râtelier. Sans elle, elle glisse sur une vitre.
-      if (g.poussiere) {
-        for (const m of paq.membres) {
-          G.poussiere(volEl(), { x: m.cx, y: m.cy + 42 }, { n: 6, force: 1 });
-        }
-      }
-      arret = G.boucle(peindre);
+      monterLeGeste(s);
     }
     if (!franchi) return;
 
@@ -517,8 +547,40 @@ function brancherGeste(s) {
     if (recharge) dire('↓ relâche : ces munitions repartent au fond, on en reprend autant', 'tire');
     else if (annule) dire('↩ relâche : la volée est défaite', 'annule');
     else if (pret) dire('↑ relâche n’importe où : la volée part', 'tire');
+    else if (geste().amarre && !rompu) dire('l’amarre tient — tire jusqu’à ce qu’elle casse', null);
     else dire('vers le haut : la volée part · vers le bas : on recharge', null);
   };
+
+  /* LE DÉCOR D'UN CARACTÈRE SE MONTE AU FRANCHISSEMENT DU SEUIL, pas au
+     `pointerdown` : une corde tendue par un doigt qui n'a pas encore bougé
+     annonce un geste qui n'a pas commencé. */
+  function monterLeGeste() {
+    const g = geste();
+    // RÈGLE 9 : LES BOÎTES SONT MESURÉES UNE FOIS, ici, avant la première
+    // transformation. Relues à chaque `pointermove`, elles reviennent DÉJÀ
+    // transformées, la position calculée dépend de la précédente, et les cartes
+    // tremblent. DANS L'ORDRE DES DOIGTS, pas dans celui du DOM.
+    const noeuds = P.selection.map((c) => s.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
+    paq = new G.Paquet(noeuds, { raideur: g.raideur, zeta: g.zeta, direct: false });
+    for (const n of noeuds) n.classList.add('enlair');
+
+    if (fantomeOn) spectre = G.fantome(spectreEl(), noeuds);
+    if (g.amarre) { cordes = G.amarres(volEl()); rompu = false; }
+    if (g.visee) ligne = G.visee(volEl());
+    if (g.motes) {
+      effacerMotes = G.motes(volEl(), g.motes);
+      // LA MARQUE SUR LE BOIS : là où la carte était posée, le chêne est resté
+      // plus clair. C'est le détail qui dit qu'elle ÉTAIT POSÉE quelque part
+      // plutôt que superposée à une image de bois.
+      empreintes = paq.membres.map((m) => G.empreinte(volEl(), m.n.getBoundingClientRect()));
+    }
+    if (g.poussiere) {
+      for (const m of paq.membres) {
+        G.poussiere(volEl(), { x: m.cx, y: m.cy + 46 }, { n: g.poussiere, force: 1.4, taille: 5 });
+      }
+    }
+    arret = G.boucle(peindre);
+  }
 
   const fin = () => {
     if (y0 === null) return;
@@ -535,23 +597,29 @@ function brancherGeste(s) {
     if (surZone && d < 0) {
       // LE PAQUET CHANGE DE MAIN. La boucle du geste est coupée ici et
       // `tirer()` en ouvre une à lui : deux boucles qui peignent les mêmes
-      // nœuds se disputeraient la transformation, et celle du geste continuait
-      // de viser un doigt qui n'est plus là.
+      // nœuds se disputent la transformation, et celle du geste continuait de
+      // viser un doigt qui n'est plus là.
       const p = paq; paq = null;
-      if (arret) { arret(); arret = null; }
-      if (depot) depot.classList.remove('vu', 'prete', 'attire');
-      if (ratelier) { ratelier.classList.remove('recharge'); ratelier.style.removeProperty('--flechi'); }
+      demonter();
       tirer(p, vFinX, vFinY);
       return;
     }
     // Monté puis redescendu, ou lâché sur le bois : on renonce. Les ressorts
     // ramènent les cartes ; ils ne sont coupés qu'une fois endormis.
     if (paq) {
-      paq.viser((mb) => { mb.x.cible = 0; mb.y.cible = 0; mb.rot.cible = 0; mb.ech.cible = 1; });
+      paq.viser((mb) => { mb.x.cible = 0; mb.y.cible = 0; mb.rot.cible = 0; mb.incl.cible = 0; mb.ech.cible = 1; });
       dx = 0; dy = 0;
-      const fini = () => { relacher(); P.selection = []; dessiner(); };
-      if (geste().direct || G.reduit()) fini();
-      else setTimeout(fini, 260);
+      if (spectre) { spectre.retirer(); spectre = null; }
+      // LE NETTOYAGE DIFFÉRÉ VÉRIFIE QU'IL PARLE ENCORE DU MÊME PAQUET. Entre
+      // le lâcher et la fin du retour, 260 ms passent — de quoi qu'un autre
+      // chemin (la touche Échap, un changement de caractère) ait déjà refait
+      // l'écran. Sans ce garde-fou, le minuteur repeignait des nœuds détachés
+      // et déclenchait un second rendu par-dessus le premier.
+      const mien = paq;
+      setTimeout(() => {
+        if (paq !== mien) return;
+        relacher(); P.selection = []; dessiner();
+      }, G.reduit() ? 0 : 260);
     } else relacher();
     dire(aideTexte, null);
   };
@@ -571,10 +639,6 @@ function brancherGeste(s) {
     if (e.key === 'ArrowDown') { e.preventDefault(); rechargerLaMain(); }
     if (e.key === 'Escape') { e.preventDefault(); P.selection = []; dessiner(); }
   });
-
-  // La cible est repeinte à chaque changement de taille : sa hauteur en pixels
-  // dépend de la bande de mer, qui dépend de l'écran.
-  addEventListener('resize', peindreLaCible, { once: true });
 }
 
 /* ------------------------------------------------------- le rechargement */
@@ -637,6 +701,10 @@ async function sequenceDuScore(paq) {
     return;
   }
 
+  // SANS PAQUET — le caractère « bordée » a déjà lancé les cartes et elles
+  // n'existent plus — le compte se joue sur le seul compteur. Rien à faire
+  // bondir : c'est le prix de mettre le coup avant le chiffre, et c'est
+  // précisément ce qu'on cherche à éprouver.
   const r = C.evaluer(P, P.selection);
   const brut = r.lignes.filter((l) => l.source === 'carte');
   const somme = brut.reduce((t, l) => t + (l.poudre || 0), 0) || 1;
@@ -651,9 +719,8 @@ async function sequenceDuScore(paq) {
     const gain = i === brut.length - 1
       ? reste - courant
       : Math.round(reste * ((l.poudre || 0) / somme));
-    const mb = paq.membres.find((x) => x.n.dataset.uid === String(l.uid));
-    bondir(mb);
-    if (gain > 0 && mb) G.jaillir(volEl(), G.centre(mb.n, 0.5, 0.1), `+${gain}`);
+    const mb = paq && paq.membres.find((x) => x.n.dataset.uid === String(l.uid));
+    if (mb) { bondir(mb); if (gain > 0) G.jaillir(volEl(), G.centre(mb.n, 0.5, 0.1), `+${gain}`); }
     G.rouler(nb, courant, courant + gain);
     courant += gain;
     await G.attendre(PAS_SEQUENCE);
@@ -679,7 +746,7 @@ async function sequenceDuScore(paq) {
   compteur.classList.add('total');
   if (q.embrase) {
     compteur.classList.add('ardent');
-    for (const mb of paq.membres) mb.n.classList.add('embrase');
+    if (paq) for (const mb of paq.membres) mb.n.classList.add('embrase');
   }
   G.rouler(nb, courant, q.pression, 320);
   await G.attendre(320);
@@ -766,16 +833,15 @@ async function impact() {
 async function tirer(paq, vFinX = 0, vFinY = -600) {
   if (occupe || !P.selection.length) return;
   occupe = true;
+  const g = geste();
 
-  // LE CLAVIER DOUBLE LE GESTE, donc il doit passer par la MÊME chorégraphie :
-  // sans paquet, il n'y aurait ni séquence, ni lancer, ni bond — la flèche du
-  // haut aurait donné un autre jeu que le glissement, et le banc n'aurait plus
-  // mesuré qu'une seule des deux entrées.
+  // LE CLAVIER DOUBLE LE GESTE, donc il passe par la MÊME chorégraphie : sans
+  // paquet, il n'y aurait ni séquence, ni lancer, ni bond, et la flèche du haut
+  // donnerait un autre jeu que le glissement.
   if (!paq) {
-    const g = geste();
     const s0 = ecranEl();
     const noeuds = P.selection.map((c) => s0.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
-    paq = new G.Paquet(noeuds, { raideur: g.raideur || 300, zeta: g.zeta || 0.75, direct: g.direct });
+    paq = new G.Paquet(noeuds, { raideur: g.raideur, zeta: g.zeta });
     for (const n of noeuds) n.classList.add('enlair');
     const tete = paq.tete;
     paq.viser((m, rang) => {
@@ -783,35 +849,42 @@ async function tirer(paq, vFinX = 0, vFinY = -600) {
       m.x.cible = tete.cx - m.cx + rang * 3;
       m.rot.cible = rang * -2.5;
       m.ech.cible = 1.1;
-      if (g.ombre) m.n.style.setProperty('--leve', '1');
+      m.n.style.setProperty('--leve', '1');
     });
   }
 
   // UNE SEULE BOUCLE, et elle appartient au lâcher. Elle ne vise plus rien :
-  // les cibles sont posées par la séquence, par le lancer ou par
+  // les cibles sont posées par la présentation, la séquence, le lancer ou
   // l'évanouissement, et elle se contente d'intégrer et de peindre.
   let traine = false, tT = 0;
-  const arret = paq ? G.boucle((dt) => {
+  const arret = G.boucle((dt) => {
     paq.peindre(dt);
-    const now = performance.now();
-    if (traine && now - tT > 34) { tT = now; G.trainee(volEl(), paq.tete.n, { opacite: 0.22 }); }
+    const t = performance.now();
+    if (traine && t - tT > 34) { tT = t; G.trainee(volEl(), paq.tete.n, { opacite: 0.22 }); }
     return true;
-  }) : null;
+  });
 
-  if (paq) { await presenterLePaquet(paq); await sequenceDuScore(paq); }
-
-  // LE LANCER PASSE APRÈS LA SÉQUENCE : la séquence fait bondir les cartes,
-  // donc elles doivent encore être en l'air quand elle tourne. Lancées
-  // d'abord, elle aurait animé des cartes déjà écrasées sur la coque.
-  if (paq) {
-    if (geste().lancer) { traine = geste().trainee > 0; await lancerLePaquet(paq, vFinX, vFinY); }
-    else await evanouirLePaquet(paq);
+  /* --- V · LE LÂCHER EST LE COUP. C'est toute la proposition du caractère
+     « bordée » : ailleurs, le compte s'intercale entre le geste et l'impact, si
+     bien qu'à l'arrivée du coup on ne le relie plus au geste qui l'a produit.
+     Ici le paquet part, frappe, et le chiffre ne monte qu'après. */
+  if (g.sequenceApres) {
+    traine = true;
+    await lancerLePaquet(paq, vFinX, vFinY);
+    traine = false;
+    arret();
+    await impact();
+    paq.rendre();
+    await sequenceDuScore(null);
+  } else {
+    await presenterLePaquet(paq);
+    await sequenceDuScore(paq);
+    await evanouirLePaquet(paq);
+    arret();
+    await impact();
+    paq.rendre();
   }
-  if (arret) arret();
 
-  await impact();
-
-  if (paq) paq.rendre();
   const partis = P.selection;
   P.main = P.main.filter((c) => !partis.includes(c));
   P.defausse.push(...partis);

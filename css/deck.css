@@ -2458,10 +2458,24 @@
    un écran plus bas, donc invisible, à chaque tir, depuis le premier jour. Un
    décor qu'on contrôle est le seul repère fiable. */
 .screen.ecran-cartes.banc { position: relative; }
+/* TROIS COUCHES, ET LEUR ORDRE EST TOUT. `.gf-vol` portait seule la traînée,
+   la poussière ET le fantôme, à z-index 9 : au-dessus du râtelier, donc le
+   fantôme se peignait PAR-DESSUS le vrai paquet. Une référence qui recouvre ce
+   qu'elle sert à comparer ne compare rien.
+     .gf-spectre (3)  le fantôme — sous les cartes, au-dessus de la mer
+     .ratelier   (5)  le bois et la main
+     .gf-vol     (9)  tout ce qui vole : poussière, sciure, braises, traînée,
+                      cordes, ligne de visée
+   `.ratelier` doit porter un z-index explicite : sans lui il vaut `auto`, et
+   une couche à 3 passerait devant. */
+.screen.ecran-cartes.banc .gf-spectre,
 .screen.ecran-cartes.banc .gf-vol {
-  position: absolute; inset: 0; z-index: 9;
+  position: absolute; inset: 0;
   pointer-events: none; overflow: hidden;
 }
+.screen.ecran-cartes.banc .gf-spectre { z-index: 3; }
+.screen.ecran-cartes.banc .ratelier { z-index: 5; }
+.screen.ecran-cartes.banc .gf-vol { z-index: 9; }
 
 /* LA ZONE DE DÉPÔT ATTIRE. À l'approche, elle respire : c'est ce qui fait
    qu'on la sent avant de l'atteindre, et qu'un lâcher réussi n'est pas une
@@ -2473,4 +2487,102 @@
 @media (prefers-reduced-motion: reduce) {
   .screen.ecran-cartes.banc .ratelier { transform: none; }
   .ecran-cartes .carte.enlair { filter: none; }
+}
+
+/* --- §18.1 — LES CINQ CARACTÈRES ----------------------------------------
+   Chaque caractère a UNE signature, et le CSS ne porte que ce qui ne peut pas
+   se peindre en transformation : une corde, de la sciure, une marque sur le
+   bois, une ligne de visée, un fantôme. Tout le reste — retard, cabrage,
+   éventail — vit dans les ressorts de `src/gamefeel.js`. */
+
+/* L'AMARRE (I). Du chanvre : brun clair, mat, et un trait assez épais pour se
+   voir sur du chêne sombre — un cheveu se serait perdu dans le fil du bois. */
+.gf-amarres, .gf-visee {
+  position: absolute; inset: 0; z-index: 8;
+  width: 100%; height: 100%; pointer-events: none;
+  overflow: visible;
+}
+.gf-amarres path {
+  fill: none; stroke: #c79a5e; stroke-linecap: round;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7));
+}
+
+/* LA SCIURE (III). Elle dérive en permanence, elle n'est pas déclenchée : c'est
+   ce qui la distingue d'un effet. Assez pâle pour qu'on la prenne pour de l'air
+   plutôt que pour des particules. */
+.gf-mote {
+  position: absolute; z-index: 6; border-radius: 50%;
+  background: rgba(226, 210, 176, .55);
+  pointer-events: none;
+}
+/* LA MARQUE SUR LE BOIS (III) : là où la carte était posée, le chêne est resté
+   plus clair. Le râtelier se souvient d'elle. */
+.gf-empreinte {
+  position: absolute; z-index: 1; border-radius: 8px;
+  background: rgba(255, 232, 190, .07);
+  box-shadow: inset 0 0 0 1px rgba(255, 232, 190, .10), inset 0 3px 8px rgba(0, 0, 0, .45);
+  pointer-events: none;
+}
+/* LES BRAISES (III) — elles ne tombent que des boulets rouges. */
+.gf-braise {
+  position: absolute; z-index: 7; width: 3px; height: 3px; border-radius: 50%;
+  background: #ffb14a; box-shadow: 0 0 6px rgba(255, 150, 40, .9);
+  pointer-events: none;
+}
+
+/* LA LIGNE DE VISÉE (IV). Pointillée : une ligne pleine se lit comme un lien
+   déjà établi, une pointillée comme une intention. */
+.gf-visee path {
+  fill: none; stroke: var(--gold-light, #e8c877); stroke-width: 1.6;
+  stroke-dasharray: 5 5; stroke-linecap: round;
+  filter: drop-shadow(0 0 5px rgba(232, 200, 119, .6));
+}
+/* LA COQUE SE RAIDIT à l'approche : c'est elle qui répond au geste, et non
+   l'inverse. */
+.screen.ecran-cartes.banc .cible.raidie canvas {
+  filter: drop-shadow(0 0 10px rgba(232, 200, 119, .55)) brightness(1.12);
+}
+
+/* LE FANTÔME (👻) — le geste du jeu actuel, en filigrane sous celui qu'on
+   essaie. Assez présent pour qu'on suive son bord, assez effacé pour qu'on ne
+   le confonde jamais avec la vraie carte : c'est une RÈGLE graduée, pas une
+   seconde main. */
+.gf-fantome {
+  z-index: 4 !important; opacity: .3;
+  filter: grayscale(1) brightness(1.25);
+  box-shadow: none !important;
+  pointer-events: none;
+}
+.gf-fantome::after { display: none; }
+
+/* LE CABRAGE (II) est une rotation dans la PROFONDEUR : sans perspective sur
+   le parent, `rotateX(26deg)` n'écrase la carte que d'une fraction de pixel et
+   le caractère entier disparaît. 900 px — assez pour que la bascule se voie,
+   assez peu pour que la carte ne parte pas en fuyante. */
+.screen.ecran-cartes.banc .main,
+.screen.ecran-cartes.banc .gf-spectre { perspective: 900px; }
+
+/* LE BOUTON DU FANTÔME, à droite de la rangée des gestes. 44 px comme tout le
+   reste : c'est une cible, pas un dessin. */
+.screen.ecran-cartes.banc .bc-chip.bc-fantome {
+  flex: 0 0 42px; font-size: 17px; line-height: 1;
+}
+.screen.ecran-cartes.banc .bc-chip.bc-fantome[aria-pressed="false"] { opacity: .45; }
+
+/* --- §18.2 — LE PLATEAU SUR UN GRAND ÉCRAN -------------------------------
+   L'écran de référence est 375 × 667 en portrait (§2), et il le reste. Mais la
+   maquette est maintenant REGARDÉE sur un bureau — elle est publiée, on la
+   partage par un lien — et étirée sur 1 280 px, la main se sépare, les cartes
+   s'éloignent du pouce et l'on juge un geste que personne ne fera dans ces
+   proportions.
+   Le plateau garde donc sa largeur de téléphone et se centre ; la mer animée
+   déborde derrière, en surround. Ce n'est PAS une version desktop du jeu :
+   c'est le même écran, tenu à sa mesure. Il vivait dans l'emballage de
+   l'artifact, c'est-à-dire dans une seconde source — exactement ce que
+   `tools/bundle-mockup.mjs` existe pour éviter. */
+@media (min-width: 520px) {
+  .screen.ecran-cartes {
+    max-width: 400px; margin-inline: auto; width: 100%;
+    box-shadow: 0 0 0 1px rgba(120, 90, 50, .35), 0 0 80px rgba(0, 0, 0, .7);
+  }
 }
