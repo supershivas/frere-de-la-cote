@@ -84,4 +84,18 @@ await audit('le jeu — une volée composée', async()=>{
   for (const c of (await p.$$('.ecran-simple .main .carte')).slice(0, 3)) await c.click().catch(()=>{});
   await p.waitForTimeout(500);
 });
+// LES MODALES SONT LA SEULE SURFACE DE TEXTE LONG DU JEU, et sans ces deux
+// passes la plaque de description n'est jamais mesurée : un audit qui ne visite
+// pas un écran ne dit rien sur lui, et il passe au vert quand même.
+await audit('le jeu — la pioche ouverte', async()=>{
+  await p.click('.paquet.pioche'); await p.waitForTimeout(400);
+  const l = await p.$$('.pq-lot'); if (l[0]) await l[0].click();
+  await p.waitForTimeout(300);
+});
+await audit('le jeu — le paquet entier', async()=>{
+  await p.click('.paquet-boite .btn-level-3').catch(()=>{}); await p.waitForTimeout(300);
+  await p.click('.bd-cible:last-child'); await p.waitForTimeout(400);
+  const l = await p.$$('.deck-boite .pq-lot'); if (l[0]) await l[0].click();
+  await p.waitForTimeout(300);
+});
 await b.close();

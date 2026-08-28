@@ -1789,7 +1789,39 @@
   display: flex; flex-wrap: wrap; justify-content: center;
   gap: 14px 10px; padding: 8px 0 2px;
 }
-.paquet-boite .pq-lot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* UNE PILE EST UN BOUTON. Les piles étaient muettes : on voyait ce qui restait
+   sans pouvoir demander ce que ça valait, alors qu'une carte en main s'explique
+   à l'appui. Ce sont de vrais `<button>`, donc le clavier double le doigt
+   gratuitement — et aucune règle `:hover` n'est ajoutée : le survol ne porte
+   jamais d'information (§2). */
+.paquet-boite .pq-lot {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: none; border: 0; padding: 2px; border-radius: 6px; cursor: pointer;
+}
+.paquet-boite .pq-lot[aria-pressed="true"] {
+  outline: 2px solid var(--gold-light, #e8c877); outline-offset: 2px;
+}
+/* LA PLAQUE A UNE HAUTEUR FIXE, ET UN TEXTE AVANT QU'ON TOUCHE. Une plaque qui
+   apparaît fait sauter la modale sous le doigt — c'est le défaut de la barre de
+   compte qui faisait monter les navires, à l'échelle d'une boîte. Le texte trop
+   long est COUPÉ : une plaque qui grandit est un défaut, un texte coupé est du
+   contenu à raccourcir. */
+.paquet-boite .pq-dit {
+  /* 118 px = 105 (le plus long des cinq textes, la Mitraille, MESURÉ dans la
+     page et non estimé) + 10 de padding + 2 de bordure. À 64 px — trois lignes
+     supposées — la Mitraille en demandait cinq et se faisait couper en silence.
+     C'est le contenu qui donne la mesure, pas l'inverse. */
+  height: 118px; overflow: hidden; margin-top: 10px;
+  background: #241a0f; border: 1px solid #4a3a26; border-radius: 6px;
+  padding: 5px 8px; text-align: left;
+}
+.paquet-boite .pd-tete { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.paquet-boite .pd-tete b { font-family: var(--font-title); font-size: 13px; color: #e8c877; }
+.paquet-boite .pd-poudre { font-family: var(--font-body); font-size: 11px; font-weight: 700; color: #e8d5aa; }
+.paquet-boite .pd-rarete { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #cbb08a; }
+.paquet-boite .pd-txt,
+.paquet-boite .pd-compte { font-size: 11px; line-height: 1.35; color: #cbb08a; margin: 2px 0 0; }
+.paquet-boite .pd-vide { font-size: 11px; color: #cbb08a; font-style: italic; }
 .paquet-boite .pq-pile {
   position: relative;
   width: calc(var(--carte-l) * .7 + 12px);
@@ -2371,9 +2403,16 @@
 .screen.ecran-cartes.ecran-simple .ratelier {
   padding-top: 96px;
 }
+/* TROIS COLONNES : 1fr | auto | 1fr. Chaque dos est CENTRÉ DANS SA MOITIÉ, et
+   non collé au bord — `space-between` les envoyait buter contre les bords de
+   l'écran, et la ligne « au paquet », posée en absolu sur toute la largeur, leur
+   passait au travers. Les trois partagent maintenant une grille. */
 .screen.ecran-cartes.ecran-simple .paquets {
   height: 96px;          /* la même mesure que le padding ci-dessus */
   padding-bottom: 30px;  /* 30 − 20 = 10 px sous la carte qui se lève */
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: end;      /* les dos butent en bas de la bande */
+  justify-items: center; /* CHACUN CENTRÉ DANS SA COLONNE */
 }
 /* La bande de mer ménageait 56 px sous les navires pour la carte annoncée et
    les deux dos de paquet. Ni l'une ni les autres n'existent ici. */
@@ -2383,10 +2422,13 @@
    est passé EST le jeu : le cacher ne ferait pas du suspense, seulement une
    comptabilité à tenir sur un coin de table. C'est de l'INFORMATION et jamais
    une cible — `pointer-events: none`, donc aucune règle de 44 px à tenir. */
+/* ELLE EST DANS LE FLUX, plus en absolu : c'est la colonne du milieu de la
+   grille ci-dessus. `white-space: nowrap` est obligatoire — un retour à la
+   ligne enverrait les compteurs dans les dos. */
 .screen.ecran-cartes.ecran-simple .reste {
-  position: absolute; left: 9px; right: 9px; top: 7px;
-  display: flex; align-items: center; justify-content: center;
-  flex-wrap: wrap; gap: 2px 9px;
+  align-self: center;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  white-space: nowrap;
   font-family: var(--font-body); font-size: 11px; color: #cbb08a;
   text-shadow: 0 1px 2px rgba(0,0,0,.7);
   pointer-events: none;
@@ -2404,6 +2446,9 @@
 }
 /* Le glyphe et le compte, dans la couleur du type — la même que le cadre de la
    carte, parce que c'est la même chose qu'on nomme. */
+.screen.ecran-cartes.ecran-simple .r-rang {
+  display: flex; align-items: center; gap: 9px; white-space: nowrap;
+}
 .screen.ecran-cartes.ecran-simple .r-type {
   display: inline-flex; align-items: center; gap: 3px;
   color: var(--metier, #cbb08a);
@@ -2424,3 +2469,62 @@
 
    Les deux paquets sont revenus sur le listeau : l'écart est de nouveau mesuré,
    carte par carte, et posé en `--dx`/`--dy` par le script. */
+
+/* --- §17.4 bis — LE BANDEAU, en bois plus sombre -------------------------
+   Une bande de 44 px en haut de l'écran, portant DEUX cibles et rien d'autre.
+   Pas de titre, pas de compteur : tout ce qui est une information du jeu — les
+   bordées, le butin, la pression — reste où il est. Un bandeau qui porterait
+   une information changerait de contenu, donc un jour de hauteur, et les
+   navires se remettraient à monter : c'est exactement la panne de l'ancienne
+   barre de compte. D'où `flex: 0 0 44px` ET `height: 44px`.
+
+   « PLUS SOMBRE » EST MESURÉ, PAS AFFIRMÉ : le haut du bandeau (#3a2712,
+   L = 0,0240) contre la lame la plus claire du râtelier (#6b4a26, L = 0,0816)
+   donne 1,8:1. Deux bois qu'on distingue, sans changer de matière. Et l'or
+   #e8c877 tient à 8,8:1 sur le plus clair des trois tons du dégradé. */
+.screen.ecran-cartes.ecran-simple .bandeau {
+  flex: 0 0 44px; height: 44px;
+  margin: -5px -7px 0; padding: 0 7px;      /* d'un bord à l'autre, comme le bois */
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(180deg, #3a2712 0%, #241a0f 60%, #1a1209 100%);
+  border-bottom: 2px solid #6b4a26;
+  box-shadow: inset 0 -3px 8px rgba(0,0,0,.55);
+}
+/* 44 × 44, la cible tactile minimale : le doigt vise la cible, pas le dessin —
+   le glyphe n'en fait que 26. */
+.screen.ecran-cartes.ecran-simple .bd-cible {
+  width: 44px; height: 44px; min-height: 44px; padding: 0;
+  background: none; border: 0; box-shadow: none;
+  display: flex; align-items: center; justify-content: center;
+  color: #e8c877; cursor: pointer;
+}
+.screen.ecran-cartes.ecran-simple .bd-cible svg {
+  width: 26px; height: 26px; display: block;
+  fill: currentColor; shape-rendering: crispEdges;   /* pixel art : pas de lissage */
+}
+.screen.ecran-cartes.ecran-simple .bd-cible:active svg { transform: translateY(1px); }
+
+/* Le paquet entier : trois rangs de deux piles au plus, donc pas de défilement —
+   onze cartes doivent se voir d'un coup. */
+/* Les vignettes du paquet sont plus petites que celles d'un tas : il y a trois
+   rangs à loger au lieu d'un, et la modale ne doit pas défiler. */
+.deck-boite { --carte-l: 42px; --carte-h: 61px; }
+.paquet-boite .dk-legende {
+  margin: 8px 0 0; font-family: var(--font-body); font-size: 10px;
+  line-height: 1.35; color: #cbb08a; text-align: left;
+}
+.paquet-boite .dk-rang {
+  margin: 10px 0 2px; font-family: var(--font-body); font-size: 9px;
+  text-transform: uppercase; letter-spacing: 1px; color: #cbb08a; text-align: left;
+}
+.outils-boite .ou-ligne {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 3px 0; font-family: var(--font-body); font-size: 12px; color: #e8d5aa;
+}
+.outils-boite .ou-cle { color: #cbb08a; }
+.outils-boite .ou-champ {
+  flex: 1 1 auto; min-width: 0; width: 100%;
+  background: #241a0f; border: 1px solid #4a3a26; border-radius: 4px;
+  color: #e8d5aa; font-family: var(--font-body); font-size: 12px; padding: 5px 6px;
+}
+.outils-boite .ou-bareme { border-top: 1px solid #4a3a26; margin-top: 4px; }

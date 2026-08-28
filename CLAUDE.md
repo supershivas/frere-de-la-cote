@@ -204,7 +204,35 @@ tutoriel, pas de carte des Caraïbes, pas de boutique.
   C'est la ressource du jeu : elle ne se lit pas dans un sous-menu.
 - **LA LIGNE « AU PAQUET » dit la COMPOSITION, jamais l'ordre** : ce qui reste,
   par type. Ce qu'un joueur a le droit de savoir, c'est ce qui lui reste, pas ce
-  qui vient. Un test vérifie qu'elle ne ment jamais, tour après tour.
+  qui vient. Un test vérifie qu'elle ne ment jamais, tour après tour. Elle a
+  porté « jouées N » — le chiffre écrit sur le dos de la défausse, à deux cents
+  pixels de là : deux écritures du même nombre, donc deux occasions de diverger.
+  **Un dos dit COMBIEN, cette ligne dit PAR QUOI**, et c'est tout ce qu'elle a
+  de propre.
+- **LA BANDE HAUTE DU LISTEAU EST UNE GRILLE DE TROIS COLONNES** — `1fr auto
+  1fr` : chaque dos est centré dans sa moitié, la ligne « au paquet » occupe le
+  milieu. En `space-between` les dos butaient contre les bords, et la ligne,
+  posée en absolu sur toute la largeur, leur passait au travers.
+- **UN BANDEAU DE 44 px, EN BOIS PLUS SOMBRE**, tout en haut : une roue crantée
+  à gauche, la carte du paquet à droite, et **rien d'autre**. Les bordées, le
+  butin et la pression restent où ils sont — un bandeau qui porterait une
+  information changerait de contenu, donc un jour de hauteur, et les navires se
+  remettraient à monter. D'où `flex: 0 0 44px` ET `height: 44px`. « Plus
+  sombre » est mesuré : `#3a2712` contre la lame la plus claire du bois
+  (`#6b4a26`) donne 1,8:1 — deux bois qu'on distingue, sans changer de matière.
+  Il existe **dès `ecranChasse()`** : ajouté après coup, `poserHorizon()` aurait
+  calculé la ligne d'eau 49 px trop haut, sans qu'aucune erreur ne soit levée.
+- **TOUCHER UNE PILE DANS UNE MODALE LA DÉCRIT.** Les piles étaient muettes : on
+  voyait ce qui restait sans pouvoir demander ce que ça valait, alors qu'une
+  carte en main s'explique à l'appui. La plaque a une **hauteur fixe et un texte
+  avant qu'on touche** — une plaque qui apparaît fait sauter la modale sous le
+  doigt, à l'échelle d'une boîte c'est le défaut de la barre de compte. Sa
+  hauteur vient du plus long des cinq textes, MESURÉ dans la page : à 64 px
+  supposés la Mitraille en demandait 105 et se faisait couper en silence.
+- **LE PAQUET ENTIER TIENT D'UN COUP**, sur un seul rang de cinq piles : trois
+  rangs par rareté coûtaient 237 px de piles et 176 px de titres dans une modale
+  qui en a 556, et elle se mettait à défiler. Onze cartes doivent se voir d'un
+  coup, et c'est le NOMBRE d'exemplaires qui dit la rareté.
 - **Tout s'explique à l'appui, jamais au survol.** Il n'y a pas d'infobulle
   flottante : à 375 px de large, elle recouvrait la mer ou la main, où qu'on
   l'ancre. **RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN.** Un refus
@@ -301,6 +329,37 @@ tutoriel, pas de carte des Caraïbes, pas de boutique.
 - **On lâche la volée N'IMPORTE OÙ au-dessus du bois.** La zone de dépôt faisait
   la taille d'une carte : il fallait viser, et un geste qui demande de viser est
   un bouton déguisé.
+- **LE DÉCOR EST NATUREL, ET IL EST AUX CARAÏBES.** Quatre sortes ont été
+  retirées et ne doivent pas revenir : le **phare**, dont la lampe s'allumait sur
+  `Math.sin(t) > 0.4` — un clignotement binaire à 5 px sur l'horizon attire l'œil
+  plus que la mer entière, comme les trois houles ; l'**iceberg** ; le **fort**,
+  un créneau de château surmonté du seul aplat de couleur pure du décor, soit un
+  drapeau planté ; et la **balise**, une bouée rouge à bande blanche qui se lisait
+  comme un ballon de plage. L'**épave** a perdu son mât droit et sa voile nette :
+  à l'échelle de l'horizon, cette silhouette était une hampe surmontée d'un
+  drapeau — exactement ce que le fort avait été retiré pour avoir. Son mât est
+  rompu et penché, et il ne porte plus rien.
+- **UN RIVAGE SE TIRE AU SORT, il ne se dessine pas une fois pour toutes.** Une
+  rade sur deux porte une terre, qui entre par un bord de l'écran : deux sinus de
+  phases et de fréquences tirées, 5 à 8 crêtes, **34 px au plus** contre le bord
+  et **0 à la pointe** — la terre entre dans la mer au lieu de s'arrêter net. La
+  portée est une FRACTION de la largeur : à 412 px la côte est plus longue, elle
+  n'est pas étirée. **Deux plans, tous deux OPAQUES**, le lointain mélangé vers le
+  ciel bas — deux masses translucides qui se recouvrent laissent lire leur
+  recouvrement, et l'on voit deux calques au lieu d'une terre (règle 12).
+- **LA GÉOMÉTRIE EST GELÉE, et c'est l'instrument autant que la forme.**
+  `Object.freeze` fait LEVER toute écriture depuis une image de rendu — les
+  modules ES sont en mode strict — au lieu de laisser la côte scintiller sans que
+  rien ne le signale. Mesuré : 99 % de pixels identiques à 40 ms d'écart ; ce qui
+  bouge encore sur 1,5 s, ce sont les nuages, et c'est voulu.
+- **UNE ÎLE LOINTAINE N'A AUCUN DÉTAIL, PAR CONSTRUCTION** : un plafond de 14 px
+  de haut. À cette taille un détail ne peut plus être qu'un pixel isolé, donc du
+  bruit — et c'est ce qu'était le palmier de l'ancienne île, deux pixels plantés
+  au même endroit à chaque partie, faute d'une graine.
+- **Une forme vient d'une GRAINE, une position peut venir du TEMPS, et rien ne
+  vient de `w` ni de `h`.** C'est la règle 9 en une phrase, et c'est elle qui
+  sépare l'inclinaison de l'épave — un mouvement, donc juste — des anciens nuages,
+  dont la forme venait d'une abscisse qui dérive.
 - **La flottaison ne se montre pas, la HOULE si.** `drawGrid` coupe la coque à
   la ligne d'eau ; le bas de la boîte `.coque` EST cette ligne, et il est en
   `overflow: hidden`. Les navires s'y **enfoncent et remontent** — jamais

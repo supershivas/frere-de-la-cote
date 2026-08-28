@@ -15,8 +15,74 @@ const WEATHERS = {
 };
 const WEATHER_KEYS = Object.keys(WEATHERS);
 
-// 11 decor kinds (+ "none"). 1–3 are combined per scene.
-const DECOR_KINDS = ['island', 'wreck', 'rocks', 'fort', 'fishermen', 'sharkfins', 'buoy', 'lighthouse', 'iceberg', 'seagulls', 'whale'];
+// LE DÉCOR EST NATUREL, ET IL EST AUX CARAÏBES. Quatre sortes ont été retirées,
+// et il ne faut pas les reconstruire :
+//
+//   `lighthouse` — un phare dont la lampe s'allumait sur `Math.sin(t*1.5) > 0.4`.
+//     Un clignotement binaire à 5 px sur l'horizon attire l'œil plus que la mer
+//     entière, comme les trois houles retirées avant lui.
+//   `iceberg`    — on est aux Caraïbes.
+//   `fort`       — un créneau de château au bord de l'eau, surmonté du seul
+//     aplat de couleur pure du décor : `#7a2b2b`, 8 px sur 5. Un drapeau planté.
+//   `buoy`       — une balise rouge à bande blanche de 5 px de rayon se lit
+//     comme un ballon de plage ; même registre que le fort.
+//
+// À LEUR PLACE, DES TERRES : un `rivage` qui entre par un bord de l'écran, et
+// des `ile`s lointaines sans le moindre détail. Ce sont les deux seules formes
+// du décor à être TIRÉES AU SORT plutôt que dessinées une fois pour toutes.
+const DECOR_KINDS = ['ile', 'ilots', 'wreck', 'fishermen', 'sharkfins', 'seagulls', 'whale'];
+
+// UNE FORME VIENT D'UNE GRAINE, UNE POSITION PEUT VENIR DU TEMPS, ET RIEN NE
+// VIENT DE `w` NI DE `h`. C'est la règle 9 en une phrase, et c'est elle qui
+// sépare l'épave — dont l'inclinaison vient de `t`, et c'est un MOUVEMENT, donc
+// c'est juste — des anciens nuages, dont la FORME venait de leur abscisse, qui
+// dérive : les bourgeons se retiraient au sort soixante fois par seconde.
+function alea(g) {
+  let x = (g >>> 0) || 1;
+  return () => { x ^= x << 13; x >>>= 0; x ^= x >> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; };
+}
+
+// UNE CÔTE, CONSTRUITE UNE FOIS ET GELÉE. `Object.freeze` fait ÉCHOUER
+// bruyamment toute écriture depuis une image de rendu — les modules ES sont en
+// mode strict — au lieu de laisser la terre scintiller sans que rien ne le
+// signale. L'instrument fait partie de la forme.
+//
+// Deux sinus de phases et de fréquences tirées : une côte n'est ni une dent de
+// scie régulière ni un demi-cercle, et un tirage par point donnerait du bruit
+// blanc, qui ne ressemble à rien à cette échelle. La portée est une FRACTION de
+// la largeur : à 412 px la côte est plus longue, elle n'est pas étirée.
+function construireCote(graine, echelle = 1) {
+  const r = alea(graine);
+  const bord = r() < 0.5 ? -1 : 1;
+  const portee = (0.26 + r() * 0.26) * echelle;
+  const n = 5 + Math.floor(r() * 4);
+  const a1 = r() * 6.283, a2 = r() * 6.283, k = 1.6 + r() * 2.4;
+  const crete = [];
+  for (let i = 0; i <= n; i++) {
+    const u = i / n;                                   // 0 au bord, 1 à la pointe
+    const brut = Math.sin(a1 + u * 5.1) * 0.62 + Math.sin(a2 + u * k * 5.1) * 0.38;
+    // 34 px au plus contre le bord, 0 à la pointe : la terre ENTRE dans la mer
+    // au lieu de s'arrêter net. 34 px, c'est un cinquième de la bande de ciel à
+    // 375 × 667 — une silhouette, jamais un mur.
+    const hh = (10 + (brut + 1) * 12) * (1 - u * u) * echelle;
+    crete.push(Object.freeze([u * portee, Math.max(0, Math.round(hh))]));
+  }
+  return Object.freeze({ bord, portee, crete: Object.freeze(crete) });
+}
+
+// UNE ÎLE LOINTAINE N'A AUCUN DÉTAIL, PAR CONSTRUCTION. « Sans détail visible »
+// n'est pas une consigne de retenue : c'est un plafond de 14 px de haut. À cette
+// taille, un détail ne peut plus être qu'un pixel isolé, donc du bruit — et
+// c'est très exactement ce qu'était le palmier de l'ancienne île, deux pixels
+// sur douze plantés au même endroit à chaque partie.
+function construireIle(graine) {
+  const r = alea(graine);
+  return Object.freeze({
+    larg: 40 + r() * 70,
+    haut: 6 + r() * 8,
+    bosse: 0.35 + r() * 0.3,
+  });
+}
 
 let scene = null;
 
@@ -39,9 +105,19 @@ export function randomOceanScene(weatherHint) {
     const n = 1 + Math.floor(Math.random() * 3);
     const shuffled = DECOR_KINDS.slice().sort(() => Math.random() - 0.5).slice(0, n);
     const slots = [0.16, 0.44, 0.72, 0.86].sort(() => Math.random() - 0.5);
-    decor = shuffled.map((kind, i) => ({ kind, x: slots[i] + (Math.random() - 0.5) * 0.06, seed: Math.random() * 100 }));
+    decor = shuffled.map((kind, i) => ({
+      kind, x: slots[i] + (Math.random() - 0.5) * 0.06,
+      seed: Math.random() * 100,
+      // LA FORME EST TIRÉE ICI, dans la génération, une fois pour la scène.
+      forme: kind === 'ile' ? construireIle((Math.random() * 4294967295) >>> 0) : null,
+    }));
   }
-  scene = { weather, decor };
+  // UNE RADE SUR DEUX A UNE TERRE. Le rivage n'est pas un décor posé à une
+  // abscisse : il appartient à un BORD de l'écran, et il a deux plans.
+  const g = (Math.random() * 4294967295) >>> 0;
+  const rivage = Math.random() < 0.5 ? null
+    : { proche: construireCote(g), lointain: construireCote((g + 1) >>> 0, 1.35), graine: g };
+  scene = { weather, decor, rivage };
   return scene;
 }
 
@@ -104,6 +180,17 @@ export function startOcean(canvas, { horizon: fraction = 0.13 } = {}) {
       c.x += c.sp * 0.5;
       if (c.x > 1.2) c.x = -0.2;
       drawCloud(ctx, c.x * w, c.y * horizon, c.sc, s.cloud, c.seed);
+    }
+
+    // LA TERRE, AVANT LES DÉCORS D'HORIZON. Deux plans, et les DEUX SONT
+    // OPAQUES : deux masses semi-transparentes qui se recouvrent laissent lire
+    // leur recouvrement, et l'on voit deux calques au lieu d'une terre
+    // (règle 12, dans son cas le plus courant). Le plan lointain est mélangé
+    // vers la teinte du ciel bas — c'est la perspective aérienne, et c'est ce
+    // qui met de la distance sans dessiner un seul détail.
+    if (scene.rivage) {
+      drawCote(ctx, scene.rivage.lointain, horizon, w, melange(s.skyHz, '#0b141d', 0.45));
+      drawCote(ctx, scene.rivage.proche, horizon, w, '#0b141d');
     }
 
     // Horizon decor.
@@ -225,28 +312,59 @@ function drawCloud(ctx, x, y, sc, alpha, seed = 0) {
 function drawDecor(ctx, d, horizon, w, h, color, t) {
   const x = d.x * w;
   switch (d.kind) {
-    case 'island': return drawIsland(ctx, x, horizon, color);
+    case 'ile': return drawIle(ctx, x, horizon, color, d.forme);
     case 'wreck': return drawWreck(ctx, x, horizon, color, Math.sin(t * 0.6 + d.seed) * 0.04);
-    case 'rocks': return drawRocks(ctx, x, horizon, color);
-    case 'fort': return drawFort(ctx, x, horizon, color);
+    case 'ilots': return drawRocks(ctx, x, horizon, color);
     case 'fishermen': return drawFishermen(ctx, x, horizon, color, t);
-    case 'buoy': return drawBuoy(ctx, x, horizon, t + d.seed);
-    case 'lighthouse': return drawLighthouse(ctx, x, horizon, color, t);
-    case 'iceberg': return drawIceberg(ctx, x, horizon);
     case 'whale': return drawWhale(ctx, x, horizon, color, t + d.seed);
     default: return;
   }
 }
 
-function drawIsland(ctx, x, horizon, color) {
+// UNE BOSSE, UN SEUL CHEMIN, UN SEUL REMPLISSAGE. L'ancienne île avait toujours
+// la même silhouette et le même palmier planté au même endroit : la `seed` de la
+// scène ne servait qu'aux phases d'animation, jamais à la forme. C'est la cause
+// directe du « toujours le même paysage ».
+// Mélange deux couleurs `#rrggbb`. La perspective aérienne, en une ligne.
+function melange(a, b, k) {
+  const h = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+  const [ar, ag, ab] = h(a), [br, bg, bb] = h(b);
+  const m = (x, y) => Math.round(x + (y - x) * k);
+  return `rgb(${m(ar, br)},${m(ag, bg)},${m(ab, bb)})`;
+}
+
+// LE RIVAGE : UN SEUL CHEMIN, UN SEUL `fill()`. Il entre par un bord et
+// redescend dans la mer. La géométrie est lue, jamais recalculée — elle est
+// gelée depuis `construireCote`, si bien qu'une écriture accidentelle depuis
+// cette fonction lèverait au lieu de faire scintiller la côte.
+function drawCote(ctx, cote, horizon, w, teinte) {
+  const y0 = horizon + 2;
+  const X = (u) => (cote.bord < 0 ? u * w : w - u * w);
+  const c = cote.crete;
+  ctx.beginPath();
+  ctx.moveTo(X(0), y0);
+  ctx.lineTo(X(c[0][0]), y0 - c[0][1]);
+  for (let i = 0; i < c.length - 1; i++) {
+    const [u1, h1] = c[i], [u2, h2] = c[i + 1];
+    ctx.quadraticCurveTo(X(u1), y0 - h1, (X(u1) + X(u2)) / 2, y0 - (h1 + h2) / 2);
+  }
+  ctx.lineTo(X(c[c.length - 1][0]), y0);
+  ctx.closePath();
+  ctx.fillStyle = teinte;
+  ctx.fill();
+}
+
+function drawIle(ctx, x, horizon, color, forme) {
+  const f = forme || { larg: 90, haut: 10, bosse: 0.5 };
+  const g = x - f.larg / 2, dr = x + f.larg / 2;
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(x - 90, horizon);
-  ctx.quadraticCurveTo(x - 34, horizon - 40, x, horizon - 34);
-  ctx.quadraticCurveTo(x + 46, horizon - 30, x + 100, horizon);
-  ctx.closePath(); ctx.fill();
-  ctx.fillRect(x - 3, horizon - 44, 2, 12); // palm
+  ctx.moveTo(g, horizon);
+  ctx.quadraticCurveTo(g + f.larg * f.bosse, horizon - f.haut * 2, dr, horizon);
+  ctx.closePath();
+  ctx.fill();
 }
+
 function drawRocks(ctx, x, horizon, color) {
   ctx.fillStyle = color;
   for (const [dx, dw, dh] of [[0, 24, 13], [26, 15, 8], [-24, 13, 7]]) {
@@ -257,17 +375,17 @@ function drawWreck(ctx, x, horizon, color, tilt) {
   ctx.save(); ctx.translate(x, horizon); ctx.rotate(tilt); ctx.fillStyle = color;
   ctx.beginPath(); ctx.moveTo(-30, 0); ctx.quadraticCurveTo(-26, 10, 0, 10); ctx.quadraticCurveTo(26, 10, 30, 0);
   ctx.lineTo(20, -4); ctx.lineTo(-8, -2); ctx.lineTo(-20, -6); ctx.closePath(); ctx.fill();
-  ctx.fillRect(-2, -30, 3, 30);
-  ctx.beginPath(); ctx.moveTo(1, -28); ctx.lineTo(14, -22); ctx.lineTo(1, -14); ctx.closePath(); ctx.fill();
+  // UNE ÉPAVE N'A PAS DE MÂT DROIT NI DE VOILE NETTE — c'est un bateau, ça. Elle
+  // en avait un : `fillRect(-2,-30,3,30)` surmonté d'un triangle plein, et à
+  // l'échelle de l'horizon cette silhouette se lisait comme une hampe surmontée
+  // d'un DRAPEAU, exactement ce que le fort avait été retiré pour avoir. Le mât
+  // est maintenant rompu et penché, et il ne porte plus rien.
+  ctx.save();
+  ctx.rotate(-0.22);
+  ctx.fillRect(-2, -19, 3, 19);          // le tronçon qui reste
+  ctx.fillRect(-1, -22, 2, 4);           // la cassure, plus fine
   ctx.restore();
-}
-function drawFort(ctx, x, horizon, color) {
-  ctx.fillStyle = color;
-  ctx.fillRect(x - 34, horizon - 22, 68, 22);      // wall
-  for (let i = -34; i < 34; i += 12) ctx.fillRect(x + i, horizon - 28, 6, 6); // battlements
-  ctx.fillRect(x - 8, horizon - 36, 16, 16);        // tower
-  ctx.fillRect(x - 2, horizon - 44, 2, 8);          // flagpole
-  ctx.fillStyle = '#7a2b2b'; ctx.fillRect(x, horizon - 44, 8, 5); // flag
+  ctx.restore();
 }
 function drawFishermen(ctx, x, horizon, color, t) {
   const yb = horizon + 4 + Math.sin(t) * 1.5;
@@ -276,35 +394,28 @@ function drawFishermen(ctx, x, horizon, color, t) {
   ctx.fillRect(x - 5, yb - 8, 2, 8); ctx.fillRect(x + 3, yb - 8, 2, 8); // two figures
   ctx.fillRect(x + 10, yb - 12, 1, 12); // fishing rod
 }
-function drawBuoy(ctx, x, horizon, t) {
-  const yb = horizon + 8 + Math.sin(t * 1.6) * 2;
-  ctx.fillStyle = '#c23a2a'; ctx.beginPath(); ctx.arc(x, yb, 5, 0, 7); ctx.fill();
-  ctx.fillStyle = '#e8e0d0'; ctx.fillRect(x - 5, yb - 1, 10, 2);
-  ctx.fillStyle = '#c23a2a'; ctx.fillRect(x - 1, yb - 10, 2, 5);
-}
-function drawLighthouse(ctx, x, horizon, color, t) {
-  ctx.fillStyle = color;
-  ctx.beginPath(); ctx.moveTo(x - 8, horizon); ctx.lineTo(x - 5, horizon - 40); ctx.lineTo(x + 5, horizon - 40); ctx.lineTo(x + 8, horizon); ctx.closePath(); ctx.fill();
-  const on = (Math.sin(t * 1.5) > 0.4);
-  ctx.fillStyle = on ? 'rgba(255,230,150,0.95)' : '#3a3a2a';
-  ctx.fillRect(x - 4, horizon - 48, 8, 8);
-}
-function drawIceberg(ctx, x, horizon) {
-  ctx.fillStyle = 'rgba(200,225,235,0.85)';
-  ctx.beginPath(); ctx.moveTo(x - 40, horizon); ctx.lineTo(x - 14, horizon - 34); ctx.lineTo(x + 6, horizon - 20); ctx.lineTo(x + 40, horizon); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = 'rgba(150,190,205,0.6)'; ctx.fillRect(x - 40, horizon, 80, 6);
-}
 function drawWhale(ctx, x, horizon, color, t) {
   const yb = horizon + 10;
   ctx.fillStyle = color;
   ctx.beginPath(); ctx.ellipse(x, yb, 30, 8, 0, Math.PI, 0); ctx.fill(); // hump
   ctx.beginPath(); ctx.moveTo(x + 26, yb - 2); ctx.lineTo(x + 40, yb - 12); ctx.lineTo(x + 38, yb); ctx.closePath(); ctx.fill(); // tail
-  if (Math.sin(t) > 0.6) { ctx.strokeStyle = 'rgba(200,225,240,0.6)'; ctx.beginPath(); ctx.moveTo(x - 18, yb - 4); ctx.lineTo(x - 20, yb - 20); ctx.stroke(); } // spout
+  // LE SOUFFLE MONTE ET RETOMBE, il ne s'allume pas. `Math.sin(t) > 0.6` était le
+  // défaut du phare sous un autre nom : un trait qui apparaît d'un coup attire
+  // l'œil plus que tout le reste de la mer. Une rampe d'opacité sur ~1,2 s.
+  const cycle = (t % 7) / 1.2;
+  if (cycle < 1) {
+    ctx.strokeStyle = `rgba(200,225,240,${(0.55 * Math.sin(cycle * Math.PI)).toFixed(3)})`;
+    ctx.beginPath(); ctx.moveTo(x - 18, yb - 4); ctx.lineTo(x - 20, yb - 20 * cycle - 6); ctx.stroke();
+  }
 }
 function drawSharkFins(ctx, horizon, h, w, t, seed, color) {
   ctx.fillStyle = color;
   for (let i = 0; i < 3; i++) {
-    const y = horizon + 40 + ((i * 53 + seed * 7) % (h - horizon - 60));
+    // LA HAUTEUR VIENT D'UNE FRACTION TIRÉE À LA GRAINE, pas d'un modulo de la
+    // hauteur de la fenêtre : `% (h − horizon − 60)` faisait sauter les ailerons
+    // d'un endroit à l'autre à chaque redimensionnement (règle 9).
+    const fr = ((i * 53 + seed * 7) % 100) / 100;
+    const y = horizon + 40 + fr * Math.max(0, h - horizon - 60);
     const x = (i * 260 + t * 22 + seed * 30) % (w + 60) - 30;
     const wob = Math.sin(t * 2 + i) * 3;
     ctx.beginPath(); ctx.moveTo(x - 8, y); ctx.lineTo(x, y - 12 + wob); ctx.lineTo(x + 6, y); ctx.closePath(); ctx.fill();
