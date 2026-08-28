@@ -2340,8 +2340,40 @@
    les deux munitions à venir, face visible. Il n'y a plus de réserve : la
    bande qui reste ne porte que la ligne du paquet, et tout ce qu'on lui rend
    revient à la mer. */
+/* LE LISTEAU RÉSERVE LA HAUTEUR DES DOS, ET RIEN DE MOINS. Il a longtemps
+   réservé 26 px : ce plateau n'avait que la ligne « au paquet » à poser
+   au-dessus de la main, et 26 px lui suffisaient. Les deux paquets sont revenus
+   et font 58 px de haut — les dos mordaient donc de 34 px sur les cartes,
+   mesuré à 375 px.
+   
+   LE DÉGAGEMENT NE DÉPEND QUE DU `padding-bottom`, et pas de la hauteur de la
+   bande — les dos sont collés en bas de celle-ci (`align-items: flex-end`), et
+   les cartes commencent là où elle finit. Le calcul tient en une ligne :
+
+     dégagement = padding-bottom − (18 px de levée + 2 px d'agrandissement)
+
+   Une carte choisie monte de 18 px et grossit de 4 % : sur 99 px de haut, cela
+   la fait dépasser de 2 px de plus. À `padding-bottom: 20px` le dégagement
+   tombait donc à ZÉRO — mesuré à 1 px, ce qui n'est pas une marge mais une
+   coïncidence, et le mot « PIOCHE » se serait fait manger au premier écran un
+   peu plus étroit. À 30 px, il reste 10 px, et ils sont voulus.
+
+   La bande, elle, doit loger ce que les dos et le filet du haut demandent :
+     58 px  la hauteur d'un dos
+     +30    le dégagement calculé ci-dessus
+     +8     le filet du haut, où la ligne « au paquet » se pose entre les deux
+     ────
+      96 px, et c'est le `padding-top` du bois — la même mesure des deux côtés.
+
+   La ligne « au paquet » n'a pas besoin d'une ligne à elle : les dos sont aux
+   deux bouts, elle est centrée entre eux. Les dos disent COMBIEN, elle dit
+   PAR QUOI. */
 .screen.ecran-cartes.ecran-simple .ratelier {
-  padding-top: 26px;
+  padding-top: 96px;
+}
+.screen.ecran-cartes.ecran-simple .paquets {
+  height: 96px;          /* la même mesure que le padding ci-dessus */
+  padding-bottom: 30px;  /* 30 − 20 = 10 px sous la carte qui se lève */
 }
 /* La bande de mer ménageait 56 px sous les navires pour la carte annoncée et
    les deux dos de paquet. Ni l'une ni les autres n'existent ici. */

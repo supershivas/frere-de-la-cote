@@ -219,6 +219,13 @@ tutoriel, pas de carte des Caraïbes, pas de boutique.
   La ligne « au paquet » reste entre les deux : les dos disent COMBIEN, elle dit
   PAR QUOI. **La plaque fait 30 px, le BOUTON en fait 44** — le doigt vise la
   cible, pas le dessin.
+- **LE LISTEAU RÉSERVE LA HAUTEUR DES DOS**, et le dégagement ne dépend que du
+  `padding-bottom` de la bande : les dos sont collés en bas de celle-ci, et les
+  cartes commencent là où elle finit. Une carte choisie monte de 18 px **et
+  grossit de 4 %**, ce qui la fait dépasser de 2 px de plus — le dégagement vaut
+  donc `padding-bottom − 20`. À 20 px il tombait à zéro, mesuré à 1 px : ce
+  n'est pas une marge, c'est une coïncidence. À 30 px il en reste 10, et le mot
+  « PIOCHE » ne se fait plus manger.
 - **Le contenu d'un paquet se montre en PILES DE CARTES, pas en liste.** Une
   liste dit combien il reste ; une pile le MONTRE, et c'est le même objet que
   celui qu'on tient en main. Une modale n'est pas un écran : les règles écrites
