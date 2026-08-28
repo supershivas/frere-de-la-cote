@@ -242,20 +242,23 @@ largage — un tour.
 |---|---|
 | poser le doigt sur un homme | le tableau dit ce qu'il fait, tant qu'on le tient |
 | toucher un homme | il rejoint la volée |
-| pousser un homme non choisi vers le haut | il part **seul** — une volée d'une carte ne se sélectionne pas |
+| pousser un homme non choisi | il **rejoint la volée** et part avec elle — on ne choisit pas ce qu'on pousse |
 | pousser la volée vers le haut | la **zone de dépôt s'ouvre sous La Tortue** ; lâcher dedans, la volée part |
 | tirer la volée vers le bas | **rechargement** : ces hommes repartent au fond, on en reprend autant, la prise ne riposte pas |
 | monter puis redescendre | on renonce, la volée est défaite |
 
-**UNE VOLÉE D'UNE SEULE MUNITION NE SE SÉLECTIONNE PAS.** C'est le cas le plus
-courant du jeu, et il coûtait deux gestes : toucher, puis pousser. Un glissement
-qui part d'une munition non choisie la choisit **au franchissement du seuil**,
-jamais à l'appui — avant le seuil rien n'est décidé, le geste reste un appui,
-donc un `click`, donc la sélection ordinaire. Les deux chemins ne se marchent
-pas dessus, et une munition injouable ne part pas : le refus s'écrit à la
-touche, comme avant. La bulle se refait **en place** pendant le geste
-(`rafraichirTableau`) — un `rendre()` en plein glissement jetterait les cartes
-qu'on tient et le râtelier qui a capturé le pointeur.
+**ON NE CHOISIT PAS CE QU'ON POUSSE.** Un glissement qui part d'une munition non
+choisie l'ajoute à la volée — la première comme la troisième — et la volée part
+avec elle. C'est le cas le plus courant du jeu, et il coûtait deux gestes :
+toucher, puis pousser. L'ajout se fait **au franchissement du seuil**, jamais à
+l'appui — avant le seuil rien n'est décidé, le geste reste un appui, donc un
+`click`, donc la sélection ordinaire. Les deux chemins ne se marchent pas
+dessus, et une munition injouable ne part pas : le refus s'écrit à la touche,
+comme avant. Volée pleine, la munition poussée est refusée à voix haute
+(secousse + ligne rouge) et le geste emmène la volée déjà composée. La bulle se
+refait **en place** pendant le geste (`rafraichirTableau`) — un `rendre()` en
+plein glissement jetterait les cartes qu'on tient et le râtelier qui a capturé
+le pointeur.
 
 Le geste descendant n'a **pas de seconde zone de dépôt** : le râtelier lui-même
 s'allume, parce qu'il n'y a pas de place sous les cartes pour poser une cible et
@@ -446,10 +449,13 @@ sert `tools/mobile-audit.mjs`.
   forme et de couleur d'un téléphone à l'autre. Le glyphe se dimensionne sur la
   HAUTEUR du bandeau ; mesuré sur la largeur de la carte, il poussait le nom
   dehors.
-- **Les cartes se rangent derrière la DERNIÈRE TOUCHÉE**, pas derrière la
-  dernière du DOM : `querySelectorAll` rend les cartes de gauche à droite, si
-  bien qu'en sélectionnant de droite à gauche le tas se formait à l'autre bout
-  de la main. C'est `P.selection` qui garde l'ordre des doigts.
+- **Les cartes se rangent derrière CELLE QU'ON TIENT**, pas derrière la dernière
+  du DOM ni derrière la dernière choisie. `querySelectorAll` rend les cartes de
+  gauche à droite, si bien qu'en sélectionnant de droite à gauche le tas se
+  formait à l'autre bout de la main — c'est `P.selection` qui garde l'ordre des
+  doigts. Mais la dernière choisie n'est pas non plus la bonne tête : en
+  saisissant une autre carte de la volée, le paquet allait se ranger ailleurs
+  que sous le doigt. La carte du `pointerdown` passe en fin d'ordre.
 - **On lâche la volée N'IMPORTE OÙ au-dessus du bois.** La zone de dépôt faisait
   la taille d'une carte : il fallait viser, et un geste qui demande de viser est
   un bouton déguisé.

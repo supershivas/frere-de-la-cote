@@ -1118,6 +1118,8 @@ function brancherGeste(scene) {
   let paquet = [];   // les cartes levées ET LEURS BOÎTES DE DÉPART
   let pousse = null; // la munition poussée sans avoir été choisie, s'il y en a une
   let poussee = false;
+  let tenue = null;  // LE NŒUD SOUS LE DOIGT : c'est lui la tête du paquet
+  let refus = '';    // pourquoi la munition poussée n'a pas pu rejoindre la volée
 
   // La bulle se refait EN PLACE, sans `rendre()` : refaire l'écran en plein
   // geste jetterait les cartes qu'on tient et le râtelier qui a capturé le
@@ -1147,16 +1149,18 @@ function brancherGeste(scene) {
 
   const debut = (e) => {
     if (occupe || P.fini) return;
-    pousse = null; poussee = false;
-    // RIEN EN MAIN N'EST CHOISI : le geste part quand même, s'il part d'une
-    // munition jouable. Elle sera choisie au franchissement du seuil, et pas
-    // avant : un appui simple doit rester un appui.
-    if (!P.selection.length) {
-      const n = e.target.closest ? e.target.closest('.carte') : null;
-      const c = n && P.main.find((m) => String(m.uid) === n.dataset.uid);
-      if (!c || !C.peutJouer(P, c).ok) return;
-      pousse = { c, n };
-    }
+    pousse = null; poussee = false; tenue = null; refus = '';
+    // ON NE CHOISIT PAS CE QU'ON POUSSE, quel que soit le nombre de munitions
+    // déjà dans la volée. Le geste qui part d'une munition non choisie
+    // l'ajoute — la première comme la troisième. Elle sera choisie au
+    // FRANCHISSEMENT DU SEUIL et pas avant : un appui simple doit rester un
+    // appui, donc un `click`, donc la sélection ordinaire.
+    const n = e.target.closest ? e.target.closest('.carte') : null;
+    const c = n && P.main.find((m) => String(m.uid) === n.dataset.uid);
+    if (c && !P.selection.includes(c) && C.peutJouer(P, c).ok) pousse = { c, n };
+    // Rien à emmener : ni volée en cours, ni munition sous le doigt.
+    if (!P.selection.length && !pousse) return;
+    tenue = n;
     y0 = e.clientY; x0 = e.clientX; dy = 0; dx = 0; montee = 0; franchi = false;
     paquet = [];
   };
@@ -1169,11 +1173,20 @@ function brancherGeste(scene) {
       // La munition poussée rejoint la volée MAINTENANT : tout ce qui suit —
       // le paquet, la bulle, le dépôt, `tirer()` — lit `P.selection`.
       if (pousse) {
-        if (!C.selectionner(P, pousse.c).ok) { y0 = null; franchi = false; glisse = false; return; }
-        poussee = true;
-        pousse.n.classList.add('prise-en-main');
-        pousse.n.setAttribute('aria-pressed', 'true');
-        rafraichirTableau();
+        // Refusée — la volée est pleine : on emmène celle qui est déjà
+        // composée, et le refus s'écrira à la touche comme d'habitude. Rien à
+        // emmener non plus, et le geste n'a pas lieu.
+        const r = C.selectionner(P, pousse.c);
+        if (r.ok) {
+          poussee = true;
+          pousse.n.classList.add('prise-en-main');
+          pousse.n.setAttribute('aria-pressed', 'true');
+          rafraichirTableau();
+        } else if (!P.selection.length) { y0 = null; franchi = false; glisse = false; return; }
+        // La volée est pleine : on emmène celle qui est composée, mais le refus
+        // se dit — sans quoi le paquet partirait sans la carte qu'on croit
+        // tenir, et rien ne l'expliquerait (règle 5).
+        else { refus = r.pourquoi; secouer(pousse.n); }
       }
       // LE GESTE COMMENCE ICI, pas au `pointerdown`. Le doigt quitte la carte
       // qu'il tenait : le tableau reprend son contenu. Restauré dès l'appui —
@@ -1192,8 +1205,15 @@ function brancherGeste(scene) {
       // droite de la main et non la dernière touchée, si bien qu'en
       // sélectionnant de droite à gauche le tas se formait à l'autre bout.
       // `P.selection` garde l'ordre des doigts.
-      const ordre = P.selection.map((c) => scene.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
-      paquet = (ordre.length ? ordre : [...scene.querySelectorAll('.carte.prise-en-main')]).map((n) => {
+      let ordre = P.selection.map((c) => scene.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
+      if (!ordre.length) ordre = [...scene.querySelectorAll('.carte.prise-en-main')];
+      // LA TÊTE DU PAQUET EST LA CARTE QU'ON TIENT, pas la dernière choisie.
+      // Le tas se formait sur la dernière touchée : en saisissant une autre
+      // carte de la volée, le paquet partait se ranger ailleurs que sous le
+      // doigt, et l'on ne savait plus ce qu'on tenait.
+      const iTete = tenue ? ordre.indexOf(tenue) : -1;
+      if (iTete >= 0) ordre = [...ordre.slice(0, iTete), ...ordre.slice(iTete + 1), tenue];
+      paquet = ordre.map((n) => {
         const r = n.getBoundingClientRect();
         n.style.transition = 'none';
         return { n, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
@@ -1237,14 +1257,19 @@ function brancherGeste(scene) {
         : '<span class="tb-refus">plus un rechargement à dépenser</span>', 'tire');
     } else if (annule) dire('↩ relâche : la volée est défaite', 'annule');
     else if (pret) dire('↑ relâche n’importe où : la volée part', 'tire');
-    else dire('vers le haut : la volée part · vers le bas : on recharge', null);
+    else dire(refus ? `<span class="tb-refus">${refus}</span>`
+      : 'vers le haut : la volée part · vers le bas : on recharge', null);
   };
   const fin = (e) => {
     if (y0 === null) return;
     const surZone = e && e.clientX != null ? surLeDepot(e.clientX, e.clientY) : false;
     const m = montee, d = dy, bougea = franchi, auto = poussee;
-    y0 = null; franchi = false; pousse = null; poussee = false;
+    y0 = null; franchi = false; pousse = null; poussee = false; tenue = null; refus = '';
     for (const p of paquet) { p.n.style.transition = ''; p.n.style.transform = ''; p.n.style.zIndex = ''; }
+    // La carte tenue mais REFUSÉE n'est pas dans le paquet, et son `pointerup`
+    // ne lui revient jamais — le râtelier a capturé le pointeur : sans ça elle
+    // restait enfoncée jusqu'au prochain rendu.
+    if (tenue) tenue.style.transform = '';
     paquet = [];
     if (depot) depot.classList.remove('vu', 'prete');
     if (ratelier) ratelier.classList.remove('recharge');
@@ -1888,8 +1913,8 @@ function ouvrirAide() {
     initiale s'allume tant qu'ils n'ont pas servi.</p>
     <ul>${CONTENU.hommes.map((h) => `<li><b>${h.nom}</b>, ${h.titre} — ${h.texte}</li>`).join('')}</ul>
     <h4>Les gestes</h4>
-    <p>Toucher une munition l'ajoute à la volée — et pour n'en jouer qu'une, pas besoin de la toucher
-    d'abord : <b>on la pousse directement</b>. <b>Pousser la volée vers le haut</b>, jusqu'à la zone qui
+    <p>Toucher une munition l'ajoute à la volée — <b>ou la pousser directement</b>, sans la toucher
+    d'abord : elle rejoint la volée et part avec elle. <b>Pousser la volée vers le haut</b>, jusqu'à la zone qui
     s'ouvre sous La Tortue : elle part. <b>Tirer la volée vers le bas</b> : ces munitions-là repartent au
     fond du paquet et l'on en reprend autant — c'est un rechargement. <b>Lâcher entre les deux</b> :
     on renonce.</p>
