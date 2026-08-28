@@ -1753,16 +1753,30 @@
 }
 .screen.ecran-cartes .paquet:active .pq-dos { transform: translateY(2px) scale(.96); }
 .screen.ecran-cartes .paquet .pq-nb { font-family: var(--font-body); font-weight: 700; font-size: 16px; line-height: 1; }
+/* MESURÉ SUR LES PIXELS. À #a5844c, ce libellé sortait à 1,27:1 sur le bois du
+   dos — 6,5 px illisibles, sur la seule étiquette qui distingue la pioche de la
+   défausse. Le dos est un aplat sombre et connu : le libellé peut monter au
+   parchemin sans rien perdre. */
 .screen.ecran-cartes .paquet .pq-cle {
   font-family: var(--font-body); font-size: 6.5px; letter-spacing: .3px;
-  text-transform: uppercase; color: #a5844c; line-height: 1;
+  text-transform: uppercase; color: #e0c58f; line-height: 1;
 }
 /* Une défausse VIDE se creuse au lieu de s'effacer : elle garde sa place, on
    voit qu'il y a un emplacement, et rien dedans. */
+/* Une défausse VIDE se creuse au lieu de s'effacer : elle garde sa place, on
+   voit qu'il y a un emplacement, et rien dedans. Mais son « 0 » tenait à
+   1,12:1 — le creux avait été assombri jusqu'à emporter le chiffre avec lui.
+   UN COMPTE À ZÉRO EST UNE INFORMATION, pas une absence d'information : c'est
+   même la seule fois où la défausse a quelque chose à dire. */
 .screen.ecran-cartes .paquet.defausse.vide .pq-dos {
-  background: rgba(20, 14, 8, .5); border-style: dashed; border-color: #6b4a26;
-  box-shadow: inset 0 3px 8px rgba(0,0,0,.6); color: #8a6a3a;
+  /* UN FOND OPAQUE, PAS UN VOILE. À `rgba(20,14,8,.5)` le creux laissait passer
+     le bois : le texte n'avait pas de fond connu, et l'audit — qui échantillonne
+     les PIXELS et non les règles — le relevait à 2:1 selon la lame de chêne
+     derrière. Un fond opaque rend la mesure vraie et le chiffre lisible. */
+  background: #241a0f; border-style: dashed; border-color: #8a6533;
+  box-shadow: inset 0 3px 8px rgba(0,0,0,.6); color: #e8d5aa;
 }
+.screen.ecran-cartes .paquet.defausse.vide .pq-cle { color: #e0c58f; }
 
 /* LE CONTENU D'UN PAQUET, EN PILES. Une liste de texte dit combien il reste ;
    une pile de cartes le MONTRE — et c'est le même objet que celui qu'on tient
@@ -2367,22 +2381,14 @@
   font-size: 13px; font-weight: 700; color: #f3e7c8;
 }
 
-/* LA CARTE MONTE DU BOIS, elle ne vient pas de la droite. Ce plateau n'a PAS de
-   dos de pioche : le paquet s'y dit par la ligne « au paquet », pas par un
-   objet posé sur le listeau. `partirDeLaPioche()` n'a donc rien à mesurer, et
-   toutes les cartes retombaient sur la valeur de repli — `--dx: 120px`, « depuis
-   la droite », qui était une direction convenue du temps où les paquets
-   flottaient sur la mer.
+/* LA CARTE SORT DE LA PIOCHE, et le repli ne sert plus qu'en son absence.
+   Ce plateau n'a longtemps eu qu'une ligne « au paquet » et pas de dos de
+   pioche : `partirDeLaPioche()` n'avait rien à mesurer, toutes les cartes
+   retombaient sur `--dx: 120px` — « depuis la droite », une direction convenue
+   du temps où les paquets flottaient sur la mer — et à 375 px la carte la plus
+   à droite partait de x = 426 pour une fenêtre de 375, donc entièrement hors de
+   l'écran. Comme `#app` masque le débordement, elle ne sortait de nulle part :
+   elle glissait depuis le bord, et l'audit mobile la comptait amputée.
 
-   Mesuré : à 375 px, la carte la plus à droite de la main partait de x = 426
-   pour une fenêtre de 375, soit **106 px entièrement hors de l'écran**. Comme
-   `#app` masque le débordement, elle ne « sortait » de nulle part : elle
-   glissait depuis le bord, et l'audit mobile la comptait amputée — à raison.
-
-   Sans pioche à viser, le seul point de départ honnête est le bois lui-même :
-   la carte monte, et ne se déplace pas latéralement. `--dx: 0` ne peut, par
-   construction, sortir d'aucun écran. */
-.screen.ecran-cartes.ecran-simple .carte.neuve {
-  --dx: 0px;
-  --dy: 26px;
-}
+   Les deux paquets sont revenus sur le listeau : l'écart est de nouveau mesuré,
+   carte par carte, et posé en `--dx`/`--dy` par le script. */

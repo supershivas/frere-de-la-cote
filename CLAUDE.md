@@ -147,6 +147,7 @@ un second ordre demanderait deux zones de dépôt sur la largeur d'un pouce.
 | poser le doigt sur une carte | l'écran dit ce qu'elle fait, tant qu'on la tient |
 | toucher une carte | elle rejoint la volée |
 | pousser une carte non choisie | elle **rejoint la volée** et part avec elle |
+| toucher un dos de paquet | il s'ouvre et montre sa composition |
 | pousser la volée vers le haut | la **zone de dépôt s'ouvre sous La Tortue** ; lâcher dedans, la volée part |
 | monter puis redescendre | on renonce, la volée est défaite |
 
@@ -160,9 +161,21 @@ toucher, puis pousser. L'ajout se fait **au franchissement du seuil**, jamais à
 l'appui — avant le seuil rien n'est décidé, le geste reste un appui, donc un
 `click`, donc la sélection ordinaire. Volée pleine, la carte poussée est refusée
 à voix haute (secousse + ligne rouge) et le geste emmène la volée déjà composée.
-La bulle se refait **en place** pendant le geste — un `rendre()` en plein
-glissement jetterait les cartes qu'on tient et le râtelier qui a capturé le
-pointeur.
+La bulle se refait **en place** pendant le geste (`rafraichirTableau`) — un
+`rendre()` en plein glissement jetterait les cartes qu'on tient et le râtelier
+qui a capturé le pointeur.
+
+**Un appui sur un dos de paquet n'est pas le début d'un geste** : c'est un appui
+sur un BOUTON. Sans cette sortie, ouvrir la pioche avec une volée composée
+emmenait la volée au lieu d'ouvrir le paquet.
+
+**Les cartes se rangent derrière CELLE QU'ON TIENT**, pas derrière la dernière
+du DOM ni derrière la dernière choisie. `querySelectorAll` rend les cartes de
+gauche à droite, si bien qu'en sélectionnant de droite à gauche le tas se formait
+à l'autre bout de la main — c'est `P.selection` qui garde l'ordre des doigts. Et
+la dernière choisie n'est pas non plus la bonne tête : en saisissant une autre
+carte de la volée, le paquet allait se ranger ailleurs que sous le doigt. La
+carte du `pointerdown` passe en fin d'ordre.
 
 Dès le début du glissement les cartes **se regroupent** en paquet et se
 redressent : on voit partir une volée, pas trois cartes en parallèle. **Les
@@ -197,6 +210,21 @@ tutoriel, pas de carte des Caraïbes, pas de boutique.
   l'ancre. **RIEN NE SE SUPERPOSE JAMAIS À LA MER NI À LA MAIN.** Un refus
   s'écrit au même endroit, en rouge, et lui seul : la carte s'annonce comme les
   autres, c'est le coup qui est impossible, pas elle.
+- **DEUX DOS DE CARTE SUR LE BOIS, AUX DEUX BOUTS DU LISTEAU** : la **pioche à
+  gauche**, la **défausse à droite**, dans la bande que le râtelier ménage
+  AU-DESSUS de la main. Un dos dit ce qu'il reste par sa seule présence, là où
+  une ligne de texte demande d'être déchiffrée. Ils ne lui prennent pas un
+  pixel : **la largeur du bois n'appartient qu'à la main**, sa hauteur non —
+  l'encadrer leur coûtait 98 px de large et les cartes rétrécissaient d'autant.
+  La ligne « au paquet » reste entre les deux : les dos disent COMBIEN, elle dit
+  PAR QUOI. **La plaque fait 30 px, le BOUTON en fait 44** — le doigt vise la
+  cible, pas le dessin.
+- **Le contenu d'un paquet se montre en PILES DE CARTES, pas en liste.** Une
+  liste dit combien il reste ; une pile le MONTRE, et c'est le même objet que
+  celui qu'on tient en main. Une modale n'est pas un écran : les règles écrites
+  `.screen.ecran-cartes .carte` ne s'y appliquent pas (règle 2), et les cartes en
+  sortaient en glyphes nus — c'est `.ecran-cartes` posé sur la boîte qui les
+  rhabille.
 - **LES CARTES SORTENT DE LA PIOCHE**, elles n'apparaissent pas — la relève vole
   du dos posé au bout du listeau jusqu'à sa place, décalée d'une carte à l'autre.
   L'écart est **mesuré carte par carte** et passé au keyframe en `--dx`/`--dy` :

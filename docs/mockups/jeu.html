@@ -351,6 +351,16 @@ function glyphe(id) {
 // UNE CARTE NE PORTE QUE DEUX CHOSES : son type — le glyphe, le nom, la
 // couleur du cadre — et sa poudre. Il n'y a pas de troisième ligne à lire,
 // parce qu'il n'y a pas de troisième chose à savoir.
+// LE DEDANS D'UNE CARTE, à part : la main s'en sert pour un bouton, les paquets
+// pour des vignettes muettes. Une seconde écriture du même dessin, c'est deux
+// occasions de diverger (règle 3), et c'est la carte qui porte tout le jeu.
+function contenuCarte(c) {
+  return [
+    el('span', { class: 'c-bandeau' }, [glyphe(c.id), el('span', { class: 'c-nom', text: c.nom })]),
+    el('span', { class: 'c-val', text: String(S.poudreDe(c)) }),
+  ];
+}
+
 function carteVue(c, rang = 0, neuve = false) {
   const pris = P.selection.includes(c);
   const n = el('button', {
@@ -379,10 +389,7 @@ function carteVue(c, rang = 0, neuve = false) {
         rendre();
       },
     },
-  }, [
-    el('span', { class: 'c-bandeau' }, [glyphe(c.id), el('span', { class: 'c-nom', text: c.nom })]),
-    el('span', { class: 'c-val', text: String(S.poudreDe(c)) }),
-  ]);
+  }, contenuCarte(c));
   // La marque `neuve` est un ÉVÉNEMENT, pas un état : elle est retirée du DOM à
   // la fin de l'animation, sinon la distribution repart à chaque carte touchée.
   if (neuve) n.addEventListener('animationend', () => n.classList.remove('neuve'), { once: true });
@@ -437,6 +444,58 @@ function reste() {
   ]);
 }
 
+// UN DOS DE CARTE, ET UNE CIBLE PLUS GRANDE QUE LUI. La plaque fait 30 px, le
+// BOUTON en fait 44 : le doigt vise la cible, pas le dessin. Le bouton est
+// transparent, seule la plaque se voit.
+function paquetVu(classe, cartes, titre, vide) {
+  return el('button', {
+    class: `paquet ${classe}${cartes.length ? '' : ' vide'}`,
+    attrs: { type: 'button', 'aria-label': `${titre} — ${cartes.length} carte(s)` },
+    on: { click: () => ouvrirPaquet(titre, cartes, vide) },
+  }, [
+    el('span', { class: 'pq-dos' }, [
+      el('span', { class: 'pq-nb', text: String(cartes.length) }),
+      el('span', { class: 'pq-cle', text: titre === 'pioche' ? 'pioche' : 'jouées' }),
+    ]),
+  ]);
+}
+
+// UN PAQUET DIT SA COMPOSITION, JAMAIS SON ORDRE. Ce qu'un joueur a le droit de
+// savoir, c'est ce qui lui reste — pas ce qui vient.
+//
+// DES CARTES EN PILES, PAS UNE LISTE. Une liste dit combien il reste ; une pile
+// le MONTRE, et c'est le même objet que celui qu'on tient en main, donc rien à
+// traduire. Trois cartes visibles au plus par type : au-delà, l'épaisseur ne se
+// lit plus et c'est le compte écrit qui parle.
+function ouvrirPaquet(titre, cartes, vide) {
+  const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
+  // Une modale n'est PAS un écran : les règles écrites `.screen.ecran-cartes
+  // .carte` ne s'y appliquent pas (règle 2), et les cartes en sortaient en
+  // glyphes nus. C'est `.ecran-cartes` sur la boîte qui les rhabille.
+  const b = el('div', { class: `modal ecran-cartes aide-boite paquet-boite${titre === 'pioche' ? '' : ' jouees'}` });
+  b.appendChild(el('h3', { text: `${titre} · ${cartes.length}` }));
+  if (!cartes.length) b.appendChild(el('p', { text: vide }));
+  else {
+    const parId = {};
+    for (const c of cartes) (parId[c.id] ||= []).push(c);
+    const grille = el('div', { class: 'pq-grille' });
+    for (const [id, lot] of Object.entries(parId).sort((x, y) => y[1].length - x[1].length)) {
+      const pile = el('div', { class: 'pq-pile' });
+      for (let i = 0; i < Math.min(3, lot.length); i++) {
+        pile.appendChild(el('div', {
+          class: 'carte mini',
+          attrs: { 'data-role': id, 'aria-hidden': 'true', style: `--rang:${i}` },
+        }, contenuCarte(lot[0])));
+      }
+      grille.appendChild(el('div', { class: 'pq-lot' }, [pile, el('span', { class: 'pq-x', text: `×${lot.length}` })]));
+    }
+    b.appendChild(grille);
+  }
+  b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
+  fond.appendChild(b);
+  document.body.appendChild(fond);
+}
+
 function ecranChasse() {
   const p = P.prise;
   const s = el('div', { class: 'screen ecran-cartes ecran-simple' });
@@ -470,7 +529,24 @@ function ecranChasse() {
 
   const main = el('div', { class: 'main' });
   P.main.forEach((c) => main.appendChild(carteVue(c, neuves.indexOf(c.uid), neuves.includes(c.uid))));
-  s.appendChild(el('div', { class: 'ratelier' }, [tableau(), reste(), main]));
+  // LES DEUX PAQUETS, AUX DEUX BOUTS DU LISTEAU : la pioche à gauche, la
+  // défausse à droite, dans la bande que le râtelier ménage AU-DESSUS de la
+  // main. Un dos dit ce qu'il reste par sa seule présence, là où une ligne de
+  // texte demande d'être déchiffrée.
+  //
+  // Ils ne prennent pas un pixel à la main : LA LARGEUR DU BOIS N'APPARTIENT
+  // QU'À ELLE, sa hauteur non. Encadrer la main leur coûtait 98 px de large et
+  // les cartes rétrécissaient d'autant.
+  //
+  // La ligne « au paquet » reste, entre les deux : les dos disent COMBIEN, elle
+  // dit PAR QUOI — et sur onze cartes, savoir ce qui reste par type est la
+  // seule connaissance que ce jeu récompense.
+  const paquets = el('div', { class: 'paquets' }, [
+    paquetVu('pioche', P.pioche, 'pioche', 'La pioche est vide — elle se refait de la défausse.'),
+    paquetVu('defausse', P.defausse, 'défausse', 'Rien de joué pour l’instant.'),
+  ]);
+
+  s.appendChild(el('div', { class: 'ratelier' }, [tableau(), paquets, reste(), main]));
   return s;
 }
 
@@ -524,10 +600,26 @@ function brancherGeste(scene) {
   const ratelier = scene.querySelector('.ratelier');
   const tab = scene.querySelector('.tableau');
   const depot = scene.querySelector('.depot');
-  const aide = scene.querySelector('.tb-geste');
+  let aide = scene.querySelector('.tb-geste');
   const aideTexte = aide ? aide.innerHTML : '';
   let y0 = null, x0 = 0, dy = 0, dx = 0, montee = 0, franchi = false;
-  let paquet = [];
+  let paquet = [];   // les cartes levées ET LEURS BOÎTES DE DÉPART
+  let pousse = null; // la carte poussée sans avoir été choisie, s'il y en a une
+  let poussee = false;
+  let tenue = null;  // LE NŒUD SOUS LE DOIGT : c'est lui la tête du paquet
+  let refus = '';    // pourquoi la carte poussée n'a pas pu rejoindre la volée
+
+  // La bulle se refait EN PLACE, sans `rendre()` : refaire l'écran en plein
+  // geste jetterait les cartes qu'on tient et le râtelier qui a capturé le
+  // pointeur. Seul le contenu du tableau change — les cartes, elles, ne bougent
+  // que par la transformation du paquet.
+  const rafraichirTableau = () => {
+    if (!tab) return;
+    const neuf = tableau();
+    tab.className = neuf.className;
+    tab.innerHTML = neuf.innerHTML;
+    aide = tab.querySelector('.tb-geste');
+  };
 
   const dire = (h, cls) => {
     if (tab) { tab.classList.remove('tire', 'annule'); if (cls) tab.classList.add(cls); }
@@ -539,7 +631,27 @@ function brancherGeste(scene) {
   const surLeDepot = (x, y) => (ratelier ? y < ratelier.getBoundingClientRect().top : y < innerHeight * 0.6);
 
   const debut = (e) => {
-    if (occupe || P.fini || !P.selection.length) return;
+    if (occupe || P.fini) return;
+    pousse = null; poussee = false; tenue = null; refus = '';
+    // ON NE CHOISIT PAS CE QU'ON POUSSE, quel que soit le nombre de cartes déjà
+    // dans la volée. Le geste qui part d'une carte non choisie l'ajoute — la
+    // première comme la troisième. C'est le cas le plus courant du jeu, et il
+    // coûtait deux gestes : toucher, puis pousser.
+    //
+    // Elle sera choisie au FRANCHISSEMENT DU SEUIL et pas à l'appui : avant le
+    // seuil rien n'est décidé, le geste reste un appui — donc un `click`, donc
+    // la sélection ordinaire. Les deux chemins ne se marchent pas dessus.
+    //
+    // Les deux paquets sont posés sur le bois : un appui dessus est un appui
+    // sur un BOUTON, pas le début d'un geste. Sans ça, ouvrir la pioche avec
+    // une volée composée emmenait la volée au lieu d'ouvrir le paquet.
+    if (e.target.closest && e.target.closest('.paquet')) return;
+    const n = e.target.closest ? e.target.closest('.carte') : null;
+    const c = n && P.main.find((m) => String(m.uid) === n.dataset.uid);
+    if (c && !P.selection.includes(c)) pousse = { c, n };
+    // Rien à emmener : ni volée en cours, ni carte sous le doigt.
+    if (!P.selection.length && !pousse) return;
+    tenue = n;
     y0 = e.clientY; x0 = e.clientX; dy = 0; dx = 0; montee = 0; franchi = false;
     paquet = [];
   };
@@ -549,6 +661,25 @@ function brancherGeste(scene) {
     montee = Math.min(montee, dy);
     if (!franchi && Math.hypot(dx, dy) > 8) {
       franchi = true; glisse = true;
+      // La carte poussée rejoint la volée MAINTENANT : tout ce qui suit — le
+      // paquet, la bulle, le dépôt, `tirer()` — lit `P.selection`.
+      if (pousse) {
+        const r = S.selectionner(P, pousse.c);
+        if (r.ok) {
+          poussee = true;
+          pousse.n.classList.add('prise-en-main');
+          pousse.n.setAttribute('aria-pressed', 'true');
+          rafraichirTableau();
+        } else if (!P.selection.length) {
+          // Rien à emmener non plus : le geste n'a pas lieu.
+          y0 = null; franchi = false; glisse = false; return;
+        } else {
+          // LA VOLÉE EST PLEINE : on emmène celle qui est composée, mais le
+          // refus se DIT — sans quoi le paquet partirait sans la carte qu'on
+          // croit tenir, et rien ne l'expliquerait (règle 5).
+          refus = r.pourquoi; secouer(pousse.n);
+        }
+      }
       // LA CAPTURE SE PREND AU FRANCHISSEMENT DU SEUIL, jamais au `pointerdown`
       // (règle 8) : capturée dès l'appui, elle redirige aussi le `click` qui
       // suit vers la zone capturante, et plus aucune carte ne peut être ajoutée.
@@ -558,7 +689,14 @@ function brancherGeste(scene) {
       // DANS L'ORDRE DES DOIGTS, pas celui du DOM : `querySelectorAll` rend les
       // cartes de gauche à droite, si bien qu'en choisissant de droite à gauche
       // le tas se formait à l'autre bout de la main.
-      const ordre = P.selection.map((c) => scene.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
+      let ordre = P.selection.map((c) => scene.querySelector(`.carte[data-uid="${c.uid}"]`)).filter(Boolean);
+      if (!ordre.length) ordre = [...scene.querySelectorAll('.carte.prise-en-main')];
+      // LA TÊTE DU PAQUET EST LA CARTE QU'ON TIENT, pas la dernière choisie. Le
+      // tas se formait sur la dernière touchée : en saisissant une autre carte
+      // de la volée, le paquet partait se ranger ailleurs que sous le doigt, et
+      // l'on ne savait plus ce qu'on tenait.
+      const iTete = tenue ? ordre.indexOf(tenue) : -1;
+      if (iTete >= 0) ordre = [...ordre.slice(0, iTete), ...ordre.slice(iTete + 1), tenue];
       paquet = ordre.map((n) => {
         const r = n.getBoundingClientRect();
         n.style.transition = 'none';
@@ -585,14 +723,20 @@ function brancherGeste(scene) {
     const annule = montee < -40 && dy > montee + 60;
     if (annule) dire('↩ relâche : la volée est défaite', 'annule');
     else if (pret) dire('↑ relâche n’importe où : la volée part', 'tire');
-    else dire('pousse vers le haut : la volée part', null);
+    else dire(refus ? `<span class="tb-refus">${refus}</span>`
+      : 'pousse vers le haut : la volée part', null);
   };
   const fin = (e) => {
     if (y0 === null) return;
     const surZone = e && e.clientX != null ? surLeDepot(e.clientX, e.clientY) : false;
-    const m = montee, d = dy, bougea = franchi;
-    y0 = null; franchi = false;
+    const m = montee, d = dy, bougea = franchi, auto = poussee;
+    const tenu = tenue;
+    y0 = null; franchi = false; pousse = null; poussee = false; tenue = null; refus = '';
     for (const p of paquet) { p.n.style.transition = ''; p.n.style.transform = ''; p.n.style.zIndex = ''; }
+    // La carte tenue mais REFUSÉE n'est pas dans le paquet, et son `pointerup`
+    // ne lui revient jamais — le râtelier a capturé le pointeur : sans ça elle
+    // restait enfoncée jusqu'au prochain rendu.
+    if (tenu) tenu.style.transform = '';
     paquet = [];
     if (depot) depot.classList.remove('vu', 'prete');
     setTimeout(() => { glisse = false; }, 60);
@@ -600,6 +744,9 @@ function brancherGeste(scene) {
     if (surZone && d < 0) { tirer(); return; }
     // Monté puis redescendu : on renonce.
     if (m < -40 && d > m + 60) { P.selection = []; mot = 'Volée défaite.'; rendre(); return; }
+    // Un glissement qui n'aboutit à rien laisse la carte poussée DANS la volée :
+    // elle EST choisie désormais, et l'écran doit le dire en entier.
+    if (auto) { rendre(); return; }
     dire(aideTexte, null);
   };
 
@@ -782,6 +929,42 @@ const ecranCourant = () => document.querySelector('.screen.ecran-cartes');
 // LA LARGEUR D'UNE CARTE EST CALCULÉE UNE FOIS pour la main pleine, et ne bouge
 // plus : en `flex: 1`, la main changeait de forme sous le pouce à mesure qu'on
 // jouait. Jamais de largeur en pixels écrite en dur — celle-ci est mesurée.
+// LA CARTE SORT DE LA PIOCHE, elle n'apparaît pas — et elle en sort VRAIMENT.
+// Tant que le paquet n'était qu'une ligne de texte, « depuis la droite » était
+// une direction convenue, et la carte la plus à droite de la main partait de
+// 106 px hors de l'écran : elle glissait depuis le bord au lieu de sortir de
+// quelque part. Posée sur le bois, la pioche est un OBJET, et l'écart se mesure.
+//
+// IL SE MESURE CARTE PAR CARTE : il dépend de la largeur de l'écran et du rang
+// dans la main, et aucune valeur écrite en dur ne peut le suivre.
+//
+// EN REMONTANT LA CHAÎNE DES `offsetParent` jusqu'au râtelier, et non par
+// `getBoundingClientRect` : la carte porte DÉJÀ son animation quand on la
+// mesure, donc sa boîte est transformée (règle 9). Les deux éléments n'ont pas
+// le même repère — la carte est dans `.main`, non positionnée ; le dos est dans
+// `.paquets`, qui l'est. Les lire crûment donnait un écart faux de la largeur
+// exacte du décalage, assez peu pour passer inaperçu et assez pour que la carte
+// ne sorte pas du paquet.
+function posDans(n, racine) {
+  let x = 0, y = 0;
+  for (let e = n; e && e !== racine; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; }
+  return [x, y];
+}
+
+function partirDeLaPioche() {
+  const rat = document.querySelector('.ecran-cartes .ratelier');
+  const dos = rat && rat.querySelector('.paquet.pioche .pq-dos');
+  if (!dos) return;
+  const [dx0, dy0] = posDans(dos, rat);
+  const px = dx0 + dos.offsetWidth / 2;
+  const py = dy0 + dos.offsetHeight / 2;
+  for (const n of rat.querySelectorAll('.carte.neuve')) {
+    const [cx, cy] = posDans(n, rat);
+    n.style.setProperty('--dx', `${Math.round(px - (cx + n.offsetWidth / 2))}px`);
+    n.style.setProperty('--dy', `${Math.round(py - (cy + n.offsetHeight / 2))}px`);
+  }
+}
+
 function calibrerCartes() {
   const rat = document.querySelector('.ecran-cartes .ratelier');
   if (!rat) return;
@@ -799,7 +982,7 @@ function rendre() {
   while (r.firstChild) r.removeChild(r.firstChild);
   const s = ecran === 'fin' ? ecranFin() : ecranChasse();
   r.appendChild(s);
-  if (ecran === 'chasse') { calibrerCartes(); peindreCoques(); brancherGeste(s); }
+  if (ecran === 'chasse') { calibrerCartes(); partirDeLaPioche(); peindreCoques(); brancherGeste(s); }
   // La distribution est un ÉVÉNEMENT, pas un état : une fois les cartes
   // arrivées, on oublie qui venait d'arriver — sans cet oubli, l'animation
   // repart à chaque carte touchée.
