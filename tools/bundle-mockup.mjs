@@ -158,12 +158,31 @@ if (masques.length) {
 const donnees = donneesLues
   .map(([nom, f]) => `const ${nom} = ${lire(f)};`).join('\n');
 
+// UN FAVICON EN LIGNE, ET AUCUN FICHIER. Le dépôt n'a AUCUN asset image
+// (CLAUDE.md §8) : un `favicon.ico` posé à côté serait le premier, et il
+// faudrait alors le servir, le versionner et le retrouver. Un SVG en data-URI
+// vit dans la page, part avec elle, et le fichier autonome le reste.
+//
+// Sans lui, le navigateur demande `/favicon.ico` à chaque ouverture et
+// l'hébergeur répond 404 — une erreur dans la console d'une page qui n'a rien
+// à se reprocher, et c'est exactement le bruit qui fait qu'on cesse de lire les
+// consoles. Un boulet de fonte sur le crème du carton : la carte du jeu, en
+// seize pixels.
+const FAVICON = '<link rel="icon" href="data:image/svg+xml,'
+  + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+    + '<rect width="32" height="32" rx="5" fill="%23f2ead6"/>'
+    + '<circle cx="16" cy="17" r="8.5" fill="%232b2723"/>'
+    + '<path d="M16 6.5 L16 3 M9 5 L11 8.2 M23 5 L21 8.2" stroke="%23b3261d" stroke-width="2.4" stroke-linecap="round" fill="none"/>'
+    + '</svg>').replace(/'/g, '%27')
+  + '">';
+
 const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <title>${(page.match(/<!--\s*titre:\s*([^-]+?)\s*-->/) || [, 'La chasse-partie'])[1]}</title>
+${FAVICON}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
@@ -221,7 +240,8 @@ const banc = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>${titre} — banc d'essai</title>
+<title>${titre} — aperçu téléphone</title>
+${FAVICON}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
@@ -337,9 +357,14 @@ vaudront sur l'appareil. Pour l'essayer au doigt, ouvre l'autre fichier sur un t
 </html>
 `;
 
-const sortieBanc = sortie.replace(/(\.html)?$/, '') + '-desktop.html';
+// « APERÇU TÉLÉPHONE », ET NON « BANC » NI « DESKTOP ». Les deux fichiers ne se
+// distinguent pas par la machine qui les ouvre — le jeu s'ouvre très bien sur un
+// ordinateur — mais par ce qu'ils MONTRENT : l'un est le jeu, l'autre montre le
+// jeu à la taille d'un téléphone. « desktop » nommait le contenant et laissait
+// deviner le contenu ; le nom dit maintenant ce qu'on va voir.
+const sortieBanc = sortie.replace(/(\.html)?$/, '') + '-apercu-telephone.html';
 mkdirSync(resolve(racine, dirname(sortie)), { recursive: true });
 writeFileSync(resolve(racine, sortie), html);
 writeFileSync(resolve(racine, sortieBanc), banc);
 console.log(`${sortie} — ${(html.length / 1024).toFixed(0)} Ko, autonome (à ouvrir SUR un téléphone)`);
-console.log(`${sortieBanc} — ${(banc.length / 1024).toFixed(0)} Ko, autonome (le même, dans un téléphone, sur un ordinateur)`);
+console.log(`${sortieBanc} — ${(banc.length / 1024).toFixed(0)} Ko, autonome (le même à la taille d'un téléphone, à regarder sur un ordinateur)`);

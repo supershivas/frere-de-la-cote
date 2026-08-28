@@ -12,8 +12,14 @@ relecture.
 
 | | |
 |---|---|
-| **L'URL du téléphone** | la page du jeu, à ouvrir SUR un appareil, au doigt |
-| **L'URL du banc** | la même page dans une VRAIE fenêtre de 375 px, sur ordinateur |
+| **Le jeu** | https://supershivas.github.io/frere-de-la-cote/ |
+| **L'aperçu téléphone** | https://supershivas.github.io/frere-de-la-cote/apercu-telephone/ |
+
+**Elles se publient toutes seules.** `.github/workflows/pages.yml` refond les
+deux fichiers depuis les sources à chaque poussée sur `main`, après avoir passé
+la suite. Livrer, c'est donc POUSSER — puis donner les deux adresses. Tu n'as
+plus de fragment à découper ni d'artifact à publier ; ce qui suit ne sert qu'à
+vérifier en local, avant de pousser.
 
 ## 1. Construire
 

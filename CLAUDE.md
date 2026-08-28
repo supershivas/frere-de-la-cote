@@ -374,19 +374,32 @@ tient pas. Ce n'est pas une passe de mise en page à la fin.
 
 | | |
 |---|---|
-| **L'URL du téléphone** | la page du jeu, à ouvrir SUR un appareil, au doigt |
-| **L'URL du banc** | la même page dans une VRAIE fenêtre de 375 px, à regarder sur un ordinateur |
+| **Le jeu** | https://supershivas.github.io/frere-de-la-cote/ — à ouvrir SUR un téléphone, au doigt |
+| **L'aperçu téléphone** | https://supershivas.github.io/frere-de-la-cote/apercu-telephone/ — le même à la taille d'un téléphone, à regarder sur un ordinateur |
 
 C'est la contrainte « mobile d'abord » rendue vérifiable en un clic. Avec une
 seule adresse, on ouvre la maquette en 1 400 px de large : tout y tient, donc
 tout va bien, donc **on ne voit rien** — et c'est exactement ainsi qu'un écran
 amputé traverse une relecture.
 
+**LE JEU EST À LA RACINE, l'aperçu est dans son dossier.** Le site EST le jeu :
+qui ouvre l'adresse joue, il n'y a rien à lui expliquer. L'aperçu est un OUTIL de
+relecture, et il porte un nom qui dit ce qu'on va voir — « banc d'essai » et
+« desktop » nommaient le contenant et laissaient deviner le contenu, alors que
+les deux fichiers ne se distinguent pas par la machine qui les ouvre.
+
 ```bash
 node tools/bundle-mockup.mjs docs/mockups/jeu.html dist/jeu.html
-# → dist/jeu.html          le jeu seul, autonome     (l'URL du téléphone)
-# → dist/jeu-desktop.html  le même, dans un châssis  (l'URL du banc)
+# → dist/jeu.html                   le jeu seul, autonome
+# → dist/jeu-apercu-telephone.html  le même, dans un châssis de téléphone
 ```
+
+**PUBLIÉ PAR `.github/workflows/pages.yml`, à chaque poussée sur `main`.** Rien
+n'est commité dans `dist/` — il est dans `.gitignore`, et le workflow refond les
+deux fichiers depuis les sources à chaque fois. Un fichier construit à la main et
+poussé finit toujours par dater d'une version que plus personne ne peut
+retrouver. **La suite tourne avant le déploiement et le fait échouer** : publier
+un jeu dont les règles sont cassées coûte plus cher que ne pas publier.
 
 Le banc porte le jeu dans une **iframe `srcdoc`**, jamais dans une transformée
 d'échelle : un `transform: scale()` ment sur tout ce qui compte — les media
