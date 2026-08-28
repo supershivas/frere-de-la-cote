@@ -1096,7 +1096,15 @@ function ouvrirPaquet(titre, cartes, vide) {
 
    Dès le début du glissement les cartes SE REGROUPENT en paquet et se
    redressent : on voit partir une volée, pas trois cartes qui montent en
-   parallèle. */
+   parallèle.
+
+   UNE VOLÉE D'UNE SEULE MUNITION NE SE SÉLECTIONNE PAS : on la pousse. Toucher
+   puis pousser, c'était deux gestes pour une volée d'une carte — et la volée
+   d'une carte est le cas le plus courant du jeu. Le glissement qui part d'une
+   munition non choisie la choisit AU FRANCHISSEMENT DU SEUIL, pas à l'appui :
+   avant le seuil rien n'est décidé, et le geste reste un appui — donc un
+   `click`, donc la sélection ordinaire. Les deux chemins ne se marchent pas
+   dessus. */
 let glisse = false;
 
 function brancherGeste(scene) {
@@ -1104,10 +1112,24 @@ function brancherGeste(scene) {
   const tab = scene.querySelector('.tableau');
   const depot = scene.querySelector('.depot');
   const zones = [ratelier, tab].filter(Boolean);
-  const aide = scene.querySelector('.tb-geste');
+  let aide = scene.querySelector('.tb-geste');
   const aideTexte = aide ? aide.innerHTML : '';
   let y0 = null, x0 = 0, dy = 0, dx = 0, montee = 0, franchi = false;
   let paquet = [];   // les cartes levées ET LEURS BOÎTES DE DÉPART
+  let pousse = null; // la munition poussée sans avoir été choisie, s'il y en a une
+  let poussee = false;
+
+  // La bulle se refait EN PLACE, sans `rendre()` : refaire l'écran en plein
+  // geste jetterait les cartes qu'on tient et le râtelier qui a capturé le
+  // pointeur. Seul le contenu du tableau change — les cartes, elles, ne bougent
+  // que par la transformation du paquet.
+  const rafraichirTableau = () => {
+    if (!tab) return;
+    const neuf = tableau();
+    tab.className = neuf.className;
+    tab.innerHTML = neuf.innerHTML;
+    aide = tab.querySelector('.tb-geste');
+  };
 
   const dire = (h, cls) => {
     if (tab) { tab.classList.remove('tire', 'annule'); if (cls) tab.classList.add(cls); }
@@ -1124,7 +1146,17 @@ function brancherGeste(scene) {
   };
 
   const debut = (e) => {
-    if (occupe || P.fini || !P.selection.length) return;
+    if (occupe || P.fini) return;
+    pousse = null; poussee = false;
+    // RIEN EN MAIN N'EST CHOISI : le geste part quand même, s'il part d'une
+    // munition jouable. Elle sera choisie au franchissement du seuil, et pas
+    // avant : un appui simple doit rester un appui.
+    if (!P.selection.length) {
+      const n = e.target.closest ? e.target.closest('.carte') : null;
+      const c = n && P.main.find((m) => String(m.uid) === n.dataset.uid);
+      if (!c || !C.peutJouer(P, c).ok) return;
+      pousse = { c, n };
+    }
     y0 = e.clientY; x0 = e.clientX; dy = 0; dx = 0; montee = 0; franchi = false;
     paquet = [];
   };
@@ -1134,6 +1166,15 @@ function brancherGeste(scene) {
     montee = Math.min(montee, dy);
     if (!franchi && Math.hypot(dx, dy) > 8) {
       franchi = true; glisse = true;
+      // La munition poussée rejoint la volée MAINTENANT : tout ce qui suit —
+      // le paquet, la bulle, le dépôt, `tirer()` — lit `P.selection`.
+      if (pousse) {
+        if (!C.selectionner(P, pousse.c).ok) { y0 = null; franchi = false; glisse = false; return; }
+        poussee = true;
+        pousse.n.classList.add('prise-en-main');
+        pousse.n.setAttribute('aria-pressed', 'true');
+        rafraichirTableau();
+      }
       // LE GESTE COMMENCE ICI, pas au `pointerdown`. Le doigt quitte la carte
       // qu'il tenait : le tableau reprend son contenu. Restauré dès l'appui —
       // le `pointerdown` de la carte remonte jusqu'au râtelier — il effaçait la
@@ -1201,8 +1242,8 @@ function brancherGeste(scene) {
   const fin = (e) => {
     if (y0 === null) return;
     const surZone = e && e.clientX != null ? surLeDepot(e.clientX, e.clientY) : false;
-    const m = montee, d = dy, bougea = franchi;
-    y0 = null; franchi = false;
+    const m = montee, d = dy, bougea = franchi, auto = poussee;
+    y0 = null; franchi = false; pousse = null; poussee = false;
     for (const p of paquet) { p.n.style.transition = ''; p.n.style.transform = ''; p.n.style.zIndex = ''; }
     paquet = [];
     if (depot) depot.classList.remove('vu', 'prete');
@@ -1213,6 +1254,9 @@ function brancherGeste(scene) {
     if (surZone) { tirer(); return; }
     // Monté puis redescendu : on renonce.
     if (m < -40 && d > m + 60) { P.selection = []; souffler('Volée défaite.'); rendre(); return; }
+    // Un glissement qui n'aboutit à rien laisse la munition poussée dans la
+    // volée : elle EST choisie désormais, et l'écran doit le dire en entier.
+    if (auto) { rendre(); return; }
     dire(aideTexte, null);
   };
 
@@ -1844,7 +1888,8 @@ function ouvrirAide() {
     initiale s'allume tant qu'ils n'ont pas servi.</p>
     <ul>${CONTENU.hommes.map((h) => `<li><b>${h.nom}</b>, ${h.titre} — ${h.texte}</li>`).join('')}</ul>
     <h4>Les gestes</h4>
-    <p>Toucher une munition l'ajoute à la volée. <b>Pousser la volée vers le haut</b>, jusqu'à la zone qui
+    <p>Toucher une munition l'ajoute à la volée — et pour n'en jouer qu'une, pas besoin de la toucher
+    d'abord : <b>on la pousse directement</b>. <b>Pousser la volée vers le haut</b>, jusqu'à la zone qui
     s'ouvre sous La Tortue : elle part. <b>Tirer la volée vers le bas</b> : ces munitions-là repartent au
     fond du paquet et l'on en reprend autant — c'est un rechargement. <b>Lâcher entre les deux</b> :
     on renonce.</p>

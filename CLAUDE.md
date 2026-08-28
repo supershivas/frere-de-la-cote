@@ -242,9 +242,20 @@ largage — un tour.
 |---|---|
 | poser le doigt sur un homme | le tableau dit ce qu'il fait, tant qu'on le tient |
 | toucher un homme | il rejoint la volée |
+| pousser un homme non choisi vers le haut | il part **seul** — une volée d'une carte ne se sélectionne pas |
 | pousser la volée vers le haut | la **zone de dépôt s'ouvre sous La Tortue** ; lâcher dedans, la volée part |
 | tirer la volée vers le bas | **rechargement** : ces hommes repartent au fond, on en reprend autant, la prise ne riposte pas |
 | monter puis redescendre | on renonce, la volée est défaite |
+
+**UNE VOLÉE D'UNE SEULE MUNITION NE SE SÉLECTIONNE PAS.** C'est le cas le plus
+courant du jeu, et il coûtait deux gestes : toucher, puis pousser. Un glissement
+qui part d'une munition non choisie la choisit **au franchissement du seuil**,
+jamais à l'appui — avant le seuil rien n'est décidé, le geste reste un appui,
+donc un `click`, donc la sélection ordinaire. Les deux chemins ne se marchent
+pas dessus, et une munition injouable ne part pas : le refus s'écrit à la
+touche, comme avant. La bulle se refait **en place** pendant le geste
+(`rafraichirTableau`) — un `rendre()` en plein glissement jetterait les cartes
+qu'on tient et le râtelier qui a capturé le pointeur.
 
 Le geste descendant n'a **pas de seconde zone de dépôt** : le râtelier lui-même
 s'allume, parce qu'il n'y a pas de place sous les cartes pour poser une cible et
