@@ -1914,14 +1914,20 @@
    la voit sans lire un mot. Les teintes sont assombries par rapport aux
    bandeaux d'avant : elles étaient claires pour porter une encre sombre sur un
    fond sombre, elles doivent maintenant se détacher SUR du crème. */
-.ecran-cartes .carte[data-role="boulet_rame"]  { --metier: #8a7f6c; }
+/* LA COULEUR APPARTIENT AU TYPE, PAS À LA CARTE. Elle était portée par
+   `.carte[data-role]` : une carte était alors le seul endroit où un type
+   pouvait se montrer, et la ligne du paquet du plateau simplifié (§17.4)
+   redonnait les cinq teintes une seconde fois — deux définitions pour la même
+   information, donc deux occasions de diverger (règle 3). Portée par le seul
+   `data-role`, elle vaut partout où un type s'annonce. */
+.ecran-cartes [data-role="boulet_rame"]  { --metier: #8a7f6c; }
 /* Le boulet ROUGE est rouge, et la mitraille est GRISE : les munitions se
    nomment par leur couleur, et lui donner un or ou un bleu demandait
    d'apprendre une correspondance contre le nom même de la carte. */
-.ecran-cartes .carte[data-role="boulet_rouge"] { --metier: #b3261d; }
-.ecran-cartes .carte[data-role="mitraille"]    { --metier: #6b7176; }
-.ecran-cartes .carte[data-role="chaine"]       { --metier: #6f5d99; }
-.ecran-cartes .carte[data-role="barrique"]     { --metier: #96633a; }
+.ecran-cartes [data-role="boulet_rouge"] { --metier: #b3261d; }
+.ecran-cartes [data-role="mitraille"]    { --metier: #6b7176; }
+.ecran-cartes [data-role="chaine"]       { --metier: #6f5d99; }
+.ecran-cartes [data-role="barrique"]     { --metier: #96633a; }
 
 .ecran-cartes .carte:active { cursor: grabbing; }
 .ecran-cartes .carte.prise-en-main {
@@ -2298,4 +2304,53 @@
 .tuto-mot button.passer {
   background: none; border-color: transparent; color: #6b4a26;
   font-family: var(--font-body); font-size: 10px; min-height: 36px; padding: 6px 8px; margin-left: 0;
+}
+
+/* ============================================================
+   §17.4 — LA VOLÉE NUE (le plateau simplifié)
+
+   `docs/refonte/mockups/f-simple.html` : onze cartes, trois types, un seul
+   ordre. C'est le MÊME écran que §17 — `.screen.ecran-cartes` — auquel on
+   ajoute `.ecran-simple` : la carte, le râtelier, la mer, la bulle du compte,
+   le compteur et la zone de dépôt sont les composants du jeu et ne sont pas
+   réécrits ici (règle 3). Ce qui suit ne fait que rendre la place de ce qui
+   n'existe pas sur ce plateau : la réserve, les deux paquets, la carte
+   annoncée par la prise.
+   ============================================================ */
+
+/* Le râtelier gardait au-dessus des cartes la hauteur exacte de la réserve —
+   les deux munitions à venir, face visible. Il n'y a plus de réserve : la
+   bande qui reste ne porte que la ligne du paquet, et tout ce qu'on lui rend
+   revient à la mer. */
+.screen.ecran-cartes.ecran-simple .ratelier {
+  padding-top: 26px;
+}
+/* La bande de mer ménageait 56 px sous les navires pour la carte annoncée et
+   les deux dos de paquet. Ni l'une ni les autres n'existent ici. */
+.screen.ecran-cartes.ecran-simple .flotte { --pied: 10px; }
+
+/* CE QU'IL RESTE AU PAQUET, POSÉ SUR LE BOIS. Sur onze cartes, compter ce qui
+   est passé EST le jeu : le cacher ne ferait pas du suspense, seulement une
+   comptabilité à tenir sur un coin de table. C'est de l'INFORMATION et jamais
+   une cible — `pointer-events: none`, donc aucune règle de 44 px à tenir. */
+.screen.ecran-cartes.ecran-simple .reste {
+  position: absolute; left: 9px; right: 9px; top: 7px;
+  display: flex; align-items: center; justify-content: center;
+  flex-wrap: wrap; gap: 2px 9px;
+  font-family: var(--font-body); font-size: 11px; color: #cbb08a;
+  text-shadow: 0 1px 2px rgba(0,0,0,.7);
+  pointer-events: none;
+}
+.screen.ecran-cartes.ecran-simple .r-cle {
+  font-size: 8px; text-transform: uppercase; letter-spacing: 1.2px; color: #a5844c;
+}
+/* Le glyphe et le compte, dans la couleur du type — la même que le cadre de la
+   carte, parce que c'est la même chose qu'on nomme. */
+.screen.ecran-cartes.ecran-simple .r-type {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--metier, #cbb08a);
+}
+.screen.ecran-cartes.ecran-simple .r-type svg { width: 13px; height: 13px; display: block; }
+.screen.ecran-cartes.ecran-simple .r-type b {
+  font-size: 13px; font-weight: 700; color: #f3e7c8;
 }

@@ -1,0 +1,244 @@
+// LA VOLÉE NUE — le plateau simplifié. Deux natures de tests :
+//
+//  - les invariants : onze cartes et pas une de plus, aucun dé dans la
+//    résolution, un refus motivé plutôt qu'un silence ;
+//  - et la seule question qui décide si ce plateau vaut quelque chose : quand
+//    on a retiré la fureur, les effets de carte, la riposte et le rechargement,
+//    reste-t-il un CHOIX ? Les mêmes graines, les mêmes mains, jouées par un
+//    capitaine qui lit sa main et par un capitaine qui pose les trois premières
+//    cartes venues. Si l'écart se referme, il ne reste plus rien à jouer et le
+//    plateau est à jeter — pas le test à assouplir.
+
+import { readFileSync } from 'node:fs';
+import { suite, test, assert, equal, empty } from './harness.js';
+import * as S from '../src/simple.js';
+
+const CONTENU = JSON.parse(readFileSync(new URL('../data/simple.json', import.meta.url), 'utf8'));
+
+const rngFor = (seed) => {
+  let s = seed >>> 0 || 1;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+};
+const partie = (prise, seed) => {
+  const P = S.nouvellePartie(CONTENU);
+  const rng = rngFor(seed);
+  S.engager(P, prise, rng);
+  return { P, rng };
+};
+const PRISE = CONTENU.prises[0];
+const SANS_FIN = { id: 'essai', nom: 'Cible d’essai', resistance: 99999, butin: 0 };
+
+// Une carte de test, montée à la main depuis le contenu : les `uid` du jeu sont
+// distribués par le module, ceux-ci n'ont qu'à être distincts entre eux.
+let faux = 9000;
+const c = (id) => ({ ...CONTENU.cartes.find((x) => x.id === id), uid: ++faux });
+
+suite('simple — invariants');
+
+test('les règles ne touchent jamais un dé', () => {
+  // Y COMPRIS DANS UN COMMENTAIRE : le jour où quelqu'un met un tirage en
+  // commentaire, c'est qu'il pense à en mettre un dans le code.
+  const code = readFileSync(new URL('../src/simple.js', import.meta.url), 'utf8');
+  const bad = [];
+  for (const interdit of ['Math.random', 'Date.now', 'crypto']) {
+    if (code.includes(interdit)) bad.push(`src/simple.js contient ${interdit}`);
+  }
+  empty(bad, 'la résolution doit être déterministe');
+});
+
+test('le paquet fait onze cartes : 4 + 4 + 3', () => {
+  const deck = S.monterLeDeck(CONTENU);
+  equal(deck.length, 11, 'onze cartes au paquet');
+  const compte = {};
+  for (const x of deck) compte[x.id] = (compte[x.id] || 0) + 1;
+  equal(compte.boulet_rame, 4, 'quatre boulets ramés');
+  equal(compte.mitraille, 4, 'quatre mitrailles');
+  equal(compte.boulet_rouge, 3, 'trois boulets rouges — les rares');
+  equal(Object.keys(compte).length, 3, 'trois types, pas un de plus');
+});
+
+test('une carte n’a qu’un nom et une poudre', () => {
+  // C'EST LA PROMESSE DU PLATEAU. Le jour où une carte porte un effet, un bord
+  // ou un niveau, il y a une seconde chose à lire avant de décider, et tout le
+  // reste de la simplification ne sert plus à rien.
+  const bad = [];
+  const permis = new Set(['id', 'nom', 'poudre', 'texte']);
+  for (const x of CONTENU.cartes) {
+    for (const k of Object.keys(x)) if (!permis.has(k)) bad.push(`${x.id} porte « ${k} »`);
+    if (typeof x.poudre !== 'number') bad.push(`${x.id} n’a pas de poudre`);
+  }
+  empty(bad, 'une carte ne porte que son type et sa poudre');
+});
+
+test('chaque prise annonce sa résistance, et l’échelle monte', () => {
+  const bad = [];
+  let precedent = 0;
+  for (const p of CONTENU.prises) {
+    if (!(p.resistance > 0)) bad.push(`${p.id} sans résistance`);
+    if (p.resistance <= precedent) bad.push(`${p.id} ne monte pas sur ${precedent}`);
+    if (!(p.butin > 0)) bad.push(`${p.id} sans butin`);
+    precedent = p.resistance;
+  }
+  empty(bad, 'les cinq prises forment une échelle');
+});
+
+test('un ordre impossible se refuse à voix haute', () => {
+  const { P } = partie(PRISE, 21);
+  for (const x of P.main.slice(0, S.VOLEE_MAX)) S.selectionner(P, x);
+  const r = S.selectionner(P, P.main[S.VOLEE_MAX]);
+  assert(!r.ok, 'une quatrième carte doit être refusée');
+  assert(typeof r.pourquoi === 'string' && r.pourquoi.length, 'et le refus doit se dire');
+  const hors = S.selectionner(P, c('mitraille'));
+  assert(!hors.ok && hors.pourquoi, 'une carte hors de la main aussi');
+});
+
+test('la même volée jouée deux fois donne deux fois le même chiffre', () => {
+  const { P } = partie(SANS_FIN, 404);
+  const volee = P.main.slice(0, 3);
+  equal(S.evaluer(P, volee).total, S.evaluer(P, volee).total, 'aucune entropie dans le compte');
+});
+
+suite('simple — la puissance vient du type et de la main, et de rien d’autre');
+
+test('les figures : la paire et la triplette, et il n’y en a pas de troisième', () => {
+  const P = S.nouvellePartie(CONTENU);
+  const rame = () => c('boulet_rame');     // 6
+  const mit = () => c('mitraille');        // 4
+  const rouge = () => c('boulet_rouge');   // 10
+
+  equal(S.figureDe([rame()]), null, 'une carte seule n’est pas une figure');
+  equal(S.figureDe([rame(), mit()]), null, 'deux types différents non plus');
+  equal(S.figureDe([rame(), rame()]), 'paire', 'deux du même type : une paire');
+  equal(S.figureDe([rame(), rame(), rame()]), 'triplette', 'trois du même type : une triplette');
+  // TROIS TYPES TOUS DIFFÉRENTS N'EST PAS UNE FIGURE. La « panachée » existe
+  // dans l'autre plateau ; ici elle demanderait de vérifier une seconde
+  // condition, en sens inverse de la première.
+  equal(S.figureDe([rame(), mit(), rouge()]), null, 'trois types différents ne valent aucune figure');
+
+  // TOUT S'ADDITIONNE, et rien ne multiplie : c'est la raison d'être du plateau.
+  equal(S.evaluer(P, [rame(), mit(), rouge()]).total, 20, '6 + 4 + 10, sans figure');
+  equal(S.evaluer(P, [rame(), rame()]).total, 20, '6 + 6 + 8 de paire');
+  equal(S.evaluer(P, [mit(), mit(), mit()]).total, 36, '4 × 3 + 24 de triplette');
+  equal(S.evaluer(P, [rouge(), rouge(), rouge()]).total, 54, 'la plus forte volée du jeu');
+});
+
+test('une triplette de la plus faible bat un boulet rouge seul', () => {
+  // C'EST TOUT LE JEU EN UNE LIGNE. Si la carte la plus chère gagnait toujours,
+  // il n'y aurait rien à assortir et la main ne dirait rien.
+  const P = S.nouvellePartie(CONTENU);
+  const triple = S.evaluer(P, [c('mitraille'), c('mitraille'), c('mitraille')]).total;
+  const seul = S.evaluer(P, [c('boulet_rouge')]).total;
+  assert(triple > seul * 3, `la triplette de mitraille (${triple}) doit écraser le rouge seul (${seul})`);
+});
+
+test('chaque ligne du compte dit d’où elle vient', () => {
+  // L'écran joue le score EN SÉQUENCE : sans cette provenance, il devrait
+  // deviner en relisant les noms — et un nom est du contenu qui change.
+  const P = S.nouvellePartie(CONTENU);
+  const cartes = [c('boulet_rame'), c('boulet_rame')];
+  const r = S.evaluer(P, cartes);
+  equal(r.lignes.length, 3, 'deux cartes et une figure');
+  equal(r.lignes[0].source, 'carte');
+  equal(r.lignes[0].uid, cartes[0].uid, 'la ligne désigne SA carte');
+  equal(r.lignes[2].source, 'figure');
+  equal(r.lignes[2].id, 'paire');
+});
+
+suite('simple — les deux fins');
+
+test('la résistance atteinte rend le butin plein, la dernière bordée ne rend rien', () => {
+  const { P, rng } = partie({ ...PRISE, resistance: 1 }, 7);
+  S.selectionner(P, P.main[0]);
+  S.jouer(P);
+  equal(P.fini, 'prise', 'le seuil atteint clôt la rencontre');
+  equal(P.prise.gagne, PRISE.butin, 'butin plein');
+  equal(P.butin, PRISE.butin);
+
+  const dur = partie({ ...PRISE, resistance: 99999 }, 7);
+  for (let i = 0; i < S.BORDEES && !dur.P.fini; i++) {
+    S.selectionner(dur.P, dur.P.main[0]);
+    S.jouer(dur.P);
+    S.completer(dur.P, dur.rng);
+  }
+  equal(dur.P.fini, 'echec', 'plus une bordée : elle s’échappe');
+  equal(dur.P.prise.gagne, 0, 'et l’on n’a rien');
+  // IL N'Y A PAS DE TROISIÈME FIN. La coulée a disparu avec la coque.
+  assert(['prise', 'echec'].includes(dur.P.fini));
+});
+
+test('le seuil atteint du dernier coup est une prise, pas une évasion', () => {
+  const { P } = partie({ ...PRISE, resistance: 1 }, 11);
+  P.bordees = 1;
+  S.selectionner(P, P.main[0]);
+  S.jouer(P);
+  equal(P.fini, 'prise', 'la résistance passe avant la bordée dépensée');
+});
+
+test('la main se remplit à ras, et le paquet se rebat sur onze cartes', () => {
+  const { P, rng } = partie(SANS_FIN, 33);
+  equal(P.main.length, S.MAIN, 'cinq cartes en main à l’engagement');
+  equal(P.main.length + P.pioche.length, 11, 'onze cartes en jeu, et pas une de plus');
+  for (let tour = 0; tour < 6; tour++) {
+    for (const x of P.main.slice(0, 3)) S.selectionner(P, x);
+    S.jouer(P);
+    S.completer(P, rng);
+    equal(P.main.length + P.pioche.length + P.defausse.length, 11, 'aucune carte ne se perd ni ne se duplique');
+    equal(P.main.length, S.MAIN, 'la main revient à ras, même après rebattage');
+    P.bordees = S.BORDEES; P.fini = null;   // on prolonge exprès, pour voir tourner le paquet
+  }
+});
+
+suite('simple — est-ce que choisir compte ?');
+
+test('le capitaine qui lit sa main prend nettement plus de prises', () => {
+  // LES MÊMES GRAINES, LES MÊMES MAINS. L'un joue sa meilleure volée, l'autre
+  // pose les trois premières cartes venues. Mesuré sur la flûte : 89 prises sur
+  // 100 contre 2. Si cet écart se referme, la volée nue n'est plus qu'une
+  // addition qu'on exécute — et il n'y a plus de jeu à jouer.
+  const jouerUne = (prise, seed, applique) => {
+    const P = S.nouvellePartie(CONTENU);
+    const rng = rngFor(seed);
+    S.engager(P, prise, rng);
+    while (!P.fini) {
+      const cartes = applique ? S.meilleureVolee(P).cartes : P.main.slice(0, 3);
+      for (const x of cartes) S.selectionner(P, x);
+      S.jouer(P);
+      S.completer(P, rng);
+    }
+    return P.fini === 'prise';
+  };
+  const flute = CONTENU.prises[1];
+  let bon = 0, mauvais = 0;
+  for (let s = 1; s <= 100; s++) {
+    if (jouerUne(flute, s * 7919, true)) bon++;
+    if (jouerUne(flute, s * 7919, false)) mauvais++;
+  }
+  assert(bon - mauvais >= 50,
+    `l’écart doit rester net : appliqué ${bon}/100, maladroit ${mauvais}/100`);
+});
+
+test('l’échelle des prises reste jouable de bout en bout', () => {
+  // Il n'y a AUCUNE progression dans ce plateau — ni état-major, ni relique,
+  // ni recrutement. L'échelle doit donc tenir dans ce qu'un joueur ordinaire
+  // atteint avec onze cartes, sans quoi la dernière prise n'est pas difficile,
+  // elle est impossible.
+  const jouerUne = (prise, seed) => {
+    const P = S.nouvellePartie(CONTENU);
+    const rng = rngFor(seed);
+    S.engager(P, prise, rng);
+    while (!P.fini) {
+      for (const x of S.meilleureVolee(P).cartes) S.selectionner(P, x);
+      S.jouer(P);
+      S.completer(P, rng);
+    }
+    return P.fini === 'prise';
+  };
+  const bad = [];
+  for (const p of CONTENU.prises) {
+    let n = 0;
+    for (let s = 1; s <= 120; s++) if (jouerUne(p, s * 7919)) n++;
+    if (n < 20) bad.push(`${p.nom} (résistance ${p.resistance}) : ${n}/120 — hors d’atteinte`);
+    if (p.id !== 'barque' && n > 115) bad.push(`${p.nom} : ${n}/120 — elle se rend toute seule`);
+  }
+  empty(bad, 'chaque prise doit être gagnable et perdable');
+});
