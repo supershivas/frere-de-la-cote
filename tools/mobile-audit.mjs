@@ -65,6 +65,26 @@ const PAGES = [
         await p.waitForTimeout(2500);
       }
     } },
+  // F — LA VOLÉE NUE. Elle entre directement au combat : il n'y a ni carte, ni
+  // ouverture, ni tutoriel à passer. Le second passage joue jusqu'à la fin de
+  // la rencontre pour mesurer l'écran de butin, qui est un écran à part entière.
+  { nom: 'F — la volée nue', url: 'docs/refonte/mockups/f-simple.html', pret: '.ecran-simple .main .carte' },
+  { nom: 'F — le butin', url: 'docs/refonte/mockups/f-simple.html', pret: '.ecran-simple .main .carte',
+    apres: async (p) => {
+      for (let tour = 0; tour < 8; tour += 1) {
+        if (await p.$('.verdict')) break;
+        for (let k = 0; k < 3; k += 1) {
+          const c = await p.$$('.carte:not(.prise-en-main)');
+          if (c[0]) await c[0].click().catch(() => {});
+        }
+        if (!(await p.$('.carte.prise-en-main'))) break;
+        await p.$eval('.screen.ecran-cartes', (n) => {
+          n.focus();
+          n.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+        });
+        await p.waitForTimeout(2500);
+      }
+    } },
   { nom: 'jeu — recrutement', url: 'index.html#recrutement', pret: '.screen' },
   { nom: 'jeu — combat', url: 'index.html#bataille', pret: '.screen' },
 ];

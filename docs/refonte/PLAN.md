@@ -23,6 +23,43 @@ version de ce plan, avec tout l'état du chantier « trois échelles », est dan
 | Le tutoriel | idem, §17.3 de `css/deck.css` | sept étapes, ne prend jamais la main |
 | Le fichier autonome | `tools/bundle-mockup.mjs` | une page sans serveur, produite des mêmes sources |
 
+## L'autre plateau : la volée nue
+
+**Un second environnement, monté à côté et non à la place.** Onze cartes,
+trois types, un seul ordre — on pousse la volée vers le haut, elle part. La
+puissance ne vient que du TYPE des cartes et de ce que la MAIN assortit :
+paire +8, triplette +24. Pas de fureur, pas de bord, pas d'effet de carte, pas
+de riposte, pas de rechargement, pas de coque, pas de panachée.
+
+| | Où | État |
+|---|---|---|
+| Les règles | `src/simple.js` | pures, sans dé, 14 vérifications |
+| Le contenu | `data/simple.json` | trois types, le paquet, les cinq prises |
+| L'écran jouable | `docs/refonte/mockups/f-simple.html` | validé par `mobile-audit` sur trois téléphones |
+| Le CSS | `css/deck.css` §17.4 | 40 lignes ; tout le reste vient de §17, tel quel |
+
+**Ce qu'on éprouve** : que reste-t-il quand on retire tout ? Les deux plateaux
+existent ensemble pour être comparés, pas fondus l'un dans l'autre — et surtout
+pas réunis derrière un drapeau dans `src/cartes.js`, ce qui rendrait chacun
+injugeable.
+
+**Mesuré** (2 000 rencontres, meilleure volée) : le total de quatre bordées
+donne p25 = 142, médiane = 146, p75 = 166. D'où l'échelle 104 · 132 · 140 · 150
+· 166, soit des prises à 100 %, 89 %, 77 %, 36 % et 24 %. Il n'y a AUCUNE
+progression dans ce plateau : l'échelle doit tenir entière dans ce qu'un joueur
+atteint avec onze cartes, et rien au-dessus de ~175 n'est atteignable.
+
+**Le choix compte encore** : mêmes graines, mêmes mains, un capitaine qui lit sa
+main prend la flûte 89 fois sur 100, un capitaine qui pose les trois premières
+cartes venues 2 fois. C'est ce que tient `test/simple.test.js`, et c'est le
+plateau qu'il faudra jeter le jour où l'écart se referme.
+
+**Ce que ce plateau a imposé à l'outillage** : `tools/bundle-mockup.mjs` ne
+tenait plus la liste des modules ni celle des fichiers de données — il les LIT
+maintenant dans la maquette qu'on lui donne. Figées, elles auraient produit un
+fichier autonome muet pour toute maquette qui n'était pas `e-cartes.html`, sans
+qu'une seule erreur soit levée.
+
 ## Ce qui reste à faire
 
 1. **Brancher l'écran de cartes dans le jeu réel** (`index.html` + `src/main.js`).

@@ -1,0 +1,84 @@
+{
+  "_doc": "LA VOLÉE NUE — le contenu du plateau simplifié (src/simple.js, docs/refonte/mockups/f-simple.html). ONZE CARTES, TROIS TYPES : quatre boulets ramés, quatre mitrailles, trois boulets rouges. Une carte n'a qu'un NOM et une POUDRE — aucun effet, aucun bord, aucun niveau. La puissance d'une volée, c'est la somme des poudres plus ce que la figure ajoute, et rien d'autre. Ajouter un type ou changer le paquet ne demande aucune ligne de code.",
+  "cartes": [
+    {
+      "id": "boulet_rame",
+      "nom": "Boulet ramé",
+      "poudre": 6,
+      "texte": "Deux boulets liés par une barre. Le rang courant : quatre au paquet, et c'est avec eux qu'on fait ses paires."
+    },
+    {
+      "id": "mitraille",
+      "nom": "Mitraille",
+      "poudre": 4,
+      "texte": "Des clous et de la ferraille. La plus faible du paquet — mais il y en a quatre, et une triplette de mitraille vaut mieux qu'un boulet rouge seul."
+    },
+    {
+      "id": "boulet_rouge",
+      "nom": "Boulet rouge",
+      "poudre": 10,
+      "texte": "Chauffé au rouge dans le fourneau. Trois au paquet, et pas un de plus : c'est la carte qu'on attend, et celle qu'on compte."
+    }
+  ],
+  "deck": {
+    "boulet_rame": 4,
+    "mitraille": 4,
+    "boulet_rouge": 3
+  },
+  "figures": [
+    {
+      "id": "triplette",
+      "nom": "Triplette",
+      "texte": "Trois fois le même type.",
+      "poudre": 24
+    },
+    {
+      "id": "paire",
+      "nom": "Paire",
+      "texte": "Deux fois le même type.",
+      "poudre": 8
+    }
+  ],
+  "prises": [
+    {
+      "id": "barque",
+      "nom": "Barque longue",
+      "rang": "petite prise",
+      "hullClass": 6,
+      "resistance": 104,
+      "butin": 14
+    },
+    {
+      "id": "flute",
+      "nom": "Flûte marchande",
+      "rang": "marchand",
+      "hullClass": 4,
+      "resistance": 132,
+      "butin": 20
+    },
+    {
+      "id": "galion",
+      "nom": "Galion d'argent",
+      "rang": "gros porteur",
+      "hullClass": 2,
+      "resistance": 140,
+      "butin": 28
+    },
+    {
+      "id": "fregate",
+      "nom": "Frégate royale",
+      "rang": "escorte",
+      "hullClass": 3,
+      "resistance": 150,
+      "butin": 36
+    },
+    {
+      "id": "vaisseau",
+      "nom": "Vaisseau de ligne",
+      "rang": "vaisseau",
+      "hullClass": 1,
+      "resistance": 166,
+      "butin": 48
+    }
+  ]
+}
