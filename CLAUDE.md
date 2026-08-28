@@ -574,6 +574,45 @@ tient pas. Ce n'est pas une passe de mise en page à la fin.
 - L'instrument : `node tools/mobile-audit.mjs`, qui **échoue** si un écran
   ampute ou déborde.
 
+### ON LIVRE DEUX URLS, TOUJOURS, ET SANS QU'ON AIT À LE DEMANDER
+
+**Toute livraison d'un écran comporte DEUX adresses :**
+
+| | |
+|---|---|
+| **L'URL du téléphone** | la page du jeu, à ouvrir SUR un appareil, au doigt |
+| **L'URL du banc** | la même page dans une VRAIE fenêtre de 375 px, à regarder sur un ordinateur |
+
+C'est la contrainte « mobile d'abord » rendue vérifiable en un clic. Avec une
+seule adresse, on ouvre la maquette en 1 400 px de large : tout y tient, donc
+tout va bien, donc **on ne voit rien** — et c'est exactement ainsi qu'un écran
+amputé traverse une relecture. La seconde adresse n'est pas un confort : c'est
+le seul moyen de regarder l'écran de référence quand l'appareil n'est pas sous
+la main.
+
+**Les deux fichiers sortent du même outil, à la même commande :**
+
+```bash
+node tools/bundle-mockup.mjs docs/refonte/mockups/f-simple.html dist/f-simple.html
+# → dist/f-simple.html          le jeu seul, autonome        (l'URL du téléphone)
+# → dist/f-simple-desktop.html  le même, dans un châssis      (l'URL du banc)
+```
+
+Le banc porte le jeu dans une **iframe `srcdoc`**, jamais dans une transformée
+d'échelle : un `transform: scale()` ment sur tout ce qui compte — les media
+queries, `innerWidth`, la taille réelle d'une cible en pixels CSS. L'iframe
+donne au document une vraie fenêtre de 375, 390 ou 412 px, les trois appareils
+de `mobile-audit`, et l'on bascule de l'un à l'autre. Le châssis **ne rétrécit
+jamais** : sur une fenêtre courte, la page défile — un banc d'essai qui ampute
+ce qu'il montre ne vaut rien.
+
+Pour publier, il faut retirer le squelette du document (`<!DOCTYPE>`, `<html>`,
+`<head>`, `<body>`), que l'hébergeur remet lui-même. **Le corps se prend jusqu'au
+DERNIER `</body>`** : le banc porte le jeu entier dans un attribut, donc une
+balise `</body>` apparaît au milieu du fichier, dans une valeur d'attribut — s'y
+arrêter livre le jeu à la place du banc, sous le nom du banc, et les deux
+adresses montrent alors la même page.
+
 ### Le contenu est de la donnée, la règle est du code
 
 Ajouter une munition, une prise ou une relique ne doit demander **aucune ligne de
@@ -804,9 +843,12 @@ règles.
 Tout ce qui sert au développement — graine, état de la pioche, barème — vit
 derrière un bouton **roue crantée**, jamais dans l'écran de jeu.
 
-Pour donner une version à essayer : `tools/bundle-mockup.mjs` produit un
-fichier unique, sans serveur, à partir des mêmes sources — il n'y a pas de
-seconde version du jeu à maintenir.
+Pour donner une version à essayer : `tools/bundle-mockup.mjs` produit **deux**
+fichiers uniques, sans serveur, à partir des mêmes sources — le jeu seul, et le
+jeu dans un châssis de téléphone. Voir §2, « on livre deux URLs, toujours ». Il
+n'y a pas de seconde version du jeu à maintenir : l'outil lit dans la maquette
+les modules qu'elle importe et les fichiers de données qu'elle charge, plutôt
+que d'en tenir sa propre liste.
 
 ---
 
