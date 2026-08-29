@@ -433,27 +433,6 @@ function tableau() {
 // CE QU'IL RESTE AU PAQUET, ÉCRIT. Sur onze cartes, compter ce qui est passé
 // EST le jeu : le cacher ne créerait pas du suspense, seulement une comptabilité
 // à tenir sur un coin de table.
-// UN DOS DIT COMBIEN, CETTE LIGNE DIT PAR QUOI. C'est tout ce qui lui reste, et
-// c'est tout ce qu'elle a jamais eu de propre : un dos de carte dit un nombre
-// par sa seule présence, il ne peut pas dire qu'il reste un boulet rouge.
-//
-// ELLE PORTAIT « jouées N », QUI EST LE CHIFFRE ÉCRIT SUR LE DOS DE LA DÉFAUSSE,
-// à deux cents pixels de là : deux écritures du même nombre, donc deux occasions
-// de diverger (règle 3), et la ligne disait « JOUÉES » juste à côté du dos qui
-// dit « JOUÉES ». Le total du paquet, lui, n'y a jamais été — il est sur le dos
-// de la pioche.
-function reste() {
-  const compte = S.resteParType(P);
-  return el('div', { class: 'reste', attrs: { 'aria-hidden': 'true' } }, [
-    el('span', { class: 'r-cle', text: 'au paquet' }),
-    // Les compteurs sur leur propre rang : cinq glyphes et cinq nombres posés
-    // nus sur du bois se lisent comme un score, pas comme un inventaire.
-    el('div', { class: 'r-rang' }, CONTENU.cartes.map((t) =>
-      el('span', { class: 'r-type', attrs: { 'data-role': t.id } }, [
-        glyphe(t.id), el('b', { text: String(compte[t.id] || 0) }),
-      ]))),
-  ]);
-}
 
 // UN DOS DE CARTE, ET UNE CIBLE PLUS GRANDE QUE LUI. La plaque fait 30 px, le
 // BOUTON en fait 44 : le doigt vise la cible, pas le dessin. Le bouton est
@@ -504,7 +483,6 @@ function ouvrirDeck() {
   const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
   const b = el('div', { class: 'modal ecran-cartes aide-boite paquet-boite deck-boite' });
   b.appendChild(el('h3', { text: `le paquet · ${P.deck.length}` }));
-  const dit = plaqueDeDescription();
   // LES CINQ TYPES SUR UN SEUL RANG, du plus commun au plus rare. Trois rangs
   // séparés, un par rareté, coûtaient 237 px de piles et 176 px de titres dans
   // une modale qui en a 556 : le paquet se mettait à défiler, alors que onze
@@ -517,7 +495,7 @@ function ouvrirDeck() {
   const grille = el('div', { class: 'pq-grille' });
   for (const t of [...CONTENU.cartes].sort((a, c) => (rang[a.rarete] ?? 9) - (rang[c.rarete] ?? 9) || a.poudre - c.poudre)) {
     const lot = parType[t.id] || [];
-    if (lot.length) grille.appendChild(lotVu(t.id, lot, P.deck.length, dit));
+    if (lot.length) grille.appendChild(lotVu(t.id, lot, P.deck.length));
   }
   b.appendChild(grille);
   // LA RARETÉ EST UNE FRÉQUENCE, PAS UN POUVOIR : la légende dit sa seule
@@ -525,7 +503,6 @@ function ouvrirDeck() {
   b.appendChild(el('p', { class: 'dk-legende', text:
     CONTENU.raretes.map((r) => `${r.nom.toLowerCase()} ×${r.exemplaires}`).join(' · ')
     + ' — seules les communes peuvent former une triplette, la rare ne s’assortit avec rien.' }));
-  b.appendChild(dit);
   b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
   fond.appendChild(b);
   document.body.appendChild(fond);
@@ -575,32 +552,35 @@ function ouvrirOutils() {
 // types y portent déjà leur `texte` et leur `rarete`, donc décrire une carte ne
 // demande AUCUNE ligne de contenu dans le code. Une seule définition, partagée
 // par la modale d'un paquet et par celle du deck (règle 3).
-function decrire(cible, c, n, total) {
+// LA CARTE EN GRAND, ET CE QU'ELLE VAUT. Une plaque de texte au pied d'une
+// grille disait la même chose, mais en petit et à côté de la vignette : on
+// lisait une description SANS voir ce qu'elle décrivait. Ici la carte est
+// l'objet principal de l'écran, à la taille où l'on voit son cadre, son glyphe
+// et sa valeur — les trois porteurs de son type.
+function ouvrirCarte(c, n, total) {
   const def = CONTENU.cartes.find((t) => t.id === c.id) || {};
-  cible.innerHTML = '';
-  cible.appendChild(el('div', { class: 'pd-tete' }, [
+  const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
+  const b = el('div', { class: 'modal ecran-cartes aide-boite carte-boite' });
+  b.appendChild(el('div', {
+    class: 'carte grande', attrs: { 'data-role': c.id, 'aria-hidden': 'true' },
+  }, contenuCarte(c)));
+  b.appendChild(el('div', { class: 'cd-tete' }, [
     el('b', { text: c.nom }),
-    el('span', { class: 'pd-poudre', text: `poudre ${S.poudreDe(c)}` }),
     el('span', { class: 'pd-rarete', text: String(def.rarete || '').replace('_', ' ') }),
   ]));
-  cible.appendChild(el('p', { class: 'pd-txt', text: def.texte || '' }));
-  if (n != null) cible.appendChild(el('p', { class: 'pd-compte', text: `${n} ici, sur ${total} carte(s).` }));
+  b.appendChild(el('p', { class: 'pd-txt', text: def.texte || '' }));
+  if (n != null) b.appendChild(el('p', { class: 'pd-compte', text: `${n} ici, sur ${total} carte(s).` }));
+  b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
+  fond.appendChild(b);
+  document.body.appendChild(fond);
 }
 
-// LA PLAQUE EST LÀ AVANT QU'ON TOUCHE, et elle ne change jamais de hauteur. Une
-// plaque qui apparaît fait sauter la modale sous le doigt — c'est le défaut de
-// la barre de compte qui faisait monter les navires, à l'échelle d'une boîte.
-function plaqueDeDescription() {
-  const dit = el('div', { class: 'pq-dit', attrs: { 'aria-live': 'polite' } });
-  dit.innerHTML = '<span class="pd-vide">Touche une carte : ce qu’elle vaut s’écrit ici.</span>';
-  return dit;
-}
 
 // UNE PILE EST UNE CIBLE. Les piles étaient muettes : on voyait ce qui restait
 // sans pouvoir demander ce que ça valait, alors que la carte en main, elle,
 // s'explique à l'appui. Une modale n'est ni la mer ni la main — la description
 // a le droit d'y vivre, à condition de ne rien recouvrir et de ne pas bouger.
-function lotVu(id, lot, total, dit) {
+function lotVu(id, lot, total) {
   const pile = el('div', { class: 'pq-pile' });
   for (let i = 0; i < Math.min(3, lot.length); i++) {
     pile.appendChild(el('div', {
@@ -610,13 +590,8 @@ function lotVu(id, lot, total, dit) {
   }
   const n = el('button', {
     class: 'pq-lot',
-    attrs: { type: 'button', 'aria-pressed': 'false',
-      'aria-label': `${lot[0].nom}, ${lot.length} exemplaire(s)` },
-    on: { click: () => {
-      for (const b of n.parentElement.querySelectorAll('.pq-lot'))
-        b.setAttribute('aria-pressed', String(b === n));
-      decrire(dit, lot[0], lot.length, total);
-    } },
+    attrs: { type: 'button', 'aria-label': `${lot[0].nom}, ${lot.length} exemplaire(s) — voir la carte` },
+    on: { click: () => ouvrirCarte(lot[0], lot.length, total) },
   }, [pile, el('span', { class: 'pq-x', text: `×${lot.length}` })]);
   return n;
 }
@@ -630,15 +605,13 @@ function ouvrirPaquet(titre, cartes, vide) {
   b.appendChild(el('h3', { text: `${titre} · ${cartes.length}` }));
   if (!cartes.length) b.appendChild(el('p', { text: vide }));
   else {
-    const dit = plaqueDeDescription();
     const parId = {};
     for (const c of cartes) (parId[c.id] ||= []).push(c);
     const grille = el('div', { class: 'pq-grille' });
     for (const [id, lot] of Object.entries(parId).sort((x, y) => y[1].length - x[1].length)) {
-      grille.appendChild(lotVu(id, lot, cartes.length, dit));
+      grille.appendChild(lotVu(id, lot, cartes.length));
     }
     b.appendChild(grille);
-    b.appendChild(dit);
   }
   b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
   fond.appendChild(b);
@@ -712,14 +685,17 @@ function ecranChasse() {
   // QU'À ELLE, sa hauteur non. Encadrer la main leur coûtait 98 px de large et
   // les cartes rétrécissaient d'autant.
   //
-  // TROIS COLONNES, ET CHAQUE DOS CENTRÉ DANS LA SIENNE. Collés aux deux bords
-  // ils butaient sur le bord de l'écran, et la ligne « au paquet » leur passait
-  // au travers — elle était en absolu sur toute la largeur. Elle entre
-  // maintenant DANS la bande, dans la colonne du milieu : les trois choses
-  // partagent une même grille au lieu de se recouvrir.
+  // DEUX DOS, ET RIEN ENTRE EUX. La ligne « au paquet » a été retirée : elle
+  // donnait la composition par type, mais les deux paquets s'ouvrent et la
+  // montrent en cartes — une ligne de glyphes qui répète ce qu'un appui donne en
+  // mieux est une ligne à retirer. Ce qu'on y perd est réel et assumé : il faut
+  // désormais OUVRIR la pioche pour savoir s'il reste un boulet rouge, là où la
+  // ligne le disait sans geste.
+  //
+  // ILS S'ALIGNENT SUR LES CARTES DES EXTRÉMITÉS, bord à bord, et se centrent
+  // dans la hauteur de la bande.
   const paquets = el('div', { class: 'paquets' }, [
     paquetVu('pioche', P.pioche, 'pioche', 'La pioche est vide — elle se refait de la défausse.'),
-    reste(),
     paquetVu('defausse', P.defausse, 'défausse', 'Rien de joué pour l’instant.'),
   ]);
 

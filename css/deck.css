@@ -1801,27 +1801,20 @@
 .paquet-boite .pq-lot[aria-pressed="true"] {
   outline: 2px solid var(--gold-light, #e8c877); outline-offset: 2px;
 }
-/* LA PLAQUE A UNE HAUTEUR FIXE, ET UN TEXTE AVANT QU'ON TOUCHE. Une plaque qui
-   apparaît fait sauter la modale sous le doigt — c'est le défaut de la barre de
-   compte qui faisait monter les navires, à l'échelle d'une boîte. Le texte trop
-   long est COUPÉ : une plaque qui grandit est un défaut, un texte coupé est du
-   contenu à raccourcir. */
-.paquet-boite .pq-dit {
-  /* 118 px = 105 (le plus long des cinq textes, la Mitraille, MESURÉ dans la
-     page et non estimé) + 10 de padding + 2 de bordure. À 64 px — trois lignes
-     supposées — la Mitraille en demandait cinq et se faisait couper en silence.
-     C'est le contenu qui donne la mesure, pas l'inverse. */
-  height: 118px; overflow: hidden; margin-top: 10px;
-  background: #241a0f; border: 1px solid #4a3a26; border-radius: 6px;
-  padding: 5px 8px; text-align: left;
+/* --- LA CARTE EN GRAND. Une pile touchée ouvre SA carte, à la taille où l'on
+   voit son cadre, son glyphe et sa valeur — les trois porteurs de son type. Une
+   plaque de texte au pied d'une grille disait la même chose, mais on lisait une
+   description sans voir ce qu'elle décrivait. */
+.carte-boite { --carte-l: 132px; --carte-h: 191px; text-align: center; }
+.carte-boite .carte.grande {
+  margin: 4px auto 12px; cursor: default;
+  width: var(--carte-l); height: var(--carte-h); flex: 0 0 auto;
 }
-.paquet-boite .pd-tete { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.paquet-boite .pd-tete b { font-family: var(--font-title); font-size: 13px; color: #e8c877; }
-.paquet-boite .pd-poudre { font-family: var(--font-body); font-size: 11px; font-weight: 700; color: #e8d5aa; }
-.paquet-boite .pd-rarete { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #cbb08a; }
-.paquet-boite .pd-txt,
-.paquet-boite .pd-compte { font-size: 11px; line-height: 1.35; color: #cbb08a; margin: 2px 0 0; }
-.paquet-boite .pd-vide { font-size: 11px; color: #cbb08a; font-style: italic; }
+.carte-boite .cd-tete { display: flex; align-items: baseline; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.carte-boite .cd-tete b { font-family: var(--font-title); font-size: 16px; color: #e8c877; }
+.carte-boite .pd-rarete { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #cbb08a; }
+.carte-boite .pd-txt,
+.carte-boite .pd-compte { font-size: 12px; line-height: 1.4; color: #cbb08a; margin: 6px 0 0; }
 .paquet-boite .pq-pile {
   position: relative;
   width: calc(var(--carte-l) * .7 + 12px);
@@ -2390,30 +2383,35 @@
    coïncidence, et le mot « PIOCHE » se serait fait manger au premier écran un
    peu plus étroit. À 30 px, il reste 10 px, et ils sont voulus.
 
-   La bande, elle, doit loger ce que les dos et le filet du haut demandent :
-     58 px  la hauteur d'un dos
-     +30    le dégagement calculé ci-dessus
-     +8     le filet du haut, où la ligne « au paquet » se pose entre les deux
-     ────
-      96 px, et c'est le `padding-top` du bois — la même mesure des deux côtés.
+   LES DOS SE CENTRENT DANS LA BANDE, et c'est ce centrage qui en fixe la
+   hauteur. Un dos centré a son bas à `(B + 58) / 2` ; la carte levée a son haut
+   à `B − 20`. Le dégagement vaut donc `(B − 98) / 2`, et les 10 px voulus
+   demandent **B = 118**. Collés en bas comme ils l'étaient, 96 px suffisaient —
+   le centrage coûte ces 22 px, et ils sont pris à la mer, qui en a 384.
 
-   La ligne « au paquet » n'a pas besoin d'une ligne à elle : les dos sont aux
-   deux bouts, elle est centrée entre eux. Les dos disent COMBIEN, elle dit
-   PAR QUOI. */
+   La ligne « au paquet » est partie : elle donnait la composition par type, que
+   les deux paquets montrent en cartes dès qu'on les ouvre. */
 .screen.ecran-cartes.ecran-simple .ratelier {
-  padding-top: 96px;
+  padding-top: 118px;
 }
 /* TROIS COLONNES : 1fr | auto | 1fr. Chaque dos est CENTRÉ DANS SA MOITIÉ, et
    non collé au bord — `space-between` les envoyait buter contre les bords de
    l'écran, et la ligne « au paquet », posée en absolu sur toute la largeur, leur
    passait au travers. Les trois partagent maintenant une grille. */
+/* ALIGNÉS SUR LES CARTES DES EXTRÉMITÉS, et centrés dans la hauteur. Centrés
+   dans une colonne, les dos rentraient de 30 px à 375 et de 38 px à 412 — des
+   marges qui n'avaient de rapport avec rien, et qui changeaient de valeur avec
+   la largeur de l'écran. Ils butent maintenant sur les mêmes bords que la
+   première et la dernière carte de la main. */
 .screen.ecran-cartes.ecran-simple .paquets {
-  height: 96px;          /* la même mesure que le padding ci-dessus */
-  padding-bottom: 30px;  /* 30 − 20 = 10 px sous la carte qui se lève */
-  display: grid; grid-template-columns: 1fr auto 1fr;
-  align-items: end;      /* les dos butent en bas de la bande */
-  justify-items: center; /* CHACUN CENTRÉ DANS SA COLONNE */
+  height: 118px;
+  padding-bottom: 0;
+  display: flex; justify-content: space-between; align-items: center;
 }
+/* LE BOUTON FAIT 44 px, LA PLAQUE 42 : centrée dans son bouton, elle rentrait de
+   2 px de plus. Chacune se range du côté de son bord. */
+.screen.ecran-cartes.ecran-simple .paquet.pioche { justify-content: flex-start; }
+.screen.ecran-cartes.ecran-simple .paquet.defausse { justify-content: flex-end; }
 /* La bande de mer ménageait 56 px sous les navires pour la carte annoncée et
    les deux dos de paquet. Ni l'une ni les autres n'existent ici. */
 .screen.ecran-cartes.ecran-simple .flotte { --pied: 10px; }
@@ -2422,17 +2420,6 @@
    est passé EST le jeu : le cacher ne ferait pas du suspense, seulement une
    comptabilité à tenir sur un coin de table. C'est de l'INFORMATION et jamais
    une cible — `pointer-events: none`, donc aucune règle de 44 px à tenir. */
-/* ELLE EST DANS LE FLUX, plus en absolu : c'est la colonne du milieu de la
-   grille ci-dessus. `white-space: nowrap` est obligatoire — un retour à la
-   ligne enverrait les compteurs dans les dos. */
-.screen.ecran-cartes.ecran-simple .reste {
-  align-self: center;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  white-space: nowrap;
-  font-family: var(--font-body); font-size: 11px; color: #cbb08a;
-  text-shadow: 0 1px 2px rgba(0,0,0,.7);
-  pointer-events: none;
-}
 /* MESURÉ SUR LES PIXELS, PAS SUR LA RÈGLE. À #a5844c, ces deux libellés
    sortaient de l'audit de contraste à 2,3:1 et 2,8:1 pour 8 px de haut — donc
    très en dessous du 4,5:1 dû au petit texte, sur le chêne huilé du râtelier et
@@ -2441,22 +2428,6 @@
    ne peut pas lire ne coûte rien à retirer et tout à laisser — celui-ci est
    remonté vers le parchemin clair plutôt que retiré, parce que la ligne qu'il
    nomme est la seule connaissance que ce jeu récompense. */
-.screen.ecran-cartes.ecran-simple .r-cle {
-  font-size: 8px; text-transform: uppercase; letter-spacing: 1.2px; color: #e8d5aa;
-}
-/* Le glyphe et le compte, dans la couleur du type — la même que le cadre de la
-   carte, parce que c'est la même chose qu'on nomme. */
-.screen.ecran-cartes.ecran-simple .r-rang {
-  display: flex; align-items: center; gap: 9px; white-space: nowrap;
-}
-.screen.ecran-cartes.ecran-simple .r-type {
-  display: inline-flex; align-items: center; gap: 3px;
-  color: var(--metier, #cbb08a);
-}
-.screen.ecran-cartes.ecran-simple .r-type svg { width: 13px; height: 13px; display: block; }
-.screen.ecran-cartes.ecran-simple .r-type b {
-  font-size: 13px; font-weight: 700; color: #f3e7c8;
-}
 
 /* LA CARTE SORT DE LA PIOCHE, et le repli ne sert plus qu'en son absence.
    Ce plateau n'a longtemps eu qu'une ligne « au paquet » et pas de dos de

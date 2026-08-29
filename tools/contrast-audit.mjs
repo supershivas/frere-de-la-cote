@@ -89,13 +89,21 @@ await audit('le jeu — une volée composée', async()=>{
 // pas un écran ne dit rien sur lui, et il passe au vert quand même.
 await audit('le jeu — la pioche ouverte', async()=>{
   await p.click('.paquet.pioche'); await p.waitForTimeout(400);
+});
+// La carte en grand est la plus longue surface de texte du jeu : sans cette
+// passe elle n'est jamais mesurée, et c'est celle qu'on lit vraiment.
+await audit('le jeu — une carte en grand', async()=>{
   const l = await p.$$('.pq-lot'); if (l[0]) await l[0].click();
-  await p.waitForTimeout(300);
+  await p.waitForTimeout(400);
 });
 await audit('le jeu — le paquet entier', async()=>{
-  await p.click('.paquet-boite .btn-level-3').catch(()=>{}); await p.waitForTimeout(300);
+  await p.evaluate(()=>document.querySelectorAll('.overlay').forEach(n=>n.remove()));
+  await p.waitForTimeout(200);
   await p.click('.bd-cible:last-child'); await p.waitForTimeout(400);
-  const l = await p.$$('.deck-boite .pq-lot'); if (l[0]) await l[0].click();
-  await p.waitForTimeout(300);
+});
+await audit('le jeu — les outils', async()=>{
+  await p.evaluate(()=>document.querySelectorAll('.overlay').forEach(n=>n.remove()));
+  await p.waitForTimeout(200);
+  await p.click('.bd-cible:first-child'); await p.waitForTimeout(400);
 });
 await b.close();

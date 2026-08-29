@@ -202,17 +202,6 @@ tutoriel, pas de carte des Caraïbes, pas de boutique.
   marge haute de 22 px — une barre de 4 px haute de 26, sans une erreur levée.
 - **Le compteur de bordées est sur le ruban** — `⚔ 4` — à gauche du butin.
   C'est la ressource du jeu : elle ne se lit pas dans un sous-menu.
-- **LA LIGNE « AU PAQUET » dit la COMPOSITION, jamais l'ordre** : ce qui reste,
-  par type. Ce qu'un joueur a le droit de savoir, c'est ce qui lui reste, pas ce
-  qui vient. Un test vérifie qu'elle ne ment jamais, tour après tour. Elle a
-  porté « jouées N » — le chiffre écrit sur le dos de la défausse, à deux cents
-  pixels de là : deux écritures du même nombre, donc deux occasions de diverger.
-  **Un dos dit COMBIEN, cette ligne dit PAR QUOI**, et c'est tout ce qu'elle a
-  de propre.
-- **LA BANDE HAUTE DU LISTEAU EST UNE GRILLE DE TROIS COLONNES** — `1fr auto
-  1fr` : chaque dos est centré dans sa moitié, la ligne « au paquet » occupe le
-  milieu. En `space-between` les dos butaient contre les bords, et la ligne,
-  posée en absolu sur toute la largeur, leur passait au travers.
 - **UN BANDEAU DE 44 px, EN BOIS PLUS SOMBRE**, tout en haut : une roue crantée
   à gauche, la carte du paquet à droite, et **rien d'autre**. Les bordées, le
   butin et la pression restent où ils sont — un bandeau qui porterait une
@@ -222,13 +211,26 @@ tutoriel, pas de carte des Caraïbes, pas de boutique.
   (`#6b4a26`) donne 1,8:1 — deux bois qu'on distingue, sans changer de matière.
   Il existe **dès `ecranChasse()`** : ajouté après coup, `poserHorizon()` aurait
   calculé la ligne d'eau 49 px trop haut, sans qu'aucune erreur ne soit levée.
-- **TOUCHER UNE PILE DANS UNE MODALE LA DÉCRIT.** Les piles étaient muettes : on
-  voyait ce qui restait sans pouvoir demander ce que ça valait, alors qu'une
-  carte en main s'explique à l'appui. La plaque a une **hauteur fixe et un texte
-  avant qu'on touche** — une plaque qui apparaît fait sauter la modale sous le
-  doigt, à l'échelle d'une boîte c'est le défaut de la barre de compte. Sa
-  hauteur vient du plus long des cinq textes, MESURÉ dans la page : à 64 px
-  supposés la Mitraille en demandait 105 et se faisait couper en silence.
+- **LA LIGNE « AU PAQUET » A ÉTÉ RETIRÉE.** Elle donnait la composition par
+  type, que les deux paquets montrent en cartes dès qu'on les ouvre : une ligne
+  de glyphes qui répète ce qu'un appui donne en mieux est une ligne à retirer.
+  Ce qu'on y perd est réel et assumé — il faut désormais OUVRIR la pioche pour
+  savoir s'il reste un boulet rouge, là où la ligne le disait sans geste.
+- **LES DOS S'ALIGNENT SUR LES CARTES DES EXTRÉMITÉS**, bord à bord, et se
+  centrent dans la hauteur de la bande. Centrés dans une colonne, ils rentraient
+  de 30 px à 375 et de 38 px à 412 — des marges sans rapport avec rien, et qui
+  changeaient avec la largeur de l'écran. **Le centrage vertical fixe la hauteur
+  de la bande** : un dos centré a son bas à `(B + 58) / 2`, la carte levée son
+  haut à `B − 20`, donc le dégagement vaut `(B − 98) / 2` et les 10 px voulus
+  demandent **B = 118**. Collés en bas, 96 suffisaient : le centrage coûte 22 px,
+  pris à la mer, qui en garde 384.
+- **TOUCHER UNE PILE OUVRE SA CARTE, EN GRAND.** Depuis la pioche, la défausse ou le
+  paquet, une pile touchée ouvre une modale où la carte est l'objet PRINCIPAL —
+  132 × 191 px, la taille où l'on voit son cadre, son glyphe et sa valeur, les
+  trois porteurs de son type. Une plaque de texte au pied de la grille a été
+  essayée : elle disait la même chose, mais on lisait une description **sans voir
+  ce qu'elle décrivait**, et sa hauteur devait être calée sur le plus long des
+  cinq textes sous peine de les couper en silence.
 - **LE PAQUET ENTIER TIENT D'UN COUP**, sur un seul rang de cinq piles : trois
   rangs par rareté coûtaient 237 px de piles et 176 px de titres dans une modale
   qui en a 556, et elle se mettait à défiler. Onze cartes doivent se voir d'un
