@@ -502,21 +502,13 @@ function ouvrirDeck() {
   const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
   const b = el('div', { class: 'modal ecran-cartes aide-boite paquet-boite deck-boite' });
   b.appendChild(el('h3', { text: `le paquet · ${P.deck.length}` }));
-  // LES CINQ TYPES SUR UN SEUL RANG, du plus commun au plus rare. Trois rangs
-  // séparés, un par rareté, coûtaient 237 px de piles et 176 px de titres dans
-  // une modale qui en a 556 : le paquet se mettait à défiler, alors que onze
-  // cartes doivent se voir d'un coup. Les cinq piles tiennent en ligne (5 × 45
-  // plus les écarts, contre 319 px utiles), et la rareté se lit sans titre —
-  // c'est le NOMBRE d'exemplaires qui la dit, et il est écrit sous chaque pile.
+  // LE PAQUET ENTIER, CARTE PAR CARTE, du plus commun au plus rare. Rangé par
+  // rareté puis par poudre : c'est l'ordre dans lequel on le pense.
   const rang = Object.fromEntries(CONTENU.raretes.map((r, i) => [r.id, i]));
-  const parType = {};
-  for (const c of P.deck) (parType[c.id] ||= []).push(c);
-  const grille = el('div', { class: 'pq-grille' });
-  for (const t of [...CONTENU.cartes].sort((a, c) => (rang[a.rarete] ?? 9) - (rang[c.rarete] ?? 9) || a.poudre - c.poudre)) {
-    const lot = parType[t.id] || [];
-    if (lot.length) grille.appendChild(lotVu(t.id, lot, P.deck.length));
-  }
-  b.appendChild(grille);
+  const parType = Object.fromEntries(CONTENU.cartes.map((t) => [t.id, t]));
+  const tri = (a, c) => (rang[parType[a.id]?.rarete] ?? 9) - (rang[parType[c.id]?.rarete] ?? 9)
+    || S.poudreDe(a) - S.poudreDe(c) || a.uid - c.uid;
+  b.appendChild(grilleDeCartes([...P.deck].sort(tri), true));
   // LA RARETÉ EST UNE FRÉQUENCE, PAS UN POUVOIR : la légende dit sa seule
   // conséquence, et c'est l'équilibre entier du paquet.
   b.appendChild(el('p', { class: 'dk-legende', text:
@@ -576,7 +568,7 @@ function ouvrirOutils() {
 // lisait une description SANS voir ce qu'elle décrivait. Ici la carte est
 // l'objet principal de l'écran, à la taille où l'on voit son cadre, son glyphe
 // et sa valeur — les trois porteurs de son type.
-function ouvrirCarte(c, n, total) {
+function ouvrirCarte(c, oi) {
   const def = CONTENU.cartes.find((t) => t.id === c.id) || {};
   const fond = el('div', { class: 'overlay', on: { click: (e) => { if (e.target === fond) fond.remove(); } } });
   const b = el('div', { class: 'modal ecran-cartes aide-boite carte-boite' });
@@ -588,31 +580,43 @@ function ouvrirCarte(c, n, total) {
     el('span', { class: 'pd-rarete', text: String(def.rarete || '').replace('_', ' ') }),
   ]));
   b.appendChild(el('p', { class: 'pd-txt', text: def.texte || '' }));
-  if (n != null) b.appendChild(el('p', { class: 'pd-compte', text: `${n} ici, sur ${total} carte(s).` }));
+  // Où elle est, puisqu'elle est UNE carte et non un exemplaire parmi d'autres.
+  const ou = P.main.includes(c) ? 'en main' : P.pioche.includes(c) ? 'dans la pioche'
+    : P.defausse.includes(c) ? 'dans la défausse' : null;
+  if (ou) b.appendChild(el('p', { class: 'pd-compte', text: `Elle est ${ou}.` }));
   b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
   fond.appendChild(b);
   document.body.appendChild(fond);
 }
 
 
-// UNE PILE EST UNE CIBLE. Les piles étaient muettes : on voyait ce qui restait
-// sans pouvoir demander ce que ça valait, alors que la carte en main, elle,
-// s'explique à l'appui. Une modale n'est ni la mer ni la main — la description
-// a le droit d'y vivre, à condition de ne rien recouvrir et de ne pas bouger.
-function lotVu(id, lot, total) {
-  const pile = el('div', { class: 'pq-pile' });
-  for (let i = 0; i < Math.min(3, lot.length); i++) {
-    pile.appendChild(el('div', {
-      class: 'carte mini',
-      attrs: { 'data-role': id, 'aria-hidden': 'true', style: `--rang:${i}` },
-    }, contenuCarte(lot[0])));
+// CHAQUE CARTE EST UNE CARTE, ET ELLES SONT TOUTES LÀ. Les paquets se montraient
+// en piles par type, avec un « ×3 » : c'était juste tant qu'un exemplaire valait
+// exactement l'autre. Ce ne sera plus vrai — une commune pourra évoluer sans que
+// ses jumelles bougent — et une pile de trois cartes dont une seule est
+// améliorée est un mensonge par regroupement. On les montre donc une par une,
+// en colonnes et en rangs.
+function grilleDeCartes(cartes, dansLeDeck) {
+  const g = el('div', { class: 'cartes-grille' });
+  // LA MÊME LARGEUR QU'EN MAIN, à la lettre. `calibrerCartes()` pose `--carte-l`
+  // sur l'écran en fonction de la largeur du râtelier ; la modale vit dans
+  // `document.body`, hors de l'écran, donc elle n'en hérite pas. On la lui
+  // recopie : sans quoi les cartes du paquet faisaient 68 px quand celles de la
+  // main en faisaient 75, et une carte plus petite qu'en main n'est pas la même
+  // carte.
+  const ec = document.querySelector('.screen.ecran-cartes');
+  if (ec) for (const v of ['--carte-l', '--carte-h']) {
+    const x = getComputedStyle(ec).getPropertyValue(v).trim();
+    if (x) g.style.setProperty(v, x);
   }
-  const n = el('button', {
-    class: 'pq-lot',
-    attrs: { type: 'button', 'aria-label': `${lot[0].nom}, ${lot.length} exemplaire(s) — voir la carte` },
-    on: { click: () => ouvrirCarte(lot[0], lot.length, total) },
-  }, [pile, el('span', { class: 'pq-x', text: `×${lot.length}` })]);
-  return n;
+  for (const c of cartes) {
+    g.appendChild(el('button', {
+      class: 'cg-case',
+      attrs: { type: 'button', 'aria-label': `${c.nom}, poudre ${S.poudreDe(c)} — voir la carte` },
+      on: { click: () => ouvrirCarte(c, dansLeDeck) },
+    }, [el('div', { class: 'carte mini', attrs: { 'data-role': c.id, 'aria-hidden': 'true' } }, contenuCarte(c))]));
+  }
+  return g;
 }
 
 function ouvrirPaquet(titre, cartes, vide) {
@@ -624,13 +628,7 @@ function ouvrirPaquet(titre, cartes, vide) {
   b.appendChild(el('h3', { text: `${titre} · ${cartes.length}` }));
   if (!cartes.length) b.appendChild(el('p', { text: vide }));
   else {
-    const parId = {};
-    for (const c of cartes) (parId[c.id] ||= []).push(c);
-    const grille = el('div', { class: 'pq-grille' });
-    for (const [id, lot] of Object.entries(parId).sort((x, y) => y[1].length - x[1].length)) {
-      grille.appendChild(lotVu(id, lot, cartes.length));
-    }
-    b.appendChild(grille);
+    b.appendChild(grilleDeCartes(cartes, false));
   }
   b.appendChild(el('button', { class: 'btn-level-3', text: 'Fermer', attrs: { type: 'button' }, on: { click: () => fond.remove() } }));
   fond.appendChild(b);
@@ -1174,7 +1172,16 @@ function poserHorizon() {
   const r = f.getBoundingClientRect();
   return Math.max(0.2, Math.min(0.6, (r.top + r.height * 0.34) / innerHeight));
 }
-startOcean(document.getElementById('ocean'), { horizon: poserHorizon() });
+// LE PLAFOND DU CIEL : le bas des deux étiquettes. C'est la seule chose qui
+// sépare un ciel de midi avec soleil d'un ciel de midi sans, puisqu'un soleil
+// haut se range derrière des plaques opaques.
+function plafondDuCiel() {
+  const e = document.querySelector('.ecran-cartes .etiquettes');
+  if (!e) return 0;
+  const r = e.getBoundingClientRect();
+  return Math.max(0, Math.min(0.5, (r.bottom + 6) / innerHeight));
+}
+startOcean(document.getElementById('ocean'), { horizon: poserHorizon(), cielHaut: plafondDuCiel() });
 window.addEventListener('resize', () => { if (ecran === 'chasse') { calibrerCartes(); peindreCoques(); } });
 </script>
 </body>

@@ -1809,57 +1809,6 @@
 }
 .screen.ecran-cartes .paquet.defausse.vide .pq-cle { color: #e0c58f; }
 
-/* LE CONTENU D'UN PAQUET, EN PILES. Une liste de texte dit combien il reste ;
-   une pile de cartes le MONTRE — et c'est le même objet que celui qu'on tient
-   en main, donc rien à traduire. Trois cartes visibles au plus par famille,
-   décalées : au-delà, l'épaisseur ne se lit plus et c'est le compte écrit qui
-   parle. La défausse porte `jouees` et sort en gris : ces cartes-là sont
-   derrière nous. */
-.paquet-boite { --carte-l: 62px; --carte-h: 112px; }
-.paquet-boite .pq-grille {
-  display: flex; flex-wrap: wrap; justify-content: center;
-  gap: 14px 10px; padding: 8px 0 2px;
-}
-/* UNE PILE EST UN BOUTON. Les piles étaient muettes : on voyait ce qui restait
-   sans pouvoir demander ce que ça valait, alors qu'une carte en main s'explique
-   à l'appui. Ce sont de vrais `<button>`, donc le clavier double le doigt
-   gratuitement — et aucune règle `:hover` n'est ajoutée : le survol ne porte
-   jamais d'information (§2). */
-.paquet-boite .pq-lot {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: none; border: 0; padding: 2px; border-radius: 6px; cursor: pointer;
-}
-.paquet-boite .pq-lot[aria-pressed="true"] {
-  outline: 2px solid var(--gold-light, #e8c877); outline-offset: 2px;
-}
-/* --- LA CARTE EN GRAND. Une pile touchée ouvre SA carte, à la taille où l'on
-   voit son cadre, son glyphe et sa valeur — les trois porteurs de son type. Une
-   plaque de texte au pied d'une grille disait la même chose, mais on lisait une
-   description sans voir ce qu'elle décrivait. */
-.carte-boite { --carte-l: 132px; --carte-h: 191px; text-align: center; }
-.carte-boite .carte.grande {
-  margin: 4px auto 12px; cursor: default;
-  width: var(--carte-l); height: var(--carte-h); flex: 0 0 auto;
-}
-.carte-boite .cd-tete { display: flex; align-items: baseline; justify-content: center; gap: 8px; flex-wrap: wrap; }
-.carte-boite .cd-tete b { font-family: var(--font-title); font-size: 16px; color: #e8c877; }
-.carte-boite .pd-rarete { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #cbb08a; }
-.carte-boite .pd-txt,
-.carte-boite .pd-compte { font-size: 12px; line-height: 1.4; color: #cbb08a; margin: 6px 0 0; }
-.paquet-boite .pq-pile {
-  position: relative;
-  width: calc(var(--carte-l) * .7 + 12px);
-  height: calc(var(--carte-h) * .7 + 12px);
-}
-.paquet-boite .pq-pile .carte.mini {
-  position: absolute; border-width: 3px;
-  left: calc(var(--rang, 0) * 6px); top: calc(var(--rang, 0) * 6px);
-  transform: none; filter: none;
-}
-.paquet-boite.jouees .pq-pile .carte.mini { filter: grayscale(.9) brightness(.82); }
-.paquet-boite .pq-x {
-  font-family: var(--font-body); font-weight: 700; font-size: 14px; color: #e8c877;
-}
 
 
 
@@ -1913,17 +1862,41 @@
    un composant partagé n'a qu'UNE définition). La règle 2 du dépôt vise les
    règles d'ÉCRAN, qui se battent avec `.screen { animation: fade }` ; une carte
    ne se bat avec rien. */
+/* UNE CARTE A UN SEUL DESSIN, À TOUTES LES TAILLES. Elle en a eu deux : la
+   grande donnait son nom en 7 px et son cadre en 5, la petite les redonnait en
+   5 px et 1,5 — donc une petite carte n'était pas une grande carte réduite,
+   c'était une AUTRE carte, avec d'autres proportions. À côté l'une de l'autre,
+   dans une modale, ça se voyait.
+
+   `--u` est le facteur d'échelle de la carte, sa largeur rapportée à la largeur
+   de référence de 62 px. TOUT ce qui était en pixels absolus passe par lui : le
+   cadre, le rayon, le padding, le nom. La valeur, elle, était déjà relative à la
+   hauteur, et c'est pour ça qu'elle n'a jamais eu besoin d'être réécrite.
+
+   Conséquence : changer la taille d'une carte ne demande plus que de poser
+   `--carte-l` et `--carte-h`. Il n'y a plus rien à surcharger, donc plus rien
+   qui puisse diverger. */
 .ecran-cartes .carte {
+  /* `--u` est une LONGUEUR : le soixante-deuxième de la largeur de la carte. On
+     la multiplie par un NOMBRE — `calc(5 * var(--u))` multiplierait deux
+     longueurs, ce qui est invalide, et la déclaration serait ignorée : le cadre
+     tombait à zéro sans qu'aucune erreur ne soit levée.
+
+     Le navigateur TRONQUE ensuite la bordure au pixel entier — 5,48 devient 5,
+     10,65 devient 10 — quel que soit le rapport d'écran. C'est un écart de moins
+     d'un pixel, il ne vient d'aucune règle, et c'est le seul par lequel les
+     trois tailles de carte ne sont pas rigoureusement homothétiques. */
+  --u: calc(var(--carte-l, 62px) / 62);
   flex: 0 0 var(--carte-l, 62px);
   width: var(--carte-l, 62px); height: var(--carte-h, 90px);
   color: #241608;
   background: #f2ead6;
-  /* 5 px, et non 3 : à cinq cartes crème côte à côte, c'est le CADRE qui les
-     distingue, et un trait fin se lisait comme une ombre plutôt que comme une
-     couleur. */
-  border: 5px solid var(--metier, #a89a86);
-  border-radius: 8px;
-  padding: 3px;
+  /* 5 px À LA TAILLE DE RÉFÉRENCE, et non 3 : à cinq cartes crème côte à côte,
+     c'est le CADRE qui les distingue, et un trait fin se lisait comme une ombre
+     plutôt que comme une couleur. */
+  border: calc(5 * var(--u)) solid var(--metier, #a89a86);
+  border-radius: calc(8 * var(--u));
+  padding: calc(3 * var(--u));
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   cursor: grab; user-select: none; position: relative; overflow: hidden;
   box-shadow: 0 2px 3px rgba(0,0,0,.45), 0 6px 10px rgba(0,0,0,.28);
@@ -1942,11 +1915,11 @@
 /* LE GLYPHE, en grand, dans la couleur de la munition. Il monte en haut de la
    carte, là où était le bandeau. */
 .ecran-cartes .carte .c-bandeau {
-  position: absolute; left: 0; right: 0; top: 2px; z-index: 2;
+  position: absolute; left: 0; right: 0; top: calc(2 * var(--u)); z-index: 2;
   height: 30%;
   color: var(--metier, #8a7a62);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 1px; overflow: hidden;
+  gap: calc(1 * var(--u)); overflow: hidden;
 }
 .ecran-cartes .carte .c-bandeau svg {
   height: 62%; width: auto; display: block; flex: 0 0 auto;
@@ -2014,7 +1987,7 @@
 .ecran-cartes .carte .c-val {
   font-family: var(--font-body); font-weight: 700;
   font-size: calc(var(--carte-h, 90px) * .4);
-  line-height: 1; letter-spacing: -1px; z-index: 1;
+  line-height: 1; letter-spacing: calc(-1 * var(--u)); z-index: 1;
   color: var(--metier, #241608);
 }
 .ecran-cartes .carte .c-val { margin-top: 26%; }
@@ -2024,8 +1997,9 @@
    arrive sur le crème (3,0 à 4,7). La couleur reste au CADRE et au GLYPHE, qui
    sont des formes et se contentent de 3:1 — les cinq y sont. */
 .ecran-cartes .carte .c-nom {
-  font-family: var(--font-title); font-size: 7px; line-height: 1; text-align: center;
-  letter-spacing: .2px; max-width: 100%; padding: 0 2px; font-weight: 700; color: #241608;
+  font-family: var(--font-title); font-size: calc(7 * var(--u)); line-height: 1; text-align: center;
+  letter-spacing: calc(.2 * var(--u)); max-width: 100%; padding: 0 calc(2 * var(--u));
+  font-weight: 700; color: #241608;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -2102,20 +2076,16 @@
   text-transform: uppercase; color: #a5844c; white-space: nowrap;
   writing-mode: vertical-rl; transform: rotate(180deg);
 }
+/* `.mini` NE REDÉFINIT PLUS LE DESSIN — il ne dit que ce qui appartient à une
+   carte POSÉE dans un tas : elle ne se touche pas, elle ne s'anime pas, et elle
+   est légèrement enfoncée. Sa taille se règle par `--carte-l` / `--carte-h`, et
+   son dessin suit tout seul. */
 .ecran-cartes .carte.mini {
-  width: calc(var(--carte-l, 62px) * .7); height: calc(var(--carte-h, 112px) * .7);
   flex: 0 0 auto; cursor: default;
-  transform: translateY(6px) rotate(calc(var(--rang, 0) * 1.5deg - .75deg));
   box-shadow: inset 0 5px 7px -3px rgba(20,12,4,.75), 0 2px 3px rgba(0,0,0,.5);
   filter: brightness(.9) saturate(.92);
   transition: none;
-  border-width: 1.5px;
 }
-.ecran-cartes .carte.mini .c-nom { font-size: 5.5px; letter-spacing: 0; }
-.ecran-cartes .carte.mini .c-niveau { font-size: 6px; right: 2px; }
-.ecran-cartes .carte.mini .c-nom { font-size: 5px; }
-.ecran-cartes .carte.mini .c-val { font-size: calc(var(--carte-h, 90px) * .28); }
-.ecran-cartes .carte.mini .c-etat { font-size: 6px; }
 
 /* --- la distribution : on VOIT les hommes monter sur le pont --------------
    Une carte qui apparaît est un changement d'état ; une carte qui arrive est
@@ -2510,7 +2480,6 @@
    onze cartes doivent se voir d'un coup. */
 /* Les vignettes du paquet sont plus petites que celles d'un tas : il y a trois
    rangs à loger au lieu d'un, et la modale ne doit pas défiler. */
-.deck-boite { --carte-l: 42px; --carte-h: 61px; }
 .paquet-boite .dk-legende {
   margin: 8px 0 0; font-family: var(--font-body); font-size: 10px;
   line-height: 1.35; color: #cbb08a; text-align: left;
@@ -2530,3 +2499,48 @@
   color: #e8d5aa; font-family: var(--font-body); font-size: 12px; padding: 5px 6px;
 }
 .outils-boite .ou-bareme { border-top: 1px solid #4a3a26; margin-top: 4px; }
+
+/* --- TOUTES LES CARTES, EN COLONNES ET EN RANGS -------------------------
+   Les paquets se montraient en piles par type, avec un « ×3 ». C'était juste
+   tant qu'un exemplaire valait exactement l'autre — ce qui cesse d'être vrai dès
+   qu'une carte peut évoluer seule. Une pile de trois dont une seule est
+   améliorée est un mensonge par regroupement : on les montre donc une par une.
+
+   La grille se remplit d'elle-même : `auto-fill` prend autant de colonnes que la
+   largeur en permet, et le paquet peut grossir ou maigrir sans qu'aucun chiffre
+   ne soit à revoir ici. Elle défile quand il le faut — un paquet de trente
+   cartes ne tient dans aucun écran de téléphone, et prétendre le contraire
+   coûterait des cartes trop petites pour être lues. */
+.paquet-boite .cartes-grille {
+  /* LA MÊME LARGEUR QU'EN MAIN — 68 × 99, la taille d'une carte du râtelier à
+     375 px. À 62 px le nom le plus long (« Boulet à chaîne ») se faisait couper :
+     une carte plus petite qu'en main n'est pas la même carte. Quatre colonnes
+     tiennent (4 × 68 + 3 × 8 = 296, pour 319 px utiles). */
+  --carte-l: 68px; --carte-h: 99px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--carte-l), 1fr));
+  gap: 6px; justify-items: center;
+  max-height: 54vh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 2px;
+}
+/* LE BOUTON N'AJOUTE RIEN AU DESSIN : il porte la cible, la carte porte le
+   dessin. Une carte fait 62 × 90, donc bien au-delà des 44 px de côté. */
+.paquet-boite .cg-case {
+  background: none; border: 0; padding: 0; margin: 0;
+  display: block; cursor: pointer; border-radius: 10px; line-height: 0;
+}
+.paquet-boite .cg-case:focus-visible { outline: 2px solid var(--gold-light, #e8c877); outline-offset: 2px; }
+.paquet-boite.jouees .cartes-grille .carte { filter: grayscale(.9) brightness(.82); }
+
+/* --- LA CARTE EN GRAND. Une carte touchée s'ouvre à la taille où l'on voit son
+   cadre, son glyphe et sa valeur — les trois porteurs de son type. C'est LE MÊME
+   DESSIN qu'en petit : seule `--carte-l` change, tout le reste en découle. */
+.carte-boite { --carte-l: 132px; --carte-h: 191px; text-align: center; }
+.carte-boite .carte.grande {
+  margin: 4px auto 12px; cursor: default;
+  width: var(--carte-l); height: var(--carte-h); flex: 0 0 auto;
+}
+.carte-boite .cd-tete { display: flex; align-items: baseline; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.carte-boite .cd-tete b { font-family: var(--font-title); font-size: 16px; color: #e8c877; }
+.carte-boite .pd-rarete { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #cbb08a; }
+.carte-boite .pd-txt,
+.carte-boite .pd-compte { font-size: 12px; line-height: 1.4; color: #cbb08a; margin: 6px 0 0; }

@@ -54,7 +54,11 @@ function alea(g) {
 function construireCote(graine, echelle = 1) {
   const r = alea(graine);
   const bord = r() < 0.5 ? -1 : 1;
-  const portee = (0.26 + r() * 0.26) * echelle;
+  // UNE CÔTE SUR QUATRE BARRE TOUT L'HORIZON. On n'entre pas toujours dans une
+  // rade par le travers : il arrive qu'on longe une terre, et l'horizon est
+  // alors une ligne de relief d'un bord à l'autre. Sans ce cas, toute rade
+  // ressemblait à une pointe posée dans un coin.
+  const portee = (r() < 0.25 ? 1.02 : 0.26 + r() * 0.26) * echelle;
   const n = 5 + Math.floor(r() * 4);
   const a1 = r() * 6.283, a2 = r() * 6.283, k = 1.6 + r() * 2.4;
   const crete = [];
@@ -117,15 +121,54 @@ export function randomOceanScene(weatherHint) {
   const g = (Math.random() * 4294967295) >>> 0;
   const rivage = Math.random() < 0.5 ? null
     : { proche: construireCote(g), lointain: construireCote((g + 1) >>> 0, 1.35), graine: g };
-  scene = { weather, decor, rivage };
+  scene = { weather, decor, rivage, astre: tirerAstre(weather) };
   return scene;
+}
+
+// L'ASTRE EST TIRÉ AVEC LA SCÈNE : son espèce, son abscisse, sa HAUTEUR et, pour
+// la lune, sa phase. Il était posé en dur à `w * 0.76, horizon * 0.45` — le même
+// point à chaque partie, à chaque heure, et le même disque plein la nuit que le
+// jour. Un ciel dont le seul astre ne bouge jamais est un décor peint.
+//
+// LA HAUTEUR VIENT DE L'HEURE, et c'est la seule chose que le ciel raconte : au
+// lever et au couchant l'astre rase l'horizon, à midi il est haut. Les bornes
+// sont des FRACTIONS de la bande de ciel, donc elles valent à toute hauteur
+// d'écran — 1 est la ligne d'eau, 0 le haut de l'écran.
+const HAUTEURS = {
+  dawn:   [0.62, 0.88],   // il se lève : il rase encore
+  day:    [0.06, 0.34],   // haut, et c'est ce qui fait qu'il est midi
+  cloudy: [0.20, 0.55],
+  storm:  [0.24, 0.58],
+  sunset: [0.60, 0.90],   // il tombe
+  night:  [0.10, 0.80],   // la lune se promène plus librement
+};
+
+function tirerAstre(weather) {
+  const [bas, haut] = HAUTEURS[weather] || HAUTEURS.day;
+  return Object.freeze({
+    lune: weather === 'night',
+    // JAMAIS TOUJOURS AU MÊME X. Bornée à 12–88 % : collé au bord, l'astre est
+    // coupé par la tranche de l'écran et se lit comme une tache.
+    x: 0.12 + Math.random() * 0.76,
+    y: bas + Math.random() * (haut - bas),
+    // La phase, en tours : 0 nouvelle, 0,5 pleine. Tirée au hasard — ce jeu ne
+    // tient pas de calendrier, et une lune qui suivrait un cycle réel demanderait
+    // une date, donc une horloge, dans un module qui n'en a pas.
+    phase: Math.random(),
+  });
 }
 
 // `horizon` : la fraction de hauteur où la mer commence. Par défaut 0,13 —
 // une mer qui remplit presque tout, ce que veulent les écrans de carte et de
 // titre. L'écran de cartes la descend, pour que les navires aient du ciel
 // derrière leurs voiles au lieu de se découper sur de l'eau.
-export function startOcean(canvas, { horizon: fraction = 0.13 } = {}) {
+// `cielHaut` : la fraction de hauteur SOUS laquelle le ciel est dégagé. Elle
+// existe pour l'astre, et pour lui seul. Les étiquettes des deux navires sont
+// des plaques opaques posées en haut de la mer : un soleil de midi, qui est haut
+// PAR DÉFINITION, se rangeait entièrement derrière elles — on avait donc un ciel
+// de midi sans soleil. C'est l'appelant qui la mesure, parce que c'est lui qui
+// sait où finissent ses plaques ; ici on ne devine rien.
+export function startOcean(canvas, { horizon: fraction = 0.13, cielHaut = 0 } = {}) {
   if (!scene) randomOceanScene();
   const ctx = canvas.getContext('2d');
   let w, h, t = 0;
@@ -184,13 +227,25 @@ export function startOcean(canvas, { horizon: fraction = 0.13 } = {}) {
       }
     }
 
-    // Sun / moon in the thin sky band.
-    const sunX = w * 0.76, sunY = horizon * 0.45;
+    // L'ASTRE, à sa place et à sa hauteur — tirées avec la scène, jamais écrites
+    // ici. `y` est une fraction de la bande de ciel : 1 est la ligne d'eau.
+    const a = scene.astre || { lune: false, x: 0.76, y: 0.45, phase: 0.5 };
+    // La hauteur tirée est une fraction du ciel DÉGAGÉ, entre le bas des
+    // plaques et la ligne d'eau — pas du haut de l'écran, où rien ne se voit.
+    const plafond = h * cielHaut;
+    const sunX = w * a.x, sunY = plafond + a.y * (horizon - plafond);
+    const R = a.lune ? 13 : 11;
     ctx.globalAlpha = s.sunA;
-    const g = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 46);
+    // LE HALO EST PLUS SERRÉ SUR LA LUNE que sur le soleil : un halo de 46 px
+    // autour d'un croissant en efface la forme, et une lune sans sa phase est un
+    // soleil blanc.
+    const rh = a.lune ? 26 : 46;
+    const g = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, rh);
     g.addColorStop(0, s.sun); g.addColorStop(0.4, s.sun); g.addColorStop(1, 'transparent');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sunX, sunY, 46, 0, 7); ctx.fill();
-    ctx.fillStyle = s.sun; ctx.beginPath(); ctx.arc(sunX, sunY, 11, 0, 7); ctx.fill();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sunX, sunY, rh, 0, 7); ctx.fill();
+    ctx.fillStyle = s.sun;
+    if (a.lune) dessinerPhase(ctx, sunX, sunY, R, a.phase);
+    else { ctx.beginPath(); ctx.arc(sunX, sunY, R, 0, 7); ctx.fill(); }
     ctx.globalAlpha = 1;
 
     // Clouds (drift slowly).
@@ -343,6 +398,29 @@ function drawDecor(ctx, d, horizon, w, h, color, t) {
 // la même silhouette et le même palmier planté au même endroit : la `seed` de la
 // scène ne servait qu'aux phases d'animation, jamais à la forme. C'est la cause
 // directe du « toujours le même paysage ».
+// UNE PHASE DE LUNE EST UN SEUL CHEMIN, ET UN SEUL REMPLISSAGE. La part
+// éclairée est bornée d'un côté par un demi-cercle et de l'autre par une
+// demi-ELLIPSE — le terminateur, qui est un cercle vu de biais, donc une ellipse
+// à l'écran. Son demi-axe vaut `R × cos(2πφ)` : nul à la pleine lune, égal à R
+// au premier et au dernier quartier, et il CHANGE DE SIGNE au fil du cycle,
+// c'est ce qui fait passer le croissant du gibbeux.
+//
+// Peindre un disque puis en retrancher un autre en semi-transparent donnerait à
+// lire les deux disques et leur recouvrement (règle 12) ; peindre l'ombre en
+// couleur de ciel marcherait tant que le ciel est uni, et se verrait le jour où
+// il ne l'est plus. Un chemin, un `fill()`.
+//
+// φ : 0 nouvelle lune, 0,25 premier quartier, 0,5 pleine, 0,75 dernier.
+function dessinerPhase(ctx, x, y, R, phase) {
+  const k = Math.cos(2 * Math.PI * phase);
+  const croissant = phase < 0.5;             // le côté éclairé change au milieu
+  ctx.beginPath();
+  ctx.arc(x, y, R, -Math.PI / 2, Math.PI / 2, croissant);
+  ctx.ellipse(x, y, Math.abs(R * k), R, 0, Math.PI / 2, -Math.PI / 2, (k > 0) !== croissant);
+  ctx.closePath();
+  ctx.fill();
+}
+
 // Mélange deux couleurs `#rrggbb`. La perspective aérienne, en une ligne.
 function melange(a, b, k) {
   const h = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));

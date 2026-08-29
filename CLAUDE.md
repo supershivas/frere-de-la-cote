@@ -235,8 +235,27 @@ tutoriel, pas de carte des Caraïbes, pas de boutique.
   haut à `B − 20`, donc le dégagement vaut `(B − 98) / 2` et les 10 px voulus
   demandent **B = 118**. Collés en bas, 96 suffisaient : le centrage coûte 22 px,
   pris à la mer, qui en garde 384.
-- **TOUCHER UNE PILE OUVRE SA CARTE, EN GRAND.** Depuis la pioche, la défausse ou le
-  paquet, une pile touchée ouvre une modale où la carte est l'objet PRINCIPAL —
+- **UNE CARTE A UN SEUL DESSIN, À TOUTES LES TAILLES.** Elle en a eu deux : la
+  grande donnait son nom en 7 px et son cadre en 5, la petite les redonnait en
+  5 px et 1,5 — une petite carte n'était pas une grande carte réduite, c'était
+  une AUTRE carte. Tout ce qui était en pixels absolus passe maintenant par `--u`,
+  le soixante-deuxième de la largeur de la carte, et il n'y a plus rien à
+  surcharger : poser `--carte-l` suffit. Attention, `--u` est une LONGUEUR —
+  `calc(5px * var(--u))` multiplierait deux longueurs, la déclaration serait
+  ignorée et le cadre tomberait à zéro sans qu'aucune erreur ne soit levée.
+  Le navigateur tronque ensuite la bordure au pixel entier : c'est le seul écart
+  qui reste entre les trois tailles, il fait moins d'un pixel, et il ne vient
+  d'aucune règle.
+- **LES PAQUETS MONTRENT TOUTES LEURS CARTES, une par une.** Ils se montraient en
+  piles par type avec un « ×3 » : c'était juste tant qu'un exemplaire valait
+  exactement l'autre. Ce ne l'est plus — une commune pourra évoluer sans que ses
+  jumelles bougent — et une pile de trois dont une seule est améliorée est un
+  mensonge par regroupement. La grille se remplit en `auto-fill` : le paquet peut
+  grossir ou maigrir sans qu'aucun chiffre ne soit à revoir. **Les cartes y font
+  la MÊME LARGEUR qu'en main** — la modale recopie le `--carte-l` de l'écran, dont
+  elle n'hérite pas puisqu'elle vit dans `document.body`.
+- **TOUCHER UNE CARTE L'OUVRE, EN GRAND.** Depuis la pioche, la défausse ou le
+  paquet, une carte touchée ouvre une modale où elle est l'objet PRINCIPAL —
   132 × 191 px, la taille où l'on voit son cadre, son glyphe et sa valeur, les
   trois porteurs de son type. Une plaque de texte au pied de la grille a été
   essayée : elle disait la même chose, mais on lisait une description **sans voir
@@ -352,9 +371,29 @@ tutoriel, pas de carte des Caraïbes, pas de boutique.
   à l'échelle de l'horizon, cette silhouette était une hampe surmontée d'un
   drapeau — exactement ce que le fort avait été retiré pour avoir. Son mât est
   rompu et penché, et il ne porte plus rien.
+- **LE CIEL A UNE HEURE, ET SON ASTRE LE DIT.** Le soleil était posé en dur à
+  `w * 0.76, horizon * 0.45` — le même point à chaque partie, à chaque heure, et
+  le même disque plein la nuit que le jour. Son espèce, son abscisse (12 à 88 %,
+  jamais collé au bord où il serait coupé) et sa HAUTEUR se tirent maintenant
+  avec la scène : au lever et au couchant il rase l'horizon, à midi il est haut.
+- **LE PLAFOND DU CIEL EST MESURÉ PAR L'APPELANT**, et passé en `cielHaut`. Les
+  étiquettes des deux navires sont des plaques opaques posées en haut de la mer :
+  un soleil de midi, qui est haut PAR DÉFINITION, se rangeait entièrement
+  derrière elles — on avait un ciel de midi sans soleil. La hauteur tirée est
+  donc une fraction du ciel DÉGAGÉ, pas du haut de l'écran.
+- **UNE PHASE DE LUNE EST UN SEUL CHEMIN, ET UN SEUL REMPLISSAGE.** La part
+  éclairée est bornée d'un côté par un demi-cercle, de l'autre par une
+  demi-ELLIPSE — le terminateur est un cercle vu de biais. Son demi-axe vaut
+  `R × cos(2πφ)` : nul à la pleine lune, égal à R aux quartiers, et il change de
+  SIGNE au fil du cycle, ce qui fait passer le croissant du gibbeux. Retrancher
+  un disque d'un autre en semi-transparent donnerait à lire les deux et leur
+  recouvrement (règle 12) ; le peindre en couleur de ciel marcherait tant que le
+  ciel est uni, et se verrait le jour où il ne l'est plus.
 - **UN RIVAGE SE TIRE AU SORT, il ne se dessine pas une fois pour toutes.** Une
-  rade sur deux porte une terre, qui entre par un bord de l'écran : deux sinus de
-  phases et de fréquences tirées, 5 à 8 crêtes, **34 px au plus** contre le bord
+  rade sur deux porte une terre, qui entre par un bord de l'écran — et **une sur
+  quatre barre tout l'horizon** : on n'entre pas toujours dans une rade par le
+  travers, il arrive qu'on longe une côte. Deux sinus de phases et de fréquences
+  tirées, 5 à 8 crêtes, **34 px au plus** contre le bord
   et **0 à la pointe** — la terre entre dans la mer au lieu de s'arrêter net. La
   portée est une FRACTION de la largeur : à 412 px la côte est plus longue, elle
   n'est pas étirée. **Deux plans, tous deux OPAQUES**, le lointain mélangé vers le
