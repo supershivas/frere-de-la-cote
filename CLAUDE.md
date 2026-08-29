@@ -127,6 +127,17 @@ savourer.
 - **Chaque ligne de `evaluer()` dit d'où elle vient** (`source`, `uid`/`id`).
   Ça ne change rien au compte : sans cette provenance, l'interface aurait dû
   deviner en relisant les noms — et un nom est du contenu qui change.
+- **LA BULLE RÉSERVE SA LARGEUR, elle ne la subit pas.** La consigne de geste est
+  en `nowrap`, donc c'était l'élément le plus large de la bulle, et la bulle
+  s'ajuste à son contenu : pendant UN SEUL geste la consigne change trois fois,
+  et la bulle passait de 165 à 206, 222 puis 190 px — centrée, donc elle
+  grandissait et rétrécissait des deux côtés à la fois, sous les yeux, pendant
+  qu'on tenait ses cartes. C'est le défaut de la barre de compte à une autre
+  échelle : **une boîte dont la taille dépend d'un texte qui change.** La
+  consigne est sortie du flux (`position: absolute`, sa hauteur réservée par le
+  `padding-bottom`), et la bulle porte un `min-width` égal à son pire cas —
+  224 px, la plus longue consigne MESURÉE plus sa marge. `max-width: 92%` garde
+  la priorité : c'est une réserve, pas une largeur fixe.
 - **La projection s'efface pendant la résolution.** La bulle annonce le total
   avant qu'on lâche — c'est sa raison d'être, rien n'est caché — mais laissée en
   place elle affichait la réponse à côté du compteur qui la construit.

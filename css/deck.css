@@ -1575,13 +1575,22 @@
 .screen.ecran-cartes .tableau {
   position: absolute; z-index: 8; left: 50%; bottom: calc(100% - 6px);
   transform: translateX(-50%) translateY(6px) scale(.94);
-  min-width: 44%; max-width: 92%;
+  /* 224 px = la plus longue consigne MESURÉE (« ↑ relâche n'importe où : la
+     volée part », 198 px à 9 px de corps), plus 20 px de padding et 6 de marge —
+     à 218 px pile elle rentrait au pixel près, ce qui n'est pas une marge. La bulle
+     réserve donc la largeur de son pire cas au lieu de la subir : elle ne
+     grandit plus sous les yeux quand la consigne change, et la consigne n'est
+     pas coupée. Le `max-width` garde la priorité, donc rien ne peut déborder
+     d'un écran étroit — c'est une réserve, pas une largeur fixe. */
+  min-width: min(224px, 92%); max-width: 92%;
   opacity: 0; pointer-events: none;
   transition: opacity .14s var(--ease-fast), transform .2s cubic-bezier(.2,1.25,.35,1);
   text-align: center;
   background: var(--bg-panel);
   border: 1px solid var(--border); border-left: 3px solid var(--border);
-  border-radius: 8px; padding: 5px 10px;
+  border-radius: 8px;
+  /* 15 px en pied : la place RÉSERVÉE à la consigne, qui est sortie du flux. */
+  padding: 5px 10px 15px;
   /* SA HAUTEUR SUIT SON CONTENU. Elle était réservée à 58 px pour que le
      tableau ne saute pas quand il passait d'une réplique d'équipage au compte
      d'une volée. Ces deux contenus ne se disputent plus la place — il ne reste
@@ -1687,8 +1696,30 @@
 /* `--gold-dark` sortait à 4,45:1 sur la projection de volée — sous le 4,5:1 dû,
    de cinq centièmes. Une marge de cinq centièmes n'est pas une marge : elle
    bascule au premier changement de fond derrière. */
+/* LA CONSIGNE NE DOIT PAS DICTER LA LARGEUR DE LA BULLE. Elle est en `nowrap`,
+   donc c'était l'élément le plus large du tableau, et le tableau s'ajuste à son
+   contenu : pendant UN SEUL geste la consigne change trois fois — « pousse vers
+   le haut », « ↑ relâche n'importe où », « ↩ relâche : la volée est défaite » —
+   et la bulle passait de 165 à 206, 222 puis 190 px. Elle est centrée, donc elle
+   grandissait et rétrécissait des deux côtés à la fois, sous les yeux, pendant
+   qu'on tenait ses cartes.
+   
+   C'est le défaut de la barre de compte à une autre échelle : une boîte dont la
+   TAILLE dépend d'un texte qui change. Le compte, lui, a le droit de la donner —
+   c'est ce que la bulle montre.
+
+   ELLE EST SORTIE DU FLUX, et c'est la seule façon sûre. `min-width: 0` dans une
+   grille ne suffit pas : la bulle est en position absolue, donc sa largeur au
+   plus juste se calcule sur le `max-content` de ses enfants, et la consigne y
+   pesait encore — il restait un saut de 165 à 188 px au démarrage du geste.
+   Posée en absolu entre les deux bords, elle ne compte plus pour rien dans la
+   largeur ; le compte la donne seul, et c'est ce que la bulle est censée
+   montrer. Sa hauteur, elle, est RÉSERVÉE par le `padding-bottom` du tableau :
+   une ligne sortie du flux ne pousse plus rien, il faut donc lui garder sa
+   place, sans quoi elle déborderait par le bas. */
 .screen.ecran-cartes .tb-geste {
-  font-size: 9px; color: #d8bd86; letter-spacing: .4px; margin-top: 2px;
+  position: absolute; left: 10px; right: 10px; bottom: 4px;
+  font-size: 9px; color: #d8bd86; letter-spacing: .4px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .screen.ecran-cartes .tb-refus { color: var(--hp); }
