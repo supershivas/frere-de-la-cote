@@ -157,7 +157,26 @@ function peindreCoques() {
     const grille = (g.grid || g).map((r) => (typeof r === 'string' ? r : r.join('')));
     return (g.waterY != null ? g.waterY : grille.length - 1) + 1;
   });
-  const px = Math.max(1, Math.min(3, Math.floor(dispo / Math.max(...hauts))));
+  // LA TAILLE DU PIXEL SE CHOISIT SUR LES DEUX DIMENSIONS, jamais sur la seule
+  // hauteur. Choisie sur la hauteur seule, la coque sortait plus large que sa
+  // boîte, et le `max-width: 100%` de la feuille la RÉTRÉCISSAIT en silence :
+  // 204 px de tampon affichés sur 152, soit un facteur 0,745 appliqué à du
+  // pixel art — un pixel sur quatre purement et simplement supprimé, et des
+  // mâts qui changent d'épaisseur d'un rang à l'autre. C'est la déformation
+  // qu'on voyait sur les navires, et elle n'a rien à voir avec le lissage.
+  //
+  // La largeur disponible se prend sur la boîte de la coque, qui vaut 40 % et
+  // 48 % de la flotte (§17). Le tampon vaut alors exactement sa taille
+  // d'affichage : l'agrandissement qui reste est celui de l'écran, et il est
+  // ENTIER, donc propre.
+  const larges = [flotte.clientWidth * 0.40, flotte.clientWidth * 0.48];
+  const cols = specs.map((sp) => {
+    const g = getGeneratedShip(sp);
+    return ((g.grid || g)[0] || '').length || 1;
+  });
+  const px = Math.max(1, Math.min(3,
+    Math.floor(dispo / Math.max(...hauts)),
+    ...cols.map((c, i) => Math.floor(larges[i] / c))));
   peindreCoque(document.getElementById('c-nous'), specs[0], 1, px);
   peindreCoque(document.getElementById('c-prise'), specs[1], -1, px);
 }

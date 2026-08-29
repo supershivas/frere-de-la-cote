@@ -373,6 +373,23 @@ tutoriel, pas de carte des Caraïbes, pas de boutique.
   retirées — un bord mangé en creux et en bosses, une frange d'écume, puis un
   train d'ondes traversant toute la scène. Les trois se remarquaient plus que la
   mer elle-même. **Ne pas les reconstruire.**
+- **LE TAMPON D'UN CANVAS SE COMPTE EN PIXELS D'ÉCRAN, PAS EN PIXELS CSS.** La
+  mer valait `canvas.clientWidth` : sur un téléphone à 3×, un tampon de
+  393 × 852 était étiré sur 1 179 × 2 556 pixels réels avec le lissage par
+  défaut, et le ciel, les nuages et le halo du soleil en sortaient étalés.
+  `setTransform(r, 0, 0, r, 0, 0)` remet l'échelle, et pas une ligne de tracé ne
+  change. **Sur un écran d'ordinateur, où le rapport vaut 1, rien ne le
+  signale** : c'est un défaut qui ne se voit que sur l'appareil pour lequel le
+  jeu est fait.
+- **DU PIXEL ART NE SE RÉÉCHELONNE JAMAIS D'UN FACTEUR FRACTIONNAIRE.** La taille
+  du pixel d'une coque se choisissait sur la seule HAUTEUR disponible ; la coque
+  sortait alors plus large que sa boîte, et le `max-width: 100%` de la feuille la
+  rétrécissait **en silence** — 204 px de tampon affichés sur 152, soit ×0,745 :
+  un pixel sur quatre supprimé, et des mâts qui changent d'épaisseur d'un rang à
+  l'autre. La taille se prend maintenant sur les DEUX dimensions, le tampon vaut
+  exactement sa taille d'affichage, et l'agrandissement qui reste est celui de
+  l'écran — donc entier. Les coques y perdent un rang de pixels ; elles y gagnent
+  d'être justes.
 - **L'horizon est posé sur les navires** — `startOcean(canvas, { horizon })`,
   calculé au tiers supérieur des coques : du ciel derrière les voiles hautes, de
   l'eau derrière les coques.

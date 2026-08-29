@@ -130,7 +130,25 @@ export function startOcean(canvas, { horizon: fraction = 0.13 } = {}) {
   const ctx = canvas.getContext('2d');
   let w, h, t = 0;
 
-  function resize() { w = canvas.width = canvas.clientWidth; h = canvas.height = canvas.clientHeight; }
+  // LE TAMPON SE COMPTE EN PIXELS D'ÉCRAN, PAS EN PIXELS CSS. Il a longtemps
+  // valu `canvas.clientWidth` : sur un téléphone à 3×, un tampon de 393 × 852
+  // était étiré sur 1179 × 2556 pixels réels, avec le lissage par défaut. Le
+  // ciel, les nuages et le halo du soleil en sortaient étalés — et sur un écran
+  // d'ordinateur, où le rapport vaut 1, RIEN NE LE SIGNALAIT. C'est la faute la
+  // plus coûteuse qu'un canvas puisse faire, et elle ne se voit que sur
+  // l'appareil pour lequel le jeu est fait.
+  //
+  // `setTransform` remet ensuite l'échelle : tout le tracé continue de compter
+  // en pixels CSS, et pas une ligne de dessin ne change. Le rapport est plafonné
+  // à 3 — au-delà, on paie quatre fois les pixels pour une différence que
+  // personne ne voit.
+  function resize() {
+    const r = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    w = canvas.clientWidth; h = canvas.clientHeight;
+    canvas.width = Math.round(w * r);
+    canvas.height = Math.round(h * r);
+    ctx.setTransform(r, 0, 0, r, 0, 0);
+  }
   resize();
   window.addEventListener('resize', resize);
 
